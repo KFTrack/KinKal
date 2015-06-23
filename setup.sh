@@ -63,3 +63,8 @@ setup -B scons v2_3_4
 # PYTHONPATH is known to be non-empty at this stage;
 # do not need to protect for an empty path.
 export PYTHONPATH=${PYTHONPATH}:${PACKAGE_SOURCE}/python
+
+# Tell python not to write out byte code files.
+# Otherwise they write byte code files into the source directory.
+# I would prefer to specify a cache inside the build directory.
+export PYTHONDONTWRITEBYTECODE=1
