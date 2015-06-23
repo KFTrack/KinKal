@@ -1,0 +1,9 @@
+.svn*
+*.cc
+SConscript
+*.mk
+GNUmakefile
+*~
+*.sh
+*.old
+python/*
