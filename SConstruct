@@ -34,7 +34,7 @@ buildBase = os.environ['BUILD_BASE']
 bindir = buildBase+'/bin/'
 
 # -I and -L paths for libraries that will be used.
-includePath = [ sourceRoot+'/BTrk/include',
+includePath = [ sourceRoot+'/BTrk/',
                 os.environ['CLHEP_INC'],
                 os.environ['ROOT_INC'] ]
 
