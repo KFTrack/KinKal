@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_00_05
+export PACKAGE_VERSION=v1_00_06
 
 # Done parsing and checking arguments
 
@@ -60,11 +60,20 @@ setup -B clhep v2_2_0_5 -q${qualifiers}
 setup -B root  v5_34_25 -q${qualifiers}
 setup -B scons v2_3_4
 
-# PYTHONPATH is known to be non-empty at this stage;
-# do not need to protect for an empty path.
-export PYTHONPATH=${PYTHONPATH}:${PACKAGE_SOURCE}/python
+# Only used inside scripts/install.sh, to get the flavor of the build platform.
+setup cetpkgsupport
+
+# Tell SConstruct where to find helpers.py
+if [ "${PYTHONPATH}" = '' ];then
+ export PYTHONPATH=${PACKAGE_SOURCE}/python
+else
+ export PYTHONPATH=${PYTHONPATH}:${PACKAGE_SOURCE}/python
+fi
 
 # Tell python not to write out byte code files.
-# Otherwise they write byte code files into the source directory.
-# I would prefer to specify a cache inside the build directory.
+# Fixme: Otherwise they write byte code files into the source directory.
+# I would prefer to specify a cache inside the build directory but
+# I don't know how to do that.
 export PYTHONDONTWRITEBYTECODE=1
+
+unset qualifiers
