@@ -83,7 +83,7 @@ def validateDebugLevel():
 # Define the compiler and linker options.
 # These are given to scons using its Evironment.MergeFlags call.
 def defineMergeFlags( debug_level):
-   commonFlags = [ '-std=c++1y', '-rdynamic', '-Wall', '-Wno-unused-local-typedefs', '-g' ]
+   commonFlags = [ '-std=c++1y', '-rdynamic', '-Wall', '-Wno-unused-local-typedefs', '-g', '-Werror']
    extraFlags = []
    if debug_level == 'prof':
        extraFlags = [ '-O3', '-fno-omit-frame-pointer', '-DNDEBUG' ]
