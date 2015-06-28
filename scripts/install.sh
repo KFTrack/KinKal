@@ -13,9 +13,15 @@ if [ "${PRODUCTS_INSTALL}" = '' ];then
     return 1
 fi
 
+# There are two representations of flavor:
+# old style, for example: Linux64bit+2.6-2.12_e7
+# new style, for example: slf6.x86_64
+# We need them both.
+old_flavour=`ups flavor`
+new_flavour=`get-directory-name subdir`
+
 # Build the names of the directories into which we will write things
-flavour=`ups flavor`
-fq=${flavour}-${COMPILER_CODE}-${DEBUG_LEVEL}
+fq=${new_flavour}.${COMPILER_CODE}.${DEBUG_LEVEL}
 topdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}
 proddir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}
 verdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}.version
@@ -25,7 +31,7 @@ upsdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}/ups
 
 # I am not sure what this file is properly called.
 # I am calling it the fqfile, which is short for flavor qualifier file.
-fqfile=${verdir}/${flavour}_${COMPILER_CODE}_${DEBUG_LEVEL}
+fqfile=${verdir}/${old_flavour}_${COMPILER_CODE}_${DEBUG_LEVEL}
 
 # Make directories, if needed.
 if ! [ -e ${topdir} ];then
@@ -89,7 +95,7 @@ VERSION = ${PACKAGE_VERSION}
 
 #*************************************************
 #
-FLAVOR = ${flavour}
+FLAVOR = ${old_flavour}
 QUALIFIERS = "${COMPILER_CODE}:${DEBUG_LEVEL}"
   DECLARER = `whoami`
   DECLARED = `date +"%Y-%m-%d %H:%M:%S GMT" -u`
@@ -100,3 +106,15 @@ QUALIFIERS = "${COMPILER_CODE}:${DEBUG_LEVEL}"
   TABLE_FILE = ${PACKAGE_NAME}.table
 
 EOF
+
+unset old_flavour
+unset new_flavour
+unset fq
+unset topdir
+unset proddir
+unset verdir
+unset libdir
+unset incdir
+unset upsdir
+unset fqfile
+
