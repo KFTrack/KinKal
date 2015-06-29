@@ -2,8 +2,8 @@
 #
 # Copy the files from the source and build areas to create a UPS product.
 #
-# This script deletes previously existing installs of the same product+version.
-# Use with care.
+# This script unconditionally deletes previously existing installs of the
+# same product+version+qualifiers: use with care.
 #
 
 # Check that the installation directoy has been defined.
@@ -13,7 +13,7 @@ if [ "${PRODUCTS_INSTALL}" = '' ];then
     return 1
 fi
 
-# There are two representations of flavor:
+# There are two representations of operating system UPS flavor:
 # old style, for example: Linux64bit+2.6-2.12_e7
 # new style, for example: slf6.x86_64
 # We need them both.
@@ -47,45 +47,42 @@ if ! [ -e ${verdir} ];then
 fi
 
 # Remove all content that we will recreate.
-# In all cases create required directories.
-if ! [ -e ${libdir} ];then
-  mkdir ${libdir}
-else
+# (Re)create required directories.
+if [ -e ${libdir} ];then
   /bin/rm -rf ${libdir}
-  mkdir ${libdir}
 fi
+mkdir ${libdir}
 
-if ! [ -e ${incdir} ];then
-  mkdir ${incdir}
-else
+if [ -e ${incdir} ];then
   /bin/rm -rf ${incdir}
-  mkdir ${incdir}
 fi
+mkdir ${incdir}
 
-if ! [ -e ${upsdir} ];then
-  mkdir ${upsdir}
-else
+if [ -e ${upsdir} ];then
   /bin/rm -rf ${upsdir}
-  mkdir ${upsdir}
 fi
+mkdir ${upsdir}
 
 if [ -e ${fqfile} ];then
   /bin/rm -rf ${fqfile}
 fi
 
-# FIXME: change tar to rsync to preserve times?
-# Copy the required parts of the source directory to the installation area.
-tar cf - --exclude-from  ${PACKAGE_SOURCE}/etc/tarExcludePatterns.txt \
-    -C ${PACKAGE_SOURCE} ${PACKAGE_NAME} | tar xf - -C ${proddir}/include
+# Copy the required parts of the source directory to the installation area:
 
-tar cf - --exclude-from  ${PACKAGE_SOURCE}/etc/tarExcludePatterns.txt \
-    -C ${PACKAGE_SOURCE} ups | tar xf - -C ${proddir}
+# Header files:
+rsync -ar --exclude-from  ${PACKAGE_SOURCE}/etc/tar_exclude_for_include.txt \
+    ${PACKAGE_SOURCE}/${PACKAGE_NAME} ${proddir}/include
 
-# Copy the lib directory to the installation area
-tar cf - lib  | tar xf - -C ${libdir}
+# UPS table file
+rsync -ar --exclude-from  ${PACKAGE_SOURCE}/etc/tar_exclude_for_include.txt \
+    ${PACKAGE_SOURCE}/ups ${proddir}
 
-# Fixme: temporary hack until #include directives are cleaned up.
-ln -s ${incdir}/BTrk ${incdir}/BaBar
+# Libaries
+rsync -ar lib ${libdir}
+
+# A copy of the full source
+rsync -ar --exclude-from  ${PACKAGE_SOURCE}/etc/tar_exclude_for_source.txt \
+  ${PACKAGE_SOURCE}/${PACKAGE_NAME} ${proddir}/source
 
 # Create the ups fq file.
 cat > ${fqfile} <<EOF
@@ -117,4 +114,3 @@ unset libdir
 unset incdir
 unset upsdir
 unset fqfile
-
