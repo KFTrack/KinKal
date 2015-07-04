@@ -57,7 +57,7 @@ export COMPILER_CODE=e7
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
 setup -B clhep v2_2_0_5 -q${qualifiers}
-setup -B root  v5_34_25 -q${qualifiers}
+setup -B root  v5_34_30 -q${qualifiers}
 setup -B scons v2_3_4
 
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
