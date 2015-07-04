@@ -74,8 +74,7 @@ rsync -ar --exclude-from  ${PACKAGE_SOURCE}/etc/tar_exclude_for_include.txt \
     ${PACKAGE_SOURCE}/${PACKAGE_NAME} ${proddir}/include
 
 # UPS table file
-rsync -ar --exclude-from  ${PACKAGE_SOURCE}/etc/tar_exclude_for_include.txt \
-    ${PACKAGE_SOURCE}/ups ${proddir}
+${PACKAGE_SOURCE}/scripts/installTableFile.sh ${upsdir}/${PACKAGE_NAME}.table
 
 # Libaries
 rsync -ar lib ${libdir}
