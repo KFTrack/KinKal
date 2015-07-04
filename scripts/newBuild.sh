@@ -26,6 +26,22 @@ if [ "${debug_level}" != "prof" ] && [ "${debug_level}" != "debug" ]; then
    return 1
 fi
 
+# Protect against overwriting something that we should not.
+isClean=1
+if [ -e "SConstruct" ]; then
+   echo "The file SConstruct already exists.  Please fix this and retry."
+   isClean=0
+fi
+
+if [ -e "setup.sh" ]; then
+   echo "The file setup.sh.  Please fix this and retry."
+   isClean=0
+fi
+
+if [ "${isClean}" == "0" ]; then
+  return 1
+fi
+
 # The root of the source to be built is the directory in which this script is found.
 package_source=`cd "$(dirname ${BASH_SOURCE})" >/dev/null 2>&1 && /bin/pwd | sed -e 's|/scripts$||' `
 echo $package_source
