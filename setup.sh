@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_00_08
+export PACKAGE_VERSION=v1_00_09
 
 # Done parsing and checking arguments
 
@@ -50,15 +50,15 @@ echo "Debug level:        " ${DEBUG_LEVEL}
 
 # These are a matched pair and must be kept in sync by hand.
 # See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers
-setup -B gcc v4_9_2
-export COMPILER_CODE=e7
+setup -B gcc v4_9_3
+export COMPILER_CODE=e9
 
 # Choose versions of the remaining UPS products.
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
-setup -B clhep v2_2_0_5 -q${qualifiers}
-setup -B root  v5_34_30 -q${qualifiers}
-setup -B scons v2_3_4
+setup -B clhep v2_2_0_8 -q${qualifiers}
+setup -B root  v5_34_32 -q${qualifiers}
+setup -B scons v2_4_0
 
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
 setup cetpkgsupport
