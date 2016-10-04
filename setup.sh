@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_01_03
+export PACKAGE_VERSION=v1_01_04
 
 # Done parsing and checking arguments
 
@@ -56,7 +56,7 @@ export COMPILER_CODE=e10
 # Choose versions of the remaining UPS products.
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
-setup -B clhep v2_2_0_8a -q${qualifiers}
+setup -B clhep v2_3_3_2 -q${qualifiers}
 setup -B root  v6_06_08 -q${qualifiers}
 setup -B scons v2_5_0
 
