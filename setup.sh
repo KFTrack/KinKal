@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_01_02
+export PACKAGE_VERSION=v1_01_03
 
 # Done parsing and checking arguments
 
@@ -57,7 +57,7 @@ export COMPILER_CODE=e10
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
 setup -B clhep v2_2_0_8a -q${qualifiers}
-setup -B root  v6_06_04b -q${qualifiers}
+setup -B root  v6_06_08 -q${qualifiers}
 setup -B scons v2_5_0
 
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
