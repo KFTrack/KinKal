@@ -43,7 +43,7 @@ export PACKAGE_VERSION=v1_01_04
 
 # The target directory for the build is the directory from which the
 # source command is issued.
-export BUILD_BASE=${PWD}
+export BUILD_BASE=`pwd -P`
 echo "Source to be built: " ${PACKAGE_SOURCE}
 echo "Root of build:      " ${BUILD_BASE}
 echo "Debug level:        " ${DEBUG_LEVEL}
