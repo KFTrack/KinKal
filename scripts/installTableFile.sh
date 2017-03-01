@@ -14,7 +14,6 @@ destination_file=$1
 # Discover the versions of the products on which BTrk depends
 clhep_ver=`ups active | awk '$1 == "clhep" {print $2}'`
 root_ver=`ups active | awk '$1 == "root" {print $2}'`
-scons_ver=`ups active | awk '$1 == "scons" {print $2}'`
 gcc_ver=`ups active | awk '$1 == "gcc" {print $2}'`
 
 # A table file needs the qualifiers string in three formats:
@@ -72,9 +71,9 @@ Common:
 
     exeActionRequired(GetFQDir)
     envSet (BTRK_LIB, \${BTRK_DIR}/\${BTRK_FQ}/lib )
+    envSet (BTRK_VERSION, \${UPS_PROD_VERSION} )
 
     setupRequired( gcc   ${gcc_ver} )
-    setupRequired( scons ${scons_ver} )
 
     if ( test \`uname\` = "Darwin" )
       pathPrepend(DYLD_LIBRARY_PATH, \${\${UPS_PROD_NAME_UC}_LIB})
@@ -89,5 +88,4 @@ EOF
 
 unset clhep_ver
 unset root_ver
-unset scons_ver
 unset gcc_ver
