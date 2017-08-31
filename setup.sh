@@ -48,17 +48,16 @@ echo "Root of build:      " ${BUILD_BASE}
 echo "Debug level:        " ${DEBUG_LEVEL}
 
 # These are a matched pair and must be kept in sync by hand.
-# See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers
-setup -B gcc v4_9_3a
-export COMPILER_CODE=e10
+# See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifier
+setup -B gcc v6_3_0
+export COMPILER_CODE=e14
 
 # Choose versions of the remaining UPS products.
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
-#setup -B clhep v2_3_3_2 -q${qualifiers}
-setup -B clhep v2_3_4_3b -q${qualifiers}
-setup -B root v6_08_04e -q${qualifiers}
-setup -B scons v2_5_1 -q p2713b
+setup -B clhep v2_3_4_4 -q${qualifiers}
+setup -B root v6_08_06g -q${qualifiers}
+setup -B scons v2_5_1a -q p2713d
 
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
 setup cetpkgsupport
