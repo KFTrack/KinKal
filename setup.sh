@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_02_02
+export PACKAGE_VERSION=v1_02_03
 # Done parsing and checking arguments
 
 # The target directory for the build is the directory from which the
