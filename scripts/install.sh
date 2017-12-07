@@ -17,7 +17,7 @@ fi
 # old style, for example: Linux64bit+2.6-2.12_e7
 # new style, for example: slf6.x86_64
 # We need them both.
-old_flavour=`ups flavor`
+old_flavour=`ups flavor -4`
 new_flavour=`get-directory-name subdir`
 
 # Build the names of the directories into which we will write things
