@@ -55,8 +55,8 @@ export COMPILER_CODE=e14
 # Choose versions of the remaining UPS products.
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
-setup -B clhep v2_3_4_5 -q${qualifiers}
-setup -B root v6_10_08 -q${qualifiers}
+setup -B clhep v2_3_4_5a -q${qualifiers}
+setup -B root v6_10_08b -q${qualifiers}
 setup -B scons v3_0_0  -q p2714
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
 setup cetpkgsupport
