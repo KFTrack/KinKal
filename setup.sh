@@ -37,7 +37,8 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_02_12
+export PACKAGE_VERSION=v1_02_14
+
 # Done parsing and checking arguments
 
 # The target directory for the build is the directory from which the
@@ -58,6 +59,7 @@ qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 setup -B clhep v2_3_4_6  -q${qualifiers}
 setup -B root  v6_12_06a -q${qualifiers}
 setup -B scons v3_0_1  -q p2714b
+
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
 setup cetpkgsupport
 
