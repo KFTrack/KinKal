@@ -37,7 +37,7 @@ fi
 # The following are used by the install script.
 # They must be maintained by hand.
 export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v1_02_14
+export PACKAGE_VERSION=v1_02_15
 
 # Done parsing and checking arguments
 
@@ -50,8 +50,8 @@ echo "Debug level:        " ${DEBUG_LEVEL}
 
 # These are a matched pair and must be kept in sync by hand.
 # See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers
-setup -B gcc v7_3_0
-export COMPILER_CODE=e17
+setup -B gcc v6_4_0
+export COMPILER_CODE=e15
 
 # Choose versions of the remaining UPS products.
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
