@@ -61,11 +61,11 @@ import sys
 
 # Check that some of the required environment variables have been set.
 def validateEnvironment():
-    if not os.environ.has_key('PACKAGE_SOURCE'):
+    if not 'PACKAGE_SOURCE' in os.environ:
         sys.exit('You have not specified PACKAGE_SOURCE for this build.\nExiting.')
-    if not os.environ.has_key('DEBUG_LEVEL'):
+    if not 'DEBUG_LEVEL' in os.environ:
         sys.exit('You have not specified DEBUG_LEVEL for this build.\nExiting.')
-    if not os.environ.has_key('BUILD_BASE'):
+    if not 'BUILD_BASE' in os.environ:
         sys.exit('You have not specified BUILD_BASE for this build.\nExiting.')
 
 # Check that the debug level is one of the known values
@@ -73,11 +73,11 @@ def validateDebugLevel():
     level = os.environ['DEBUG_LEVEL']
     allowedLevels = ['prof', 'debug' ]
     if not level in allowedLevels:
-        print 'Unrecognized value for --debuglevel ' + level
-        print '   The value must be one of the allowed levels: '  + str(allowedLevels)
+        print ('Unrecognized value for --debuglevel ', level)
+        print ('   The value must be one of the allowed levels: ', str(allowedLevels) )
         raise Exception('Illegal value for --debuglevel')
         pass
-    print "Recognized debug level is: " + level
+    print ("Recognized debug level is: ", level)
     return level
 
 # Define the compiler and linker options.
@@ -124,9 +124,10 @@ def locateSConscriptFiles(sourceRoot):
 def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
     for sourceFile in ss:
         relpath = os.path.relpath(sourceFile, sourceRoot )
-        tokens = string.split(relpath,'/')
+        tokens = relpath.split('/')
         tokens.pop()
-        objPath = build_base + '/' + string.join(tokens,'/')
+        sep = '/'
+        objPath = build_base + '/' + sep.join(tokens)
         env.SConscript ( sourceFile, variant_dir=objPath)
 
 # An instance of this class available to the SConscript files via the scons environment.
@@ -145,13 +146,14 @@ class build_helper:
 #
     def libname(self):
         relpath = os.path.relpath('.',self.buildBase)
-        tokens = string.split(relpath,'/')
+        tokens = relpath.split('/')
         if len(tokens) > 1:
             if tokens[len(tokens)-1] == 'src':
                 tokens.pop()
                 pass
             pass
-        return string.join(tokens,'_')
+        sep = '_'
+        return sep.join(tokens)
 
     def prefixed_libname(self):
         return '#/lib/' + self.libname()
