@@ -57,8 +57,8 @@ export COMPILER_CODE=e17
 qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
 
 setup -B clhep v2_4_1_2  -q${qualifiers}
-setup -B root  v6_16_00 -q${qualifiers}
-setup -B scons v3_0_5  -q p2715a
+setup -B root  v6_16_00 -q${qualifiers}:py3
+setup -B scons v3_0_5  -q p372
 
 # Only used inside scripts/install.sh, to get the flavor of the build platform.
 setup cetpkgsupport
