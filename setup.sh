@@ -50,7 +50,7 @@ echo "Debug level:        " ${DEBUG_LEVEL}
 
 # These are a matched pair and must be kept in sync by hand.
 # See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers
-setup -B gcc v7_3_0
+setup -B gcc v8_2_0
 export COMPILER_CODE=e19
 
 # Choose versions of the remaining UPS products.
