@@ -29,10 +29,13 @@ colon_qualifiers=${COMPILER_CODE}
 # qual1.qual2.qual3
 # No leading dot on the first qualifer
 dot_qualifiers=${COMPILER_CODE}
+dot_extras=`echo ${EXTRA_ROOT_QUALIFIERS} | sed 's/:/./g'`
 
 # +qual1:+qual2:+qual3
 # No leading + or colon on the first qualifer
 plus_qualifiers=${COMPILER_CODE}
+plus_extras=`echo ${EXTRA_ROOT_QUALIFIERS} | sed 's/:/:+/g'`
+
 
 # Write the table file in place
 cat > ${destination_file} <<EOF
@@ -44,24 +47,24 @@ Product = ${PACKAGE_NAME}
 Group:
 
 Flavor     = ANY
-Qualifiers = "${colon_qualifiers}:debug"
+Qualifiers = "${colon_qualifiers}:debug${EXTRA_ROOT_QUALIFIERS}"
 
   Action = GetFQDir
       envSet( \${UPS_PROD_NAME_UC}_FS, "" )
       execute( "get-directory-name subdir", NO_UPS_ENV, \${UPS_PROD_NAME_UC}_FS )
-      envSet (BTRK_FQ, \${\${UPS_PROD_NAME_UC}_FS}.${dot_qualifiers}.debug)
+      envSet (BTRK_FQ, \${\${UPS_PROD_NAME_UC}_FS}.${dot_qualifiers}.debug${dot_extras})
       setupRequired( clhep ${clhep_ver} -q +${plus_qualifiers}:+debug )
-      setupRequired( root  ${root_ver} -q +${plus_qualifiers}:+debug )
+      setupRequired( root  ${root_ver} -q +${plus_qualifiers}:+debug${plus_extras})
 
 Flavor     = ANY
-Qualifiers = "${colon_qualifiers}:prof"
+Qualifiers = "${colon_qualifiers}:prof${EXTRA_ROOT_QUALIFIERS}"
 
   Action = GetFQDir
       envSet( \${UPS_PROD_NAME_UC}_FS, "" )
       execute( "get-directory-name subdir", NO_UPS_ENV, \${UPS_PROD_NAME_UC}_FS )
-      envSet (BTRK_FQ, \${\${UPS_PROD_NAME_UC}_FS}.${dot_qualifiers}.prof)
+      envSet (BTRK_FQ, \${\${UPS_PROD_NAME_UC}_FS}.${dot_qualifiers}.prof${dot_extras})
       setupRequired( clhep ${clhep_ver} -q +${plus_qualifiers}:+prof )
-      setupRequired( root  ${root_ver} -q +${plus_qualifiers}:+prof )
+      setupRequired( root  ${root_ver} -q +${plus_qualifiers}:+prof${plus_extras} )
 
 Common:
   Action = setup
@@ -89,3 +92,5 @@ EOF
 unset clhep_ver
 unset root_ver
 unset gcc_ver
+unset plus_extras
+unset dot_extras

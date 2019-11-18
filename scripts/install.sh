@@ -21,7 +21,8 @@ old_flavour=`ups flavor -4`
 new_flavour=`get-directory-name subdir`
 
 # Build the names of the directories into which we will write things
-fq=${new_flavour}.${COMPILER_CODE}.${DEBUG_LEVEL}
+tmp_with_dots=`echo ${EXTRA_ROOT_QUALIFIERS} | sed 's/:/./g'`
+fq=${new_flavour}.${COMPILER_CODE}.${DEBUG_LEVEL}${tmp_with_dots}
 topdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}
 proddir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}
 verdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}.version
@@ -31,7 +32,8 @@ upsdir=${PRODUCTS_INSTALL}/${PACKAGE_NAME}/${PACKAGE_VERSION}/ups
 
 # I am not sure what this file is properly called.
 # I am calling it the fqfile, which is short for flavor qualifier file.
-fqfile=${verdir}/${old_flavour}_${COMPILER_CODE}_${DEBUG_LEVEL}
+tmp_with_underscore=`echo ${EXTRA_ROOT_QUALIFIERS} | sed 's/:/_/g'`
+fqfile=${verdir}/${old_flavour}_${COMPILER_CODE}_${DEBUG_LEVEL}${tmp_with_underscore}
 
 # Make directories, if needed.
 if ! [ -e ${topdir} ];then
@@ -92,7 +94,7 @@ VERSION = ${PACKAGE_VERSION}
 #*************************************************
 #
 FLAVOR = ${old_flavour}
-QUALIFIERS = "${COMPILER_CODE}:${DEBUG_LEVEL}"
+QUALIFIERS = "${COMPILER_CODE}:${DEBUG_LEVEL}${EXTRA_ROOT_QUALIFIERS}"
   DECLARER = `whoami`
   DECLARED = `date +"%Y-%m-%d %H:%M:%S GMT" -u`
   MODIFIER = `whoami`
@@ -113,3 +115,5 @@ unset libdir
 unset incdir
 unset upsdir
 unset fqfile
+unset tmp_with_dots
+unset tmp_with_underscore
