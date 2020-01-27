@@ -28,11 +28,17 @@ namespace KinKal {
       static std::string const& paramTitle(paramIndex index);
 
       // construct from momentum, position, and particle properties
-      LHelix(FourV const& pos, FourV const& mom, double charge, Context const& context);
+      LHelix(Pos4 const& pos, Mom4 const& mom, int charge, Context const& context);
 
       // particle position and momentum as a function of time
-      void position(FourV& pos) const override; // time is input 
-      void momentum(double t,FourV& mom) const override;
+      void position(Pos4& pos) const override; // time is input 
+      void momentum(double t,Mom4& mom) const override;
+
+      // local basis
+      void dirVector(trajdir dir,double time,Pos3& unit) const override;
+
+      // momentum change derivatives
+      void paramDeriv(trajdir dir, double time, PDer& der) const override;
 
       // accessors
       double pbar() const { return  sqrt(pars_[rad_]*pars_[rad_] + pars_[lam_]*pars_[lam_] ); } // momentum in mm
@@ -40,7 +46,8 @@ namespace KinKal {
       // angular rotation frequency
       double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
       double beta() const { return pbar()/ebar(); }
-      double phi(double t) const { return omega()*(t - pars_[t0_]) + pars_[phi0_]; }
+      double dphi(double t) const { return omega()*(t - pars_[t0_]); }
+      double phi(double t) const { return dphi(t) + pars_[phi0_]; }
       double time(double zpos) const { return pars_[t0_] + zpos/(omega()*pars_[lam_]); }
 
       // flip the helix in time; this also reverses the charge
