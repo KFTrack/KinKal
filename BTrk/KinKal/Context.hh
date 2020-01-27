@@ -1,5 +1,5 @@
-#ifndef KinKal_Constants_hh
-#define KinKal_Constants_hh
+#ifndef KinKal_Context_hh
+#define KinKal_Context_hh
 //
 // References to quantities supplied externally to KinKal
 //

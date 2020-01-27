@@ -7,23 +7,23 @@
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
-#include "KinKal/Types.hh"
-#include "KinKal/Constants.hh"
+#include "BTrk/KinKal/Types.hh"
+#include "BTrk/KinKal/Constants.hh"
 namespace KinKal {
-  class KTraj<size_t PDIM> {
+  template <size_t PDIM> class KTraj {
     public:
       // define the parameter types
-      typedef SVector<double,PDIM> PVec; // vector of parameters
-      typedef SMatrix<double,PDIM,PDIM,MatRepSym<double,PDIM> > PMat;  // covariance matrix of parameters
-      typedef SMatrix<double,PDIM,1> PDer; // derivative of parameters
+      typedef ROOT::Math::SVector<double,PDIM> PVec; // vector of parameters
+      typedef ROOT::Math::SMatrix<double,PDIM,PDIM,ROOT::Math::MatRepSym<double,PDIM> > PMat;  // covariance matrix of parameters
+      typedef ROOT::Math::SMatrix<double,PDIM,1> PDer; // derivative of parameters
 
       PVec const& params() const { return pars_;}
       PMat const& covar() const { return pcov_; }
       double mass() const { return mass_;}
       int charge() const { return charge_;}
 
-      void position(FourV& pos) const =0; // position as a function of time
-      void momentum(double t,FourV& mom) const =0; // momentum as a function of time
+      virtual void position(FourV& pos) const =0; // position as a function of time
+      virtual void momentum(double t,FourV& mom) const =0; // momentum as a function of time
 
     protected:
       KTraj() : mass_(-1.0), charge_(0) {} //  
