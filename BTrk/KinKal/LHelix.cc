@@ -19,7 +19,7 @@ namespace KinKal {
   std::string const& LHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  LHelix::LHelix( Pos4 const& pos, Mom4 const& mom, int charge, Context const& context) : KTraj(mom.M(),charge) {
+  LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context) : KTraj(mom.M(),charge) {
     static double twopi = M_PI*M_PI;
     // compute some simple useful parameters
     double pt = mom.Pt(); 
@@ -45,7 +45,7 @@ namespace KinKal {
     pars_[cy_] = pos.X() - mom.X()*momToRad;
   }
 
-  void LHelix::position(Pos4& pos) const {
+  void LHelix::position(Vec4& pos) const {
     // compute azimuthal angle
     double df = dphi(pos.T());
     double phival = df + pars_[phi0_];
@@ -54,6 +54,16 @@ namespace KinKal {
     pos.SetPy(pars_[cy_] - pars_[rad_]*cos(phival));
     pos.SetPz(df*pars_[lam_]);
   }
+
+  void LHelix::position(double t, Vec3& pos) const {
+    // compute azimuthal angle
+    double df = dphi(t);
+    double phival = df + pars_[phi0_];
+    // now compute position
+    pos.SetX(pars_[cx_] + pars_[rad_]*sin(phival));
+    pos.SetY(pars_[cy_] - pars_[rad_]*cos(phival));
+    pos.SetZ(df*pars_[lam_]);
+ } 
 
   void LHelix::momentum(double tval,Mom4& mom) const{
     double phival = phi(tval);
@@ -64,7 +74,23 @@ namespace KinKal {
     mom.SetM(mass_);;
   }
 
-  void LHelix::dirVector(trajdir dir,double tval,Pos3& unit) const {
+  void LHelix::velocity(double tval,Vec3& vel) const{
+    double phival = phi(tval);
+    double factor = c_/ebar();
+    vel.SetX(factor * pars_[rad_] * cos(phival));
+    vel.SetY(factor * pars_[rad_] * sin(phival));
+    vel.SetZ(factor * pars_[lam_]);
+  }
+
+  void LHelix::direction(double tval,Vec3& dir) const{
+    double phival = phi(tval);
+    double factor = 1.0/pbar();
+    dir.SetX(factor * pars_[rad_] * cos(phival));
+    dir.SetY(factor * pars_[rad_] * sin(phival));
+    dir.SetZ(factor * pars_[lam_]);
+  }
+
+  void LHelix::dirVector(trajdir dir,double tval,Vec3& unit) const {
     double phival = phi(tval); // azimuth at this point
     double invpmm = 1.0/pbar(); 
     switch ( dir ) {
@@ -90,7 +116,7 @@ namespace KinKal {
 
   }
 
-  void LHelix::paramDeriv(trajdir dir, double time, PDer& dermat) const {
+  void LHelix::momDeriv(trajdir dir, double time, PDer& dermat) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
