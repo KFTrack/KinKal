@@ -54,6 +54,14 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + pars_[phi0_]; }
       double time(double zpos) const { return pars_[t0_] + zpos/(omega()*pars_[lam_]); }
 
+      // named parameter accessors
+      double rad() const { return pars_[rad_]; }
+      double lam() const { return pars_[lam_]; }
+      double cx() const { return pars_[cx_]; }
+      double cy() const { return pars_[cy_]; }
+      double phi0() const { return pars_[phi0_]; }
+      double t0() const { return pars_[t0_]; }
+
       // flip the helix in time; this also reverses the charge
       void reverse() {
 	mbar_ *= -1.0;

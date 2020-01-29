@@ -24,8 +24,8 @@ namespace KinKal {
       PMat const& covar() const { return pcov_; }
 
       // geometric accessors
-      virtual void position(Vec4& pos) const =0; // position as a function of time
-      virtual void position(double time, Vec3& pos) const=0;
+      virtual void position(Vec4& pos) const =0; // position as a function of the input 4 vector time.
+      virtual void position(double time, Vec3& pos) const =0;
       virtual void velocity(double time, Vec3& vel) const =0; // velocity vector in mm/ns
       virtual void direction(double time, Vec3& dir) const =0; // unit vector in the direction of positive time
 

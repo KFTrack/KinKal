@@ -16,7 +16,7 @@ namespace KinKal {
       typedef typename TTraj<PDIM>::PDer PDer;
       // define local basis vector indices; along and perp to the local momentum.  theta2 is also perpendicular to z
       enum trajdir {momdir=0,theta1,theta2};
-      // unit vectors in the different directions
+      // unit vectors in the different local directions
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const = 0;
       
    // direct accessors
@@ -27,7 +27,7 @@ namespace KinKal {
       virtual void momentum(double t,Mom4& mom) const =0; // momentum in MeV/c, mass in MeV/c^2 as a function of time
       void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
 
-    // Parameter derivatives for a change in momentum, along the different directions
+    // Parameter derivatives for a change in momentum along local basis directions
       virtual void momDeriv(trajdir dir, double time, PDer& der) const = 0;
 
     protected:

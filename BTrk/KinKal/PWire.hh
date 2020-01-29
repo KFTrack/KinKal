@@ -24,6 +24,15 @@ namespace KinKal {
       double cosTheta() const { return pars_[cost_]; }
       double sinTheta() const { return sqrt(1.0-pars_[cost_]*pars_[cost_]); }
 
+      // named parameter accessors
+      double d0() const { return pars_[d0_]; }
+      double phi0() const { return pars_[phi0_]; }
+      double z0() const { return pars_[z0_]; }
+      double cost() const { return pars_[cost_]; }
+      double t0() const { return pars_[t0_]; }
+      // position at t=t0
+      void pos0(Vec3& pos) const;
+
       // geometric accessors
       void position(Vec4& pos) const override;
       void position(double time, Vec3& pos) const override;

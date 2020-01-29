@@ -53,12 +53,15 @@ namespace KinKal {
     pos.SetXYZT(pos3.X(),pos3.Y(),pos3.Z(),pos.T());
   }
 
-  void PWire::position(double time, Vec3& pos) const {
-    Vec3 p0(pars_[d0_]*cos(pars_[phi0_]),
+  void PWire::pos0( Vec3& pos) const {
+    pos = Vec3(pars_[d0_]*cos(pars_[phi0_]),
 	pars_[d0_]*sin(pars_[phi0_]),
 	pars_[z0_]);
-    Vec3 dir;
-    direction(time,dir);
+  }
+
+  void PWire::position(double time, Vec3& pos) const {
+    Vec3 p0; pos0(p0);
+    Vec3 dir; direction(time,dir);
     pos = p0 + vel_*(time-pars_[t0_])*dir;
   }
 
