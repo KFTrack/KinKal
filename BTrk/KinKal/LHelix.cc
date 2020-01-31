@@ -29,65 +29,65 @@ namespace KinKal {
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
-    pars_[rad_] = -pt*momToRad;
+    pars_.vec_[rad_] = -pt*momToRad;
     //tan dip
-    pars_[lam_] = -mom.Z()*momToRad;
+    pars_.vec_[lam_] = -mom.Z()*momToRad;
     // time at z=0
     double om = omega();
-    pars_[t0_] = pos.T() - pos.Z()/(om*pars_[lam_]);
+    pars_.vec_[t0_] = pos.T() - pos.Z()/(om*lam());
     // compute winding that miminimizes z1
-    double nwind = rint((pos.Z()/(pars_[lam_]) - phibar)/twopi);
+    double nwind = rint((pos.Z()/lam() - phibar)/twopi);
     //  cout << "winding number = " << nwind << endl;
     // azimuth at z=0
-    pars_[phi0_] = phibar - om*(pos.T()-pars_[t0_]) + twopi*nwind;
+    pars_.vec_[phi0_] = phibar - om*(pos.T()-t0()) + twopi*nwind;
     // circle center
-    pars_[cx_] = pos.x() + mom.Y()*momToRad;
-    pars_[cy_] = pos.X() - mom.X()*momToRad;
+    pars_.vec_[cx_] = pos.x() + mom.Y()*momToRad;
+    pars_.vec_[cy_] = pos.X() - mom.X()*momToRad;
   }
 
   void LHelix::position(Vec4& pos) const {
     // compute azimuthal angle
     double df = dphi(pos.T());
-    double phival = df + pars_[phi0_];
+    double phival = df + phi0();
     // now compute position
-    pos.SetPx(pars_[cx_] + pars_[rad_]*sin(phival));
-    pos.SetPy(pars_[cy_] - pars_[rad_]*cos(phival));
-    pos.SetPz(df*pars_[lam_]);
+    pos.SetPx(cx() + rad()*sin(phival));
+    pos.SetPy(cy() - rad()*cos(phival));
+    pos.SetPz(df*lam());
   }
 
   void LHelix::position(double t, Vec3& pos) const {
     // compute azimuthal angle
     double df = dphi(t);
-    double phival = df + pars_[phi0_];
+    double phival = df + phi0();
     // now compute position
-    pos.SetX(pars_[cx_] + pars_[rad_]*sin(phival));
-    pos.SetY(pars_[cy_] - pars_[rad_]*cos(phival));
-    pos.SetZ(df*pars_[lam_]);
+    pos.SetX(cx() + rad()*sin(phival));
+    pos.SetY(cy() - rad()*cos(phival));
+    pos.SetZ(df*lam());
  } 
 
   void LHelix::momentum(double tval,Mom4& mom) const{
     double phival = phi(tval);
     double factor = mass_/mbar_;
-    mom.SetPx(factor * pars_[rad_] * cos(phival));
-    mom.SetPy(factor * pars_[rad_] * sin(phival));
-    mom.SetPz(factor * pars_[lam_]);
+    mom.SetPx(factor * rad() * cos(phival));
+    mom.SetPy(factor * rad() * sin(phival));
+    mom.SetPz(factor * lam());
     mom.SetM(mass_);;
   }
 
   void LHelix::velocity(double tval,Vec3& vel) const{
     double phival = phi(tval);
     double factor = c_/ebar();
-    vel.SetX(factor * pars_[rad_] * cos(phival));
-    vel.SetY(factor * pars_[rad_] * sin(phival));
-    vel.SetZ(factor * pars_[lam_]);
+    vel.SetX(factor * rad() * cos(phival));
+    vel.SetY(factor * rad() * sin(phival));
+    vel.SetZ(factor * lam());
   }
 
   void LHelix::direction(double tval,Vec3& dir) const{
     double phival = phi(tval);
     double factor = 1.0/pbar();
-    dir.SetX(factor * pars_[rad_] * cos(phival));
-    dir.SetY(factor * pars_[rad_] * sin(phival));
-    dir.SetZ(factor * pars_[lam_]);
+    dir.SetX(factor * rad() * cos(phival));
+    dir.SetY(factor * rad() * sin(phival));
+    dir.SetZ(factor * lam());
   }
 
   void LHelix::dirVector(trajdir dir,double tval,Vec3& unit) const {
@@ -95,9 +95,9 @@ namespace KinKal {
     double invpmm = 1.0/pbar(); 
     switch ( dir ) {
       case theta1:
-	unit.SetX(pars_[lam_]*cos(phival)*invpmm);
-	unit.SetY(pars_[lam_]*sin(phival)*invpmm);
-	unit.SetZ(pars_[rad_]*invpmm);
+	unit.SetX(lam()*cos(phival)*invpmm);
+	unit.SetY(lam()*sin(phival)*invpmm);
+	unit.SetZ(rad()*invpmm);
 	break;
       case theta2:
 	unit.SetX(sin(phival));
@@ -105,9 +105,9 @@ namespace KinKal {
 	unit.SetZ(0.0);
 	break;
       case momdir:
-	unit.SetX(pars_[rad_]*cos(phival)*invpmm);
-	unit.SetY(pars_[rad_]*sin(phival)*invpmm);
-	unit.SetZ(-pars_[lam_]*invpmm);
+	unit.SetX(rad()*cos(phival)*invpmm);
+	unit.SetY(rad()*sin(phival)*invpmm);
+	unit.SetZ(-lam()*invpmm);
 	break;
       default:
       // should throw here FIXME!
@@ -121,35 +121,35 @@ namespace KinKal {
     double bval = beta();
     double omval = omega();
     double pb = pbar();
-    double phival = omval*(time - pars_[t0_]) + pars_[phi0_];
+    double phival = omval*(time - t0()) + phi0();
     // cases
     switch ( dir ) {
       case theta1:
 	// polar bending: only momentum and position are unchanged
-	dermat[rad_][0] = pars_[lam_];
-	dermat[lam_][0] = -pars_[rad_];
-	dermat[t0_][0] = (time-pars_[t0_])/pars_[lam_];
-	dermat[phi0_][0] = omval*(time-pars_[t0_])/pars_[lam_];
-	dermat[cx_][0] = -pars_[lam_]*sin(phival);
-	dermat[cy_][0] = pars_[lam_]*cos(phival);
+	dermat[rad_][0] = lam();
+	dermat[lam_][0] = -rad();
+	dermat[t0_][0] = (time-t0())/lam();
+	dermat[phi0_][0] = omval*(time-t0())/lam();
+	dermat[cx_][0] = -lam()*sin(phival);
+	dermat[cy_][0] = lam()*cos(phival);
 	break;
       case theta2:
 	// Azimuthal bending: R, Lambda, t0 are unchanged
 	dermat[rad_][0] = 0.0;
 	dermat[lam_][0] = 0.0;
 	dermat[t0_][0] = 0.0;
-	dermat[phi0_][0] = copysign(1.0,omval)*pb/pars_[rad_];
+	dermat[phi0_][0] = copysign(1.0,omval)*pb/rad();
 	dermat[cx_][0] = -copysign(1.0,omval)*pb*cos(phival);
 	dermat[cy_][0] = -copysign(1.0,omval)*pb*sin(phival);
 	break;
       case momdir:
 	// fractional momentum change: position and direction are unchanged
-	dermat[rad_][0] = pars_[rad_];
-	dermat[lam_][0] = pars_[lam_];
-	dermat[t0_][0] = (time-pars_[t0_])*(1.0-bval*bval);
-	dermat[phi0_][0] = omval*(time-pars_[t0_]);
-	dermat[cx_][0] = -pars_[rad_]*sin(phival);
-	dermat[cy_][0] = +pars_[rad_]*cos(phival);
+	dermat[rad_][0] = rad();
+	dermat[lam_][0] = lam();
+	dermat[t0_][0] = (time-t0())*(1.0-bval*bval);
+	dermat[phi0_][0] = omval*(time-t0());
+	dermat[cx_][0] = -rad()*sin(phival);
+	dermat[cy_][0] = +rad()*cos(phival);
 	break;
       default:
 	// should throw here FIXME!

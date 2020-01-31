@@ -1,12 +1,14 @@
-#ifndef KinKal_PWire_hh
-#define KinKal_PWire_hh
+#ifndef KinKal_PLine_hh
+#define KinKal_PLine_hh
 //
-//  Linear trajectory representing a wire sensor (approximately) perpendicular to the z axis
+//  Linear time-based trajectory (approximately) perpendicular to the z axis
+//  Models a sensor with constant signal propagation velocity
 //  Used as part of the kinematic Kalman fit
 //
 #include "BTrk/KinKal/TTraj.hh"
+#include "BTrk/KinKal/TPars.hh"
 namespace KinKal {
-  class PWire : public TTraj<5> {
+  class PLine : public TTraj {
     public:
       enum paramIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
       static size_t nParams() { return npars_; }
@@ -15,21 +17,22 @@ namespace KinKal {
       static std::string const& paramName(paramIndex index);
       static std::string const& paramTitle(paramIndex index);
  
-      // construct from parameters and covariance
-      PWire(PVec const& pars, PMat const& pcov, double vel) : TTraj(pars,pcov),vel_(vel) {}
       // construct from a wire position, signal propagation velocity (mm/ns), and measurement time at the position
-      PWire(Vec3 const& p0, Vec3 const& svel, double tmeas);
-      // direct accessors
-      double velocity() const { return vel_; }
-      double cosTheta() const { return pars_[cost_]; }
-      double sinTheta() const { return sqrt(1.0-pars_[cost_]*pars_[cost_]); }
+      PLine(Vec3 const& p0, Vec3 const& svel, double tmeas);
 
-      // named parameter accessors
-      double d0() const { return pars_[d0_]; }
-      double phi0() const { return pars_[phi0_]; }
-      double z0() const { return pars_[z0_]; }
-      double cost() const { return pars_[cost_]; }
-      double t0() const { return pars_[t0_]; }
+    // named parameter accessors
+      double param(size_t index) const { return pars_.vec_[index]; }
+      double d0() const { return pars_.vec_[d0_]; }
+      double phi0() const { return pars_.vec_[phi0_]; }
+      double z0() const { return pars_.vec_[z0_]; }
+      double cost() const { return pars_.vec_[cost_]; }
+      double t0() const { return pars_.vec_[t0_]; }
+    
+      // simple functions 
+      double velocity() const { return vel_; }
+      double cosTheta() const { return cost(); }
+      double sinTheta() const { return sqrt(1.0-cost()*cost()); }
+
       // position at t=t0
       void pos0(Vec3& pos) const;
 
@@ -40,6 +43,7 @@ namespace KinKal {
       void direction(double time, Vec3& dir) const override;
 
     private:
+      TPars<npars_> pars_; // parameters
       double vel_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
 
       static std::vector<std::string> paramTitles_;

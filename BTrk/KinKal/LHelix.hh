@@ -9,15 +9,16 @@
 
 #include "BTrk/KinKal/Types.hh"
 #include "BTrk/KinKal/KTraj.hh"
+#include "BTrk/KinKal/TPars.hh"
 #include "BTrk/KinKal/Context.hh"
 #include <vector>
 #include <string>
 
 namespace KinKal {
 
-  class LHelix : public KTraj<6> {
+  class LHelix : public KTraj {
     public:
-      // This struct must provide the following to be used to instantiate the 
+      // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
@@ -26,6 +27,7 @@ namespace KinKal {
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
       static std::string const& paramTitle(paramIndex index);
+
 
       // construct from momentum, position, and particle properties
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context);
@@ -40,38 +42,40 @@ namespace KinKal {
       // local basis
       void dirVector(trajdir dir,double time,Vec3& unit) const override;
 
-      // momentum change derivatives
-      void momDeriv(trajdir dir, double time, PDer& der) const override;
+      // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
+      typedef ROOT::Math::SMatrix<double,npars_,1> PDer; // derivative of parameters
+      void momDeriv(trajdir dir, double time, PDer& der) const;
 
-      // local accessors
-      double pbar() const { return  sqrt(pars_[rad_]*pars_[rad_] + pars_[lam_]*pars_[lam_] ); } // momentum in mm
-      double ebar() const { return  sqrt(pars_[rad_]*pars_[rad_] + pars_[lam_]*pars_[lam_] + mbar_*mbar_); } // energy in mm
+     // named parameter accessors
+      double param(size_t index) const { return pars_.vec_[index]; }
+      double rad() const { return param(rad_); }
+      double lam() const { return param(lam_); }
+      double cx() const { return param(cx_); }
+      double cy() const { return param(cy_); }
+      double phi0() const { return param(phi0_); }
+      double t0() const { return param(t0_); }
+      
+      // simple functions 
+      double pbar() const { return  sqrt(rad()*rad() + lam()*lam() ); } // momentum in mm
+      double ebar() const { return  sqrt(rad()*rad() + lam()*lam() + mbar_*mbar_); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm
       double Q() const { return mbar_/mass_; } // reduced charge,
       double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
       double beta() const { return pbar()/ebar(); }
-      double dphi(double t) const { return omega()*(t - pars_[t0_]); }
-      double phi(double t) const { return dphi(t) + pars_[phi0_]; }
-      double time(double zpos) const { return pars_[t0_] + zpos/(omega()*pars_[lam_]); }
+      double dphi(double t) const { return omega()*(t - t0()); }
+      double phi(double t) const { return dphi(t) + phi0(); }
+      double time(double zpos) const { return t0() + zpos/(omega()*lam()); }
 
-      // named parameter accessors
-      double rad() const { return pars_[rad_]; }
-      double lam() const { return pars_[lam_]; }
-      double cx() const { return pars_[cx_]; }
-      double cy() const { return pars_[cy_]; }
-      double phi0() const { return pars_[phi0_]; }
-      double t0() const { return pars_[t0_]; }
-
-      // flip the helix in time; this also reverses the charge
-      void reverse() {
+      // flip the helix in time and charge; it remains unchanged geometrically
+      void invertCT() {
 	mbar_ *= -1.0;
 	charge_ *= -1;
-	pars_[t0_] *= -1.0;
+	pars_.vec_[t0_] *= -1.0;
       }
       //
     private :
+      TPars<npars_> pars_; // parameters
       double mbar_;  // reduced mass in units of mm (computed from the mass);
-
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
   };

@@ -16,6 +16,8 @@ mainlib = helper.make_mainlib ( env,
                                 [ 
                                 ] )
 
+#helper.make_bin( "test", [ 'test', rootlibs ] )
+
 # This tells emacs to view this file in python mode.
 # Local Variables:
 # mode:python
