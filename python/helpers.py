@@ -273,3 +273,55 @@ class build_helper:
                 self.env.SharedLibrary( self.prefixed_map_libname(),
                                         self.map_tmp_name()
                                     )
+
+#
+#   Build a list of the source filenames for unit tests to be built and run
+#
+    def unittest_cc(self):
+        return ( self.env.Glob('*_unit.cc',  strings=True) )
+
+
+#
+#   filename of executable to be made from the unit test source.
+#   Just the filename without other path elements.
+#
+    def executable_name(self, name ):
+       return name[:name.find('_unit.cc')]
+
+#
+#   Run one unit test - Fixme: still under development
+#
+    def run_unit_test( self, executable ):
+        cmd = "../bin/"+executable   # Fixme: use proper path not hard coded ../
+        print ("\n\nRunning unit test ...: ", cmd )
+        p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        (output, err) = p.communicate()
+        p_status = p.wait()
+        print ( "   Status code: ", p_status)  # Fixme: modify to write to file
+        print ( "   cout: ", output)
+        print ( "   cerr: ", err)
+        return p_status
+
+#
+#   Build all unit test
+#
+    def make_unit_tests( self, linkLists ):
+        unitTests = self.unittest_cc()
+        for u in unitTests:
+            exe = self.executable_name(u)
+            libs  = linkLists.get(exe,[])
+            self.env.Program(
+                target = "#/bin/"+exe,
+                source = [ u ],
+                LIBS   = libs
+            )
+
+#
+#   Run all unit tests.
+#
+    def run_unit_tests( self ):
+        unitTests = self.unittest_cc()
+        for u in unitTests:
+            exe = self.executable_name(u)
+            status = self.run_unit_test( exe )
+            print ( "   Done: ", exe, "  status: ", status)
