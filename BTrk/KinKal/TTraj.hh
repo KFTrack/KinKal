@@ -6,6 +6,15 @@
 //
 #include "BTrk/KinKal/Types.hh"
 namespace KinKal {
+
+// simple struct to model a time range
+  struct TRange {
+    std::array<double,2> range_; // range of times
+    TRange() : range_{1.0,-1.0} {} // initialize to have infinite range
+    bool inRange(double t) const { return (range_[0] > range_[1]) ||
+      (t > range_[0] && t < range_[1]); }
+  };
+
   class TTraj {
     public:
       // geometric accessors
@@ -14,6 +23,11 @@ namespace KinKal {
       virtual void velocity(double time, Vec3& vel) const =0; // velocity vector in mm/ns
       virtual void direction(double time, Vec3& dir) const =0; // unit vector in the direction of positive time
       virtual ~TTraj() = 0;
+      TTraj(TRange const& trange) : trange_(trange){}
+      TTraj() {}
+      bool inRange(double t) const { return trange_.inRange(t); }
+    private:
+      TRange trange_;
   };
 }
 #endif

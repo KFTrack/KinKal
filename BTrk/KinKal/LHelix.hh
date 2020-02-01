@@ -64,7 +64,8 @@ namespace KinKal {
       double beta() const { return pbar()/ebar(); }
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
-      double time(double zpos) const { return t0() + zpos/(omega()*lam()); }
+      double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
+      double zphi(double zpos) const { return zpos/lam() + phi0(); }
 
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
