@@ -6,9 +6,8 @@
 //  The geometric and kinematic interpretation of the parameters is defined in the subclasses
 //
 #include "BTrk/KinKal/TTraj.hh"
-#include "BTrk/KinKal/Constants.hh"
 namespace KinKal {
-  class KTraj : public TTraj {
+  class KTraj {
     public:
       // define local basis vector indices; along and perp to the local momentum.  theta2 is also perpendicular to z
       enum trajdir {momdir=0,theta1,theta2};
@@ -16,7 +15,7 @@ namespace KinKal {
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const = 0;
       
    // direct accessors
-      double mass() const { return mass_;} // mass in MeV/c^2
+      double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
 
     // kinematic accessors

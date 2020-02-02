@@ -11,25 +11,27 @@
 #include "BTrk/KinKal/KTraj.hh"
 #include "BTrk/KinKal/TData.hh"
 #include "BTrk/KinKal/Context.hh"
+#include "BTrk/KinKal/Constants.hh"
 #include <vector>
 #include <string>
 
 namespace KinKal {
 
-  class LHelix : public KTraj {
+  class LHelix : public TTraj, public KTraj {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
       constexpr static size_t NParams() { return npars_; }
+      typedef TData<npars_> TDATA; // Data payload for this class
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
       static std::string const& paramTitle(paramIndex index);
 
-
-      // construct from momentum, position, and particle properties
+      // construct from momentum, position, and particle properties.
+      // This also requires the BField, through Context
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context);
 
       // particle position and momentum as a function of time
@@ -39,7 +41,7 @@ namespace KinKal {
       void velocity(double time, Vec3& vel) const override;
       void direction(double tval,Vec3& dir) const override;
 
-      // local basis
+      // local momentum direction basis
       void dirVector(trajdir dir,double time,Vec3& unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
@@ -48,6 +50,7 @@ namespace KinKal {
 
      // named parameter accessors
       double param(size_t index) const { return pars_.vec()[index]; }
+      TDATA const& params() const { return pars_; }
       double rad() const { return param(rad_); }
       double lam() const { return param(lam_); }
       double cx() const { return param(cx_); }
@@ -75,8 +78,8 @@ namespace KinKal {
       }
       //
     private :
-      TData<npars_> pars_; // parameters
-      double mbar_;  // reduced mass in units of mm (computed from the mass);
+      TDATA pars_; // parameters
+      double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
   };

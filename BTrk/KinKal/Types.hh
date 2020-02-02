@@ -5,7 +5,7 @@
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
 namespace KinKal {
-
+  enum TDir{forwards=0,backwards}; // time direction; forwards = increasing time, backwards = decreasing time
   typedef ROOT::Math::XYZVector Vec3; // double precision spatial only vector
   typedef ROOT::Math::XYZTVector Vec4; // double precision spacetime vector, 4th component = time or energy
   typedef ROOT::Math::PxPyPzMVector Mom4; // double precision 4-momentum with 4th component = mass

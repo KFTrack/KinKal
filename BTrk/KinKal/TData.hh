@@ -18,17 +18,18 @@ namespace KinKal {
   class TDataBase {
     public:
       enum DataType{param=0,weight};
-      enum InversionStatus{success=0,fail};
+      enum Status{valid=0,invalid};
+      bool isValid() const { return status_ == valid; }
+      bool isInvalid() const { return status_ != valid; }
     private:
       // specify whether the object represents parameters or weights
       DataType dtype_;
-      InversionStatus istat_;
+      Status status_;
     protected:
       // override default constructor
-      TDataBase(DataType dtype=param) : dtype_(dtype), istat_(success) {}
-      void setFail() { istat_ = fail; }
+      TDataBase(DataType dtype=param) : dtype_(dtype), status_(invalid) {}
+      void setStatus(Status status) { status_ = status; }
       void invert() {
-	istat_ = success;
 	switch (dtype_ ){
 	  case param: 
 	    dtype_ = weight;
@@ -39,6 +40,7 @@ namespace KinKal {
 	  default:
 	    std::cout << "invalid data type " << dtype_ << std::endl;
 	  // should throw here FIXME!
+	  setStatus(valid);
 	}
       }
   };
@@ -64,7 +66,7 @@ namespace KinKal {
 	  // update base class members
 	  TDataBase::invert();
 	} else
-	  setFail();
+	  setStatus(invalid);
       }
       // invert a different object
       void invert(TData const& other) { 

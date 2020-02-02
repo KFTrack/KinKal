@@ -68,16 +68,14 @@ namespace KinKal {
 	  << " and " << typeid(T1).name() << std::endl; // should throw FIXME!
 	status_ = TPOCABase::pocafailed;
       }
-//    private:
-//      T0 const& t1_;
-//      T1 const& t1_;
   };
 
   // Add the derivatives of POCA WRT the parameters of the 1st traj to the above.
   template<class T0, class T1> class TDPOCA : public TPOCA<T0,T1> {
     public:
+      typedef ROOT::Math::SMatrix<double,T0::NParams(),1> DMat; // derivative type, dimensioned on the 0th traj parameters
       TDPOCA(T0 const& t0, T1 const& t1, double precision=0.01) : TPOCA<T0,T1>(t0,t1,precision){}
-      typedef ROOT::Math::SMatrix<double,T0::NParams(),1> DMat; // derivative type
+      TDPOCA(TPOCA<T0,T1> const& tpoca) : TPOCA<T0,T1>(tpoca) {} // 'upgrade' constructor
       DMat const& derivs() const { return dDdP_; }
       // find POCA and it's derivatives WRT the 1st trajectory parameters.
       virtual void findPOCA() override {

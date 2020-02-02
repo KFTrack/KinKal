@@ -1,5 +1,5 @@
-#ifndef kinkal_ttraj_hh
-#define kinkal_ttraj_hh
+#ifndef KinKal_TTraj_hh
+#define KinKal_TTraj_hh
 //
 //  base class for a 1-dimensional directional path in space with time as parametric variable
 //  used as part of the kinematic kalman fit
