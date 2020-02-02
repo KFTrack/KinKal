@@ -74,12 +74,10 @@ namespace KinKal {
   };
 
   // Add the derivatives of POCA WRT the parameters of the 1st traj to the above.
-  // Note that the dimension of the 1st trajectory's parameter vector must be supplied explicitly in order
-  // to define the derivative type
-  template<class T0, class T1, size_t NPar> class TDPOCA : public TPOCA<T0,T1> {
+  template<class T0, class T1> class TDPOCA : public TPOCA<T0,T1> {
     public:
       TDPOCA(T0 const& t0, T1 const& t1, double precision=0.01) : TPOCA<T0,T1>(t0,t1,precision){}
-      typedef ROOT::Math::SMatrix<double,NPar,1> DMat; // derivative type
+      typedef ROOT::Math::SMatrix<double,T0::NParams(),1> DMat; // derivative type
       DMat const& derivs() const { return dDdP_; }
       // find POCA and it's derivatives WRT the 1st trajectory parameters.
       virtual void findPOCA() override {

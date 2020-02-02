@@ -29,20 +29,20 @@ namespace KinKal {
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
-    pars_.vec_[rad_] = -pt*momToRad;
+    pars_.vec()[rad_] = -pt*momToRad;
     //tan dip
-    pars_.vec_[lam_] = -mom.Z()*momToRad;
+    pars_.vec()[lam_] = -mom.Z()*momToRad;
     // time at z=0
     double om = omega();
-    pars_.vec_[t0_] = pos.T() - pos.Z()/(om*lam());
+    pars_.vec()[t0_] = pos.T() - pos.Z()/(om*lam());
     // compute winding that miminimizes z1
     double nwind = rint((pos.Z()/lam() - phibar)/twopi);
     //  cout << "winding number = " << nwind << endl;
     // azimuth at z=0
-    pars_.vec_[phi0_] = phibar - om*(pos.T()-t0()) + twopi*nwind;
+    pars_.vec()[phi0_] = phibar - om*(pos.T()-t0()) + twopi*nwind;
     // circle center
-    pars_.vec_[cx_] = pos.x() + mom.Y()*momToRad;
-    pars_.vec_[cy_] = pos.X() - mom.X()*momToRad;
+    pars_.vec()[cx_] = pos.x() + mom.Y()*momToRad;
+    pars_.vec()[cy_] = pos.X() - mom.X()*momToRad;
   }
 
   void LHelix::position(Vec4& pos) const {

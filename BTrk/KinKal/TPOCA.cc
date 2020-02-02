@@ -71,7 +71,7 @@ namespace KinKal {
     }
   }
 
-  template<> void TDPOCA<LHelix,PLine,LHelix::npars_>::fillDerivatives() {
+  template<> void TDPOCA<LHelix,PLine>::fillDerivatives() {
     if(!usable())return;
     auto const& lhelix = ttraj0();
     auto const& pline = ttraj1();

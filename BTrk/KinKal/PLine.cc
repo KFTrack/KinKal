@@ -29,21 +29,21 @@ namespace KinKal {
       cout << "PLine direction not perpendicular!" << endl; // should throw FIXME!
 
     double stheta2 = (1.0 -zsdot*zsdot);
-    pars_.vec_[cost_] = zsdot;
+    pars_.vec()[cost_] = zsdot;
     // find the POCA with the z axis
     double psdot = p0.Dot(sdir);
     double slen = (p0.Z()*zsdot - psdot)/stheta2;
     auto poca = p0 + sdir*slen;
-    pars_.vec_[d0_] = poca.Rho();
-    pars_.vec_[phi0_] = atan2(poca.Y(),poca.X());
-    pars_.vec_[z0_] = poca.Z();
+    pars_.vec()[d0_] = poca.Rho();
+    pars_.vec()[phi0_] = atan2(poca.Y(),poca.X());
+    pars_.vec()[z0_] = poca.Z();
     // check
     if(fabs(poca.Z()+(psdot*zsdot - p0.Z())/stheta2) > 1e-5)
       cout << "POCA calculation failed!" << endl; // should throw FIXME!
     // sign velocity according to the counter-clockwise direction convention
     vel_ = sqrt(svel.Mag2()); // FIXME!
     // move the time to POCA
-    pars_.vec_[t0_] = tmeas + slen*vel_;
+    pars_.vec()[t0_] = tmeas + slen*vel_;
   }
 
   void PLine::position(Vec4& pos) const {

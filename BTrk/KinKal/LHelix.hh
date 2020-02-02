@@ -9,7 +9,7 @@
 
 #include "BTrk/KinKal/Types.hh"
 #include "BTrk/KinKal/KTraj.hh"
-#include "BTrk/KinKal/TPars.hh"
+#include "BTrk/KinKal/TData.hh"
 #include "BTrk/KinKal/Context.hh"
 #include <vector>
 #include <string>
@@ -22,7 +22,7 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
-      static size_t nParams() { return npars_; }
+      constexpr static size_t NParams() { return npars_; }
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
@@ -47,7 +47,7 @@ namespace KinKal {
       void momDeriv(trajdir dir, double time, PDer& der) const;
 
      // named parameter accessors
-      double param(size_t index) const { return pars_.vec_[index]; }
+      double param(size_t index) const { return pars_.vec()[index]; }
       double rad() const { return param(rad_); }
       double lam() const { return param(lam_); }
       double cx() const { return param(cx_); }
@@ -71,11 +71,11 @@ namespace KinKal {
       void invertCT() {
 	mbar_ *= -1.0;
 	charge_ *= -1;
-	pars_.vec_[t0_] *= -1.0;
+	pars_.vec()[t0_] *= -1.0;
       }
       //
     private :
-      TPars<npars_> pars_; // parameters
+      TData<npars_> pars_; // parameters
       double mbar_;  // reduced mass in units of mm (computed from the mass);
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
