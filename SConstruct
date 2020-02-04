@@ -40,6 +40,7 @@ includePath = [ sourceRoot,
 
 linkPath    = [ os.environ['CLHEP_LIB_DIR'],
                 os.environ['ROOTSYS'] + '/lib',
+                '#/lib'
               ]
 
 # Create and configure the scons environment that will be used during building.

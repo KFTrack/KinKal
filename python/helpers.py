@@ -20,13 +20,13 @@
 #     - Walk the directory tree rooted at sourceRoot and return a list of the paths to
 #       all SConscript files under that root.
 #
-# def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
+# def dispatchSConscriptFiles( ss, sourceRoot, build_base ):
 #     - Given a list of SConscript files, ss, tell scons to build the targets specified
 #       in this files and to put the outputs into the defined spot in the build heirarchy.
 #
 # The class build_helper has four user callable entry points:
 #
-#  1) make_mainlib( self, env, userlibs, cppf=[], pf=[], addfortran=False ):
+#  1) make_mainlib( self, userlibs, cppf=[], pf=[], addfortran=False ):
 #     Find all non-plugin .cc files in the current directory, compile
 #     them and add them to a library named after the path to the current diretory.
 #     The user must provide a link list (userlibs), which may be empty.
@@ -35,13 +35,13 @@
 #        - additional flags to the parse flags feature
 #     Optionally compile all fortran files and add them to the library.
 #
-#  2) make_plugin( self, env, cc, userlibs, cppf = [], pf = []):
+#  2) make_plugin( self, cc, userlibs, cppf = [], pf = []):
 #     Make single plugin library, specified by the named .cc file.
 #     The user must provide a link list (userlibs), which may be empty.
 #     The library is named after that path to the source file.
 #     The optional arguments are the same as for 1)
 #
-#  3) make_plugins( self, env, userlibs, exclude_cc = [], cppf = [], pf = [] ):
+#  3) make_plugins( self, userlibs, exclude_cc = [], cppf = [], pf = [] ):
 #     Find all plugin files in the current directory and build them against the
 #     same link list; the link list may be empty.  Exclude any plugins specified
 #     on the exclude_cc list.  For each plugin this makes a shared library
@@ -49,7 +49,7 @@
 #     This does not make the _dict and _map plugins.
 #
 #
-#  4) make_dict_and_map( self, env, userlibs ):
+#  4) make_dict_and_map( self, userlibs ):
 #     Make the _dict and _map plugins for this directory. This looks for the files
 #     classes_def.xml and classes.h.
 #
@@ -58,6 +58,7 @@ from glob import glob
 import os, re, string
 
 import sys
+import subprocess
 
 # Check that some of the required environment variables have been set.
 def validateEnvironment():
@@ -80,10 +81,14 @@ def validateDebugLevel():
     print ("Recognized debug level is: ", level)
     return level
 
-# Define the compiler and linker options.
+# Define the compiler and linker options.  Scons knows how to sort out which is which.
 # These are given to scons using its Evironment.MergeFlags call.
 def defineMergeFlags( debug_level):
-   commonFlags = [ '-std=c++17', '-rdynamic', '-Wall', '-Wno-unused-local-typedefs', '-g', '-Werror']
+   commonFlags = [ '-std=c++17', '-rdynamic', '-Wall', '-Wno-unused-local-typedefs', '-g', '-Werror',
+                   '-gdwarf-2', '-Werror=return-type', '-Winit-self', '-Woverloaded-virtual', '-fPIC',
+                   # Linker flags
+                   #'-Wl,--no-undefined',
+                   '-Wl,--as-needed' ]
 
    # Hopefully the need for this will go away in later compiler versions.
    gcc_version = os.environ['GCC_VERSION']
@@ -134,7 +139,9 @@ def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
 class build_helper:
     """build_helper: class to build libraries from source"""
 #   This behaves like c++ static data member and is initialized at construction time.
-    buildBase    = os.environ['BUILD_BASE']
+    def __init__(self,env):
+        self.env       = env
+        self.buildBase = os.environ['BUILD_BASE']
 #
 #   Accesor
 #
@@ -166,19 +173,20 @@ class build_helper:
     def prefixed_plugin_libname(self,sourcename):
         return '#/lib/' + self.plugin_libname(sourcename)
 #
-#   Build a list of plugins to be biult.
+#   Build a list of plugins to be built.
 #
-    def plugin_cc(self,env):
-        return ( env.Glob('*_module.cc',  strings=True) +
-                 env.Glob('*_service.cc', strings=True) +
-                 env.Glob('*_source.cc',  strings=True) )
+    def plugin_cc(self):
+        return ( self.env.Glob('*_module.cc',  strings=True) +
+                 self.env.Glob('*_service.cc', strings=True) +
+                 self.env.Glob('*_source.cc',  strings=True) )
+
 #
 #   Build a list of .cc files that are not plugings; these go into the
 #   library named after the directory.
 #
-    def non_plugin_cc(self,env):
-        tmp = non_plugin_cc = env.Glob('*.cc', strings=True)
-        for cc in self.plugin_cc(env): tmp.remove(cc)
+    def non_plugin_cc(self):
+        tmp = non_plugin_cc = self.env.Glob('*.cc', strings=True)
+        for cc in self.plugin_cc(): tmp.remove(cc)
         return tmp
 #
 #   Names need to build the _dict and _map libraries.
@@ -207,61 +215,113 @@ class build_helper:
 #
 #   Make the main library.
 #
-    def make_mainlib( self, env, userlibs, cppf=[], pf=[], addfortran=False ):
-        non_plugin_cc = self.non_plugin_cc(env)
+    def make_mainlib( self, userlibs, cppf=[], pf=[], addfortran=False ):
+        non_plugin_cc = self.non_plugin_cc()
         if addfortran:
-            fortran = env.Glob('*.f')
+            fortran = self.env.Glob('*.f')
             non_plugin_cc = [ non_plugin_cc, fortran]
             pass
         libs = []
         if non_plugin_cc:
-            env.SharedLibrary( self.prefixed_libname(),
-                               non_plugin_cc,
-                               LIBS=[ userlibs ],
-                               CPPFLAGS=cppf,
-                               parse_flags=pf
-                              )
+            self.env.SharedLibrary( self.prefixed_libname(),
+                                    non_plugin_cc,
+                                    LIBS=[ userlibs ],
+                                    CPPFLAGS=cppf,
+                                    parse_flags=pf
+                                )
             libs = [ self.libname() ]
             pass
         return libs
 #
 #   Make one plugin library ( but does not work for _dict and _map plugins )
 #
-    def make_plugin( self, env, cc, userlibs, cppf = [], pf = []):
-        env.SharedLibrary( self.prefixed_plugin_libname(cc),
-                           cc,
-                           LIBS=[ userlibs, ],
-                           CPPFLAGS=cppf,
-                           parse_flags=pf
-                           )
+    def make_plugin( self, cc, userlibs, cppf = [], pf = []):
+        self.env.SharedLibrary( self.prefixed_plugin_libname(cc),
+                                cc,
+                                LIBS=[ userlibs, ],
+                                CPPFLAGS=cppf,
+                                parse_flags=pf
+                            )
 #
 #   Make all plugin libraries, excluding _dict and _map; this works if
 #   all libraries need the same link list.
 #
-    def make_plugins( self, env, userlibs, exclude_cc = [], cppf = [], pf = [] ):
-        plugin_cc = self.plugin_cc(env)
+    def make_plugins( self, userlibs, exclude_cc = [], cppf = [], pf = [] ):
+        plugin_cc = self.plugin_cc()
         for cc in exclude_cc: plugin_cc.remove(cc)
         for cc in plugin_cc:
-            env.SharedLibrary( self.prefixed_plugin_libname(cc),
-                               cc,
-                               LIBS=[ userlibs ],
-                               CPPFLAGS=cppf,
-                               parse_flags=pf
-                               )
+            self.env.SharedLibrary( self.prefixed_plugin_libname(cc),
+                                    cc,
+                                    LIBS=[ userlibs ],
+                                    CPPFLAGS=cppf,
+                                    parse_flags=pf
+            )
 
 #
 #   Make the dictionary and map plugins.
 #
-    def make_dict_and_map( self, env, userlibs ):
+    def make_dict_and_map( self, userlibs ):
         if os.path.exists('classes.h'):
             if os.path.exists('classes_def.xml'):
-                env.DictionarySource([ self.dict_tmp_name(),
-                                       self.map_tmp_name() ],
-                                     [ 'classes.h', 'classes_def.xml'] )
-                env.SharedLibrary( self.prefixed_dict_libname(),
-                                   self.dict_tmp_name(),
-                                   LIBS=[ userlibs ]
-                                   )
-                env.SharedLibrary( self.prefixed_map_libname(),
-                                   self.map_tmp_name()
-                                   )
+                self.env.DictionarySource([ self.dict_tmp_name(),
+                                            self.map_tmp_name() ],
+                                          [ 'classes.h', 'classes_def.xml'] )
+                self.env.SharedLibrary( self.prefixed_dict_libname(),
+                                        self.dict_tmp_name(),
+                                        LIBS=[ userlibs ]
+                                    )
+                self.env.SharedLibrary( self.prefixed_map_libname(),
+                                        self.map_tmp_name()
+                                    )
+
+#
+#   Build a list of the source filenames for unit tests to be built and run
+#
+    def unittest_cc(self):
+        return ( self.env.Glob('*_unit.cc',  strings=True) )
+
+
+#
+#   filename of executable to be made from the unit test source.
+#   Just the filename without other path elements.
+#
+    def executable_name(self, name ):
+       return name[:name.find('_unit.cc')]
+
+#
+#   Run one unit test - Fixme: still under development
+#
+    def run_unit_test( self, executable ):
+        cmd = "../bin/"+executable   # Fixme: use proper path not hard coded ../
+        print ("\n\nRunning unit test ...: ", cmd )
+        p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+        (output, err) = p.communicate()
+        p_status = p.wait()
+        print ( "   Status code: ", p_status)  # Fixme: modify to write to file
+        print ( "   cout: ", output)
+        print ( "   cerr: ", err)
+        return p_status
+
+#
+#   Build all unit test
+#
+    def make_unit_tests( self, linkLists ):
+        unitTests = self.unittest_cc()
+        for u in unitTests:
+            exe = self.executable_name(u)
+            libs  = linkLists.get(exe,[])
+            self.env.Program(
+                target = "#/bin/"+exe,
+                source = [ u ],
+                LIBS   = libs
+            )
+
+#
+#   Run all unit tests.
+#
+    def run_unit_tests( self ):
+        unitTests = self.unittest_cc()
+        for u in unitTests:
+            exe = self.executable_name(u)
+            status = self.run_unit_test( exe )
+            print ( "   Done: ", exe, "  status: ", status)
