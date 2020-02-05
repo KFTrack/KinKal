@@ -14,7 +14,9 @@ helper=build_helper(env);
 # key : value are name of executable : link list
 # If the required link list is empty, no entry is needed in this structure.
 linkLists = {
- 'pi'      : [ 'BTrk_BaBar', 'CLHEP' ]
+ 'pi'      : [ 'BTrk_BaBar', 'CLHEP' ],
+ 'LHelix'      : [ 'BTrk_KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
+             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ]
 }
 
 helper.make_unit_tests ( linkLists )

@@ -60,27 +60,27 @@ typedef SVector<double,6> PVec;
 typedef SMatrix<double,6,6,MatRepSym<double,6> > PMat;
 typedef SMatrix<double,6,1> PDer;
 
-//struct FourV {
+//struct Vec4 {
 //  double _x, _y, _z, _t;
-//  FourV(): _x(0), _y(0), _z(0), _t(0) {}
-//  FourV(double x, double y, double z, double t): _x(x), _y(y), _z(z), _t(t) {}
-//  double dot3(FourV& other) {
+//  Vec4(): _x(0), _y(0), _z(0), _t(0) {}
+//  Vec4(double x, double y, double z, double t): _x(x), _y(y), _z(z), _t(t) {}
+//  double dot3(Vec4& other) {
 //    return _x*other._x + _y*other._y + _z*other._z; }
-//  double dot4(FourV& other) {
+//  double dot4(Vec4& other) {
 //    return dot3(other) - _t*other._t; }
 //  double mag3() { return sqrt(dot3(*this)); }
 //  double mag4() { return sqrt(dot4(*this)); }
-//  FourV& normalize() { double norm = 1.0/mag3(); _x *= norm; _y *= norm; _z *= norm; return *this; }
-//  FourV& operator += (FourV const& other) { _x += other._x; _y += other._y; _z += other._z; _t += other._t; return *this; }
-//  FourV& operator -= (FourV const& other) { _x -= other._x; _y -= other._y; _z -= other._z; _t -= other._t; return *this; }
-//  friend FourV operator + (FourV left, FourV const& right) { return left += right; }
-//  friend FourV operator - (FourV left, FourV const& right) { return left -= right; }
+//  Vec4& normalize() { double norm = 1.0/mag3(); _x *= norm; _y *= norm; _z *= norm; return *this; }
+//  Vec4& operator += (FourV const& other) { _x += other._x; _y += other._y; _z += other._z; _t += other._t; return *this; }
+//  Vec4& operator -= (FourV const& other) { _x -= other._x; _y -= other._y; _z -= other._z; _t -= other._t; return *this; }
+//  friend Vec4 operator + (FourV left, FourV const& right) { return left += right; }
+//  friend Vec4 operator - (FourV left, FourV const& right) { return left -= right; }
 //  // set energy given mass in MeV/c^2
 //  void SetEnergy(double mass) { _t = sqrt(dot3(*this) + mass*mass); }
 //};
-  typedef ROOT::Math::LorentzVector<ThreeV > FourV;
+  typedef ROOT::Math::LorentzVector<ThreeV > Vec4;
 
-ostream& operator << (ostream& os, FourV const& vec) {
+ostream& operator << (ostream& os, Vec4 const& vec) {
   os << vec._x << " " 
   << vec._y << " " 
   << vec._z << " " 
@@ -108,8 +108,8 @@ struct HelixPars {
 };
 // drift hit along a helix; generated from a particular helix
 struct DHit {
-  FourV _hpos; // helix position and time
-  FourV _wpos; // wire position and time
+  Vec4 _hpos; // helix position and time
+  Vec4 _wpos; // wire position and time
   double _weta; // hit wire axis azimumth angle
   double _rdrift; // hit true drift radius, signed by ambiguity
   double _t;  // hit measurement time; depends only on generation parameters
@@ -117,7 +117,7 @@ struct DHit {
 };
 // timing measurement hit
 struct THit {
-  FourV _hpos; // helix position and time
+  Vec4 _hpos; // helix position and time
   double _t; // hit measurement time
   double _sigt; // hit time smearing sigma
   PVec _dtoca; // time derivatives
@@ -132,7 +132,7 @@ struct HDOCA {
   PVec _dtoca; // time derivatives
 };
 
-void CrossProduct(FourV const& a, FourV const& b, FourV& c) {
+void CrossProduct(Vec4 const& a, FourV const& b, FourV& c) {
   c._t = a._t;
   c._x = a._y*b._z - a._z*b._y;
   c._y = a._z*b._x - a._x*b._z;
@@ -140,7 +140,7 @@ void CrossProduct(FourV const& a, FourV const& b, FourV& c) {
 }
 
 // set the space components of the vector given the time
-void HelixPos(HelixPars const& pars, FourV& pos) {
+void HelixPos(HelixPars const& pars, Vec4& pos) {
 // compute rotational frequency
   double omega = pars.omega();
 // relative time
@@ -154,7 +154,7 @@ void HelixPos(HelixPars const& pars, FourV& pos) {
 }
 
 
-void HelixVel(HelixPars const& pars, FourV& vel){
+void HelixVel(HelixPars const& pars, Vec4& vel){
 // compute rotational frequency
   double omega = pars.omega();
 // relative time
@@ -167,7 +167,7 @@ void HelixVel(HelixPars const& pars, FourV& vel){
   vel._z = omega*pars_[lam_];
 }
 
-void HelixMom(HelixPars const& pars, double time, FourV& mom){
+void HelixMom(HelixPars const& pars, double time, Vec4& mom){
 // compute velocity vector
   double phi = pars.phi(time);
   double factor = pars._mass/pars._mbar;
@@ -179,7 +179,7 @@ void HelixMom(HelixPars const& pars, double time, FourV& mom){
 
 // convert 4-momentum positions and momentum, plus particle charge, into a helix.
 // Z is assumed to be along Z
-void HelixFromMom(FourV pos, FourV mom, double charge, double Bz, HelixPars& pars){
+void HelixFromMom(Vec4 pos, FourV mom, double charge, double Bz, HelixPars& pars){
 // speed of light in mm/msec
 // compute some simple useful parameters
   double pt = sqrt(mom._x*mom._x+mom._y*mom._y);
@@ -206,7 +206,7 @@ void HelixFromMom(FourV pos, FourV mom, double charge, double Bz, HelixPars& par
   pars_[cy_] = pos._y - mom._x*momToRad;
 }
 
-void HelixChangeDir(HelixPars const& pars, effect eff,FourV& unit) {
+void HelixChangeDir(HelixPars const& pars, effect eff,Vec4& unit) {
   double phi = pars.omega()*(unit._t - pars_[t0_]) + pars_[phi0_];
   double pbar = pars.pbar();
   switch ( eff ) {
@@ -271,12 +271,12 @@ void HelixChange(HelixPars const& pars,HelixPars& newpars, double time, double d
 
 void TestHelix( double charge, double x, double y, double z, double cost, double momphi, double momval=100.0, double mass=0.5,double tmin=-8, double tmax=8) {
 // position and momentum vectors
-  FourV pos;
+  Vec4 pos;
   pos._x = x;
   pos._y = y;
   pos._z = z;
   pos._t = 0.5*tmin+0.5*tmax;
-  FourV mom;
+  Vec4 mom;
   double sint = sqrt(1-cost*cost);
   mom._x = momval*sint*cos(momphi);
   mom._y = momval*sint*sin(momphi);
@@ -295,13 +295,13 @@ void TestHelix( double charge, double x, double y, double z, double cost, double
   << "mass = " << pars._mass << endl
   << "Reduced mass = " << pars._mbar << endl;
 
-  FourV testmom;
+  Vec4 testmom;
   HelixMom(pars,pos._t,testmom);
   cout << "Original mom " << mom << endl << "Helix mom " << testmom << endl;
   HelixPars invpars = pars;
   invpars.invert();
   // test velocity
-  FourV vel;
+  Vec4 vel;
   vel._t = pos._t;
   HelixVel(pars,vel);
   double dot = testmom.dot3(vel)/c;
@@ -323,7 +323,7 @@ void TestHelix( double charge, double x, double y, double z, double cost, double
 //TPolyLine to graph the result
   TPolyLine3D* hel = new TPolyLine3D(nsteps+1);
   TPolyLine3D* invhel = new TPolyLine3D(nsteps+1);
-  FourV hpos;
+  Vec4 hpos;
   for(int istep=0;istep<nsteps+1;++istep){
   // compute the position from the time
     hpos._t = tmin + tstep*istep;
@@ -426,12 +426,12 @@ void TestHelix( double charge, double x, double y, double z, double cost, double
 
 void TestHelixDerivs( double dmin, double dmax, double time, effect ieff, double charge=1.0, double momval=100.0, double momphi=1.5, double cost=0.7, double mass=0.5,double t0=0.0){
 // position and momentum vectors
-  FourV pos;
+  Vec4 pos;
   pos._x = 0.0;
   pos._y = 0.0;
   pos._z = 0.0;
   pos._t = t0;
-  FourV mom;
+  Vec4 mom;
   double sint = sqrt(1-cost*cost);
   mom._x = momval*sint*cos(momphi);
   mom._y = momval*sint*sin(momphi);
@@ -441,10 +441,10 @@ void TestHelixDerivs( double dmin, double dmax, double time, effect ieff, double
   HelixPars pars;
   HelixFromMom(pos,mom,charge,B,pars);
 // position at time of change
-  FourV testpos;
+  Vec4 testpos;
   testpos._t = time;
   HelixPos(pars,testpos);
-  FourV testmom;
+  Vec4 testmom;
   HelixMom(pars,time,testmom);
   cout << "initial momentum = " << mom._x << " " << mom._y << " " << mom._z << endl;
   cout << "derived momentum = " << testmom._x << " " << testmom._y << " " << testmom._z << endl;
@@ -494,7 +494,7 @@ void TestHelixDerivs( double dmin, double dmax, double time, effect ieff, double
     double delta = dmin + del*id; 
     //  compute exact altered params
     HelixPars xpars;
-    FourV newmom;
+    Vec4 newmom;
     if(ieff == theta1){
       double newcost = cos(acos(cost) + delta);
       double newsint = sqrt(1.0-newcost*newcost);
@@ -522,12 +522,12 @@ void TestHelixDerivs( double dmin, double dmax, double time, effect ieff, double
     // now, also compute 1st order change in parameters
     HelixPars d1pars;
     HelixChange(testpars,d1pars, testpos._t, delta, ieff);
-    FourV d1pos;
+    Vec4 d1pos;
     d1pos._t = testpos._t;
     HelixPos(d1pars,d1pos);
-    FourV gap = d1pos - testpos;
+    Vec4 gap = d1pos - testpos;
     gapgraph->SetPoint(id,delta,gap.mag3());
-    FourV d1mom;
+    Vec4 d1mom;
     HelixMom(d1pars,testpos._t,d1mom);
     radgraph->SetPoint(id,xpars_[rad_],d1pars_[rad_]);
     lambdagraph->SetPoint(id,xpars_[lam_],d1pars_[lam_]);
@@ -536,9 +536,9 @@ void TestHelixDerivs( double dmin, double dmax, double time, effect ieff, double
     cxgraph->SetPoint(id,xpars_[cx_],d1pars_[cx_]);
     cygraph->SetPoint(id,xpars_[cy_],d1pars_[cy_]);
     // compare momenta after change
-    FourV dxmom = newmom - testmom;
-    FourV dd1mom = d1mom - testmom;
-    FourV changedir;
+    Vec4 dxmom = newmom - testmom;
+    Vec4 dd1mom = d1mom - testmom;
+    Vec4 changedir;
     changedir._t = time;
     HelixChangeDir(testpars,momfrac,changedir);
     mom0graph->SetPoint(id,dxmom.dot3(changedir),dd1mom.dot3(changedir));
@@ -603,13 +603,13 @@ void TestHelixAccuracy(double mommin, double mommax, unsigned nbins, double mass
   for (unsigned isamp=0;isamp<nsamples;++isamp){
     double momval = gRandom->Uniform(mommin,mommax);
     // initial position is random inside range (+-)
-    FourV pos;
+    Vec4 pos;
     pos._x = gRandom->Uniform(-xrange,xrange);
     pos._y = gRandom->Uniform(-xrange,xrange);
     pos._z = gRandom->Uniform(-xrange,xrange);
     // initial time is arbitrary: set to 0
     pos._t = 0.0;
-    FourV mom;
+    Vec4 mom;
     // random momentum directions
     double cost = gRandom->Uniform(costmin,costmax);
     double sint = sqrt(1-cost*cost);
@@ -635,7 +635,7 @@ void TestHelixAccuracy(double mommin, double mommax, unsigned nbins, double mass
     double trange = drange/beta*c;
     trange = trange < tmax ? trange : tmax;
     // choose a random time for the effect
-    FourV testpos;
+    Vec4 testpos;
     testpos._t = gRandom->Uniform(pars_[t0_]-trange,pars_[t0_]+trange);
     HelixPos(pars,testpos);
     // scattering sigma
@@ -652,22 +652,22 @@ void TestHelixAccuracy(double mommin, double mommax, unsigned nbins, double mass
       double delta = gRandom->Gaus(0.0,sigma);
       HelixPars d1pars;
       HelixChange(pars,d1pars, testpos._t, delta, (effect)ieff);
-      FourV d1pos;
+      Vec4 d1pos;
       d1pos._t = testpos._t;
       HelixPos(d1pars,d1pos);
       // compute the gap between positions
-      FourV gap = d1pos - testpos;
+      Vec4 gap = d1pos - testpos;
       effP[ieff]->Fill(momval,cost,gap.mag3());
       // accumulate the differences
       HelixPars apars = allpars;
       HelixChange(apars,allpars, testpos._t, delta, (effect)ieff);
     }
     // total
-    FourV d1pos;
+    Vec4 d1pos;
     d1pos._t = testpos._t;
     HelixPos(allpars,d1pos);
     // compute the gap between positions
-    FourV allgap = d1pos - testpos;
+    Vec4 allgap = d1pos - testpos;
      effP[3]->Fill(momval,cost,allgap.mag3());
   }
   // draw comparisons
@@ -688,16 +688,16 @@ void ParamDerivs(HelixPars const& pars, double time,double dvec[6]){
   // small increments for each parameter
   double dpar[6] = {0.1,0.1,0.1,0.1,0.001,0.1};
   // position at the test point
-  FourV opos;
+  Vec4 opos;
   opos._t = time;
   HelixPos(pars,opos);
 // directions at test point
-  FourV momdir;
+  Vec4 momdir;
   momdir._t = time;
-  FourV thetadir;
+  Vec4 thetadir;
   thetadir._t = time;
   HelixChangeDir(pars,theta1,thetadir);
-  FourV phidir;
+  Vec4 phidir;
   phidir._t = time;
   HelixChangeDir(pars,theta2,phidir);
 // now increment parameter
@@ -723,10 +723,10 @@ void ParamDerivs(HelixPars const& pars, double time,double dvec[6]){
 	cpars_[t0_] += dpar[ipar];
 	break;
     }
-    FourV cpos;
+    Vec4 cpos;
     cpos._t = time;
     HelixPos(cpars,cpos);
-    FourV delta = opos-cpos;
+    Vec4 delta = opos-cpos;
 // projection perpendicular to momentum
     double dphi = delta.dot3(phidir);
     double dtheta = delta.dot3(thetadir);
@@ -742,9 +742,9 @@ void ParamDerivs(HelixPars const& pars, double time,double dvec[6]){
 
 void ParamCovar(double mommag, double mass, double cost, unsigned nmeasure, double trange, double xfrac, double msig) {
 // create helix
-  FourV pos(0.0,0.0,0.0,0.0);
+  Vec4 pos(0.0,0.0,0.0,0.0);
   double sint = sqrt(1.0 - cost*cost);
-  FourV mom(mommag*sint,0.0,mommag*cost,0.0);
+  Vec4 mom(mommag*sint,0.0,mommag*cost,0.0);
   mom.SetEnergy(mass);
   HelixPars pars;
   HelixFromMom(pos, mom, -1.0, 1.0, pars);
@@ -875,7 +875,7 @@ void GenerateDriftHits(HelixPars const& pars, std::vector<DHit>& hits, unsigned 
 //  cout << "omega " << omega << "omega * lambda " << omega * pars_[lam_] << endl;
   // divide z range around 0
   for(int iz=-nz; iz<=(int)nz; ++iz){
-    FourV hpos;
+    Vec4 hpos;
     double z = iz*deltaz;
     // compute the time from this position
     hpos._t = pars.time(z);
@@ -883,20 +883,20 @@ void GenerateDriftHits(HelixPars const& pars, std::vector<DHit>& hits, unsigned 
     HelixPos(pars,hpos);
     double rho = sqrt(hpos._x*hpos._x+hpos._y*hpos._y);
 //    if(rho > rmin && rho < rmax) {
-      FourV mom;
+      Vec4 mom;
       HelixMom(pars, hpos._t, mom);
       // generate a random azimuth angle for the wire
       double eta = gRandom->Uniform(-pi,pi);
       // define wire direction 
-      FourV wdir(cos(eta),sin(eta),0.0,0.0);
+      Vec4 wdir(cos(eta),sin(eta),0.0,0.0);
       // define perp direction to wire and track
-      FourV udir;
+      Vec4 udir;
       CrossProduct(wdir,mom,udir);
       udir.normalize();
       // generate random drift; this is along the U direction
       double rdrift = gRandom->Uniform(-rmax,rmax); // sign defines ambiguity
       // define wire position
-      FourV wpos = hpos;
+      Vec4 wpos = hpos;
       wpos._x -= rdrift*udir._x;
       wpos._y -= rdrift*udir._y;
       wpos._z -= rdrift*udir._z;
@@ -943,8 +943,8 @@ void TestHelixFitDerivs(double cost=0.7, double momval=105.0,double charge=1.0,d
   vector<double> delpars { 0.1, 0.025, 0.1, 0.1, 0.001, 0.1}; // small parameter changes for derivative calcs
 
   // position and momentum vectors
-  FourV pos;
-  FourV mom;
+  Vec4 pos;
+  Vec4 mom;
   double sint = sqrt(1-cost*cost);
   mom._x = momval*sint*cos(momphi);
   mom._y = momval*sint*sin(momphi);
@@ -1268,11 +1268,11 @@ void TestHelixFit(unsigned ntries, unsigned maxniter=10, double reffac=3.0, doub
     double momphi = gRandom->Uniform(-pi,pi);
     //    cout << "momphi " << momphi << endl;
     // position and momentum vectors
-    FourV pos;
+    Vec4 pos;
     pos._x = gRandom->Uniform(-5,5);
     pos._y = gRandom->Uniform(-5,5);
     pos._z = gRandom->Uniform(-200,200);
-    FourV mom;
+    Vec4 mom;
     double sint = sqrt(1-cost*cost);
     mom._x = momval*sint*cos(momphi);
     mom._y = momval*sint*sin(momphi);
@@ -1360,7 +1360,7 @@ void TestHelixFit(unsigned ntries, unsigned maxniter=10, double reffac=3.0, doub
     momproj[lam_] = factor*refpars_[lam_]/refpars.pbar();
     double momerr2 = Similarity(fcov,momproj);
 //    double mommag = fabs(factor)*sqrt(fpar[rad_]*fpar[rad_] + fpar[lam_]*fpar[lam_] );
-    FourV fmom;
+    Vec4 fmom;
     HelixMom(refpars,fpar[t0_],fmom);
     double mommag = fmom.mag3();
 //cout << "mommag " << mommag << " vecmag " << fmom.mag3() << endl;

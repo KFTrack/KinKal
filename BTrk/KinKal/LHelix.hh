@@ -8,6 +8,7 @@
 //
 
 #include "BTrk/KinKal/Types.hh"
+#include "BTrk/KinKal/TTraj.hh"
 #include "BTrk/KinKal/KTraj.hh"
 #include "BTrk/KinKal/TData.hh"
 #include "BTrk/KinKal/Context.hh"

@@ -8,15 +8,11 @@
 import os
 Import('env')
 Import('build_helper')
-#rootlibs  = env['ROOTLIBS']
 
-helper=build_helper();
+helper=build_helper(env);
 
-mainlib = helper.make_mainlib ( env,
-                                [ 
+mainlib = helper.make_mainlib ( [ 
                                 ] )
-
-#helper.make_bin( "test", [ 'test', rootlibs ] )
 
 # This tells emacs to view this file in python mode.
 # Local Variables:
