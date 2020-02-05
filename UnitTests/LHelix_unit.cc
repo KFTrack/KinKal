@@ -36,12 +36,32 @@ void print_usage() {
   printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin ff--tmax f \n");
 }
 
+struct MomVec {
+  TPolyLine3D* arrow;
+  TPolyMarker3D *start, *end;
+  MomVec() : arrow(new TPolyLine3D(2)), start(new TPolyMarker3D(1,21)), end(new TPolyMarker3D(1,22)) {}
+};
+
+void drawMom(Vec3 const& start, Vec3 const& momvec,int momcolor,MomVec& mom) {
+  mom.arrow->SetPoint(0,start.X(),start.Y(),start.Z());
+  auto end = start + momvec;
+  mom.arrow->SetPoint(1,end.X(),end.Y(),end.Z());
+  mom.arrow->SetLineColor(momcolor);
+  mom.arrow->Draw();
+  mom.start->SetPoint(1,start.X(),start.Y(),start.Z());
+  mom.start->SetMarkerColor(momcolor);
+  mom.start->Draw();
+  mom.end->SetPoint(1,end.X(),end.Y(),end.Z());
+  mom.end->SetMarkerColor(momcolor);
+  mom.end->Draw();
+}
+
 int main(int argc, char **argv) {
   int opt;
   float mom(105.0), cost(0.7), phi(0.5);
   float masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
-  float pmass, oz(0.0), ot(0.0);
+  float pmass, oz(100.0), ot(0.0);
   float tmin(-5.0), tmax(5.0);
 
   static struct option long_options[] = {
@@ -137,8 +157,6 @@ int main(int argc, char **argv) {
   else
     hel->SetLineColor(kRed);
   hel->Draw();
-//  invhel->SetLineColor(kCyan);
-//  invhel->Draw();
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
   rulers->GetXaxis()->SetAxisColor(kBlue);
@@ -147,75 +165,36 @@ int main(int argc, char **argv) {
   rulers->GetYaxis()->SetLabelColor(kCyan);
   rulers->GetZaxis()->SetAxisColor(kOrange);
   rulers->GetZaxis()->SetLabelColor(kOrange);
-//   TAxis3D::ToggleRulers();
-//   TAxis3D::ToggleRulers();
-//  cout <<"axis = " << rulers << endl;
   rulers->Draw();
 
-//  TEveArrow* start = new TEveArrow(pos._x,pos._y,pos._z,0.0,0.0,0.0);
-//  start->Draw();
-
-//  TVector3* start =new TVector3(pos._x,pos._y,pos._z);
-//  start->Draw();
-  TPolyLine3D* refmom = new TPolyLine3D(2);
-  refmom->SetPoint(0,origin.X(),origin.Y(),origin.Z());
-  Vec3 lend = origin.Vect() + lhel.rad()*mdir;
-  refmom->SetPoint(1,lend.X(),lend.Y(),lend.Z());
-  int momcolor;
-  if(icharge>0)
-    momcolor = kRed;
-  else
-    momcolor = kBlack;
-  refmom->SetLineColor(momcolor);
-  refmom->Draw();
-
-  TPolyMarker3D* refp = new TPolyMarker3D(1,24);
-  refp->SetPoint(0,origin.X(),origin.Y(),origin.Z());
-  refp->Draw();
-  TPolyMarker3D* refmomp = new TPolyMarker3D(1,22);
-  refmomp->SetPoint(1,lend.X(),lend.Y(),lend.Z());
-  refmomp->SetMarkerColor(momcolor);
-  refmomp->Draw();
-
-  TPolyMarker3D* helixp = new TPolyMarker3D(1,3);
-  helixp->SetMarkerColor(kGreen);
-  hpos.SetE(ot);
-  lhel.position(hpos);
-  helixp->SetPoint(0,hpos.X(),hpos.Y(),hpos.Z());
-  helixp->Draw();
-
-  TPolyMarker3D* testp = new TPolyMarker3D(1,25);
-  testp->SetMarkerColor(kOrange);
-  testp->SetPoint(0,hpos.X(),hpos.Y(),hpos.Z()+2*M_PI*lhel.lam());
-  testp->Draw();
-
-  TPolyMarker3D* startp = new TPolyMarker3D(1,21);
-  startp->SetMarkerColor(kBlue);
-  hpos.SetE(tmin);
-  lhel.position(hpos);
-  startp->SetPoint(0,hpos.X(),hpos.Y(),hpos.Z());
-  startp->Draw();
-
-  TPolyMarker3D* endp = new TPolyMarker3D(1,22);
-  endp->SetMarkerColor(kBlue);
-  hpos.SetE(tmax);
-  lhel.position(hpos);
-  endp->SetPoint(0,hpos.X(),hpos.Y(),hpos.Z());
-  endp->Draw();
-
+// now draw momentum vectors at reference, start and end
+  MomVec mstart,mend,mref;
+  Vec3 mompos;
+  lhel.position(ot,mompos);
+  lhel.direction(ot,mdir);
+  Vec3 momvec =mom*mdir;
+  drawMom(mompos,momvec,kBlack,mref);
+  //
+  lhel.position(tmin,mompos);
+  lhel.direction(tmin,mdir);
+  momvec =mom*mdir;
+  drawMom(mompos,momvec,kBlue,mstart);
+  //
+  lhel.position(tmax,mompos);
+  lhel.direction(tmax,mdir);
+  momvec =mom*mdir;
+  drawMom(mompos,momvec,kGreen,mend);
+  //
   TLegend* leg = new TLegend(0.8,0.8,1.0,1.0);
   char title[80];
-  snprintf(title,80,"Helix, mass=%3.1g MeV/c^{2}, q=%1i",pmass,icharge);
+  snprintf(title,80,"Helix, q=%1i, mom=%3.1g MeV/c",icharge,mom);
   leg->AddEntry(hel,title,"L");
-  snprintf(title,80,"Initial Momentum =%3.1g MeV/c",mom);
-  leg->AddEntry(refmom,title,"L");
-  leg->AddEntry(refp,"Initial Position","P");
-  snprintf(title,80,"Helix, t=%4.2g ns",ot);
-  leg->AddEntry(helixp,title,"P");
-  snprintf(title,80,"Helix, t=%4.2g ns",ot+tmin);
-  leg->AddEntry(startp,title,"P");
-  snprintf(title,80,"Helix, t=%4.2g ns",ot+tmax);
-  leg->AddEntry(endp,title,"P");
+  snprintf(title,80,"Ref. Momentum, t=%4.2g ns",ot);
+  leg->AddEntry(mref.arrow,title,"L");
+  snprintf(title,80,"Start Momentum, t=%4.2g ns",ot+tmin);
+  leg->AddEntry(mstart.arrow,title,"L");
+  snprintf(title,80,"End Momentum, t=%4.2g ns",ot+tmax);
+  leg->AddEntry(mend.arrow,title,"L");
   leg->Draw();
 
   snprintf(title,80,"LHelix_m%3.1f_p%3.2f_q%i.root",pmass,mom,icharge);
