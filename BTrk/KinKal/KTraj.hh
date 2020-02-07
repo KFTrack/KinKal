@@ -6,11 +6,24 @@
 //  The geometric and kinematic interpretation of the parameters is defined in the subclasses
 //
 #include "BTrk/KinKal/TTraj.hh"
+#include <string>
 namespace KinKal {
   class KTraj {
     public:
       // define local basis vector indices; along and perp to the local momentum.  theta2 is also perpendicular to z
       enum trajdir {momdir=0,theta1,theta2};
+      static std::string directionName(trajdir tdir) {
+	switch (tdir) {
+	  case momdir:
+	    return std::string("along");
+	  case theta1:
+	    return std::string("theta1");
+	  case theta2:
+	    return std::string("theta2");
+	  default:
+	    return std::string("unknown");
+	}
+      }
       // unit vectors in the different local directions
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const = 0;
       

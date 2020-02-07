@@ -121,9 +121,7 @@ int main(int argc, char **argv) {
   invlhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
-  cout << "Helix with momentum " << testmom << " position " << origin << " has parameters: " << endl;
-  for(size_t ipar=0;ipar < LHelix::npars_;ipar++)
-    cout << LHelix::paramName(static_cast<LHelix::paramIndex>(ipar) ) << " : " << lhel.param(ipar) << endl;
+  cout << "Helix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 vel;
   lhel.velocity(ot,vel);
   double dot = vel.Dot(testmom)/KinKal::c_;

@@ -16,6 +16,8 @@ helper=build_helper(env);
 linkLists = {
  'pi'      : [ 'BTrk_BaBar', 'CLHEP' ],
  'LHelix'      : [ 'BTrk_KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
+             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
+ 'LHelixDerivs'      : [ 'BTrk_KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
              'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ]
 }
 

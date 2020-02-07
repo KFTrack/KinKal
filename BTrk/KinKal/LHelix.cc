@@ -161,5 +161,13 @@ namespace KinKal {
 	cout << "Error: unknown direction!" << dir << endl;
     }
   }
+  std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
+    ost << " LHelix parameters: ";
+    for(size_t ipar=0;ipar < LHelix::npars_;ipar++){
+      ost << LHelix::paramName(static_cast<LHelix::paramIndex>(ipar) ) << " : " << lhel.param(ipar);
+      if(ipar < LHelix::npars_-1) ost << " , ";
+    }
+    return ost;
+  }
 
 } // KinKal namespace

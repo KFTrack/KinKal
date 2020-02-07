@@ -15,6 +15,7 @@
 #include "BTrk/KinKal/Constants.hh"
 #include <vector>
 #include <string>
+#include <ostream>
 
 namespace KinKal {
 
@@ -85,5 +86,6 @@ namespace KinKal {
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
   };
+  std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }
 #endif
