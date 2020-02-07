@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   cout << "origin " << origin << " reference " << refpos << endl;
   Mom4 refmom;
   refhel.momentum(ot,refmom);
-  int ndel(2);
+  int ndel(50);
   // graphs to compare parameter change
   TGraph* radgraph[3];
   TGraph* lambdagraph[3];
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
   // loop over derivative directions
   for(int idir=0;idir<3;++idir){
     KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
-    cout << "testing direction " << KTraj::directionName(tdir) << endl;
+//    cout << "testing direction " << KTraj::directionName(tdir) << endl;
     // parameter change
 
     radgraph[idir] = new TGraph(ndel);
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
     Mom4 momv;
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
-      cout << "Delta = " << delta << endl;
+//      cout << "Delta = " << delta << endl;
  
       //  compute exact altered params
       if(tdir == KTraj::theta1){
@@ -169,7 +169,7 @@ int main(int argc, char **argv) {
       // now, compute 1st order change in parameters
       LHelix::PDer pder;
       refhel.momDeriv(tdir,ot,pder);
-      cout << "derivative vector" << pder << endl;
+//      cout << "derivative vector" << pder << endl;
       LHelix::TDATA::DVec dvec = refhel.params().vec();
       for(size_t ipar=0;ipar<6;ipar++)
 	dvec[ipar] += delta*pder[ipar][0];
@@ -177,8 +177,8 @@ int main(int argc, char **argv) {
       LHelix dhel(dvec,refhel.params().mat(),refhel.mass(),refhel.charge(),context);
       Mom4 dmom;
       dhel.momentum(ot,dmom);
-      cout << "Exact change" << xhel << endl;
-      cout << "Derivative  " << dhel << endl;
+//      cout << "Exact change" << xhel << endl;
+//      cout << "Derivative  " << dhel << endl;
       Vec4 dpos;
       dpos.SetE(ot);
       dhel.position(dpos);
