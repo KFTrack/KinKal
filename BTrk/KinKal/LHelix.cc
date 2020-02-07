@@ -133,8 +133,8 @@ namespace KinKal {
 	// polar bending: only momentum and position are unchanged
 	dermat[rad_][0] = lam();
 	dermat[lam_][0] = -rad();
-	dermat[t0_][0] = (time-t0())/lam();
-	dermat[phi0_][0] = omval*(time-t0())/lam();
+	dermat[t0_][0] = -(time-t0())*rad()/lam();
+	dermat[phi0_][0] = -omval*(time-t0())*rad()/lam();
 	dermat[cx_][0] = -lam()*sin(phival);
 	dermat[cy_][0] = lam()*cos(phival);
 	break;
