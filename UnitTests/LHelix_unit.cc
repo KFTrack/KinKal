@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   // also inverse helix
   invlhel.invertCT();
   Mom4 testmom;
-  lhel.momentum(0.0,testmom);
+  lhel.momentum(ot,testmom);
   cout << "Helix with momentum " << testmom << " position " << origin << " has parameters: " << endl;
   for(size_t ipar=0;ipar < LHelix::npars_;ipar++)
     cout << LHelix::paramName(static_cast<LHelix::paramIndex>(ipar) ) << " : " << lhel.param(ipar) << endl;

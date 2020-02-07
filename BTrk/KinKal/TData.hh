@@ -55,7 +55,8 @@ namespace KinKal {
       constexpr static size_t PDim() { return DDIM; }
 
       // construct from vector and matrix
-      TData(DVec const& pars, DMat const& pcov) : vec_(pars), mat_(pcov) {}
+      TData(DVec const& pars, DMat const& pcov,DataType dtype=param) : TDataBase(dtype), vec_(pars), mat_(pcov) {}
+      TData(DVec const& pars) : TDataBase(param), vec_(pars) {}
       TData(DataType dtype=param) : TDataBase(dtype) {}
       // inversion changes from params <-> weight. 
       // Invert in-place, overriding status
@@ -81,9 +82,9 @@ namespace KinKal {
 
       // accessors
       DVec const& vec() const { return vec_; }
-      DVec const& mat() const { return mat_; }
+      DMat const& mat() const { return mat_; }
       DVec& vec() { return vec_; }
-      DVec& mat() { return mat_; }
+      DMat& mat() { return mat_; }
     private:
       DVec vec_; // parameter or weight vector
       DMat mat_; // covariance or weight matrix

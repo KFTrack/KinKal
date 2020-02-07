@@ -34,7 +34,8 @@ namespace KinKal {
       // construct from momentum, position, and particle properties.
       // This also requires the BField, through Context
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context);
-
+      // construct from parameters
+      LHelix(TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context);
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
       void position(double t,Vec3& pos) const override; // time is input 

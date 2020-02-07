@@ -45,6 +45,11 @@ namespace KinKal {
     pars_.vec()[cy_] = pos.X() - mom.X()*momToRad;
   }
 
+  LHelix::LHelix( TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context) : KTraj(mass,charge), pars_(pvec,pcov) {
+    double momToRad = 1000.0/(charge_*context.Bz_*c_);
+    mbar_ = -mass_*momToRad;
+  }
+
   void LHelix::position(Vec4& pos) const {
     // compute azimuthal angle
     double df = dphi(pos.T());
