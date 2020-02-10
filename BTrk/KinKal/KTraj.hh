@@ -15,7 +15,7 @@ namespace KinKal {
       static std::string directionName(trajdir tdir) {
 	switch (tdir) {
 	  case momdir:
-	    return std::string("along");
+	    return std::string("mom");
 	  case theta1:
 	    return std::string("theta1");
 	  case theta2:

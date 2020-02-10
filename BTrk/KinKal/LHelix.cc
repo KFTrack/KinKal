@@ -19,7 +19,8 @@ namespace KinKal {
   std::string const& LHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context) : KTraj(mom.M(),charge) {
+  LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,
+      TRange const& range) : TTraj(range), KTraj(mom.M(),charge) {
     static double twopi = M_PI*M_PI;
     // compute some simple useful parameters
     double pt = mom.Pt(); 
@@ -45,7 +46,8 @@ namespace KinKal {
     pars_.vec()[cy_] = pos.X() - mom.X()*momToRad;
   }
 
-  LHelix::LHelix( TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context) : KTraj(mass,charge), pars_(pvec,pcov) {
+  LHelix::LHelix( TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context,
+      TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
     double momToRad = 1000.0/(charge_*context.Bz_*c_);
     mbar_ = -mass_*momToRad;
   }

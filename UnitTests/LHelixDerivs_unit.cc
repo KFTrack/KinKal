@@ -38,11 +38,11 @@ void print_usage() {
 
 int main(int argc, char **argv) {
   int opt;
-  float mom(105.0), cost(0.7), phi(0.5);
-  float masses[5]={0.511,105.66,139.57, 493.68, 938.0};
+  double mom(105.0), cost(0.7), phi(0.5);
+  double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
-  float pmass, oz(100.0), ot(0.0);
-  float dmin(-5e-2), dmax(5e-2);
+  double pmass, oz(100.0), ot(0.0);
+  double dmin(-5e-2), dmax(5e-2);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },

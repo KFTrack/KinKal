@@ -1,13 +1,13 @@
-#ifndef BTrk_KinKal_TrkDirection_hh 
-#define BTrk_KinKal_TrkDirection_hh 
+#ifndef BTrk_KinKal_TrkDir_hh 
+#define BTrk_KinKal_TrkDir_hh 
 // -----------------------------------------------------------------------
-// enum defining directions: positive is increasing time, negative is decreasing
+// enum defining propagation directions: positive is increasing time, negative is decreasing
 //------------------------------------------------------------------------
 
 namespace KinKal {
-  enum trkDirection { ttneg=-1, pos=1  };
+  enum TrkDir { ttneg=0, ttpos=1  };
 
-  std::ostream& operator<<(std::ostream& os, const trkDirection& tdir) {
+  std::ostream& operator<<(std::ostream& os, const TrkDir& tdir) {
     switch(tdir) {
       case ttneg:
 	os << " Decreasing time";

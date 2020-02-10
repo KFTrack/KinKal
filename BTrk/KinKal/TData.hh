@@ -62,7 +62,7 @@ namespace KinKal {
       // Invert in-place, overriding status
       void invert() {
 	// first invert the matrix
-	if(mat_.invert()){
+	if(mat_.Invert()){
 	  vec_ = mat_*vec_;
 	  // update base class members
 	  TDataBase::invert();
