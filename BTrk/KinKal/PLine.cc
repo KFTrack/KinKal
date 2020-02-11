@@ -31,7 +31,7 @@ namespace KinKal {
 
     double stheta2 = (1.0 -zsdot*zsdot);
     pars_.vec()[cost_] = zsdot;
-    // find the POCA with the z axis
+    // find the POCA with the z axis; this defines the reference point
     double psdot = p0.Dot(sdir);
     double slen = (p0.Z()*zsdot - psdot)/stheta2;
     auto poca = p0 + sdir*slen;
@@ -40,10 +40,10 @@ namespace KinKal {
     pars_.vec()[z0_] = poca.Z();
     // check
     if(fabs(poca.Z()+(psdot*zsdot - p0.Z())/stheta2) > 1e-5)
-      throw std::invalid_argument("POCA calculation failed!");
-    vel_ = sqrt(svel.Mag2()); // velocity sign needs to be setable FIXME!
+      throw std::range_error("POCA calculation failed!");
+    vel_ = sqrt(svel.Mag2());
     // move the time to POCA
-    pars_.vec()[t0_] = tmeas + slen/vel_;
+    pars_.vec()[t0_] = tmeas - slen/vel_;
   }
 
   void PLine::position(Vec4& pos) const {
@@ -58,8 +58,8 @@ namespace KinKal {
 
   void PLine::position(double time, Vec3& pos) const {
     Vec3 p0; pos0(p0);
-    Vec3 dir; direction(time,dir);
-    pos = p0 + vel_*(time-t0())*dir;
+    Vec3 vel; velocity(time,vel);
+    pos = p0 + (time-t0())*vel;
   }
 
 

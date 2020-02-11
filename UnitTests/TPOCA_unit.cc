@@ -101,7 +101,12 @@ int main(int argc, char **argv) {
   PLine pline(ppos, pvel,time+dtime,prange);
   // create TPOCA from these
   TPOCA<LHelix,PLine> tp(lhel,pline);
-  cout << "TPOCA status " << tp.status() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  Vec3 thpos, tlpos;
+  tp.ttraj0().position(tp.poca0().T(),thpos);
+  tp.ttraj1().position(tp.poca1().T(),tlpos);
+  cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA PLine pos " << tlpos << endl;
+  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << endl;
 
   return 0;
 }

@@ -2,6 +2,8 @@
 // test basic functions of the Loop Helix TTraj class
 //
 #include "BTrk/KinKal/LHelix.hh"
+#include "BTrk/KinKal/PLine.hh"
+#include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/Context.hh"
 
 #include <iostream>
@@ -33,7 +35,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin ff--tmax f \n");
+  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --tilne f \n");
 }
 
 struct MomVec {
@@ -63,6 +65,8 @@ int main(int argc, char **argv) {
   int imass(0), icharge(-1);
   double pmass, oz(100.0), ot(0.0);
   double tmin(-5.0), tmax(5.0);
+  double tline(3.0), vprop(0.8), gap(2.0);
+  double hlen(500.0); // half-length of the wire
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -73,9 +77,8 @@ int main(int argc, char **argv) {
     {"zorigin",     required_argument, 0, 'z'  },
     {"torigin",     required_argument, 0, 't'  },
     {"tmin",     required_argument, 0, 's'  },
-    {"tmax",     required_argument, 0, 'e'  }
-
-
+    {"tmax",     required_argument, 0, 'e'  },
+    {"tline",     required_argument, 0, 'l'  }
   };
 
   int long_index =0;
@@ -99,6 +102,8 @@ int main(int argc, char **argv) {
       case 's' : tmin = atof(optarg);
 		 break;
       case 'e' : tmax = atof(optarg);
+		 break;
+      case 'l' : tline = atof(optarg);
 		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
@@ -194,6 +199,40 @@ int main(int argc, char **argv) {
   snprintf(title,80,"End Momentum, t=%4.2g ns",ot+tmax);
   leg->AddEntry(mend.arrow,title,"L");
   leg->Draw();
+
+  // create a PLine near this helix, and draw it and the TPOCA vector
+  Vec3 pos, dir;
+  lhel.position(tline,pos);
+  lhel.direction(tline,dir);
+  // rotate the direction
+  double lhphi = atan2(dir.Y(),dir.X());
+  double pphi = lhphi + M_PI/2.0;
+  Vec3 pdir(cos(pphi),sin(pphi),0.0);
+  double pspeed = c_*vprop; // vprop is relative to c
+  Vec3 pvel = pdir*pspeed;
+  // shift the position
+  Vec3 perpdir(-sin(phi),cos(phi),0.0);
+  Vec3 ppos = pos + gap*perpdir;
+// time range;
+  TRange prange(tline-hlen/pspeed, tline+hlen/pspeed);
+  PLine pline(ppos, pvel,tline,prange);
+// find TPOCA
+  TPOCA<LHelix,PLine> tp(lhel,pline);
+  // draw the line and TPOCA
+  TPolyLine3D* line = new TPolyLine3D(2);
+  Vec3 plow, phigh;
+  pline.position(pline.range().low(),plow);
+  pline.position(pline.range().high(),phigh);
+  line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+  line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+  line->SetLineColor(kOrange);
+  line->Draw();
+  TPolyLine3D* poca = new TPolyLine3D(2);
+  poca->SetPoint(0,tp.poca0().X() ,tp.poca0().Y() ,tp.poca0().Z());
+  poca->SetPoint(1,tp.poca1().X() ,tp.poca1().Y() ,tp.poca1().Z());
+  poca->SetLineColor(kBlack);
+  poca->Draw();
+  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
 
   snprintf(title,80,"LHelix_m%3.1f_p%3.2f_q%i.root",pmass,mom,icharge);
   cout << "Saving canvas to " << title << endl;
