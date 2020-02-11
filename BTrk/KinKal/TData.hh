@@ -1,5 +1,5 @@
-#ifndef kinkal_TData_hh
-#define kinkal_TData_hh
+#ifndef KinKal_TData_hh
+#define KinKal_TData_hh
 //
 //  Data payload to describing either parameters or weights
 //  Parameters describe values and covariance of fit results and
@@ -8,45 +8,13 @@
 //  inverse of parameters.
 //  used as part of the kinematic kalman fit
 //
+#include "BTrk/KinKal/TDataBase.hh"
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
 #include <iostream>
 
 namespace KinKal {
-
-// untemplated content
-  class TDataBase {
-    public:
-      enum DataType{param=0,weight};
-      enum Status{valid=0,invalid};
-      bool isValid() const { return status_ == valid; }
-      bool isInvalid() const { return status_ != valid; }
-    private:
-      // specify whether the object represents parameters or weights
-      DataType dtype_;
-      Status status_;
-    protected:
-      // override default constructor
-      TDataBase(DataType dtype=param) : dtype_(dtype), status_(invalid) {}
-      void setStatus(Status status) { status_ = status; }
-      void invert() {
-	switch (dtype_ ){
-	  case param: 
-	    dtype_ = weight;
-	    break;
-	  case weight:
-	    dtype_ = param;
-	    break;
-	  default:
-	    std::cout << "invalid data type " << dtype_ << std::endl;
-	  // should throw here FIXME!
-	  setStatus(valid);
-	}
-      }
-  };
-
-
-// main class is templated on the data vector dimension
+// templated on the data vector dimension
   template <size_t DDIM> class TData : public TDataBase {
     public:
       // define the parameter types

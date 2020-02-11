@@ -33,7 +33,7 @@ namespace KinKal {
       size_t nearestIndex(double time) const;
       DTT const& pieces() const { return pieces_; }
       // test for spatial gaps
-      double largestGap(size_t& index) const;
+      void gaps(double& largest, size_t& ilargest, double& average) const;
     private:
       PTTraj() = delete; // no default/null constructor
       DTT pieces_; // constituent pieces
@@ -87,11 +87,14 @@ namespace KinKal {
 	  pieces_.pop_front();
 	ipiece--;
       }
+      // if we're at the start, prepend
       if(ipiece == 0){
 	// update ranges and add the piece
 	pieces_.front().range().low() = newpiece.range().high();
 	range().low() = newpiece.range().low();
 	pieces_.push_front(newpiece);
+	// subtract a small buffer to prevent overlaps
+	pieces_.front().range().high() -= TRange::tbuff_;
 	retval = true;
       }
     }
@@ -114,9 +117,10 @@ namespace KinKal {
 	  pieces_.pop_back();
 	}
       }
-      if(ipiece < pieces_.size()-1){
-	// update ranges and add the piece
-	pieces_.back().range().high() = newpiece.range().low();
+      // if we're at the end, append
+      if(ipiece == pieces_.size()-1){
+	// update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
+	pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
 	range().high() = newpiece.range().high();
 	pieces_.push_back(newpiece);
 	retval = true;
@@ -128,9 +132,9 @@ namespace KinKal {
   template <class TT> size_t PTTraj<TT>::nearestIndex(double time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
-    if(time < range().low()){
+    if(time <= range().low()){
       retval = 0;
-    } else if(time > range().high()){
+    } else if(time >= range().high()){
       retval = pieces_.size()-1;
     } else {
       // scan
@@ -142,8 +146,9 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TT> double PTTraj<TT>::largestGap(size_t& index) const {
-    double retval (0.0);
+  template <class TT> void PTTraj<TT>::gaps(double& largest,  size_t& ilargest, double& average) const {
+    largest = average = 0.0;
+    ilargest =0;
     // loop over adjacent pairs
     for(size_t ipair=1; ipair<pieces_.size();++ipair){
       double jtime = pieces_[ipair].range().low(); // time of the junction of this piece with its preceeding piece
@@ -151,12 +156,14 @@ namespace KinKal {
       pieces_[ipair].position(jtime,p0);
       pieces_[ipair-1].position(jtime,p1);
       double diff = sqrt((p1 - p0).Mag2());
-      if(diff > retval){
-	retval = diff;
-	index = ipair;
+      average += diff;
+      if(diff > largest){
+	largest = diff;
+	ilargest = ipair;
       }
     }
-    return retval;
+    if(pieces_.size() > 1)
+      average /= (pieces_.size()-1);
   }
 }
 

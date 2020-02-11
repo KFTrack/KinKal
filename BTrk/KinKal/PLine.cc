@@ -1,6 +1,7 @@
 #include "BTrk/KinKal/PLine.hh"
 #include "BTrk/KinKal/Constants.hh"
 #include <iostream>
+#include <stdexcept>
 
 using namespace std;
 using namespace ROOT::Math;
@@ -19,14 +20,14 @@ namespace KinKal {
   std::string const& PLine::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& PLine::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  PLine::PLine(Vec3 const& p0, Vec3 const& svel, double tmeas) {
+  PLine::PLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range) : TTraj(range) {
   // check direction: must be clost to perpendicular to z axis
     static const Vec3 zdir(0.0,0.0,1.0);
-    auto sdir = svel.Unit();
     static const double tol =0.02; // within 2% of perpendicular
+    auto sdir = svel.Unit();
     double zsdot = zdir.Dot(sdir);
     if(fabs(zsdot) > tol)
-      cout << "PLine direction not perpendicular!" << endl; // should throw FIXME!
+      throw std::invalid_argument("PLine direction not perpendicular!");
 
     double stheta2 = (1.0 -zsdot*zsdot);
     pars_.vec()[cost_] = zsdot;
@@ -39,11 +40,10 @@ namespace KinKal {
     pars_.vec()[z0_] = poca.Z();
     // check
     if(fabs(poca.Z()+(psdot*zsdot - p0.Z())/stheta2) > 1e-5)
-      cout << "POCA calculation failed!" << endl; // should throw FIXME!
-    // sign velocity according to the counter-clockwise direction convention
-    vel_ = sqrt(svel.Mag2()); // FIXME!
+      throw std::invalid_argument("POCA calculation failed!");
+    vel_ = sqrt(svel.Mag2()); // velocity sign needs to be setable FIXME!
     // move the time to POCA
-    pars_.vec()[t0_] = tmeas + slen*vel_;
+    pars_.vec()[t0_] = tmeas + slen/vel_;
   }
 
   void PLine::position(Vec4& pos) const {
@@ -70,7 +70,7 @@ namespace KinKal {
 
   void PLine::direction(double time, Vec3& dir) const {
     double sint = sinTheta();
-    dir.SetXYZ(-sint*sin(phi0()), sint*cos(phi0()), cost());
+    dir.SetXYZ(sint*sin(phi0()), -sint*cos(phi0()), cost());
   }
 
 }

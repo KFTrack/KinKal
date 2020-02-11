@@ -18,7 +18,7 @@ namespace KinKal {
       static std::string const& paramTitle(paramIndex index);
  
       // construct from a wire position, signal propagation velocity (mm/ns), and measurement time at the position
-      PLine(Vec3 const& p0, Vec3 const& svel, double tmeas);
+      PLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange());
 
     // named parameter accessors
       double param(size_t index) const { return pars_.vec()[index]; }

@@ -1,9 +1,9 @@
 #ifndef KinKal_LHelix_hh
 #define KinKal_LHelix_hh
+//
 // class desribing the looping helix basis for the kinematic Kalman fit
 // It provides geometric, kinematic, and algebraic representation of
 // a particule executing a multi-loop helix in a constant magnetic field.
-//
 // Original Author David Brown (LBNL) 1/2020
 //
 

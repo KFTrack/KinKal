@@ -9,7 +9,9 @@
 #include <iostream>
 #include <getopt.h>
 
+#include "TROOT.h"
 #include "TH1F.h"
+#include "TFile.h"
 #include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
@@ -37,6 +39,8 @@ void print_usage() {
 }
 
 int main(int argc, char **argv) {
+  gROOT->SetBatch(kTRUE);
+  // save canvases
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -207,8 +211,8 @@ int main(int argc, char **argv) {
     // draw comparisons
     char title[80];
     char name[80];
-    snprintf(name,80,"dhcan%i",idir);
-    snprintf(title,80,"Helix Change %i",idir);
+    snprintf(name,80,"dhcan%s",KTraj::directionName(tdir).c_str());
+    snprintf(title,80,"Helix Change %s",KTraj::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(name,title,1200,800);
     dhcan[idir]->Divide(3,2);
     dhcan[idir]->cd(1);
@@ -223,6 +227,7 @@ int main(int argc, char **argv) {
     cxgraph[idir]->Draw("AC*");
     dhcan[idir]->cd(6);
     cygraph[idir]->Draw("AC*");
+    dhcan[idir]->Draw();
 
     snprintf(name,80,"dmcan_%s",KTraj::directionName(tdir).c_str());
     snprintf(title,80,"Mom Change %s",KTraj::directionName(tdir).c_str());
@@ -236,15 +241,16 @@ int main(int argc, char **argv) {
     mom2graph[idir]->Draw("AC*");
     dmomcan[idir]->cd(4);
     gapgraph[idir]->Draw("AC*");
-  }
-  // save canvases
-  for(unsigned idir=0;idir<3;idir++){
+    dmomcan[idir]->Draw();
+  
     char fname[100];
-    snprintf(fname,100,"LHelixDerivs_dh%u.root",idir);
+    snprintf(fname,100,"LHelixDerivs_dh_%s.root",KTraj::directionName(tdir).c_str());
     dhcan[idir]->SaveAs(fname);
-    snprintf(fname,100,"LHelixDerivs_dmom%u.root",idir);
+    snprintf(fname,100,"LHelixDerivs_dmom_%s.root",KTraj::directionName(tdir).c_str());
     dmomcan[idir]->SaveAs(fname);
+
   }
-  return 0;
+
+ return 0;
 }
 

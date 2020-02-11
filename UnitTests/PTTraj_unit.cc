@@ -34,19 +34,20 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: PTTraj  \n");
+  printf("Usage: PTTraj --changedir i --delta f --tstep f --nsteps i \n");
 }
 
 int main(int argc, char **argv) {
   double mom(105.0), cost(0.7), phi(0.5);
   int icharge(-1), idir(0), nsteps(10);
   double pmass(0.511), oz(100.0), ot(0.0);
-  double tstart(0.0), tstep(5.0);
-  double delta(0.02); // fractional change
+  double tstart(0.0), tstep(1.0);
+  double delta(0.01); // fractional change
 
   static struct option long_options[] = {
     {"changedir",     required_argument, 0, 'c'  },
     {"delta",     required_argument, 0, 'd'  },
+    {"tstep",     required_argument, 0, 't'  },
     {"nsteps",     required_argument, 0, 'n'  }
   };
 
@@ -55,14 +56,21 @@ int main(int argc, char **argv) {
   while ((opt = getopt_long_only(argc, argv,"", 
 	  long_options, &long_index )) != -1) {
     switch (opt) {
-      case 'c' : idir = atoi(optarg);
-		 break;
-      case 'd' : delta = atof(optarg);
-		 break;
-      case 'n' : nsteps = atoi(optarg);
-		 break;
-      default: print_usage(); 
-	       exit(EXIT_FAILURE);
+      case 'c' : 
+	idir = atoi(optarg);
+	break;
+      case 'd' :
+	delta = atof(optarg);
+	break;
+      case 't' :
+	tstep = atof(optarg);
+	break;
+      case 'n' :
+	nsteps = atoi(optarg);
+	break;
+      default:
+	print_usage(); 
+	exit(EXIT_FAILURE);
     }
   }
   KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
@@ -87,7 +95,8 @@ int main(int argc, char **argv) {
 // use derivatives of last piece to define new piece
     LHelix::PDer pder;
     LHelix const& back = ptraj.pieces().back();
-    back.momDeriv(tdir,ptraj.range().high(),pder);
+    double tcomp = back.range().high();
+    back.momDeriv(tdir,tcomp,pder);
     // create modified helix
     LHelix::TDATA::DVec dvec = back.params().vec();
     for(size_t ipar=0;ipar<6;ipar++)
@@ -96,15 +105,27 @@ int main(int argc, char **argv) {
     LHelix endhel(dvec,back.params().mat(),back.mass(),back.charge(),context,range);
     // append this
     bool added = ptraj.append(endhel);
+    // compare positions and momenta
+    Vec3 pold, pnew;
+    Mom4 mold, mnew;
+    back.position(tcomp,pold);
+    back.momentum(tcomp,mold);
+    endhel.position(tcomp,pnew);
+    endhel.momentum(tcomp,mnew);
+    double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
+    double gap = sqrt((pnew-pold).Mag2());
+    cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
+
     if(added)
       cout << "succeded to append LHelix" << endl;
     else
       cout << "failed to append LHelix" << endl;
   }
+  double largest, average;
   size_t igap;
-  double gap = ptraj.largestGap(igap);
+  ptraj.gaps(largest, igap, average);
   cout << "Final piece traj with " << ptraj.pieces().size() << " pieces and largest gap = "
-  << gap << endl;
+  << largest << " average gap = " << average << endl;
 
   return 0;
 }

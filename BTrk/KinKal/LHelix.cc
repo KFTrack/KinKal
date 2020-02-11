@@ -1,5 +1,6 @@
 #include "BTrk/KinKal/LHelix.hh"
 #include <math.h>
+#include <stdexcept>
 
 using namespace std;
 using namespace ROOT::Math;
@@ -21,7 +22,7 @@ namespace KinKal {
 
   LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,
       TRange const& range) : TTraj(range), KTraj(mom.M(),charge) {
-    static double twopi = M_PI*M_PI;
+    static double twopi = 2*M_PI;
     // compute some simple useful parameters
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
@@ -117,8 +118,7 @@ namespace KinKal {
 	unit.SetZ(-lam()*invpmm);
 	break;
       default:
-      // should throw here FIXME!
-	cout << "Error: unknown direction!" << dir << endl;
+	throw std::invalid_argument("Invalid direction");
     }
 
   }
@@ -159,8 +159,7 @@ namespace KinKal {
 	dermat[cy_][0] = +rad()*cos(phival);
 	break;
       default:
-	// should throw here FIXME!
-	cout << "Error: unknown direction!" << dir << endl;
+	throw std::invalid_argument("Invalid direction");
     }
   }
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
