@@ -1,14 +1,13 @@
-#ifndef KinKal_PLine_hh
-#define KinKal_PLine_hh
+#ifndef KinKal_TLine_hh
+#define KinKal_TLine_hh
 //
-//  Linear time-based trajectory (nearly) perpendicular to the z axis
-//  Models a sensor with constant signal propagation velocity
+//  Linear time-based trajectory with a constant velocity 
 //  Used as part of the kinematic Kalman fit
 //
 #include "BTrk/KinKal/TTraj.hh"
 #include "BTrk/KinKal/TData.hh"
 namespace KinKal {
-  class PLine : public TTraj {
+  class TLine : public TTraj {
     public:
       enum paramIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
       constexpr static size_t NParams() { return npars_; }
@@ -18,7 +17,7 @@ namespace KinKal {
       static std::string const& paramTitle(paramIndex index);
  
       // construct from a wire position, signal propagation velocity (mm/ns), and measurement time at the position
-      PLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange());
+      TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange());
 
     // named parameter accessors
       double param(size_t index) const { return pars_.vec()[index]; }

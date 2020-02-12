@@ -26,7 +26,7 @@ namespace KinKal {
     // compute some simple useful parameters
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
-    // translation factor from MeV/c to curvature radius in mm
+    // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
     double momToRad = 1000.0/(charge_*context.Bz_*c_);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
@@ -83,19 +83,15 @@ namespace KinKal {
   }
 
   void LHelix::velocity(double tval,Vec3& vel) const{
-    double phival = phi(tval);
-    double factor = c_/ebar();
-    vel.SetX(factor * rad() * cos(phival));
-    vel.SetY(factor * rad() * sin(phival));
-    vel.SetZ(factor * lam());
+    Mom4 mom;
+    momentum(tval,mom);
+    vel = mom.Vect()*(c_*fabs(Q()/ebar()));
   }
 
   void LHelix::direction(double tval,Vec3& dir) const{
-    double phival = phi(tval);
-    double factor = 1.0/pbar();
-    dir.SetX(factor * rad() * cos(phival));
-    dir.SetY(factor * rad() * sin(phival));
-    dir.SetZ(factor * lam());
+    Mom4 mom;
+    momentum(tval,mom);
+    dir = mom.Vect().Unit();
   }
 
   void LHelix::dirVector(trajdir dir,double tval,Vec3& unit) const {

@@ -1,8 +1,8 @@
 // 
-// test basic functions of TPOCA using LHelix and PLine
+// test basic functions of TPOCA using LHelix and TLine
 //
 #include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/PLine.hh"
+#include "BTrk/KinKal/TLine.hh"
 #include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/Context.hh"
 
@@ -15,7 +15,6 @@
 #include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
-#include "TArrow.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
 #include "TStyle.h"
@@ -33,9 +32,11 @@
 
 using namespace KinKal;
 using namespace std;
+// avoid confusion with root
+using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: TPOCA --gap f --time f --dtime f --dphi f --vprop f\n");
+  printf("Usage: TPOCA --charge i--gap f --time f --dtime f --dphi f --vprop f\n");
 }
 
 int main(int argc, char **argv) {
@@ -45,10 +46,11 @@ int main(int argc, char **argv) {
   double pmass(0.511), oz(100.0), ot(0.0);
   double time(8.0), dtime(20.0), dphi(5.0);
   double hlen(500.0); // half-length of the wire
-  double gap(2.0); // distance between PLine and LHelix 
+  double gap(2.0); // distance between TLine and LHelix 
   double vprop(0.7);
 
   static struct option long_options[] = {
+    {"charge",     required_argument, 0, 'q'  },
     {"gap",     required_argument, 0, 'g'  },
     {"time",     required_argument, 0, 't'  },
     {"dtime",     required_argument, 0, 'd'  },
@@ -60,6 +62,8 @@ int main(int argc, char **argv) {
   while ((opt = getopt_long_only(argc, argv,"", 
 	  long_options, &long_index )) != -1) {
     switch (opt) {
+      case 'q' : icharge = atoi(optarg);
+		 break;
       case 'g' : gap = atof(optarg); 
 		 break;
       case 't' : time = atof(optarg);
@@ -81,7 +85,7 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
-// create pline at the specified time, separated by the specified gap
+// create tline perp to z axis at the specified time, separated by the specified gap
   Vec3 pos, dir;
   lhel.position(time,pos);
   lhel.direction(time,dir);
@@ -97,19 +101,19 @@ int main(int argc, char **argv) {
 // time range;
   double ptime = time+dtime;
   TRange prange(ptime-hlen/pspeed, ptime+hlen/pspeed);
-  // create the PLine
-  PLine pline(ppos, pvel,time+dtime,prange);
+  // create the TLine
+  TLine tline(ppos, pvel,time+dtime,prange);
   // create TPOCA from these
-  TPOCA<LHelix,PLine> tp(lhel,pline);
+  TPOCA<LHelix,TLine> tp(lhel,tline);
   cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);
-  cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA PLine pos " << tlpos << endl;
+  cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA TLine pos " << tlpos << endl;
   cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << endl;
 
   // now derivatives
-  TDPOCA<LHelix,PLine> tdp(tp);
+  TDPOCA<LHelix,TLine> tdp(tp);
 
 
   return 0;

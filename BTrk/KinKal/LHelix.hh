@@ -64,10 +64,11 @@ namespace KinKal {
       // simple functions 
       double pbar() const { return  sqrt(rad()*rad() + lam()*lam() ); } // momentum in mm
       double ebar() const { return  sqrt(rad()*rad() + lam()*lam() + mbar_*mbar_); } // energy in mm
-      double mbar() const { return mbar_; } // mass in mm
-      double Q() const { return mbar_/mass_; } // reduced charge,
+      double mbar() const { return mbar_; } // mass in mm; includes charge information!
+      double Q() const { return mbar_/mass_; } // reduced charge
       double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
-      double beta() const { return pbar()/ebar(); }
+      double beta() const { return pbar()/ebar(); } // relativistic beta
+      double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }

@@ -1,18 +1,20 @@
 #include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/PLine.hh"
+#include "BTrk/KinKal/TLine.hh"
 #include "BTrk/KinKal/PTTraj.hh"
 // specializations for TPOCA
 using namespace std;
 namespace KinKal {
 
   // specialization between a helix and a line
-  template<> TPOCA<LHelix,PLine>::TPOCA(LHelix const& lhelix, PLine const& pline, double precision) : TPOCABase(lhelix,pline,precision)  { 
+  template<> TPOCA<LHelix,TLine>::TPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TPOCABase(lhelix,tline,precision)  { 
     // reset status
     reset();
+    double htime,ltime;
     // initialize the helix time using the Z position of the line
-    double htime = lhelix.ztime(pline.z0());
-    double ltime = pline.t0();
+    // this will fail if the line is long and parallel to the z axis as there can be multiple solutions FIXME!
+    htime = lhelix.ztime(tline.z0());
+    ltime = tline.t0();
     // use successive linear approximation until desired precision on DOCA is met.
     double ddoca(1.0e5);
     double doca(0.0);
@@ -20,8 +22,8 @@ namespace KinKal {
     unsigned niter(0);
     // line parameters don't change: compute them once
     Vec3 lpos0,ldir;
-    pline.pos0(lpos0);
-    pline.direction(ltime,ldir);
+    tline.pos0(lpos0);
+    tline.direction(ltime,ldir);
     // helix velocity (scalar) doesn't change
     Vec3 hvel;
     lhelix.velocity(htime,hvel);
@@ -46,19 +48,23 @@ namespace KinKal {
       double hlen = (hdd - ldd*ddot)/denom;
       double llen = (hdd*ddot - ldd)/denom;
       htime += hlen/hv; // helix time is iterative
-      ltime = pline.t0() + llen/pline.velocity();  // line time is always WRT t0
+      ltime = tline.t0() + llen/tline.velocity();  // line time is always WRT t0
       // compute DOCA
       lhelix.position(htime,hpos);
       Vec3 lpos;
-      pline.position(ltime,lpos);
+      tline.position(ltime,lpos);
       double dd2 = (hpos-lpos).Mag2();
-      if(dd2 < 0.0){
+      if(dd2 < 0.0 ){
 	status_ = TPOCA::pocafailed;
 	break;
       }
       ddoca = doca;
       doca = sqrt(dd2);
       ddoca -= doca;
+      if(isnan(ddoca)){
+	status_ = TPOCA::pocafailed;
+	break;
+      }
       niter++;
     }
     // finalize TPOCA
@@ -72,21 +78,21 @@ namespace KinKal {
       poca_[0].SetE(htime);
       lhelix.position(poca_[0]);
       poca_[1].SetE(ltime);
-      pline.position(poca_[1]);
+      tline.position(poca_[1]);
     }
   }
 
-  template<> TDPOCA<LHelix,PLine>::TDPOCA(TPOCA<LHelix,PLine> const& tpoca) : TPOCA<LHelix,PLine>(tpoca) {
+  template<> TDPOCA<LHelix,TLine>::TDPOCA(TPOCA<LHelix,TLine> const& tpoca) : TPOCA<LHelix,TLine>(tpoca) {
   // check status of POCA calculation from base class
     if(usable()){
       auto const& lhelix = ttraj0();
-      auto const& pline = ttraj1();
+      auto const& tline = ttraj1();
       // pre-compute some values.
       Vec3 vdoca, ddir, ldir, hdir;
       doca(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       lhelix.direction(poca0().T(),hdir);
-      pline.direction(poca1().T(),ldir);
+      tline.direction(poca1().T(),ldir);
 
       double hphi = lhelix.phi(poca0().T()); // local azimuth of helix
       double lphi = ldir.Phi(); // line azimuth
@@ -116,6 +122,6 @@ namespace KinKal {
     }
   }
 
-  template<> TDPOCA<LHelix,PLine>::TDPOCA(LHelix const& lhelix, PLine const& pline, double precision) : TDPOCA<LHelix,PLine>(TPOCA<LHelix,PLine>(lhelix,pline,precision)){}
+  template<> TDPOCA<LHelix,TLine>::TDPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TDPOCA<LHelix,TLine>(TPOCA<LHelix,TLine>(lhelix,tline,precision)){}
 
 }
