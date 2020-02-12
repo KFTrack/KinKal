@@ -43,8 +43,8 @@ namespace KinKal {
     // azimuth at z=0
     pars_.vec()[phi0_] = phibar - om*(pos.T()-t0()) + twopi*nwind;
     // circle center
-    pars_.vec()[cx_] = pos.x() + mom.Y()*momToRad;
-    pars_.vec()[cy_] = pos.X() - mom.X()*momToRad;
+    pars_.vec()[cx_] = pos.X() + mom.Y()*momToRad;
+    pars_.vec()[cy_] = pos.Y() - mom.X()*momToRad;
   }
 
   LHelix::LHelix( TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context,
@@ -105,17 +105,17 @@ namespace KinKal {
       case theta1:
 	unit.SetX(lam()*cos(phival)*invpmm);
 	unit.SetY(lam()*sin(phival)*invpmm);
-	unit.SetZ(rad()*invpmm);
+	unit.SetZ(-rad()*invpmm);
 	break;
       case theta2:
-	unit.SetX(sin(phival));
-	unit.SetY(-cos(phival));
+	unit.SetX(-sin(phival));
+	unit.SetY(cos(phival));
 	unit.SetZ(0.0);
 	break;
       case momdir:
 	unit.SetX(rad()*cos(phival)*invpmm);
 	unit.SetY(rad()*sin(phival)*invpmm);
-	unit.SetZ(-lam()*invpmm);
+	unit.SetZ(lam()*invpmm);
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");

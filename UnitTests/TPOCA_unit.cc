@@ -108,6 +108,10 @@ int main(int argc, char **argv) {
   cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA PLine pos " << tlpos << endl;
   cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << endl;
 
+  // now derivatives
+  TDPOCA<LHelix,PLine> tdp(tp);
+
+
   return 0;
 }
 

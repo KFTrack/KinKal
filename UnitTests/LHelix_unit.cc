@@ -121,12 +121,9 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
-  LHelix invlhel(origin,momv,icharge,context);
-  // also inverse helix
-  invlhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
-  cout << "Helix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 vel;
   lhel.velocity(ot,vel);
   double dot = vel.Dot(testmom)/KinKal::c_;
@@ -134,6 +131,20 @@ int main(int argc, char **argv) {
   cout << "momentum beta =" << momv.Beta() << " LHelix beta = " << lhel.beta() << endl;
   Vec3 mdir;
   lhel.direction(ot,mdir);
+  // create the helix at tmin and tmax 
+  Mom4 tmom;
+  Vec4 tpos; 
+  lhel.momentum(tmax,tmom);
+  tpos.SetE(tmax);
+  lhel.position(tpos);
+  LHelix lhelmax(tpos,tmom,icharge,context);
+  lhel.momentum(tmin,tmom);
+  tpos.SetE(tmin);
+  lhel.position(tpos);
+  LHelix lhelmin(tpos,tmom,icharge,context);
+
+  cout << "LHelix at tmax has parameters : " << lhelmax << endl;
+  cout << "LHelix at tmin has parameters : " << lhelmin << endl;
 
 // now graph this as a polyline over the specified time range.
   double tstep = 0.1; // nanoseconds
@@ -143,7 +154,6 @@ int main(int argc, char **argv) {
   TCanvas* hcan = new TCanvas("hcan","Helix",1000,1000);
 //TPolyLine to graph the result
   TPolyLine3D* hel = new TPolyLine3D(nsteps+1);
-  TPolyLine3D* invhel = new TPolyLine3D(nsteps+1);
   Vec4 hpos;
   for(int istep=0;istep<nsteps+1;++istep){
   // compute the position from the time
@@ -151,8 +161,6 @@ int main(int argc, char **argv) {
     lhel.position(hpos);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
-    invlhel.position(hpos);
-    invhel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }
   // draw the helix
   if(icharge > 0)
@@ -160,6 +168,7 @@ int main(int argc, char **argv) {
   else
     hel->SetLineColor(kRed);
   hel->Draw();
+
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
   rulers->GetXaxis()->SetAxisColor(kBlue);
@@ -190,7 +199,7 @@ int main(int argc, char **argv) {
   //
   TLegend* leg = new TLegend(0.8,0.8,1.0,1.0);
   char title[80];
-  snprintf(title,80,"Helix, q=%1i, mom=%3.1g MeV/c",icharge,mom);
+  snprintf(title,80,"LHelix, q=%1i, mom=%3.1g MeV/c",icharge,mom);
   leg->AddEntry(hel,title,"L");
   snprintf(title,80,"Ref. Momentum, t=%4.2g ns",ot);
   leg->AddEntry(mref.arrow,title,"L");

@@ -35,7 +35,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: LHelixDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin ff--dmax f \n");
+  printf("Usage: LHelixDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f\n");
 }
 
 int main(int argc, char **argv) {
@@ -45,7 +45,7 @@ int main(int argc, char **argv) {
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
-  double pmass, oz(100.0), ot(0.0);
+  double pmass, oz(100.0), ot(0.0), ttest(5.0);
   double dmin(-5e-2), dmax(5e-2);
 
   static struct option long_options[] = {
@@ -55,9 +55,10 @@ int main(int argc, char **argv) {
     {"particle",     required_argument, 0, 'p'  },
     {"charge",     required_argument, 0, 'q'  },
     {"zorigin",     required_argument, 0, 'z'  },
-    {"torigin",     required_argument, 0, 't'  },
-    {"tmin",     required_argument, 0, 's'  },
-    {"tmax",     required_argument, 0, 'e'  }
+    {"torigin",     required_argument, 0, 'o'  },
+    {"dmin",     required_argument, 0, 's'  },
+    {"dmax",     required_argument, 0, 'e'  },
+    {"ttest",     required_argument, 0, 't'  }
 
 
   };
@@ -78,11 +79,13 @@ int main(int argc, char **argv) {
 		 break;
       case 'z' : oz = atof(optarg);
 		 break;
-      case 't' : ot = atof(optarg);
+      case 'o' : ot = atof(optarg);
 		 break;
       case 's' : dmin = atof(optarg);
 		 break;
       case 'e' : dmax = atof(optarg);
+		 break;
+      case 't' : ttest = atof(optarg);
 		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
@@ -99,11 +102,11 @@ int main(int argc, char **argv) {
   LHelix refhel(origin,momv,icharge,context);
   cout << "Reference " << refhel << endl;
   Vec4 refpos;
-  refpos.SetE(ot);
+  refpos.SetE(ttest);
   refhel.position(refpos);
-  cout << "origin " << origin << " reference " << refpos << endl;
+  cout << "origin position " << origin << " test position " << refpos << endl;
   Mom4 refmom;
-  refhel.momentum(ot,refmom);
+  refhel.momentum(ttest,refmom);
   int ndel(50);
   // graphs to compare parameter change
   TGraph* radgraph[3];
@@ -125,6 +128,8 @@ int main(int argc, char **argv) {
   // loop over derivative directions
   for(int idir=0;idir<3;++idir){
     KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
+    Vec3 dmomdir;
+    refhel.dirVector(tdir,ttest,dmomdir);
 //    cout << "testing direction " << KTraj::directionName(tdir) << endl;
     // parameter change
 
@@ -151,41 +156,34 @@ int main(int argc, char **argv) {
 
     // scan range of change
     double del = (dmax-dmin)/(ndel-1);
-    Mom4 momv;
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
- 
       //  compute exact altered params
-      if(tdir == KTraj::theta1){
-	double newcost = cos(acos(cost) + delta);
-	double newsint = sqrt(1.0-newcost*newcost);
-	momv = Mom4(mom*newsint*cos(phi),mom*newsint*sin(phi),mom*newcost,pmass);
-      } else if(tdir == KTraj::theta2){
-	double dphi = delta/sint;
-	double newphi = phi + dphi;
-	momv = Mom4(mom*sint*cos(newphi),mom*sint*sin(newphi),mom*cost,pmass);
-      } else if(tdir == KTraj::momdir) {
-	double newmom = (1.0+delta)*mom;
-	momv = Mom4(newmom*sint*cos(phi),newmom*sint*sin(phi),newmom*cost,pmass);
-      }
-      LHelix xhel(origin,momv,icharge,context);
+      Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
+      Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
+      LHelix xhel(refpos,momv,icharge,context);
       // now, compute 1st order change in parameters
       LHelix::PDer pder;
-      refhel.momDeriv(tdir,ot,pder);
+      refhel.momDeriv(tdir,ttest,pder);
 //      cout << "derivative vector" << pder << endl;
       LHelix::TDATA::DVec dvec = refhel.params().vec();
       for(size_t ipar=0;ipar<6;ipar++)
 	dvec[ipar] += delta*pder[ipar][0];
       //dvec += pder;
       LHelix dhel(dvec,refhel.params().mat(),refhel.mass(),refhel.charge(),context);
+      // test
+      Vec4 xpos, dpos;
+      xpos.SetE(ttest);
+      dpos.SetE(ttest);
+      xhel.position(xpos);
+      dhel.position(dpos);
+//      cout << " exa pos " << xpos << endl
+//      << " del pos " << dpos << endl;
       Mom4 dmom;
-      dhel.momentum(ot,dmom);
+      dhel.momentum(ttest,dmom);
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
-      Vec4 dpos;
-      dpos.SetE(ot);
-      dhel.position(dpos);
       Vec4 gap = dpos - refpos;
       gapgraph[idir]->SetPoint(id,delta,sqrt(gap.Vect().Mag2()));
       // parameter diff
@@ -201,11 +199,11 @@ int main(int argc, char **argv) {
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
       Vec3 changedir;
-      refhel.dirVector(KTraj::momdir,ot,changedir);
+      refhel.dirVector(KTraj::momdir,ttest,changedir);
       mom0graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KTraj::theta1,ot,changedir);
+      refhel.dirVector(KTraj::theta1,ttest,changedir);
       mom1graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KTraj::theta2,ot,changedir);
+      refhel.dirVector(KTraj::theta2,ttest,changedir);
       mom2graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
     }
     // draw comparisons

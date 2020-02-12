@@ -1,6 +1,7 @@
 #include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/LHelix.hh"
 #include "BTrk/KinKal/PLine.hh"
+#include "BTrk/KinKal/PTTraj.hh"
 // specializations for TPOCA
 using namespace std;
 namespace KinKal {

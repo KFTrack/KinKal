@@ -39,6 +39,7 @@ void print_usage() {
 
 int main(int argc, char **argv) {
   double mom(105.0), cost(0.7), phi(0.5);
+  unsigned npts(50);
   int icharge(-1), idir(0), nsteps(10);
   double pmass(0.511), oz(100.0), ot(0.0);
   double tstart(0.0), tstep(1.0);
@@ -103,6 +104,14 @@ int main(int argc, char **argv) {
       dvec[ipar] += delta*pder[ipar][0];
     range = TRange(range.high(),range.high()+tstep);
     LHelix endhel(dvec,back.params().mat(),back.mass(),back.charge(),context,range);
+    // test
+    Vec4 backpos, endpos;
+    backpos.SetE(tcomp);
+    endpos.SetE(tcomp);
+    back.position(backpos);
+    endhel.position(endpos);
+    cout << "back position " << backpos << endl
+    << " end position " << endpos << endl;
     // append this
     bool added = ptraj.append(endhel);
     // compare positions and momenta
@@ -127,6 +136,41 @@ int main(int argc, char **argv) {
   cout << "Final piece traj with " << ptraj.pieces().size() << " pieces and largest gap = "
   << largest << " average gap = " << average << endl;
 
+// draw each piece of the piecetraj
+  TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
+  std::vector<TPolyLine3D*> plhel;
+  int icolor(kBlue);
+  for(auto const& piece : ptraj.pieces()) {
+    plhel.push_back(new TPolyLine3D(npts));
+    plhel.back()->SetLineColor(icolor);
+    if(icolor == kBlue)
+      icolor = kRed;
+    else if(icolor == kRed)
+      icolor = kBlue;
+    double tstart = piece.range().low();
+    double tstep = (piece.range().high()-piece.range().low())/(npts-1);
+    Vec3 ppos;
+    for(unsigned ipt=0;ipt<npts;ipt++){
+      double t = tstart + ipt*tstep;
+      piece.position(t,ppos);
+      plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
+    }
+    plhel.back()->Draw();
+  }
+  // draw the origin and axes
+  TAxis3D* rulers = new TAxis3D();
+  rulers->GetXaxis()->SetAxisColor(kBlue);
+  rulers->GetXaxis()->SetLabelColor(kBlue);
+  rulers->GetYaxis()->SetAxisColor(kCyan);
+  rulers->GetYaxis()->SetLabelColor(kCyan);
+  rulers->GetZaxis()->SetAxisColor(kOrange);
+  rulers->GetZaxis()->SetLabelColor(kOrange);
+  rulers->Draw();
+  char fname[100];
+  snprintf(fname,100,"PTTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
+  pttcan->SaveAs(fname); 
+
+  // 
   return 0;
 }
 
