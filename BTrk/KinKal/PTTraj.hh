@@ -41,16 +41,16 @@ namespace KinKal {
 
   // implementation: just return the values from the piece
   template <class TT> void PTTraj<TT>::position(Vec4& pos) const {
-    return nearestPiece(pos.T()).position(pos);
+    nearestPiece(pos.T()).position(pos);
   }
   template <class TT> void PTTraj<TT>::position(double time, Vec3& pos) const {
-    return nearestPiece(time).position(time,pos);
+    nearestPiece(time).position(time,pos);
   }
   template <class TT> void PTTraj<TT>::velocity(double time, Vec3& vel) const {
-    return nearestPiece(time).position(time,vel);
+    nearestPiece(time).position(time,vel);
   }
   template <class TT> void PTTraj<TT>::direction(double time, Vec3& dir) const {
-    return nearestPiece(time).position(time,dir);
+    nearestPiece(time).position(time,dir);
   }
 
   template <class TT> PTTraj<TT>::PTTraj(TT const& piece) : TTraj(piece.range()),pieces_(1,piece)
@@ -80,7 +80,7 @@ namespace KinKal {
 	*this = PTTraj(newpiece);
     } else {
       // find the piece that needs to be modified
-      size_t ipiece = nearestPiece(newpiece.range.high());
+      size_t ipiece = nearestIndex(newpiece.range().high());
       // see if truncation is needed
       if( allowremove){
 	while(ipiece >0 ) 

@@ -1,7 +1,7 @@
 // 
 // test basic functions of the PTTraj, using the LHelix class
 //
-#include "BTrk/KinKal/PTTraj.hh"
+#include "BTrk/KinKal/PKTraj.hh"
 #include "BTrk/KinKal/LHelix.hh"
 #include "BTrk/KinKal/Context.hh"
 
@@ -90,8 +90,8 @@ int main(int argc, char **argv) {
   TRange range(tstart,tend);
   LHelix lhel(origin,momv,icharge,context,range);
   // create piece
-  PTTraj<LHelix> ptraj(lhel);
-  // add pieces
+  PKTraj<LHelix> ptraj(lhel);
+  // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
     LHelix::PDer pder;
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
     LHelix::TDATA::DVec dvec = back.params().vec();
     for(size_t ipar=0;ipar<6;ipar++)
       dvec[ipar] += delta*pder[ipar][0];
-    range = TRange(range.high(),range.high()+tstep);
+    range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
     LHelix endhel(dvec,back.params().mat(),back.mass(),back.charge(),context,range);
     // test
     Vec4 backpos, endpos;
@@ -119,6 +119,43 @@ int main(int argc, char **argv) {
     Mom4 mold, mnew;
     back.position(tcomp,pold);
     back.momentum(tcomp,mold);
+    endhel.position(tcomp,pnew);
+    endhel.momentum(tcomp,mnew);
+    double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
+    double gap = sqrt((pnew-pold).Mag2());
+    cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
+
+    if(added)
+      cout << "succeded to append LHelix" << endl;
+    else
+      cout << "failed to append LHelix" << endl;
+  }
+  // prepend pieces
+  for(int istep=0;istep < nsteps; istep++){
+    LHelix::PDer pder;
+    LHelix const& front = ptraj.pieces().front();
+    double tcomp = front.range().low();
+    front.momDeriv(tdir,tcomp,pder);
+    // create modified helix
+    LHelix::TDATA::DVec dvec = front.params().vec();
+    for(size_t ipar=0;ipar<6;ipar++)
+      dvec[ipar] -= delta*pder[ipar][0];
+    range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
+    LHelix endhel(dvec,front.params().mat(),front.mass(),front.charge(),context,range);
+    // test
+    Vec4 frontpos, endpos;
+    frontpos.SetE(tcomp);
+    endpos.SetE(tcomp);
+    front.position(frontpos);
+    endhel.position(endpos);
+    cout << "front position " << frontpos << endl
+    << " end position " << endpos << endl;
+    bool added = ptraj.prepend(endhel);
+    // compare positions and momenta
+    Vec3 pold, pnew;
+    Mom4 mold, mnew;
+    front.position(tcomp,pold);
+    front.momentum(tcomp,mold);
     endhel.position(tcomp,pnew);
     endhel.momentum(tcomp,mnew);
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());

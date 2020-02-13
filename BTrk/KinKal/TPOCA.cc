@@ -48,7 +48,7 @@ namespace KinKal {
       double hlen = (hdd - ldd*ddot)/denom;
       double llen = (hdd*ddot - ldd)/denom;
       htime += hlen/hv; // helix time is iterative
-      ltime = tline.t0() + llen/tline.velocity();  // line time is always WRT t0
+      ltime = tline.t0() + llen/tline.speed(ltime);  // line time is always WRT t0
       // compute DOCA
       lhelix.position(htime,hpos);
       Vec3 lpos;

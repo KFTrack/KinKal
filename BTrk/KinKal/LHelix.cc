@@ -96,22 +96,21 @@ namespace KinKal {
 
   void LHelix::dirVector(trajdir dir,double tval,Vec3& unit) const {
     double phival = phi(tval); // azimuth at this point
-    double invpmm = 1.0/pbar(); 
+    double norm = 1.0/copysign(pbar(),mbar_); // sign matters!
     switch ( dir ) {
       case theta1:
-	unit.SetX(lam()*cos(phival)*invpmm);
-	unit.SetY(lam()*sin(phival)*invpmm);
-	unit.SetZ(-rad()*invpmm);
+	unit.SetX(lam()*cos(phival));
+	unit.SetY(lam()*sin(phival));
+	unit.SetZ(-rad());
+	unit *= norm;
 	break;
-      case theta2:
+      case theta2: // purely transverse
 	unit.SetX(-sin(phival));
 	unit.SetY(cos(phival));
 	unit.SetZ(0.0);
 	break;
-      case momdir:
-	unit.SetX(rad()*cos(phival)*invpmm);
-	unit.SetY(rad()*sin(phival)*invpmm);
-	unit.SetZ(lam()*invpmm);
+      case momdir: // along momentum: sign matters!
+	direction(tval,unit);
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");

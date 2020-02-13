@@ -14,7 +14,7 @@ namespace KinKal {
       virtual void position(Vec4& pos) const =0; // position as a function of the input 4 vector time.
       virtual void position(double time, Vec3& pos) const =0;
       virtual void velocity(double time, Vec3& vel) const =0; // velocity vector
-      double velocity(double time) {
+      virtual double speed(double time) const {
 	Vec3 vel;
 	velocity(time,vel);
 	return sqrt(vel.Mag2());
@@ -28,6 +28,9 @@ namespace KinKal {
     protected:
       TRange trange_;
   };
+
+//  double TTraj::speed(double time) const {
+
 }
 #endif
 

@@ -28,7 +28,6 @@ namespace KinKal {
       double t0() const { return pars_.vec()[t0_]; }
     
       // simple functions 
-      double velocity() const { return vel_; }
       double cosTheta() const { return cost(); }
       double sinTheta() const { return sqrt(1.0-cost()*cost()); }
 
@@ -36,14 +35,15 @@ namespace KinKal {
       void pos0(Vec3& pos) const;
 
       // geometric accessors
-      void position(Vec4& pos) const override;
-      void position(double time, Vec3& pos) const override;
-      void velocity(double time, Vec3& vel) const override;
-      void direction(double time, Vec3& dir) const override;
+      virtual void position(Vec4& pos) const override;
+      virtual void position(double time, Vec3& pos) const override;
+      virtual void velocity(double time, Vec3& vel) const override;
+      virtual void direction(double time, Vec3& dir) const override;
+      virtual double speed(double time) const override;
 
     private:
       TData<npars_> pars_; // parameters
-      double vel_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
+      double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
 
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;

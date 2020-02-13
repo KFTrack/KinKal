@@ -21,7 +21,7 @@ namespace KinKal {
   std::string const& TLine::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   TLine::TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range) : TTraj(range) {
-    vel_ = sqrt(svel.Mag2());
+    speed_ = sqrt(svel.Mag2());
     static const Vec3 zdir(0.0,0.0,1.0);
     auto sdir = svel.Unit();
     double zsdot = zdir.Dot(sdir);
@@ -40,7 +40,7 @@ namespace KinKal {
       if(fabs(poca.Z()+(psdot*zsdot - p0.Z())/stheta2) > 1e-5)
 	throw std::range_error("POCA calculation failed!");
     // move the time to POCA
-      pars_.vec()[t0_] = tmeas - slen/vel_;
+      pars_.vec()[t0_] = tmeas - slen/speed_;
     } else {
     // define parameters using the reference point
       pars_.vec()[d0_] = p0.Rho();
@@ -69,12 +69,16 @@ namespace KinKal {
 
   void TLine::velocity(double time, Vec3& vel) const {
     direction(time,vel);
-    vel *= vel_;
+    vel *= speed_;
   }
 
   void TLine::direction(double time, Vec3& dir) const {
     double sint = sinTheta();
     dir.SetXYZ(sint*sin(phi0()), -sint*cos(phi0()), cost());
+  }
+
+  double TLine::speed(double time) const {
+    return speed_;
   }
 
 }
