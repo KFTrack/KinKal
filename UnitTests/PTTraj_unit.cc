@@ -185,15 +185,29 @@ int main(int argc, char **argv) {
     else if(icolor == kRed)
       icolor = kBlue;
     double tstart = piece.range().low();
-    double tstep = (piece.range().high()-piece.range().low())/(npts-1);
+    double ts = (piece.range().high()-piece.range().low())/(npts-1);
     Vec3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
-      double t = tstart + ipt*tstep;
+      double t = tstart + ipt*ts;
       piece.position(t,ppos);
       plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
     }
     plhel.back()->Draw();
   }
+// now draw using the PTraj
+  unsigned np = npts*ptraj.pieces().size();
+  TPolyLine3D* all = new TPolyLine3D(np);
+  all->SetLineColor(kYellow);
+  all->SetLineStyle(kDotted);
+  double ts = (ptraj.range().high()-ptraj.range().low())/(np-1);
+  for(unsigned ip=0;ip<np;ip++){
+  double tp = ptraj.range().low() + ip*ts;
+    Vec3 ppos;
+      ptraj.position(tp,ppos);
+      all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+  }
+  all->Draw();
+
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
   rulers->GetXaxis()->SetAxisColor(kBlue);

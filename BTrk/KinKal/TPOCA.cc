@@ -73,12 +73,14 @@ namespace KinKal {
 	status_ = TPOCA::converged;
       else
 	status_ = TPOCA::unconverged;
-      doca_ = doca;
-      // set the positions
+        // set the positions
       poca_[0].SetE(htime);
       lhelix.position(poca_[0]);
       poca_[1].SetE(ltime);
       tline.position(poca_[1]);
+      // sign doca by angular momentum projected onto difference vector
+      double lsign = ldir.Cross(hvel).Dot(poca_[1].Vect()-poca_[0].Vect());
+      doca_ = copysign(doca,lsign);
     }
   }
 
@@ -105,7 +107,7 @@ namespace KinKal {
       double r2 = lhelix.rad()*lhelix.rad();
       double s2 = sindphi*sindphi;
       double denom =  l2 + s2*r2;
-      double Factor = lhelix.lam()/sqrt(denom);
+      double Factor = fabs(lhelix.lam())/sqrt(denom);
 
       double dx = lhelix.cx() - poca1().X();
       double dy = lhelix.cy() - poca1().Y();

@@ -48,6 +48,7 @@ int main(int argc, char **argv) {
   double hlen(500.0); // half-length of the wire
   double gap(2.0); // distance between TLine and LHelix 
   double vprop(0.7);
+  unsigned ndtest(50);
 
   static struct option long_options[] = {
     {"charge",     required_argument, 0, 'q'  },
@@ -109,13 +110,42 @@ int main(int argc, char **argv) {
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);
+  double refd = tp.doca();
   cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA TLine pos " << tlpos << endl;
-  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << endl;
+  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << " DOCA " << refd << endl;
 
   // now derivatives
   TDPOCA<LHelix,TLine> tdp(tp);
-
-
+  cout << "TDPOCA Dervivs" << tdp.derivs() << endl;
+  // test against numerical derivatives
+  std::vector<TGraph*> dtpoca;
+  // range to change specific parameters; most are a few mm
+  std::vector<double> pchange = {10.0,5.0,10.0,10.0,0.1,0.1};
+  TCanvas* dtpcan = new TCanvas("dtpcan","DTPOCA",1200,800);
+  dtpcan->Divide(3,2);
+  for(int ipar=0;ipar<lhel.npars_;ipar++){
+    LHelix::paramIndex pi = static_cast<LHelix::paramIndex>(ipar);
+    dtpoca.push_back(new TGraph(ndtest));
+    string ts = LHelix::paramTitle(pi)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
+    dtpoca.back()->SetTitle(ts.c_str());
+    double dstep = pchange[ipar]/(ndtest-1);
+    double dstart = -0.5*pchange[ipar];
+    for(unsigned istep=0;istep<ndtest;istep++){
+   // compute exact change in DOCA 
+      auto dvec = lhel.params().vec();
+      double dpar = dstart + dstep*istep;
+      dvec[ipar] += dpar; 
+      LHelix dlhel(dvec,lhel.params().mat(),lhel.mass(),lhel.charge(),context);
+      TPOCA<LHelix,TLine> dtp(dlhel,tline);
+      double xd = dtp.doca();
+      // now derivatives
+      double dd = tdp.derivs()[ipar][0]*dpar;
+      dtpoca.back()->SetPoint(istep,xd-refd,dd);
+    }
+    dtpcan->cd(ipar+1);
+    dtpoca.back()->Draw("AC*");
+  }
+  dtpcan->SaveAs("TPOCA.root");
   return 0;
 }
 

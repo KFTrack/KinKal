@@ -18,12 +18,12 @@ namespace KinKal {
       Vec4 const& poca1() const { return poca_[1]; }
       TPStat status() const { return status_; }
       std::string const& statusName() const { return statusName(status_); }
-      double doca() const { return doca_; }
+      double doca() const { return doca_; } // DOCA signed by angular momentum
       double precision() const { return precision_; }
       // utility functions
       void delta(Vec4& ds) const { ds = poca_[1]-poca_[0]; }
       double dt() const { return poca_[1].T() - poca_[0].T(); }
-      void doca(Vec3& ds) const { Vec3 p0(poca_[0]); Vec3 p1(poca_[1]); ds = p1-p0; }
+      void doca(Vec3& ds) const { ds = poca_[1].Vect()-poca_[0].Vect(); }
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }
