@@ -10,7 +10,7 @@
 namespace KinKal {
   class TPOCABase {
     public:
-      enum TPStat{converged=0,unconverged,outsiderange,pocafailed,derivfailed,unknown};
+      enum TPStat{converged=0,unconverged,pocafailed,derivfailed,unknown};
       static std::string const& statusName(TPStat status);
       //accessors
       Vec4 const& poca(size_t itraj) const { return poca_[itraj]; }
@@ -27,14 +27,10 @@ namespace KinKal {
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }
-      // actions
-      void testRange() {
-	if(usable() && ((!ttraj_[0]->inRange(poca_[0].T())) || (!ttraj_[1]->inRange(poca_[1].T()))) )
-	  status_ = outsiderange;
-      }
+      bool inRange() { return ttraj_[0]->inRange(poca_[0].T()) && ttraj_[1]->inRange(poca_[1].T()); }
     protected:
       TPStat status_; // status of computation
-      double doca_; // geometric distance of closest approach (cached)
+      double doca_; // geometric distance of closest approach, signed by angular momentunm
       double precision_; // precision used to define convergence
       std::array<Vec4,2> poca_; // spacetime points at GEOMETRIC closest approach
       std::array<const TTraj*,2> ttraj_; // base class pointers to trajs

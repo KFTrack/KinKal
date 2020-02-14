@@ -1,5 +1,5 @@
-#ifndef KinKal_KalSite_hh
-#define KinKal_KalSite_hh
+#ifndef KinKal_KKSite_hh
+#define KinKal_KKSite_hh
 //
 // Class representing a processing step of the kinematic Kalman filter
 // This is a base class for specific subclasses representing measurements, material interactions, etc.
@@ -9,37 +9,36 @@
 #include "BTrk/KinKal/Types.hh"
 namespace KinKal {
 
-  template<class KTRAJ> class KalSite {
+  template<class KTRAJ> class KKSite {
     public:
       enum Status{unprocessed=0,processed,failed};
       // type of the data payload used in this trajectory
       typedef typename KTRAJ::TDATA TDATA; // forward the type definition
-      // actions
-      virtual bool process(KalSite const& other,TDir tdir);
-      //accessors
-      TDATA const& params(TDir dir) const { return params_[dir]; }
-      TDATA const& weights(TDir dir) const { return weights_[dir]; }
-      // non-const accessors perform inversion if necessary 
-      TDATA const& params(TDir dir) {
-	if (params_[dir].isInvalid() && weights_[dir].isValid()) params_[dir].inverse(weights_[dir]); 
-	return params_[dir];
-      }
-      TDATA const& weights(TDir dir) {
-	if (weights_[dir].isInvalid() && params_[dir].isValid()) weights_[dir].inverse(params_[dir]); 
-	return weights_[dir];
-      }
+      // simple struct to simplify storage
+      struct DataPayload {
+	enum DataType{param=0,weight};
+	TDATA data_;
+	DataType type_;
+      };
+      // process this site given the adjacent site
+      virtual bool process(KKSite const& other,TDir tdir) = 0;
+      // update this site for a new refernce.  This must be overriden, but the base class implementation is still useful
+      virtual void update(KTraj const& ref)  = 0;
+      // Access the processed data from this site in a particular direction
+      virtual DataPayload const& processedData(TDir dir) const =0;
       Status status(TDir dir) const { return status_[dir]; }
       KTRAJ const& referenceTraj() const { return reftraj_; }
       bool isActive() const { return active_; }
     protected:
-      KalSite(double time) : status_{unprocessed}, time_(time), active_(true) {}
-      std::array<TDATA,2> params_; // cache of the parameter space representation of the fit in each direction
-      std::array<TDATA,2> weights_; // cache of the weight space representation of the fit in each direction
+      KKSite(double time) : status_{unprocessed}, time_(time), active_(true) {}
       std::array<Status,2> status_; // status of processing in each direction
-      KTRAJ reftraj_; // reference trajectory for this site
+      KTRAJ const& reftraj_; // reference trajectory for this site
       double time_; // time of this site
-      bool active_; //
+      bool active_; // activity flag
   };
+
+
+  void template<> KKSite<KTRAJ>::Update(KTraj const& ref) { reftraj_ = ref; }
 
 }
 
