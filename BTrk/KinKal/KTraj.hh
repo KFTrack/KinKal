@@ -25,7 +25,7 @@ namespace KinKal {
 	}
       }
       // unit vectors in the different local directions
-      virtual void dirVector(trajdir dir,double time,Vec3& unit) const = 0;
+      virtual void dirVector(double time,Vec3& unit) const = 0;
       
    // direct accessors
       double mass() const { return mass_;} // mass 

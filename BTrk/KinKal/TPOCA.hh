@@ -27,19 +27,16 @@ namespace KinKal {
       T1 const& ttraj1() const override { return static_cast<T1 const&>(TPOCABase::ttraj1()); }
   };
 
-  // Compute POCA and the derivatives of POCA WRT the parameters of T0
+  // Compute POCA and the derivatives of DOCA WRT the parameters of T0
   template<class T0, class T1> class TDPOCA : public TPOCA<T0,T1> {
     public:
       typedef ROOT::Math::SMatrix<double,T0::NParams(),1> DMat; // derivative type, dimensioned on the 0th traj parameters
       TDPOCA(T0 const& t0, T1 const& t1, double precision=0.01);
       TDPOCA(TPOCA<T0,T1> const& tpoca); // 'upgrade' a regular POCA 
-      DMat const& derivs() const { return dDdP_; }
+      DMat const& dDOCAdP() const { return dDdP_; } // DOCA derivatives wrt traj0 parameters
     private:
       DMat dDdP_; // derivative of DOCA WRT Parameters
   };
-
-
-
 
 }
 #endif

@@ -80,8 +80,8 @@ int main(int argc, char **argv) {
     }
   }
 // create helix
-  Context context;
-  context.Bz_ = 1.0; // 1 Tesla
+  UniformBField BF(1.0); // 1 Tesla
+  Context context(BF);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   // now derivatives
   TDPOCA<LHelix,TLine> tdp(tp);
-  cout << "TDPOCA Dervivs" << tdp.derivs() << endl;
+  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
   // test against numerical derivatives
   std::vector<TGraph*> dtpoca;
   // range to change specific parameters; most are a few mm
@@ -132,14 +132,14 @@ int main(int argc, char **argv) {
     double dstart = -0.5*pchange[ipar];
     for(unsigned istep=0;istep<ndtest;istep++){
    // compute exact change in DOCA 
-      auto dvec = lhel.params().vec();
+      auto dvec = lhel.params().parameters();
       double dpar = dstart + dstep*istep;
       dvec[ipar] += dpar; 
-      LHelix dlhel(dvec,lhel.params().mat(),lhel.mass(),lhel.charge(),context);
+      LHelix dlhel(dvec,lhel.params().covariance(),lhel.mass(),lhel.charge(),context);
       TPOCA<LHelix,TLine> dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives
-      double dd = tdp.derivs()[ipar][0]*dpar;
+      double dd = tdp.dDOCAdP()[ipar][0]*dpar;
       dtpoca.back()->SetPoint(istep,xd-refd,dd);
     }
     dtpcan->cd(ipar+1);

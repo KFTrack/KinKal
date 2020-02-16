@@ -92,8 +92,8 @@ int main(int argc, char **argv) {
     }
   }
   // construct original helix from parameters
-  Context context;
-  context.Bz_ = 1.0; // 1 Tesla
+  UniformBField BF(1.0);
+  Context context(BF);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   // reference helix
@@ -167,11 +167,11 @@ int main(int argc, char **argv) {
       LHelix::PDer pder;
       refhel.momDeriv(tdir,ttest,pder);
 //      cout << "derivative vector" << pder << endl;
-      LHelix::TDATA::DVec dvec = refhel.params().vec();
+      auto dvec = refhel.params().parameters();
       for(size_t ipar=0;ipar<6;ipar++)
 	dvec[ipar] += delta*pder[ipar][0];
       //dvec += pder;
-      LHelix dhel(dvec,refhel.params().mat(),refhel.mass(),refhel.charge(),context);
+      LHelix dhel(dvec,refhel.params().covariance(),refhel.mass(),refhel.charge(),context);
       // test
       Vec4 xpos, dpos;
       xpos.SetE(ttest);

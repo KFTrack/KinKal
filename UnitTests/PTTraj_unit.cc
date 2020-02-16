@@ -80,8 +80,8 @@ int main(int argc, char **argv) {
     << delta << endl;
 
   // create a helix
-  Context context;
-  context.Bz_ = 1.0; // 1 Tesla
+  UniformBField BF(1.0); // 1 Tesla
+  Context context(BF);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -99,11 +99,11 @@ int main(int argc, char **argv) {
     double tcomp = back.range().high();
     back.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    LHelix::TDATA::DVec dvec = back.params().vec();
+    auto dvec = back.params().parameters();
     for(size_t ipar=0;ipar<6;ipar++)
       dvec[ipar] += delta*pder[ipar][0];
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    LHelix endhel(dvec,back.params().mat(),back.mass(),back.charge(),context,range);
+    LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),context,range);
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -137,11 +137,11 @@ int main(int argc, char **argv) {
     double tcomp = front.range().low();
     front.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    LHelix::TDATA::DVec dvec = front.params().vec();
+    auto dvec = front.params().parameters();
     for(size_t ipar=0;ipar<6;ipar++)
       dvec[ipar] -= delta*pder[ipar][0];
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    LHelix endhel(dvec,front.params().mat(),front.mass(),front.charge(),context,range);
+    LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),context,range);
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);

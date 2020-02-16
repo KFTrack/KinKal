@@ -10,7 +10,7 @@
 #include "BTrk/KinKal/Types.hh"
 #include "BTrk/KinKal/TTraj.hh"
 #include "BTrk/KinKal/KTraj.hh"
-#include "BTrk/KinKal/TData.hh"
+#include "BTrk/KinKal/PData.hh"
 #include "BTrk/KinKal/Context.hh"
 #include "BTrk/KinKal/Constants.hh"
 #include <vector>
@@ -26,7 +26,7 @@ namespace KinKal {
       // define the indices and names of the parameters
       enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
       constexpr static size_t NParams() { return npars_; }
-      typedef TData<npars_> TDATA; // Data payload for this class
+      typedef PData<npars_> PDATA; // Data payload for this class
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
@@ -36,7 +36,7 @@ namespace KinKal {
       // This also requires the BField, through Context
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
       // construct from parameters
-      LHelix(TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
+      LHelix(PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
       void position(double t,Vec3& pos) const override; // time is input 
@@ -48,12 +48,12 @@ namespace KinKal {
       void dirVector(trajdir dir,double time,Vec3& unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      typedef ROOT::Math::SMatrix<double,npars_,1> PDer; // derivative of parameters
+      typedef ROOT::Math::SMatrix<double,npars_,1> PDer; // derivative of parameters type in a particular direction
       void momDeriv(trajdir dir, double time, PDer& der) const;
 
      // named parameter accessors
-      double param(size_t index) const { return pars_.vec()[index]; }
-      TDATA const& params() const { return pars_; }
+      double param(size_t index) const { return pars_.parameters()[index]; }
+      PDATA const& params() const { return pars_; }
       double rad() const { return param(rad_); }
       double lam() const { return param(lam_); }
       double cx() const { return param(cx_); }
@@ -78,15 +78,17 @@ namespace KinKal {
       void invertCT() {
 	mbar_ *= -1.0;
 	charge_ *= -1;
-	pars_.vec()[t0_] *= -1.0;
+	pars_.parameters()[t0_] *= -1.0;
       }
       //
     private :
-      TDATA pars_; // parameters
+      PDATA pars_; // parameters
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
-  };
+      // non-const accessors
+      double& param(size_t index) { return pars_.parameters()[index]; }
+ };
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }
 #endif

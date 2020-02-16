@@ -9,7 +9,10 @@
 //
 #include "BTrk/KinKal/PTTraj.hh"
 #include "BTrk/KinKal/KKSite.hh"
+#include "BTrk/KinKal/TrkHit.hh"
+#include "BTrk/KinKal/DetElem.hh"
 #include <list>
+#include <vector>
 #include <memory>
 
 namespace KinKal {
@@ -17,13 +20,15 @@ namespace KinKal {
     public:
       typedef KKSite<KTraj> KKSITE;
       enum FitStatus {current=0,needsfit,unconverged,failed}; // fit status
+      // construct from a set of hits and material elements
 
     private:
       FitStatus status_; // current fit status
       PTTraj<KTraj> reftraj_; // reference against which the derivatives were evaluated
       PTTraj<KTraj> fittraj_; // result of the current fit
+      std::vector<std::unique_ptr<TrkHit> > hits_; // all the hits used in this fit
+      std::vector<std::unique_ptr<DetElem> > elems_; // all the detector elements potentially used (intersected) in this fit
       std::list<std::unique_ptr<KKSITE> > sites_; // sites used in this fit.
-
 
   };
 }

@@ -115,9 +115,8 @@ int main(int argc, char **argv) {
 
   printf("Testing LHelix with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
 // define the context
-
-  Context context;
-  context.Bz_ = 1.0; // 1 Tesla
+  UniformBField BF(1.0); // 1 Tesla
+  Context context(BF);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);

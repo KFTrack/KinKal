@@ -6,7 +6,6 @@
 //  used as part of the kinematic kalman fit
 //
 #include "BTrk/KinKal/TTraj.hh"
-#include "BTrk/KinKal/TrkDir.hh"
 #include <deque>
 #include <stdexcept>
 namespace KinKal {
@@ -27,7 +26,7 @@ namespace KinKal {
 // If appending requires truncation and allowremove=false, the return is false
       bool append(TT const& newpiece, bool allowremove=false);
       bool prepend(TT const& newpiece, bool allowremove=false);
-      bool add(TT const& newpiece, TrkDir tdir=KinKal::ttpos, bool allowremove=false);
+      bool add(TT const& newpiece, TDir tdir=forwards, bool allowremove=false);
 // Find the piece associated with a particular time
       TT const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
       size_t nearestIndex(double time) const;
@@ -56,7 +55,7 @@ namespace KinKal {
   template <class TT> PTTraj<TT>::PTTraj(TT const& piece) : TTraj(piece.range()),pieces_(1,piece)
   {}
 
-  template <class TT> bool PTTraj<TT>::add(TT const& newpiece, TrkDir tdir, bool allowremove){
+  template <class TT> bool PTTraj<TT>::add(TT const& newpiece, TDir tdir, bool allowremove){
     bool retval(false);
     switch (tdir) {
       case KinKal::ttpos:

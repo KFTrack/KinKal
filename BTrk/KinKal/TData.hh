@@ -1,39 +1,45 @@
 #ifndef KinKal_TData_hh
 #define KinKal_TData_hh
 //
-//  Data payload to describing either parameters or weights
-//  Parameters describe values and covariance of fit results and
-//  describe a physical trajectory and the mathematical inverse of
-//  weights.  Weights express constraints and are the mathematical
-//  inverse of parameters.
+//  Data object describing fit parameters or weights
+//  templated on the parameter vector dimension
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/TDataBase.hh"
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
 #include <iostream>
 
 namespace KinKal {
-// templated on the data vector dimension
-  template <size_t DDIM> class TData : public TDataBase {
+  template <size_t DDIM> class TData {
     public:
+      enum Status {unknown=-1, valid=0, invalid}; //  
+      constexpr static size_t PDim() { return DDIM; }
+      Status status() const { return status_; }
+      bool matrixOK() const { return status_ == valid; }
+    protected:
       // define the parameter types
       typedef ROOT::Math::SVector<double,DDIM> DVec; // data vector
       typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMat;  // associated matrix
-      constexpr static size_t PDim() { return DDIM; }
-
       // construct from vector and matrix
-      TData(DVec const& pars, DMat const& pcov,DataType dtype=param) : TDataBase(dtype), vec_(pars), mat_(pcov) {}
-      TData(DVec const& pars) : TDataBase(param), vec_(pars) {}
-      TData(DataType dtype=param) : TDataBase(dtype) {}
+      TData(DVec const& vec, DMat const& mat = ROOT::Math::SVector<double,DDIM>::SMatrixIdentity()) : vec_(vec), mat_(mat), status_(valid) {}// assume valid?  FIXME!
+      TData() : status_(invalid) {}
+      // accessors
+      DVec const& vec() const { return vec_; }
+      DMat const& mat() const { return mat_; }
+      DVec& vec() { return vec_; }
+      DMat& mat() { return mat_; }
+      // scale the matrix
+      void scale(double sfac) { mat_ *= sfac; }
+      // set status
+      void setStatus(Status status) { status_ = status; }
+
       // inversion changes from params <-> weight. 
       // Invert in-place, overriding status
       void invert() {
 	// first invert the matrix
 	if(mat_.Invert()){
 	  vec_ = mat_*vec_;
-	  // update base class members
-	  TDataBase::invert();
+	  setStatus(valid);
 	} else
 	  setStatus(invalid);
       }
@@ -42,22 +48,10 @@ namespace KinKal {
 	*this = other;
 	invert();
       }
-
-      // override copy constructor, with optional inversion
-      TData(TData const& other,bool doinvert=false) : TDataBase(other), vec_(other.vec()), mat_(other.mat()) {
-	if(doinvert)invert();
-      }
-
-      // accessors
-      DVec const& vec() const { return vec_; }
-      DMat const& mat() const { return mat_; }
-      DVec& vec() { return vec_; }
-      DMat& mat() { return mat_; }
     private:
-      DVec vec_; // parameter or weight vector
-      DMat mat_; // covariance or weight matrix
+      DVec vec_; // parameters
+      DMat mat_; // parameter covariance
+      Status status_; // matrix status
   };
-
 }
 #endif
-

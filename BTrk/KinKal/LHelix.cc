@@ -27,29 +27,29 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
-    double momToRad = 1000.0/(charge_*context.Bz_*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*c_);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
-    pars_.vec()[rad_] = -pt*momToRad;
+    param(rad_) = -pt*momToRad;
     //tan dip
-    pars_.vec()[lam_] = -mom.Z()*momToRad;
+    param(lam_) = -mom.Z()*momToRad;
     // time at z=0
     double om = omega();
-    pars_.vec()[t0_] = pos.T() - pos.Z()/(om*lam());
+    param(t0_) = pos.T() - pos.Z()/(om*lam());
     // compute winding that miminimizes z1
     double nwind = rint((pos.Z()/lam() - phibar)/twopi);
     //  cout << "winding number = " << nwind << endl;
     // azimuth at z=0
-    pars_.vec()[phi0_] = phibar - om*(pos.T()-t0()) + twopi*nwind;
+    param(phi0_) = phibar - om*(pos.T()-t0()) + twopi*nwind;
     // circle center
-    pars_.vec()[cx_] = pos.X() + mom.Y()*momToRad;
-    pars_.vec()[cy_] = pos.Y() - mom.X()*momToRad;
+    param(cx_) = pos.X() + mom.Y()*momToRad;
+    param(cy_) = pos.Y() - mom.X()*momToRad;
   }
 
-  LHelix::LHelix( TDATA::DVec const& pvec, TDATA::DMat const& pcov, double mass, int charge, Context const& context,
+  LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
       TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
-    double momToRad = 1000.0/(charge_*context.Bz_*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*c_);
     mbar_ = -mass_*momToRad;
   }
 
