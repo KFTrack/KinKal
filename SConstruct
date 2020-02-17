@@ -51,6 +51,14 @@ env = Environment( CPPPATH   = [ includePath, ],
                    BINDIR    = bindir,
                   )
 
+# Temporary hack to enable/disable running of tests.  To run the tests:
+#   scons --run-tests=True
+# Will be reimplemented with phony targets
+AddOption('--run-tests', dest='runTests',
+          nargs=1,default=False,
+          help='--run-tests=[True,False] enables/disables running tests')
+env['RUNTESTS'] = GetOption("runTests")
+
 # Modify the environment: set compile and link flags.
 SetOption('warn', 'no-fortran-cxx-mix')
 env.MergeFlags( defineMergeFlags(debugLevel) )
