@@ -3,6 +3,8 @@
 //
 #include "BTrk/KinKal/PKTraj.hh"
 #include "BTrk/KinKal/LHelix.hh"
+#include "BTrk/KinKal/TLine.hh"
+#include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/Context.hh"
 
 #include <iostream>
@@ -14,7 +16,6 @@
 #include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
-#include "TArrow.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
 #include "TStyle.h"
@@ -32,6 +33,8 @@
 
 using namespace KinKal;
 using namespace std;
+// avoid confusion with root
+using KinKal::TLine;
 
 void print_usage() {
   printf("Usage: PTTraj --changedir i --delta f --tstep f --nsteps i \n");
@@ -44,6 +47,8 @@ int main(int argc, char **argv) {
   double pmass(0.511), oz(100.0), ot(0.0);
   double tstart(0.0), tstep(1.0);
   double delta(0.01); // fractional change
+  double hlen(200.0); // half-length of the wire
+  double vprop(0.8), gap(2.0);
 
   static struct option long_options[] = {
     {"changedir",     required_argument, 0, 'c'  },
@@ -217,10 +222,55 @@ int main(int argc, char **argv) {
   rulers->GetZaxis()->SetAxisColor(kOrange);
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
+
+// TPOCA test:
+  Vec3 midpos, middir;
+  ptraj.position(ptraj.range().mid(),midpos);
+  ptraj.direction(ptraj.range().mid(),middir);
+  double lhphi = atan2(midpos.Y(),midpos.X());
+  Vec3 rdir(cos(lhphi),sin(lhphi),0.0); // radial perpendicular to the helix
+  double dphi = atan2(middir.Y(),middir.X());
+  Vec3 pdir(-sin(dphi),cos(dphi),0.0);
+  double pspeed = c_*vprop; // vprop is relative to c
+  Vec3 pvel = pdir*pspeed;
+  TRange prange(ptraj.range().mid()-hlen/pspeed, ptraj.range().mid()+hlen/pspeed);
+  // shift the position
+  Vec3 lpos = midpos + gap*rdir;
+  TLine tline(lpos, pvel,ptraj.range().mid(),prange);
+  // create TPOCA from these
+  TPOCA<PTTraj<LHelix>,TLine> tp(ptraj,tline);
+  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  Vec3 thpos, tlpos;
+  tp.ttraj0().position(tp.poca0().T(),thpos);
+  tp.ttraj1().position(tp.poca1().T(),tlpos);
+  double refd = tp.doca();
+  cout << " Helix Pos " << midpos << " TPOCA LHelix pos " << thpos << " TPOCA TLine pos " << tlpos << endl;
+  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << " DOCA " << refd << endl;
+  if(tp.status() == TPOCABase::converged) {
+    // draw the line and TPOCA
+    TPolyLine3D* line = new TPolyLine3D(2);
+    Vec3 plow, phigh;
+    tline.position(tline.range().low(),plow);
+    tline.position(tline.range().high(),phigh);
+    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+    line->SetLineColor(kOrange);
+    line->Draw();
+    TPolyLine3D* poca = new TPolyLine3D(2);
+    poca->SetPoint(0,tp.poca0().X() ,tp.poca0().Y() ,tp.poca0().Z());
+    poca->SetPoint(1,tp.poca1().X() ,tp.poca1().Y() ,tp.poca1().Z());
+    poca->SetLineColor(kBlack);
+    poca->Draw();
+  }
+
+
+  // now derivatives
+  TDPOCA<PTTraj<LHelix>,TLine> tdp(tp);
+  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
+ 
   char fname[100];
   snprintf(fname,100,"PTTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
   pttcan->SaveAs(fname); 
-
   // 
   return 0;
 }

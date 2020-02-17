@@ -28,9 +28,6 @@ namespace KinKal {
     protected:
       TRange trange_;
   };
-
-//  double TTraj::speed(double time) const {
-
 }
 #endif
 

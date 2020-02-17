@@ -54,7 +54,7 @@ namespace KinKal {
     private:
       PData<npars_> pars_; // parameters
       double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
-      Vec3 dir_, pos0_; // caches
+      Vec3 pos0_, dir_; // caches
       bool forcerange_; // if set, strictly enforce the range
 
       static std::vector<std::string> paramTitles_;

@@ -6,4 +6,7 @@ namespace KinKal {
    return sqrt(tpos.Mag2()) < radius_ + nsigma*0.05; // error should come from hit FIXME!
    // should also check length along straw FIXME!
   }
+  void StrawHit::update(TPOCABase const& tpoca) const {
+    //FIXME!
+  }
 }

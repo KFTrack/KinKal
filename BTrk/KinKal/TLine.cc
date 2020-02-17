@@ -20,38 +20,34 @@ namespace KinKal {
   std::string const& TLine::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& TLine::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  TLine::TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range) : TTraj(range) {
-    speed_ = sqrt(svel.Mag2());
+  TLine::TLine(Vec4 const& pos0, Vec3 const& svel, TRange const& range,bool forcerange) : TLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {}
+  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : TTraj(range), 
+  speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
     static const Vec3 zdir(0.0,0.0,1.0);
-    auto sdir = svel.Unit();
-    double zsdot = zdir.Dot(sdir);
-    double stheta2 = (1.0 -zsdot*zsdot);
-    param(cost_) = zsdot;
+    double zddot = zdir.Dot(dir_);
+    double stheta2 = (1.0 -zddot*zddot);
+    param(cost_) = zddot;
     // separate into cases: parallel to z axis is special
-    if(zsdot > 1.0e-5){
+    if(zddot > 1.0e-5){
       // find the POCA with the z axis; this defines the reference point
-      double psdot = p0.Dot(sdir);
-      double slen = (p0.Z()*zsdot - psdot)/stheta2;
-      auto poca = p0 + sdir*slen;
+      double pddot = pos0_.Dot(dir_);
+      double slen = (pos0_.Z()*zddot - pddot)/stheta2;
+      auto poca = pos0_ + dir_*slen;
       param(d0_) = poca.Rho();
       param(phi0_) = atan2(poca.Y(),poca.X());
       param(z0_) = poca.Z();
-    // check
-      if(fabs(poca.Z()+(psdot*zsdot - p0.Z())/stheta2) > 1e-5)
+      // check
+      if(fabs(poca.Z()+(pddot*zddot - pos0_.Z())/stheta2) > 1e-5)
 	throw std::range_error("POCA calculation failed!");
-    // move the time to POCA
+      // move the time to POCA
       param(t0_) = tmeas - slen/speed_;
     } else {
-    // define parameters using the reference point
-      param(d0_) = p0.Rho();
-      param(phi0_) = atan2(p0.Y(),p0.X());
-      param(z0_) = p0.Z();
+      // define parameters using the reference point
+      param(d0_) = pos0_.Rho();
+      param(phi0_) = atan2(pos0_.Y(),pos0_.X());
+      param(z0_) = pos0_.Z();
       param(t0_) = tmeas;
     }
-    // set the cache values
-    double sint = sinTheta();
-    dir_.SetXYZ(sint*sin(phi0()), -sint*cos(phi0()), cost());
-    
   }
 
   void TLine::position(Vec4& pos) const {
@@ -62,15 +58,15 @@ namespace KinKal {
 
   void TLine::position(double time, Vec3& pos) const {
     if(forceRange()) range().forceRange(time);
-    pos = p0() + (time-t0())*dir()*speed()
+    pos = pos0() + ((time-t0())*speed())*dir();
   }
 
   void TLine::velocity(double time, Vec3& vel) const {
     vel = dir()*speed();
   }
 
-  void TLine::direction(double time, Vec3& dir) const {
-    dir = dir();
+  void TLine::direction(double time, Vec3& dirvec) const {
+    dirvec = dir();
   }
 
   double TLine::speed(double time) const {
@@ -78,7 +74,7 @@ namespace KinKal {
   }
 
   double TLine::TOCA(Vec3 point) const {
-    double s = (point - p0()).Dot(dir());
+    double s = (point - pos0()).Dot(dir());
     return s/speed_ - t0();
   }
 

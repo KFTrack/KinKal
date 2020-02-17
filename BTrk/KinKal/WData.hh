@@ -5,7 +5,7 @@
 //  used as part of the kinematic kalman fit
 //
 #include "BTrk/KinKal/TData.hh"
-#include "BTrk/KinKal/PData.hh"
+//#include "BTrk/KinKal/PData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class WData : public TData<DDIM> {
@@ -18,7 +18,8 @@ namespace KinKal {
       WData(DVec const& wvec) : TData<DDIM>(wvec) {}
       WData() : TData<DDIM>() {}
       // construct from a PData object: this requires inversion and may result in an unusable object
-      WData(PData<DDIM> const& pdata) : TData<DDIM>(pdata) { TData<DDIM>::invert(); }
+//      WData(PData const& pdata) : WData(pdata,true) {}
+      WData(TData<DDIM> const& tdata,bool invert=false) : TData<DDIM>(tdata,invert) {}
       // accessors; just re-interpret the base class accessors
       DVec const& weightvec() const { return TData<DDIM>::vec(); }
       DMat const& weightmat() const { return TData<DDIM>::mat(); }

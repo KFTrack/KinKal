@@ -23,6 +23,8 @@ namespace KinKal {
       // construct from vector and matrix
       TData(DVec const& vec, DMat const& mat = ROOT::Math::SVector<double,DDIM>::SMatrixIdentity()) : vec_(vec), mat_(mat), status_(valid) {}// assume valid?  FIXME!
       TData() : status_(invalid) {}
+      // copy with optional inversion
+      TData(TData const& tdata, bool inv) : TData(tdata) { if (inv) invert(); }
       // accessors
       DVec const& vec() const { return vec_; }
       DMat const& mat() const { return mat_; }

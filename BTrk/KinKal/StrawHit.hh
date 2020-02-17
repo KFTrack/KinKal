@@ -9,13 +9,13 @@
 #include "BTrk/KinKal/Types.hh"
 namespace KinKal {
 
-  template class StrawHit : WireHit {
+  class StrawHit : public WireHit {
     public:
-      bool inCell(TPOCABase const& tpoca, double nsigma) const override;
+      virtual bool inCell(TPOCABase const& tpoca, double nsigma) const override;
       virtual void update(TPOCABase const& tpoca) const;
     private:
       double radius_; // straw radius
-      P2D offset_; // straw offset WRT wire center.  Not yet implemented FIXME!
+      Pol2 offset_; // straw offset WRT wire center.  Not yet implemented FIXME!
       // add state for wire length, longitudinal resolution, transverse resolution FIXME!
   };
 }

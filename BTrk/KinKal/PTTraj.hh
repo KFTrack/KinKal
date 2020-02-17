@@ -9,9 +9,9 @@
 #include <deque>
 #include <stdexcept>
 namespace KinKal {
-
-  template <class TT> class PTTraj : public TTraj{
+  template <class TT> class PTTraj : public TTraj {
     public:
+      constexpr static size_t NParams() { return TT::NParams(); }
       typedef typename std::deque<TT> DTT;
       // base class implementation
       virtual void position(Vec4& pos) const override;
@@ -58,10 +58,10 @@ namespace KinKal {
   template <class TT> bool PTTraj<TT>::add(TT const& newpiece, TDir tdir, bool allowremove){
     bool retval(false);
     switch (tdir) {
-      case KinKal::ttpos:
+      case KinKal::forwards:
 	retval = append(newpiece,allowremove);
 	break;
-      case KinKal::ttneg:
+      case KinKal::backwards:
 	retval = prepend(newpiece,allowremove);
 	break;
       default:
