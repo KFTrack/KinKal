@@ -27,7 +27,9 @@ linkLists = {
 
 helper.make_unit_tests ( linkLists )
 
-helper.run_unit_tests()
+if env['RUNTESTS']:
+    print ("Running unit tests" )
+    helper.run_unit_tests()
 
 
 # This tells emacs to view this file in python mode.
