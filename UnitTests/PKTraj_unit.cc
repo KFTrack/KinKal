@@ -1,5 +1,5 @@
 // 
-// test basic functions of the PTTraj, using the LHelix class
+// test basic functions of the PKTraj, using the LHelix class
 //
 #include "BTrk/KinKal/PKTraj.hh"
 #include "BTrk/KinKal/LHelix.hh"
@@ -37,10 +37,12 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: PTTraj --changedir i --delta f --tstep f --nsteps i \n");
+  printf("Usage: PKTraj --changedir i --delta f --tstep f --nsteps i \n");
 }
 
 int main(int argc, char **argv) {
+  typedef PKTraj<LHelix> PLHelix;
+
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1), idir(0), nsteps(10);
@@ -80,7 +82,7 @@ int main(int argc, char **argv) {
     }
   }
   KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
-  cout << "Testing PTTraj with "
+  cout << "Testing PKTraj with "
     << nsteps << " kinks in " << KTraj::directionName(tdir) << " direction of size "
     << delta << endl;
 
@@ -94,8 +96,8 @@ int main(int argc, char **argv) {
   double tend = tstart + tstep;
   TRange range(tstart,tend);
   LHelix lhel(origin,momv,icharge,context,range);
-  // create piece
-  PKTraj<LHelix> ptraj(lhel);
+  // create initial piecewise helix from this
+  PLHelix ptraj(lhel);
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
@@ -238,7 +240,7 @@ int main(int argc, char **argv) {
   Vec3 lpos = midpos + gap*rdir;
   TLine tline(lpos, pvel,ptraj.range().mid(),prange);
   // create TPOCA from these
-  TPOCA<PTTraj<LHelix>,TLine> tp(ptraj,tline);
+  TPOCA<PLHelix,TLine> tp(ptraj,tline);
   cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
@@ -263,13 +265,12 @@ int main(int argc, char **argv) {
     poca->Draw();
   }
 
-
   // now derivatives
-  TDPOCA<PTTraj<LHelix>,TLine> tdp(tp);
+  TDPOCA<PLHelix,TLine> tdp(tp);
   cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
  
   char fname[100];
-  snprintf(fname,100,"PTTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
   pttcan->SaveAs(fname); 
   // 
   return 0;

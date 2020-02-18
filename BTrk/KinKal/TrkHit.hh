@@ -31,7 +31,7 @@ namespace KinKal {
     public:
       typedef ROOT::Math::SMatrix<double,HDIM,2> RDer; // type for derivative of residual WRT DOCA (0) and time (2)
       // construct from a local trajectory and the overall context
-      TrkHit(TLine const& straj, Context const& context) : straj_(straj), context_(context) {} 
+      TrkHit(TLine const& straj, Context const& context, bool active=true) : straj_(straj), context_(context), active_(active) {} 
       // The TTraj describing this measurement
       TLine const& sensorTraj() const { return straj_; }
       // Translate TPOCA into a residual and derivatives
@@ -39,10 +39,12 @@ namespace KinKal {
       virtual bool resid(TPOCABase const& tpoca, Residual<HDIM>& resid, RDer const& dRdDT, double nsigma) const =0;
       // Update the state given the most recent TPOCA
       virtual void update(TPOCABase const& tpoca) const = 0;
+      bool active() const { return active_; }
     private:
       TrkHit() = delete;
       TLine straj_; // local linear approximation to this sensor geometry
       Context const& context_; // context,including BField for ExB effects
+      bool active_; // is this hit active or not
   };
 }
 #endif

@@ -17,13 +17,13 @@ namespace KinKal {
       // interpet the TPOCA as a drift residual WRT the wire.  This uses the D2T function and the Cell descriptin
       virtual bool resid(TPOCABase const& tpoca, RESID& resid, RDer const& dRdDT, double nsigma) const override;
       // construct from a D2T relationship
-      WireHit(TLine const& straj, Context const& context, D2T const& d2t,LRAmbig ambig=null) : TrkHit<1>(straj,context), d2t_(d2t), ambig_(ambig) {}
+      WireHit(TLine const& straj, Context const& context, D2T const& d2t,LRAmbig ambig=null,bool active=true) : TrkHit<1>(straj,context,active), d2t_(d2t), ambig_(ambig) {}
       // determine if a position is inside the drift cell, within tolerance
       virtual bool inCell(TPOCABase const& tpoca, double nsigma) const = 0;
       // translate a position into the wire coordinate system.
     private:
       D2T const& d2t_; // distance to time relationship
-      LRAmbig ambig_; // L
+      LRAmbig ambig_;
   };
 }
 #endif

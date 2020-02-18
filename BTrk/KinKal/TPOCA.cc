@@ -1,11 +1,10 @@
 #include "BTrk/KinKal/TPOCA.hh"
 #include "BTrk/KinKal/LHelix.hh"
 #include "BTrk/KinKal/TLine.hh"
-#include "BTrk/KinKal/PTTraj.hh"
+#include "BTrk/KinKal/PKTraj.hh"
 // specializations for TPOCA
 using namespace std;
 namespace KinKal {
-
   // specialization between a looping helix and a line
   template<> TPOCA<LHelix,TLine>::TPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TPOCABase(lhelix,tline,precision)  { 
     // reset status
@@ -120,7 +119,8 @@ namespace KinKal {
   template<> TDPOCA<LHelix,TLine>::TDPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TDPOCA<LHelix,TLine>(TPOCA<LHelix,TLine>(lhelix,tline,precision)){}
 
   // specialization between a piecewise LHelix and a line
-  template<> TPOCA<PTTraj<LHelix>,TLine>::TPOCA(PTTraj<LHelix> const& phelix, TLine const& tline, double precision) : TPOCABase(phelix,tline,precision)  {
+  typedef PKTraj<LHelix> PLHelix;
+  template<> TPOCA<PLHelix,TLine>::TPOCA(PLHelix const& phelix, TLine const& tline, double precision) : TPOCABase(phelix,tline,precision)  {
 // iteratively find the nearest piece, and POCA for that piece.  Start in the middle
     size_t oldindex= phelix.pieces().size();
     size_t index = size_t(rint(oldindex/2.0));
@@ -144,7 +144,7 @@ namespace KinKal {
   }
 
   // same for TDPOCA
-  template<> TDPOCA<PTTraj<LHelix>,TLine>::TDPOCA(TPOCA<PTTraj<LHelix>,TLine> const& tpoca) : TPOCA<PTTraj<LHelix>,TLine>(tpoca) {
+  template<> TDPOCA<PLHelix,TLine>::TDPOCA(TPOCA<PLHelix,TLine> const& tpoca) : TPOCA<PLHelix,TLine>(tpoca) {
     if(usable()){
       // call down to piece TDPOCA.  Unfortunately this re-computes TPOCA FIXME
       TDPOCA<LHelix,TLine> tdpoca(ttraj0().nearestPiece(poca0().T()),ttraj1(),precision());
@@ -152,6 +152,6 @@ namespace KinKal {
       dDdP_ = tdpoca.dDOCAdP();
     }
   }
-  template<> TDPOCA<PTTraj<LHelix>,TLine>::TDPOCA(PTTraj<LHelix> const& phelix, TLine const& tline, double precision) :
-    TPOCA<PTTraj<LHelix>,TLine>(TPOCA<PTTraj<LHelix>,TLine>(phelix,tline,precision)) { }
+  template<> TDPOCA<PLHelix,TLine>::TDPOCA(PLHelix const& phelix, TLine const& tline, double precision) :
+    TPOCA<PLHelix,TLine>(TPOCA<PLHelix,TLine>(phelix,tline,precision)) { }
 }

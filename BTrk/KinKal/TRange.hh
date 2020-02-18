@@ -13,6 +13,7 @@ namespace KinKal {
       double low() const { return range_[0]; }
       double high() const { return range_[1]; }
       double mid() const { return 0.5*(range_[0]+range_[1]); }
+      double range() const { return (range_[1]-range_[0]); }
       double& low() { return range_[0]; }
       double& high() { return range_[1]; }
       bool overlaps(TRange const& other ) const {

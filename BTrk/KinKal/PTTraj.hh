@@ -7,7 +7,10 @@
 //
 #include "BTrk/KinKal/TTraj.hh"
 #include <deque>
+#include <ostream>
 #include <stdexcept>
+#include <typeinfo>
+
 namespace KinKal {
   template <class TT> class PTTraj : public TTraj {
     public:
@@ -37,6 +40,11 @@ namespace KinKal {
       PTTraj() = delete; // no default/null constructor
       DTT pieces_; // constituent pieces
   };
+
+  template <class TT> std::ostream& operator <<(std::ostream& os, PTTraj<TT> const& pttraj) {
+    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TT).name();
+    return os;
+  }
 
   // implementation: just return the values from the piece
   template <class TT> void PTTraj<TT>::position(Vec4& pos) const {

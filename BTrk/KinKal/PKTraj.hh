@@ -21,7 +21,6 @@ namespace KinKal {
       virtual void momentum(double time,Mom4& mom) const override {
 	PTTraj<KT>::nearestPiece(time).momentum(time,mom);
       }
-
   };
 }
 #endif
