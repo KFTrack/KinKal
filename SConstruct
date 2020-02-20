@@ -35,11 +35,9 @@ bindir = buildBase+'/bin/'
 
 # -I and -L paths for libraries that will be used.
 includePath = [ sourceRoot,
-                os.environ['CLHEP_INC'],
                 os.environ['ROOT_INC'] ]
 
-linkPath    = [ os.environ['CLHEP_LIB_DIR'],
-                os.environ['ROOTSYS'] + '/lib',
+linkPath    = [ os.environ['ROOTSYS'] + '/lib',
                 '#/lib'
               ]
 

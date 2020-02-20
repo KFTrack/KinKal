@@ -16,12 +16,6 @@ if [ "`basename $0 2>/dev/null`" = "setup.sh" ];then
     exit 1
 fi
 
-if [ "${PRODUCTS}" = '' ];then
-    echo "The environment variable PRODUCTS is not set."
-    echo "You must setup the UPS environment before sourcing this script."
-    return 1
-fi
-
 if [ "${PACKAGE_SOURCE}" = '' ];then
     echo "The environment variable PACKAGE_SOURCE is not set or is an empty string."
     echo "You must set this environment variable to use this script."
@@ -34,38 +28,12 @@ if ! [ -d ${PACKAGE_SOURCE} ];then
    return 1
 fi
 
-# The following are used by the install script.
-# They must be maintained by hand.
-# It's OK if EXTRA_ROOT_QUALIFIERS is an empty string
-export PACKAGE_NAME=BTrk
-export PACKAGE_VERSION=v2_00_00
-export COMPILER_CODE=e19
-export EXTRA_ROOT_QUALIFIERS=""
-
-# Done parsing and checking arguments
-
 # The target directory for the build is the directory from which the
 # source command is issued.
 export BUILD_BASE=`pwd -P`
 echo "Source to be built: " ${PACKAGE_SOURCE}
 echo "Root of build:      " ${BUILD_BASE}
 echo "Debug level:        " ${DEBUG_LEVEL}
-
-# These are a matched pair and must be kept in sync by hand.
-# See: https://cdcvs.fnal.gov/redmine/projects/cet-is-public/wiki/AboutQualifiers
-setup -B gcc v8_2_0
-setup -B gdb v8_2_1
-
-# Choose versions of the remaining UPS products.
-qualifiers=+${COMPILER_CODE}:+${DEBUG_LEVEL}
-extras=`echo ${EXTRA_ROOT_QUALIFIERS} | sed 's/:/:+/g'`
-
-setup -B clhep v2_4_1_2  -q${qualifiers}
-setup -B root  v6_18_04c -q${qualifiers}${extras}
-setup -B scons v3_1_1  -q p372
-
-# Only used inside scripts/install.sh, to get the flavor of the build platform.
-setup cetpkgsupport
 
 # Tell SConstruct where to find helpers.py
 if [ "${PYTHONPATH}" = '' ];then
@@ -80,5 +48,5 @@ fi
 # I don't know how to do that.
 export PYTHONDONTWRITEBYTECODE=1
 
-unset qualifiers
-unset extras
+export ROOT_INC=${ROOTSYS}/include
+export GCC_VERSION=`gcc -dumpversion | sed 's/\./_/g'`
