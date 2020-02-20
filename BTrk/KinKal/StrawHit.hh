@@ -6,7 +6,6 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "BTrk/KinKal/WireHit.hh"
-#include "BTrk/KinKal/Types.hh"
 namespace KinKal {
 
   class StrawHit : public WireHit {

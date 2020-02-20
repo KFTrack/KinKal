@@ -84,7 +84,7 @@ namespace KinKal {
       auto const& tline = ttraj1();
       // pre-compute some values.
       Vec3 vdoca, ddir, hdir;
-      doca(vdoca);
+      delta(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       lhelix.direction(poca0().T(),hdir);
 

@@ -9,19 +9,25 @@
 namespace KinKal {
   class D2T { 
     public:
-      virtual double distanceToTime(Pol2 const& drift) const = 0;
-      virtual double speed() const = 0; // average drift speed
+    // given a drift DOCA and direction, compute mean drift time, local speed, and expected RMS of drift time, and the local drift speed
+      virtual void distanceToTime(Pol2 const& drift, float& tdrift, float& tdriftrms, float& dspeed) const = 0;
+      virtual float averageDriftSpeed() const = 0; // average drift speed
   };
 
-  // simple implementation of the above using a constant drift velocity.  Used for testing
+  // simple implementation of the above using a constant drift velocity and no ExB effects.  Used for testing
   class CVD2T  : public D2T {
     public:
-      virtual double distanceToTime(Pol2 const& drift) const override { return drift.R()/s_; }
-      // provide velocity on construction (mm/ns)
-      CVD2T(double s) :s_(s) {}
-      virtual double speed() const override { return s_; }
+      virtual void distanceToTime(Pol2 const& drift, float& tdrift, float& tdriftrms, float& dspeed) const override {
+	tdrift  = drift.R()/s_;
+	tdriftrms = dt_; 
+	dspeed = s_;
+      }
+      // provide seed (mm/ns) and time RMS (ns) on construction
+      CVD2T(float s, float dt) :s_(s), dt_(dt) {}
+      virtual float averageDriftSpeed() const override { return s_; }
     private:
-      double s_; // drift speed
+      float s_; // drift speed
+      float dt_; // constant drift time error
   };
 
 }

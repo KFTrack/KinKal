@@ -5,27 +5,20 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "BTrk/KinKal/KKWeight.hh"
+#include "BTrk/KinKal/TrkHit.hh"
 #include "BTrk/KinKal/TPOCA.hh"
-#include "BTrk/KinKal/TLine.hh"
 
 namespace KinKal {
-
-  template <class KTRAJ, unsigned HDIM=1> class KKHit : public KKWeight<KTRAJ> {
+  class TTraj;
+  template <class PTRAJ> class KKHit : public KKWeight<PTRAJ> {
     public:
-
-      typedef ROOT::Math::SVector<double,HDIM> RVec; // residual vector
-      typedef ROOT::Math::SMatrix<double,HDIM,HDIM,ROOT::Math::MatRepSym<double,HDIM> > RMat;  // associated measurement errors
-
       virtual unsigned nCons() const override { return NDIM; }
-      // access to the TTraj describing this measurement
-      virtual TTraj const& traj() const = 0;
-      // interpet the TPOCA result as a residual
-      virtual void resid(TPOCABase const& tpoca, Resid& resid) const = 0;
-      
-
+      TrkHit const& hit() const { return trkhit_; }
+      virtual void update(PTRAJ const& ref)  override { KKEffect<PTRAJ>::update(ref);  trkhit_.update(ref); }
+      virtual unsigned nDOF() const override { return trkhit_.nDOF(); }
     private:
-      TLine traj_; // trajectory representing this hit
+      TrkHit const& trkhit_; // hit used for this constraint
       TPOCA<KTRAJ,TLine> tpoca_; // POCA between the reference trajectory and the line returned by the TrkHit
-  };
+ };
 }
 #endif

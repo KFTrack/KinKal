@@ -23,7 +23,7 @@ namespace KinKal {
       // utility functions
       void delta(Vec4& ds) const { ds = poca_[1]-poca_[0]; }
       double dt() const { return poca_[1].T() - poca_[0].T(); }
-      void doca(Vec3& ds) const { ds = poca_[1].Vect()-poca_[0].Vect(); }
+      void delta(Vec3& ds) const { ds = poca_[1].Vect()-poca_[0].Vect(); }
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }

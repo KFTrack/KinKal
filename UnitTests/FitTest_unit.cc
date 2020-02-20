@@ -73,7 +73,7 @@ KinKal::StrawHit GenerateStrawHit(PLHelix const& traj, Context const& context, D
   WireHit::LRAmbig ambig = dd.Dot(cross) > 0 ? WireHit::left : WireHit::right;
   Vec3 mpos = dpos - sdir*rprop;
   Vec3 vprop = sdir*sprop;
-  double tmeas = hpos.T() + rprop/sprop + rdrift/d2t.speed();
+  double tmeas = hpos.T() + rprop/sprop + rdrift/d2t.averageDriftSpeed();
   // smear measurement time
   tmeas = TR->Gaus(tmeas,sigt);
   // measurement time is the longest time
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
 // define the context
   UniformBField BF(1.0); // 1 Tesla
   Context context(BF);
-  CVD2T d2t(sdrift); 
+  CVD2T d2t(sdrift,3.5); 
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
