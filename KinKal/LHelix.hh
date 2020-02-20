@@ -7,12 +7,12 @@
 // Original Author David Brown (LBNL) 1/2020
 //
 
-#include "BTrk/KinKal/Types.hh"
-#include "BTrk/KinKal/TTraj.hh"
-#include "BTrk/KinKal/KTraj.hh"
-#include "BTrk/KinKal/PData.hh"
-#include "BTrk/KinKal/Context.hh"
-#include "BTrk/KinKal/Constants.hh"
+#include "KinKal/Types.hh"
+#include "KinKal/TTraj.hh"
+#include "KinKal/KTraj.hh"
+#include "KinKal/PData.hh"
+#include "KinKal/Context.hh"
+#include "KinKal/Constants.hh"
 #include <vector>
 #include <string>
 #include <ostream>

@@ -4,7 +4,7 @@
 // Class to add information; a measurement or constraint
 // This effect provides information content and is processed in weight space 
 //
-#include "BTrk/KinKal/KKEffect.hh"
+#include "KinKal/KKEffect.hh"
 namespace KinKal {
   template<class PTRAJ> class KKWeight : public KKEffect<PTRAJ> {
     public:

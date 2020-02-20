@@ -4,8 +4,8 @@
 //  Piecewise trajectory.  Templated on a KTraj.
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/PTTraj.hh"
-#include "BTrk/KinKal/KTraj.hh"
+#include "KinKal/PTTraj.hh"
+#include "KinKal/KTraj.hh"
 #include <deque>
 namespace KinKal {
 

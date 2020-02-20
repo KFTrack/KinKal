@@ -1,8 +1,8 @@
 // 
 // test derivatives of the Loop Helix TTraj class
 //
-#include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/Context.hh"
+#include "KinKal/LHelix.hh"
+#include "KinKal/Context.hh"
 
 #include <iostream>
 #include <stdio.h>

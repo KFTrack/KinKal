@@ -6,8 +6,8 @@
 // Templated on the trajectory class representing the particle in this fit
 //
 #include <array>
-#include "BTrk/KinKal/Types.hh"
-#include "BTrk/KinKal/TTraj.hh"
+#include "KinKal/Types.hh"
+#include "KinKal/TTraj.hh"
 namespace KinKal {
 
   template<class PTRAJ> class KKEffect {

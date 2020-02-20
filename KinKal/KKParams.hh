@@ -4,7 +4,7 @@
 // Class to describe parameter transport/noise i
 // This effect provides information content and is processed in params space 
 //
-#include "BTrk/KinKal/KKEffect.hh"
+#include "KinKal/KKEffect.hh"
 namespace KinKal {
   template<class KTRAJ> class KKParams : public KKEffect<KTRAJ> {
     public:

@@ -1,5 +1,5 @@
-#include "BTrk/KinKal/TLine.hh"
-#include "BTrk/KinKal/Constants.hh"
+#include "KinKal/TLine.hh"
+#include "KinKal/Constants.hh"
 #include <iostream>
 #include <stdexcept>
 

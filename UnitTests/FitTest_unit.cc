@@ -1,13 +1,13 @@
 // 
 // ToyMC test of an LHelix-based fit 
 //
-#include "BTrk/KinKal/PKTraj.hh"
-#include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/TLine.hh"
-#include "BTrk/KinKal/TPOCA.hh"
-#include "BTrk/KinKal/StrawHit.hh"
-#include "BTrk/KinKal/Context.hh"
-#include "BTrk/KinKal/Constants.hh"
+#include "KinKal/PKTraj.hh"
+#include "KinKal/LHelix.hh"
+#include "KinKal/TLine.hh"
+#include "KinKal/TPOCA.hh"
+#include "KinKal/StrawHit.hh"
+#include "KinKal/Context.hh"
+#include "KinKal/Constants.hh"
 
 #include <iostream>
 #include <stdio.h>

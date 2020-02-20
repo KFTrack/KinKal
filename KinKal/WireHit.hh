@@ -4,9 +4,9 @@
 //  class representing a drift wire measurement
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/TrkHit.hh"
-#include "BTrk/KinKal/D2T.hh"
-#include "BTrk/KinKal/TLine.hh"
+#include "KinKal/TrkHit.hh"
+#include "KinKal/D2T.hh"
+#include "KinKal/TLine.hh"
 namespace KinKal {
 
   class WireHit : public TrkHit<1> {

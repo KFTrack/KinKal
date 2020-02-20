@@ -6,8 +6,8 @@
 //  each trajectory type pair.
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/TTraj.hh"
-#include "BTrk/KinKal/TPOCABase.hh"
+#include "KinKal/TTraj.hh"
+#include "KinKal/TPOCABase.hh"
 #include "Math/SMatrix.h"
 #include <typeinfo>
 #include <iostream>

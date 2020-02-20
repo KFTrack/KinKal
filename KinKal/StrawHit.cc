@@ -1,4 +1,4 @@
-#include "BTrk/KinKal/StrawHit.hh"
+#include "KinKal/StrawHit.hh"
 namespace KinKal {
   bool StrawHit::inCell(TPOCABase const& tpoca, double nsigma) const {
     Vec3 tpos; tpoca.delta(tpos); // transverse to wire

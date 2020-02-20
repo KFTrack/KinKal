@@ -5,7 +5,7 @@
 //  circular outer cathode locally parallel to the wire.
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/WireHit.hh"
+#include "KinKal/WireHit.hh"
 namespace KinKal {
 
   class StrawHit : public WireHit {

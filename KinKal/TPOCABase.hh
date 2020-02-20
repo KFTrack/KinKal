@@ -3,8 +3,8 @@
 //
 // Untemplated base class for POCA calculations
 //
-#include "BTrk/KinKal/Types.hh"
-#include "BTrk/KinKal/TTraj.hh"
+#include "KinKal/Types.hh"
+#include "KinKal/TTraj.hh"
 #include <string>
 #include <vector>
 namespace KinKal {

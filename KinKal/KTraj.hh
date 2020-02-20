@@ -5,7 +5,7 @@
 //  Used as part of the kinematic Kalman fit
 //  The geometric and kinematic interpretation of the parameters is defined in the subclasses
 //
-#include "BTrk/KinKal/TTraj.hh"
+#include "KinKal/TTraj.hh"
 #include <string>
 namespace KinKal {
   class KTraj {

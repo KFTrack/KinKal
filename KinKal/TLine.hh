@@ -4,8 +4,8 @@
 //  Linear time-based trajectory with a constant velocity.
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/TTraj.hh"
-#include "BTrk/KinKal/PData.hh"
+#include "KinKal/TTraj.hh"
+#include "KinKal/PData.hh"
 namespace KinKal {
   class TLine : public TTraj {
     public:

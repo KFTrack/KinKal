@@ -4,9 +4,9 @@
 //  class to use information from a hit in the Kinematic fit.
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/KKWeight.hh"
-#include "BTrk/KinKal/TrkHit.hh"
-#include "BTrk/KinKal/TPOCA.hh"
+#include "KinKal/KKWeight.hh"
+#include "KinKal/TrkHit.hh"
+#include "KinKal/TPOCA.hh"
 
 namespace KinKal {
   class TTraj;

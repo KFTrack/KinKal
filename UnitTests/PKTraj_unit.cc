@@ -1,11 +1,11 @@
 // 
 // test basic functions of the PKTraj, using the LHelix class
 //
-#include "BTrk/KinKal/PKTraj.hh"
-#include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/TLine.hh"
-#include "BTrk/KinKal/TPOCA.hh"
-#include "BTrk/KinKal/Context.hh"
+#include "KinKal/PKTraj.hh"
+#include "KinKal/LHelix.hh"
+#include "KinKal/TLine.hh"
+#include "KinKal/TPOCA.hh"
+#include "KinKal/Context.hh"
 
 #include <iostream>
 #include <stdio.h>

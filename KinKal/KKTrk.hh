@@ -7,10 +7,10 @@
 // This is a base class for specific subclasses representing measurements, material interactions, etc.
 // Templated on the kinematic trajectory used in this fit
 //
-#include "BTrk/KinKal/PTTraj.hh"
-#include "BTrk/KinKal/KKSite.hh"
-#include "BTrk/KinKal/TrkHit.hh"
-#include "BTrk/KinKal/DetElem.hh"
+#include "KinKal/PTTraj.hh"
+#include "KinKal/KKSite.hh"
+#include "KinKal/TrkHit.hh"
+#include "KinKal/DetElem.hh"
 #include <list>
 #include <vector>
 #include <memory>

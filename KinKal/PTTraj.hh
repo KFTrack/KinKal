@@ -5,7 +5,7 @@
 //  simple TTraj.
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/TTraj.hh"
+#include "KinKal/TTraj.hh"
 #include <deque>
 #include <ostream>
 #include <stdexcept>

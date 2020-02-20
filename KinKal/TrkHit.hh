@@ -6,9 +6,9 @@
 //  Its interface defines how the measurement is translated into a residual
 //  Used as part of the kinematic Kalman fit
 //
-#include "BTrk/KinKal/Context.hh"
-#include "BTrk/KinKal/TPOCABase.hh"
-#include "BTrk/KinKal/Residual.hh"
+#include "KinKal/Context.hh"
+#include "KinKal/TPOCABase.hh"
+#include "KinKal/Residual.hh"
 namespace KinKal {
   class TTraj;
   template <unsigned HDIM=1> class TrkHit {

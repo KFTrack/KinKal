@@ -3,7 +3,7 @@
 //
 // References to quantities supplied externally to KinKal
 //
-#include "BTrk/KinKal/BField.hh"
+#include "KinKal/BField.hh"
 namespace KinKal {
   class Context {
     public:

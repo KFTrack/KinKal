@@ -4,8 +4,8 @@
 //  Data object describing fit parameters
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/TData.hh"
-//#include "BTrk/KinKal/WData.hh"
+#include "KinKal/TData.hh"
+//#include "KinKal/WData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class PData : public TData<DDIM> {

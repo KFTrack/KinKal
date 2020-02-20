@@ -4,8 +4,8 @@
 //  Data object describing weight-space information
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/TData.hh"
-//#include "BTrk/KinKal/PData.hh"
+#include "KinKal/TData.hh"
+//#include "KinKal/PData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class WData : public TData<DDIM> {

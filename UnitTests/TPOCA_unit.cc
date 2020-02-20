@@ -1,10 +1,10 @@
 // 
 // test basic functions of TPOCA using LHelix and TLine
 //
-#include "BTrk/KinKal/LHelix.hh"
-#include "BTrk/KinKal/TLine.hh"
-#include "BTrk/KinKal/TPOCA.hh"
-#include "BTrk/KinKal/Context.hh"
+#include "KinKal/LHelix.hh"
+#include "KinKal/TLine.hh"
+#include "KinKal/TPOCA.hh"
+#include "KinKal/Context.hh"
 
 #include <iostream>
 #include <stdio.h>

@@ -4,8 +4,8 @@
 //  base class for a 1-dimensional directional path in space with time as parametric variable
 //  used as part of the kinematic kalman fit
 //
-#include "BTrk/KinKal/Types.hh"
-#include "BTrk/KinKal/TRange.hh"
+#include "KinKal/Types.hh"
+#include "KinKal/TRange.hh"
 namespace KinKal {
 
   class TTraj {

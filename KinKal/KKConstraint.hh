@@ -4,7 +4,7 @@
 // Class to add a constraint to the fit
 // This effect provides information content and is processed in weight space 
 //
-#include "BTrk/KinKal/KKWeight.hh"
+#include "KinKal/KKWeight.hh"
 #include <array>
 
 namespace KinKal {
