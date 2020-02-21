@@ -43,7 +43,7 @@ if [ "${isClean}" = "0" ]; then
 fi
 
 # The root of the source to be built is the directory in which this script is found.
-package_source=`cd "$(dirname $0)" >/dev/null 2>&1 && /bin/pwd | sed -e 's|/scripts$||' `
+package_source=`cd "$(dirname ${BASH_SOURCE:-$0})" >/dev/null 2>&1 && /bin/pwd | sed -e 's|/scripts$||' `
 echo $package_source
 
 cp ${package_source}/SConstruct .
