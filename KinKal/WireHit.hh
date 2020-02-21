@@ -4,12 +4,12 @@
 //  class representing a drift wire measurement
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/TrkHit.hh"
+#include "KinKal/THit.hh"
 #include "KinKal/D2T.hh"
 #include "KinKal/TLine.hh"
 namespace KinKal {
 
-  class WireHit : public TrkHit<1> {
+  class WireHit : public THit<1> {
     public:
       typedef Residual<1> RESID;
     // define left-right ambiguity, in terms of angular momentum of particle trajectory WRT hit trajectory
@@ -19,7 +19,7 @@ namespace KinKal {
       virtual bool resid(TPOCABase const& tpoca, RESID& resid, RDer const& dRdDT, double nsigma) const override;
       // construct from a D2T relationship
       virtual TLine const& sensorTraj() const override { return wire_; }
-      WireHit(TLine const& wire, Context const& context, D2T const& d2t,LRAmbig ambig=null,bool active=true) : TrkHit<1>(context,active), wire_(wire), d2t_(d2t), ambig_(ambig) {}
+      WireHit(TLine const& wire, Context const& context, D2T const& d2t,LRAmbig ambig=null,bool active=true) : THit<1>(context,active), wire_(wire), d2t_(d2t), ambig_(ambig) {}
       virtual ~WireHit(){}
       // determine if a position is inside the drift cell, within tolerance
       virtual bool inCell(TPOCABase const& tpoca, double nsigma) const = 0;

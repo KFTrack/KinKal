@@ -1,5 +1,5 @@
-#ifndef KinKal_TrkHit_hh
-#define KinKal_TrkHit_hh
+#ifndef KinKal_THit_hh
+#define KinKal_THit_hh
 //
 //  Base class to describe a time hit (simultaneous time and position measurement)
 //  It is templated on the # of dimensions constrained, typically 1 (2 for pixels)
@@ -10,13 +10,13 @@
 #include "KinKal/TPOCABase.hh"
 #include "KinKal/Residual.hh"
 namespace KinKal {
-  class TTraj;
-  template <unsigned HDIM=1> class TrkHit {
+  template <unsigned HDIM=1> class THit {
     public:
+      enum DerivType {dDOCA=0,dt=1};
       typedef ROOT::Math::SMatrix<double,HDIM,2> RDer; // type for derivative of residual WRT DOCA (0) and time (1)
       // construct from a local trajectory and the overall context
-      TrkHit(Context const& context, bool active=true) : context_(context), active_(active) {} 
-      virtual ~TrkHit(){}
+      THit(Context const& context, bool active=true) : context_(context), active_(active) {} 
+      virtual ~THit(){}
       // The TTraj describing this measurement
       virtual TTraj const& sensorTraj() const = 0;
       // Translate TPOCA into a residual and derivatives
@@ -28,7 +28,7 @@ namespace KinKal {
       unsigned nDOF() const { return active() ? HDIM : 0; }
       Context const& context() const { return context_; }
     private:
-      TrkHit() = delete;
+      THit() = delete;
       Context const& context_; // context,including BField for ExB effects
       bool active_; // is this hit active or not
   };

@@ -9,7 +9,7 @@
 //
 #include "KinKal/PTTraj.hh"
 #include "KinKal/KKSite.hh"
-#include "KinKal/TrkHit.hh"
+#include "KinKal/THit.hh"
 #include "KinKal/DetElem.hh"
 #include <list>
 #include <vector>
@@ -26,10 +26,9 @@ namespace KinKal {
       FitStatus status_; // current fit status
       PTTraj<KTraj> reftraj_; // reference against which the derivatives were evaluated
       PTTraj<KTraj> fittraj_; // result of the current fit
-      std::vector<std::unique_ptr<TrkHit> > hits_; // all the hits used in this fit
-      std::vector<std::unique_ptr<DetElem> > elems_; // all the detector elements potentially used (intersected) in this fit
+      std::vector<THit&> hits_; // all the hits used in this fit
+      std::vector<DetElem& > elems_; // all the detector elements potentially used (intersected) in this fit
       std::list<std::unique_ptr<KKSITE> > sites_; // sites used in this fit.
-
   };
 }
 #endif

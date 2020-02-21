@@ -3,6 +3,8 @@
 namespace KinKal {
   bool WireHit::resid(TPOCABase const& tpoca, RESID& resid, RDer const& dRdDT, double nsigma) const {
     bool retval(true);
+    RESID::RVec rvec;
+    RESID::RCov rcov;
     if(ambig_ != null){ 
       // convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
       float rho = tpoca.doca()*ambig_; // this is allowed to go negative
@@ -15,14 +17,16 @@ namespace KinKal {
       Pol2 drift(rho, phi);
       float tdrift, tdriftrms, speed;
       d2T().distanceToTime(drift,tdrift, tdriftrms, speed);
-      // residual is in time space
-      RESID::RVec rvec; rvec(0) = tpoca.dt()-tdrift;
-      RESID::RCov rcov; rcov(0,0) = tdriftrms*tdriftrms;  // should include intrinsic measurement error FIXME! 
+      // residual is in time
+      rvec(0) = tpoca.dt()-tdrift; // measurement - prediction
+      rcov(0,0) = tdriftrms*tdriftrms;  // should include intrinsic measurement error FIXME! 
       resid = RESID(rvec,rcov);
-       // fill derviatives FIXME!
+       // fill derviatives
+       dRdDT
     } else {
       // interpret DOCA against the wire directly as the residual
-
+      rvec(0) = tpoca.doca();
+      rcov(0,0) = nullrms_*nullrms_;
     }
     return retval;
   }
