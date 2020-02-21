@@ -106,9 +106,7 @@ int main(int argc, char **argv) {
     double tcomp = back.range().high();
     back.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    auto dvec = back.params().parameters();
-    for(size_t ipar=0;ipar<6;ipar++)
-      dvec[ipar] += delta*pder[ipar][0];
+    auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
     LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),context,range);
     // test
@@ -144,9 +142,7 @@ int main(int argc, char **argv) {
     double tcomp = front.range().low();
     front.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    auto dvec = front.params().parameters();
-    for(size_t ipar=0;ipar<6;ipar++)
-      dvec[ipar] -= delta*pder[ipar][0];
+    auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
     LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),context,range);
     // test

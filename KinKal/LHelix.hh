@@ -49,7 +49,7 @@ namespace KinKal {
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      typedef ROOT::Math::SMatrix<double,npars_,1> PDer; // derivative of parameters type in a particular direction
+      typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type in a particular direction
       void momDeriv(trajdir dir, double time, PDer& der) const;
 
      // named parameter accessors

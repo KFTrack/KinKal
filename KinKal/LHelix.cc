@@ -118,7 +118,7 @@ namespace KinKal {
 
   }
 
-  void LHelix::momDeriv(trajdir dir, double time, PDer& dermat) const {
+  void LHelix::momDeriv(trajdir dir, double time, PDer& pder) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
@@ -128,30 +128,30 @@ namespace KinKal {
     switch ( dir ) {
       case theta1:
 	// polar bending: only momentum and position are unchanged
-	dermat[rad_][0] = lam();
-	dermat[lam_][0] = -rad();
-	dermat[t0_][0] = -(time-t0())*rad()/lam();
-	dermat[phi0_][0] = -omval*(time-t0())*rad()/lam();
-	dermat[cx_][0] = -lam()*sin(phival);
-	dermat[cy_][0] = lam()*cos(phival);
+	pder[rad_] = lam();
+	pder[lam_] = -rad();
+	pder[t0_] = -(time-t0())*rad()/lam();
+	pder[phi0_] = -omval*(time-t0())*rad()/lam();
+	pder[cx_] = -lam()*sin(phival);
+	pder[cy_] = lam()*cos(phival);
 	break;
       case theta2:
 	// Azimuthal bending: R, Lambda, t0 are unchanged
-	dermat[rad_][0] = 0.0;
-	dermat[lam_][0] = 0.0;
-	dermat[t0_][0] = 0.0;
-	dermat[phi0_][0] = copysign(1.0,omval)*pb/rad();
-	dermat[cx_][0] = -copysign(1.0,omval)*pb*cos(phival);
-	dermat[cy_][0] = -copysign(1.0,omval)*pb*sin(phival);
+	pder[rad_] = 0.0;
+	pder[lam_] = 0.0;
+	pder[t0_] = 0.0;
+	pder[phi0_] = copysign(1.0,omval)*pb/rad();
+	pder[cx_] = -copysign(1.0,omval)*pb*cos(phival);
+	pder[cy_] = -copysign(1.0,omval)*pb*sin(phival);
 	break;
       case momdir:
 	// fractional momentum change: position and direction are unchanged
-	dermat[rad_][0] = rad();
-	dermat[lam_][0] = lam();
-	dermat[t0_][0] = (time-t0())*(1.0-bval*bval);
-	dermat[phi0_][0] = omval*(time-t0());
-	dermat[cx_][0] = -rad()*sin(phival);
-	dermat[cy_][0] = +rad()*cos(phival);
+	pder[rad_] = rad();
+	pder[lam_] = lam();
+	pder[t0_] = (time-t0())*(1.0-bval*bval);
+	pder[phi0_] = omval*(time-t0());
+	pder[cx_] = -rad()*sin(phival);
+	pder[cy_] = +rad()*cos(phival);
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");
