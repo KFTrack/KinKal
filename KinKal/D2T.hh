@@ -12,6 +12,7 @@ namespace KinKal {
     // given a drift DOCA and direction, compute mean drift time, local speed, and expected RMS of drift time, and the local drift speed
       virtual void distanceToTime(Pol2 const& drift, float& tdrift, float& tdriftrms, float& dspeed) const = 0;
       virtual float averageDriftSpeed() const = 0; // average drift speed
+      virtual ~D2T(){}
   };
 
   // simple implementation of the above using a constant drift velocity and no ExB effects.  Used for testing
@@ -25,6 +26,7 @@ namespace KinKal {
       // provide seed (mm/ns) and time RMS (ns) on construction
       CVD2T(float s, float dt) :s_(s), dt_(dt) {}
       virtual float averageDriftSpeed() const override { return s_; }
+      virtual ~CVD2T(){}
     private:
       float s_; // drift speed
       float dt_; // constant drift time error

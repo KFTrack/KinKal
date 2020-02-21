@@ -13,6 +13,7 @@ namespace KinKal {
       virtual bool process(KKEffect const& other,TDir tdir) override;
       // construct from a params
       KKParams(WDATA const& params) : params_(params) {}
+      virtual ~KKParams(){}
     protected:
       KKParams() {}
       WDATA params_; // params of this site

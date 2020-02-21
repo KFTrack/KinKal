@@ -21,7 +21,7 @@ namespace KinKal {
       // by default, the line has infinite unforced range
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
       TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
-
+      virtual ~TLine(){}  
       PDATA const& params() const { return pars_; }
     // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }

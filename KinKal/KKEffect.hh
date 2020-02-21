@@ -34,6 +34,7 @@ namespace KinKal {
       Status status(TDir dir) const { return status_[dir]; }
       PTRAJ const& referenceTraj() const { return reftraj_; }
       bool isActive() const { return active_; }
+      virtual ~KKEffect(){} 
     protected:
       KKEffect(PTRAJ const& reftraj) : reftraj_(reftraj), status_(unprocessed), active_(true) {}
       std::array<Status,2> status_; // status of processing in each direction

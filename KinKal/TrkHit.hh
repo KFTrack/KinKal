@@ -16,6 +16,7 @@ namespace KinKal {
       typedef ROOT::Math::SMatrix<double,HDIM,2> RDer; // type for derivative of residual WRT DOCA (0) and time (1)
       // construct from a local trajectory and the overall context
       TrkHit(Context const& context, bool active=true) : context_(context), active_(active) {} 
+      virtual ~TrkHit(){}
       // The TTraj describing this measurement
       virtual TTraj const& sensorTraj() const = 0;
       // Translate TPOCA into a residual and derivatives

@@ -14,9 +14,10 @@ namespace KinKal {
       typedef typename KKEffect::WDATA WDATA; // forward the typedef
       // process this site given the adjacent site
       virtual bool process(KKEffect const& other,TDir tdir) override;
-    
-  // construct from (masked) parameters
-   KKConstraint(double time, PDATA const& params, PMASK CONST& pmask);
+
+      // construct from (masked) parameters
+      KKConstraint(double time, PDATA const& params, PMASK CONST& pmask);
+      virtual ~KKConstraint(){}
   };
 
 }

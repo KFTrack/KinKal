@@ -6,6 +6,7 @@ namespace KinKal {
   class BField {
     public:
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; // nominal field defined at the origin
+      virtual ~BField(){}
   };
 
   // trivial instance of the above, used for testing
@@ -14,6 +15,7 @@ namespace KinKal {
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const override { field = field_; }
       UniformBField(Vec3 const& bnom) : field_(bnom) {}
       UniformBField(double BZ) : UniformBField(Vec3(0.0,0.0,BZ)) {}
+      virtual ~UniformBField(){}
     private:
       Vec3 field_; // constant field
   };

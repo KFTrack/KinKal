@@ -28,6 +28,7 @@ namespace KinKal {
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }
       bool inRange() { return ttraj_[0]->inRange(poca_[0].T()) && ttraj_[1]->inRange(poca_[1].T()); }
+      virtual ~TPOCABase(){}
     protected:
       TPStat status_; // status of computation
       double doca_; // geometric distance of closest approach, signed by angular momentunm

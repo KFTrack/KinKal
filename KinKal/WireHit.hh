@@ -20,6 +20,7 @@ namespace KinKal {
       // construct from a D2T relationship
       virtual TLine const& sensorTraj() const override { return wire_; }
       WireHit(TLine const& wire, Context const& context, D2T const& d2t,LRAmbig ambig=null,bool active=true) : TrkHit<1>(context,active), wire_(wire), d2t_(d2t), ambig_(ambig) {}
+      virtual ~WireHit(){}
       // determine if a position is inside the drift cell, within tolerance
       virtual bool inCell(TPOCABase const& tpoca, double nsigma) const = 0;
       LRAmbig ambig() const { return ambig_; }

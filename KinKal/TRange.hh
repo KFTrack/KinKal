@@ -2,6 +2,7 @@
 #define KinKal_TRange_hh
 // simple struct to describe a time range, defined [ )
 #include <algorithm>
+#include <array>
 namespace KinKal {
   class TRange {
     public:

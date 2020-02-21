@@ -34,7 +34,7 @@ namespace KinKal {
     // kinematic accessors
       virtual void momentum(double t,Mom4& mom) const =0; // momentum in MeV/c, mass in MeV/c^2 as a function of time
       void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
-
+      virtual ~KTraj(){}
     protected:
       KTraj(double mass, int charge) : mass_(mass), charge_(charge) {}
       // kinematic parameters

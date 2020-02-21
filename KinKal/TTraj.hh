@@ -22,6 +22,7 @@ namespace KinKal {
       virtual void direction(double time, Vec3& dir) const =0; // unit vector in the direction of positive time
       TTraj(TRange const& trange) : trange_(trange){}
       TTraj() {}
+      virtual ~TTraj() {}
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       bool inRange(double t) const { return trange_.inRange(t); }

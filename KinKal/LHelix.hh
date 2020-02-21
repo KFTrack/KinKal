@@ -37,6 +37,7 @@ namespace KinKal {
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
       // construct from parameters
       LHelix(PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
+      virtual ~LHelix() {} 
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
       void position(double t,Vec3& pos) const override; // time is input 

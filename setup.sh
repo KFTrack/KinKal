@@ -11,10 +11,10 @@
 # package to be built.
 #
 
-if [ "`basename $0 2>/dev/null`" = "setup.sh" ];then
-    echo "You should be sourcing this file, not executing it."
-    exit 1
-fi
+#if [ "`basename $0 2>/dev/null`" = "setup.sh" ];then
+#    echo "You should be sourcing this file, not executing it."
+#    return 1
+#fi
 
 if [ "${PACKAGE_SOURCE}" = '' ];then
     echo "The environment variable PACKAGE_SOURCE is not set or is an empty string."

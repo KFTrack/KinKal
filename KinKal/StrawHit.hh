@@ -14,6 +14,7 @@ namespace KinKal {
 	WireHit(straj,context,d2t,ambig,active), radius_(radius) {}
       virtual bool inCell(TPOCABase const& tpoca, double nsigma) const override;
       virtual void update(TPOCABase const& tpoca) const override;
+      virtual ~StrawHit(){}
     private:
       double radius_; // straw radius
       Pol2 offset_; // straw offset WRT wire center.  Not yet implemented FIXME!

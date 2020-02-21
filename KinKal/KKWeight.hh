@@ -14,6 +14,7 @@ namespace KinKal {
       // construct from a weight
       KKWeight(PTRAJ const& reftraj, WDATA const& weight) : KKEffect<PTRAJ>(reftraj), weight_(weight) {}
       virtual unsigned nDOF() const = 0;
+      virtual ~KKWeight(){}
     protected:
       KKWeight(PTRAJ const& reftraj) : KKEffect<PTRAJ>(reftraj) {}
       WDATA weight_; // weight representation of this site's constraint/measurement

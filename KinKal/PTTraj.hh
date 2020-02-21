@@ -23,6 +23,7 @@ namespace KinKal {
       virtual void direction(double time, Vec3& dir) const override;
 // must have at least 1 initial piece
       PTTraj(TT const& piece);
+      virtual ~PTTraj(){} 
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
