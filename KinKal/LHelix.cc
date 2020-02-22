@@ -32,12 +32,12 @@ namespace KinKal {
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
     param(rad_) = -pt*momToRad;
-    //tan dip
+    // longitudinal wavelength
     param(lam_) = -mom.Z()*momToRad;
     // time at z=0
     double om = omega();
     param(t0_) = pos.T() - pos.Z()/(om*lam());
-    // compute winding that miminimizes z1
+    // compute winding that puts phi0 in the range -pi,pi
     double nwind = rint((pos.Z()/lam() - phibar)/twopi);
     //  cout << "winding number = " << nwind << endl;
     // azimuth at z=0

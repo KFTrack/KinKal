@@ -2,30 +2,30 @@
 #define KinKal_THit_hh
 //
 //  Base class to describe a time hit (simultaneous time and position measurement)
-//  It is templated on the # of dimensions constrained, typically 1 (2 for pixels)
-//  Its interface defines how the measurement is translated into a residual
+//  Its interface defines how the measurement is translated into a residual (1=dimensional comparison with a trajectory)
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Context.hh"
 #include "KinKal/TPOCABase.hh"
 #include "KinKal/Residual.hh"
 namespace KinKal {
-  class TLine;
+  class TTraj;
   class THit {
     public:
-      enum DerivType {dDOCA=0,dt=1};
-      typedef ROOT::Math::SVector<double,2> RDer; // type for derivative of residual WRT DOCA (0) and time (1)
       // construct from a local trajectory and the overall context
       THit(Context const& context, bool active=true) : context_(context), active_(active) {} 
       virtual ~THit(){}
-      // The TLine describing this measurement
-      virtual TLine const& sensorTraj() const = 0;
-      // Translate TPOCA into a residual and derivatives
-      // Return value indicates if the position is consistent with the measurement, within the given number of sigmas
-      virtual bool resid(TPOCABase const& tpoca, Residual& resid, RDer const& dRdDT, double nsigma) const =0;
+      // The trajectory describing this measurement's sensor.
+      virtual TTraj const& sensorTraj() const = 0;
+      // Translate TPOCA into a residual
+      virtual void resid(TPOCABase const& tpoca, Residual& resid) const =0;
       // Update the state given the most recent TPOCA
       virtual void update(TPOCABase const& tpoca) const = 0;
+      // count number of degrees of freedom constrained by this measurement (typically 1)
       virtual unsigned nDOF() const = 0;
+      // check if this POCA is within the sensor range, geometrically and temporally.
+      // return value is the dimensionless number of sigma outside range, 0.0 = consistent with the range
+      virtual float inRange(TPOCABase const& tpoca) const = 0;
       bool active() const { return active_; }
       Context const& context() const { return context_; }
     private:

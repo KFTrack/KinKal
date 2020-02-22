@@ -1,5 +1,5 @@
 // 
-// ToyMC test of an LHelix-based fit 
+// ToyMC test of hits on a LHelix-based 
 //
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
@@ -7,6 +7,7 @@
 #include "KinKal/TPOCA.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
+#include "KinKal/Types.hh"
 #include "KinKal/Constants.hh"
 
 #include <iostream>
@@ -39,12 +40,17 @@ using namespace std;
 using KinKal::TLine;
 typedef KinKal::PKTraj<LHelix> PLHelix;
 
+// ugly global variables
+double zrange(3000.0), rmax(800.0); // tracker dimension
+double sprop(0.8*KinKal::c_), sdrift(0.06), rstraw(2.5);
+double sigt(0.3); // drift time resolution in ns
+
 void print_usage() {
   printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --seed i\n");
 }
 
 // helper function
-KinKal::StrawHit GenerateStrawHit(PLHelix const& traj, Context const& context, D2T const& d2t,double htime, double sprop, double rmax, double sigt, double rstraw,TRandom* TR) {
+KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   // start with the true helix position at this time
   Vec4 hpos; hpos.SetE(htime);
   traj.position(hpos);
@@ -68,20 +74,15 @@ KinKal::StrawHit GenerateStrawHit(PLHelix const& traj, Context const& context, D
     rprop = -ddot+shlen;
   // sign propagation velocity away from the measurement
   if(rprop>0) sdir *= -1.0;
-  Vec3 dd = dpos-hpos.Vect();
-  Vec3 cross = sdir.Cross(hdir);
-  WireHit::LRAmbig ambig = dd.Dot(cross) > 0 ? WireHit::left : WireHit::right;
   Vec3 mpos = dpos - sdir*rprop;
   Vec3 vprop = sdir*sprop;
-  double tmeas = hpos.T() + rprop/sprop + rdrift/d2t.averageDriftSpeed();
+  double tmeas = hpos.T() + rprop/sprop + rdrift/sdrift;
   // smear measurement time
   tmeas = TR->Gaus(tmeas,sigt);
   // measurement time is the longest time
   TRange trange(tmeas-2.0*shlen/sprop,tmeas);
   // construct the trajectory for this hit
-  TLine sline(mpos,vprop,tmeas,trange);
-  // construct the hit from this trajectory
-  return StrawHit(sline,context,d2t,rstraw,ambig);
+  return TLine(mpos,vprop,tmeas,trange);
 }
 
 
@@ -91,9 +92,6 @@ int main(int argc, char **argv) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
-  double zrange(3000.0), rmax(800.0); // tracker dimension
-  double sprop(0.8*KinKal::c_), sdrift(0.06), rstraw(2.5);
-  double sigt(0.3); // drift time resolution in ns
   unsigned nhits(40);
   int iseed(124223);
 
@@ -155,10 +153,21 @@ int main(int argc, char **argv) {
   cout << "True " << plhel << endl;
   // generate hits
   std::vector<StrawHit> hits;
-  for(size_t ihit=0; ihit<hits.size(); ihit++){
+  for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
-    hits.push_back(GenerateStrawHit(plhel,context,d2t,htime,sprop,rmax,sigt,rstraw,TR));
+    auto tline = GenerateStraw(plhel,htime,TR);
+    cout << "TLine " << tline << endl;
+// try to create TPOCA for a hit
+    TPOCA<PLHelix,TLine> tp(plhel,tline);
+    cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+    // compute ambiguity
+//    Vec3 dd = dpos-hpos.Vect();
+//    Vec3 cross = sdir.Cross(hdir);
+//    WireHit::LRAmbig ambig = dd.Dot(cross) > 0 ? WireHit::left : WireHit::right;
+    // construct the hit from this trajectory
+//    StrawHit sh(sline,context,d2t,rstraw,ambig);
   }
+
   exit(EXIT_SUCCESS);
 }
 

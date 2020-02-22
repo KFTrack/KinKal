@@ -62,5 +62,6 @@ namespace KinKal {
     // nonconst accessors
       double& param(size_t index)  { return pars_.parameters()[index]; }
   };
+  std::ostream& operator <<(std::ostream& ost, TLine const& tline);
 }
 #endif
