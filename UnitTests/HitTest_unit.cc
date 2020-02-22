@@ -46,7 +46,7 @@ double sprop(0.8*KinKal::c_), sdrift(0.06), rstraw(2.5);
 double sigt(0.3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --seed i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i\n");
 }
 
 // helper function
@@ -62,21 +62,23 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   double rdrift = TR->Uniform(-rstraw,rstraw);
   Vec3 drift = (sdir.Cross(hdir)).Unit();
   Vec3 dpos = hpos.Vect() + rdrift*drift;
-  // find the ends where this reaches the cyldinder
+//  cout << "Generating hit at position " << dpos << endl;
+  // find the ends where this reaches the cylinder
   double drho = dpos.Rho();
   double ddot = dpos.Dot(sdir);
   double shlen = sqrt(rmax*rmax + ddot*ddot - drho*drho); // straw half-length
   // choose the closest end to be the measurement end
-  double rprop;
-  if(fabs(-ddot-shlen) < fabs(-ddot+shlen))
-    rprop = -ddot-shlen;
-  else
-    rprop = -ddot+shlen;
+  double rprop = (fabs(-ddot-shlen) < fabs(-ddot+shlen)) ?  -ddot-shlen : -ddot+shlen;
   // sign propagation velocity away from the measurement
-  if(rprop>0) sdir *= -1.0;
+  if(rprop>0){
+    sdir *= -1.0;
+    rprop *= -1.0;
+  }
+
   Vec3 mpos = dpos - sdir*rprop;
   Vec3 vprop = sdir*sprop;
-  double tmeas = hpos.T() + rprop/sprop + rdrift/sdrift;
+  // measured time is after propagation and drift
+  double tmeas = hpos.T() + fabs(rprop)/sprop + fabs(rdrift)/sdrift;
   // smear measurement time
   tmeas = TR->Gaus(tmeas,sigt);
   // measurement time is the longest time
@@ -103,6 +105,7 @@ int main(int argc, char **argv) {
     {"charge",     required_argument, 0, 'q'  },
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
+    {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
   };
 
@@ -121,6 +124,8 @@ int main(int argc, char **argv) {
       case 'q' : icharge = atoi(optarg);
 		 break;
       case 'z' : zrange = atof(optarg);
+		 break;
+      case 'h' : sigt = atof(optarg);
 		 break;
       case 'n' : nhits = atoi(optarg);
 		 break;
@@ -148,28 +153,62 @@ int main(int argc, char **argv) {
   plhel.range() = TRange(-0.5*zrange/vel.Z(),0.5*zrange/vel.Z());
   // generate material effects
   // FIXME!
-  // divide time range
+
+// create Canvase
+  TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
+  TPolyLine3D* hel = new TPolyLine3D(100);
+  Vec4 hpos;
+  double tstep = plhel.range().range()/100.0;
+  for(int istep=0;istep<101;++istep){
+  // compute the position from the time
+    hpos.SetE(plhel.range().low() + tstep*istep);
+    plhel.position(hpos);
+    // add these positions to the TPolyLine3D
+    hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
+  }
+  // draw the helix
+  hel->SetLineColor(kBlue);
+  hel->Draw();
+// divide time range
   double dt = plhel.range().range()/(nhits-1);
   cout << "True " << plhel << endl;
   // generate hits
   std::vector<StrawHit> hits;
+  std::vector<TPolyLine3D*> tpl;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime,TR);
-    cout << "TLine " << tline << endl;
+//    cout << "TLine " << tline << endl;
 // try to create TPOCA for a hit
     TPOCA<PLHelix,TLine> tp(plhel,tline);
-    cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
-    // compute ambiguity
-//    Vec3 dd = dpos-hpos.Vect();
-//    Vec3 cross = sdir.Cross(hdir);
-//    WireHit::LRAmbig ambig = dd.Dot(cross) > 0 ? WireHit::left : WireHit::right;
+//    cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+    WireHit::LRAmbig ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-//    StrawHit sh(sline,context,d2t,rstraw,ambig);
+    StrawHit sh(tline,context,d2t,rstraw,ambig);
+    // compute residual
+    Residual res;
+    sh.resid(tp,res);
+    cout << "Residual " << res.residual() << " Error " << sqrt(res.covariance()[0][0]) << " dRdt " << res.dRdt()  << endl;
+    TPolyLine3D* line = new TPolyLine3D(2);
+    Vec3 plow, phigh;
+    tline.position(tline.range().low(),plow);
+    tline.position(tline.range().high(),phigh);
+    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+    line->SetLineColor(kRed);
+    line->Draw();
+    tpl.push_back(line);
   }
+  // draw the origin and axes
+  TAxis3D* rulers = new TAxis3D();
+  rulers->GetXaxis()->SetAxisColor(kBlue);
+  rulers->GetXaxis()->SetLabelColor(kBlue);
+  rulers->GetYaxis()->SetAxisColor(kCyan);
+  rulers->GetYaxis()->SetLabelColor(kCyan);
+  rulers->GetZaxis()->SetAxisColor(kOrange);
+  rulers->GetZaxis()->SetLabelColor(kOrange);
+  rulers->Draw();
+  hcan->SaveAs("HitTest.root"); 
 
   exit(EXIT_SUCCESS);
 }
-
-
-

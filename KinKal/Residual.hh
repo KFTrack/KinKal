@@ -20,6 +20,7 @@ namespace KinKal {
       Residual(RVec const& rvec, RCov const& rcov, double drdt) : rvec_(rvec), rcov_(rcov), drdt_(drdt) {}
       // construct from scalars
       Residual(double r, double ms, double drdt) : rvec_(r), rcov_(ms), drdt_(drdt) {}
+      Residual() : drdt_(0.0) {}
     private:
       RVec rvec_; // residual value
       RCov rcov_; // covariance matrix on residual (from measurement errors)

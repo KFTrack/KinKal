@@ -163,6 +163,7 @@ namespace KinKal {
       ost << LHelix::paramName(static_cast<LHelix::paramIndex>(ipar) ) << " : " << lhel.param(ipar);
       if(ipar < LHelix::npars_-1) ost << " , ";
     }
+    ost << lhel.range();
     return ost;
   }
 

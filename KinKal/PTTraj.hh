@@ -55,10 +55,10 @@ namespace KinKal {
     nearestPiece(time).position(time,pos);
   }
   template <class TT> void PTTraj<TT>::velocity(double time, Vec3& vel) const {
-    nearestPiece(time).position(time,vel);
+    nearestPiece(time).velocity(time,vel);
   }
   template <class TT> void PTTraj<TT>::direction(double time, Vec3& dir) const {
-    nearestPiece(time).position(time,dir);
+    nearestPiece(time).direction(time,dir);
   }
 
   template <class TT> PTTraj<TT>::PTTraj(TT const& piece) : TTraj(piece.range()),pieces_(1,piece)

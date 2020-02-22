@@ -84,6 +84,7 @@ namespace KinKal {
       ost << TLine::paramName(static_cast<TLine::paramIndex>(ipar) ) << " : " << tline.param(ipar);
       if(ipar < TLine::npars_-1) ost << " , ";
     }
+    ost <<  tline.range();
     return ost;
   }
 
