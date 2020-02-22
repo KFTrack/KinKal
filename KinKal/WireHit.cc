@@ -2,8 +2,6 @@
 
 namespace KinKal {
   void WireHit::resid(TPOCABase const& tpoca, Residual& resid) const {
-    Residual::RVec rvec;
-    Residual::RCov rcov;
     if(ambig_ != null){ 
       // convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
       float rho = tpoca.doca()*ambig_; // this is allowed to go negative
@@ -14,18 +12,16 @@ namespace KinKal {
       tpoca.delta(dvec);
       float phi = asin(float(dvec.Unit().Dot(pdir)));
       Pol2 drift(rho, phi);
-      float tdrift, tdriftrms, vdrift;
-      d2T().distanceToTime(drift, tdrift, tdriftrms, vdrift);
-      // residual is in time
-      rvec(0) = tpoca.dt()-tdrift; // measurement - prediction
-      rcov(0,0) = tdriftrms*tdriftrms;  // should include intrinsic measurement error and velocity dependence FIXME! 
-      // Clonstruct the residual object: dRdt is just the local drift speed
-      resid = Residual(rvec,rcov,vdrift);
+      float tdrift, tdvar, vdrift;
+      d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
+      // should add intrinsic measurement effects to tdvar FIXME!
+      float totvar = tdvar;
+      // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
+      resid = Residual(tpoca.dt()-tdrift,totvar,vdrift,1.0);
     } else {
       // interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
-      rvec(0) = tpoca.doca();
-      rcov(0,0) = nullms_;
-      Residual(rvec,rcov,0.0);
+      // residual is in space, so unit dependendence on distance, none on time
+      Residual(tpoca.doca(),nullvar_,1.0,0.0);
     }
   }
 }

@@ -27,6 +27,7 @@ namespace KinKal {
       enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
+      typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type 
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
@@ -49,7 +50,6 @@ namespace KinKal {
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type in a particular direction
       void momDeriv(trajdir dir, double time, PDer& der) const;
 
      // named parameter accessors

@@ -116,7 +116,7 @@ int main(int argc, char **argv) {
 
   // now derivatives
   TDPOCA<LHelix,TLine> tdp(tp);
-  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
+  cout << "TDPOCA dDdP " << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
   // test against numerical derivatives
   std::vector<TGraph*> dtpoca;
   // range to change specific parameters; most are a few mm
@@ -139,7 +139,7 @@ int main(int argc, char **argv) {
       TPOCA<LHelix,TLine> dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives
-      double dd = tdp.dDOCAdP()[ipar][0]*dpar;
+      double dd = tdp.dDdP()[ipar]*dpar;
       dtpoca.back()->SetPoint(istep,xd-refd,dd);
     }
     dtpcan->cd(ipar+1);

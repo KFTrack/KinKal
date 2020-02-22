@@ -263,7 +263,7 @@ int main(int argc, char **argv) {
 
   // now derivatives
   TDPOCA<PLHelix,TLine> tdp(tp);
-  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
+  cout << "TDPOCA dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
   char fname[100];
   snprintf(fname,100,"PKTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);

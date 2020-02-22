@@ -105,14 +105,17 @@ namespace KinKal {
       double dy = lhelix.cy() - poca1().Y();
       double ddot = -sineta*dx + coseta*dy;
 
-      dDdP_[LHelix::t0_][0] = 0.0; // no t0 dependence, DOCA is purely geometric
-      dDdP_[LHelix::cx_][0] = -Factor*sineta;
-      dDdP_[LHelix::cy_][0] = Factor*coseta;
+      // no t0 dependence, DOCA is purely geometric
+      dDdP_[LHelix::cx_] = -Factor*sineta;
+      dDdP_[LHelix::cy_] = Factor*coseta;
       // components that depend on phi; this ignores terms of magnitude DOCA/Radius
-      dDdP_[LHelix::phi0_][0] = Factor*lhelix.rad()*sindphi;
-      dDdP_[LHelix::rad_][0] = -Factor*(l2*cosdphi + lhelix.rad()*s2*ddot)/denom;
+      dDdP_[LHelix::phi0_] = Factor*lhelix.rad()*sindphi;
+      dDdP_[LHelix::rad_] = -Factor*(l2*cosdphi + lhelix.rad()*s2*ddot)/denom;
       // this becomes inaccurate when z=0, but should have no effect on the fit
-      dDdP_[LHelix::lam_][0] = -Factor*lhelix.rad()*sindphi*poca0().Z()/l2; 
+      dDdP_[LHelix::lam_] = -Factor*lhelix.rad()*sindphi*poca0().Z()/l2; 
+
+      // no spatial dependence, DT is purely temporal
+      dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
     }
   }
 
@@ -149,7 +152,8 @@ namespace KinKal {
       // call down to piece TDPOCA.  Unfortunately this re-computes TPOCA FIXME
       TDPOCA<LHelix,TLine> tdpoca(ttraj0().nearestPiece(poca0().T()),ttraj1(),precision());
       // copy over state
-      dDdP_ = tdpoca.dDOCAdP();
+      dDdP_ = tdpoca.dDdP();
+      dTdP_ = tdpoca.dTdP();
     }
   }
   template<> TDPOCA<PLHelix,TLine>::TDPOCA(PLHelix const& phelix, TLine const& tline, double precision) :

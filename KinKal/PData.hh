@@ -5,7 +5,6 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-//#include "KinKal/WData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class PData : public TData<DDIM> {
@@ -31,6 +30,7 @@ namespace KinKal {
 	covariance() += other.covariance();
 	return *this;
       }
+      void invert(TData<DDIM> const& other) { TData<DDIM>::invert(other); }
   };
 }
 #endif

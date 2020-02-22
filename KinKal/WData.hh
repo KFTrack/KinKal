@@ -5,7 +5,6 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-//#include "KinKal/PData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class WData : public TData<DDIM> {
@@ -21,16 +20,17 @@ namespace KinKal {
 //      WData(PData const& pdata) : WData(pdata,true) {}
       WData(TData<DDIM> const& tdata,bool invert=false) : TData<DDIM>(tdata,invert) {}
       // accessors; just re-interpret the base class accessors
-      DVec const& weightvec() const { return TData<DDIM>::vec(); }
-      DMat const& weightmat() const { return TData<DDIM>::mat(); }
-      DVec& weightvec() { return TData<DDIM>::vec(); }
-      DMat& weightmat() { return TData<DDIM>::mat(); }
+      DVec const& weightVec() const { return TData<DDIM>::vec(); }
+      DMat const& weightMat() const { return TData<DDIM>::mat(); }
+      DVec& weightVec() { return TData<DDIM>::vec(); }
+      DMat& weightMat() { return TData<DDIM>::mat(); }
       // addition: only works for other weights
       WData & operator +=(WData const& other) {
-	weightvec() += other.weightvec();
-	weightmat() += other.weightmat();
+	weightVec() += other.weightVec();
+	weightMat() += other.weightMat();
 	return *this;
       }
+      void invert(TData<DDIM> const& other) { TData<DDIM>::invert(other); }
   };
 }
 #endif

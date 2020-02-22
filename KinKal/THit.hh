@@ -9,14 +9,14 @@
 #include "KinKal/TPOCABase.hh"
 #include "KinKal/Residual.hh"
 namespace KinKal {
-  class TTraj;
+  class TLine;
   class THit {
     public:
       // construct from a local trajectory and the overall context
       THit(Context const& context, bool active=true) : context_(context), active_(active) {} 
       virtual ~THit(){}
       // The trajectory describing this measurement's sensor.
-      virtual TTraj const& sensorTraj() const = 0;
+      virtual TLine const& sensorTraj() const = 0;
       // Translate TPOCA into a residual
       virtual void resid(TPOCABase const& tpoca, Residual& resid) const =0;
       // Update the state given the most recent TPOCA

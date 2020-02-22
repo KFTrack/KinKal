@@ -9,6 +9,7 @@
 #include "KinKal/Context.hh"
 #include "KinKal/Types.hh"
 #include "KinKal/Constants.hh"
+#include "KinKal/KKHit.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -142,7 +143,7 @@ int main(int argc, char **argv) {
 // define the context
   UniformBField BF(1.0); // 1 Tesla
   Context context(BF);
-  CVD2T d2t(sdrift,3.5); 
+  CVD2T d2t(sdrift,sigt*sigt); 
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -188,7 +189,7 @@ int main(int argc, char **argv) {
     // compute residual
     Residual res;
     sh.resid(tp,res);
-    cout << "Residual " << res.residual() << " Error " << sqrt(res.covariance()[0][0]) << " dRdt " << res.dRdt()  << endl;
+    cout << res << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);
@@ -198,6 +199,9 @@ int main(int argc, char **argv) {
     line->SetLineColor(kRed);
     line->Draw();
     tpl.push_back(line);
+    // test
+    KKHit kkhit(sh,lhel);
+    cout << "KKHit NDOF" << kkhit.nDOF() << endl;
   }
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
