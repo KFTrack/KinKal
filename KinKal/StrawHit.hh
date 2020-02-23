@@ -11,8 +11,8 @@ namespace KinKal {
     public:
       StrawHit(TLine const& straj, Context const& context, D2T const& d2t,double radius, LRAmbig ambig=null,bool active=true) : 
 	WireHit(straj,context,d2t,radius*0.289,ambig,active), radius_(radius) {} // null error set to radius/sqrt(12) FIXME!
-      virtual float inRange(TPOCABase const& tpoca) const override;
-      virtual void update(TPOCABase const& tpoca) const override;
+      virtual float inRange(TPocaBase const& tpoca) const override;
+      virtual void update(TPocaBase const& tpoca) const override;
       virtual ~StrawHit(){}
     private:
       double radius_; // straw radius

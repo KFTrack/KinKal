@@ -5,8 +5,9 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/KKWeight.hh"
+#include "KinKal/PKTraj.hh"
 #include "KinKal/THit.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/Residual.hh"
 
@@ -14,19 +15,25 @@ namespace KinKal {
   class TTraj;
   template <class KTRAJ> class KKHit : public KKWeight<KTRAJ> {
     public:
+      typedef KKEff<KTRAJ> KKEFF;
+      typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef TDPoca<KTRAJ,TLine> TDPOCA;
       virtual unsigned nDOF() const override { return thit_.nDOF(); }
       THit const& hit() const { return thit_; }
-      virtual void update(KTRAJ const& ref)  override { 
-	KKEffect<KTRAJ>::reftraj_ = &ref;
+      virtual bool update(PKTRAJ const& ref)  override {
+	KKEFF::resetRefTraj(ref);
 //	thit_.update(ref); FIXME!
+	return true;
       }
       virtual double time() const override { return tdpoca_.poca0().T(); } // time on the main trajectory
       virtual ~KKHit(){}
       // construct from a hit and reference trajectory
       KKHit(THit const& thit, KTRAJ const& reftraj);
+      Residual const& resid() const { return rresid_; }
+      TDPOCA const& poca() const { return tdpoca_; }
     private:
       THit const& thit_; // hit used for this constraint
-      TDPOCA<KTRAJ,TLine> tdpoca_; // POCA between the reference trajectory and the sensor trajectory
+      TDPOCA tdpoca_; // POCA between the reference trajectory and the sensor trajectory
       Residual rresid_; // residual between the hit and reference
   };
 
@@ -37,7 +44,7 @@ namespace KinKal {
     auto dRdP = rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP();
     // convert this to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dRdPM;
-    dRdPM.Place_in_row(dRdP,0,0);
+    dRdPM.Place_in_col(dRdP,0,0);
     // convert the variance into a 1X1 matrix
     ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > RVarM;
     RVarM(0,0) = rresid_.residVar();
@@ -47,7 +54,7 @@ namespace KinKal {
     auto refvec = KKWeight<KTRAJ>::weight().weightMat()*reftraj.params().parameters();
     // translate residual value into weight vector WRT the reference parameters
     auto delta = dRdP*rresid_.resid()*rresid_.residVar();
-    // add change WRT reference; sign convention reflects resid = measure - prediction
+    // add change WRT reference; sign convention reflects resid = measurement - prediction
     KKWeight<KTRAJ>::weight_.weightVec() = refvec + delta; 
   }
 }

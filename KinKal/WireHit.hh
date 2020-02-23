@@ -15,7 +15,7 @@ namespace KinKal {
     // Null means to ignore drift information and constrain to the wire
       enum LRAmbig { left=-1, null=0, right=1}; 
       // THit interface overrrides
-      virtual void resid(TPOCABase const& tpoca, Residual& resid) const override;
+      virtual void resid(TPocaBase const& tpoca, Residual& resid) const override;
       virtual unsigned nDOF() const override { return 1; }
       // construct from a D2T relationship
       virtual TLine const& sensorTraj() const override { return wire_; }

@@ -1,12 +1,12 @@
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/PKTraj.hh"
-// specializations for TPOCA
+// specializations for TPoca
 using namespace std;
 namespace KinKal {
   // specialization between a looping helix and a line
-  template<> TPOCA<LHelix,TLine>::TPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TPOCABase(lhelix,tline,precision)  { 
+  template<> TPoca<LHelix,TLine>::TPoca(LHelix const& lhelix, TLine const& tline, double precision) : TPocaBase(lhelix,tline,precision)  { 
     // reset status
     reset();
     double htime,ltime;
@@ -33,7 +33,7 @@ namespace KinKal {
       double denom = 1.0 - ddot*ddot;
       // check for parallel)
       if(denom<1.0e-5){
-	status_ = TPOCA::pocafailed;
+	status_ = TPoca::pocafailed;
 	break;
       }
       double hdd = dpos.Dot(hdir);
@@ -49,23 +49,23 @@ namespace KinKal {
       tline.position(ltime,lpos);
       double dd2 = (hpos-lpos).Mag2();
       if(dd2 < 0.0 ){
-	status_ = TPOCA::pocafailed;
+	status_ = TPoca::pocafailed;
 	break;
       }
       ddoca = doca;
       doca = sqrt(dd2);
       ddoca -= doca;
       if(isnan(ddoca)){
-	status_ = TPOCA::pocafailed;
+	status_ = TPoca::pocafailed;
 	break;
       }
     }
-    // finalize TPOCA
-    if(status_ != TPOCA::pocafailed){
+    // finalize TPoca
+    if(status_ != TPoca::pocafailed){
       if(niter < maxiter)
-	status_ = TPOCA::converged;
+	status_ = TPoca::converged;
       else
-	status_ = TPOCA::unconverged;
+	status_ = TPoca::unconverged;
         // set the positions
       poca_[0].SetE(htime);
       lhelix.position(poca_[0]);
@@ -77,7 +77,7 @@ namespace KinKal {
     }
   }
 
-  template<> TDPOCA<LHelix,TLine>::TDPOCA(TPOCA<LHelix,TLine> const& tpoca) : TPOCA<LHelix,TLine>(tpoca) {
+  template<> TDPoca<LHelix,TLine>::TDPoca(TPoca<LHelix,TLine> const& tpoca) : TPoca<LHelix,TLine>(tpoca) {
   // check status of POCA calculation from base class
     if(usable()){
       auto const& lhelix = ttraj0();
@@ -119,11 +119,11 @@ namespace KinKal {
     }
   }
 
-  template<> TDPOCA<LHelix,TLine>::TDPOCA(LHelix const& lhelix, TLine const& tline, double precision) : TDPOCA<LHelix,TLine>(TPOCA<LHelix,TLine>(lhelix,tline,precision)){}
+  template<> TDPoca<LHelix,TLine>::TDPoca(LHelix const& lhelix, TLine const& tline, double precision) : TDPoca<LHelix,TLine>(TPoca<LHelix,TLine>(lhelix,tline,precision)){}
 
   // specialization between a piecewise LHelix and a line
   typedef PKTraj<LHelix> PLHelix;
-  template<> TPOCA<PLHelix,TLine>::TPOCA(PLHelix const& phelix, TLine const& tline, double precision) : TPOCABase(phelix,tline,precision)  {
+  template<> TPoca<PLHelix,TLine>::TPoca(PLHelix const& phelix, TLine const& tline, double precision) : TPocaBase(phelix,tline,precision)  {
 // iteratively find the nearest piece, and POCA for that piece.  Start in the middle
     size_t oldindex= phelix.pieces().size();
     size_t index = size_t(rint(oldindex/2.0));
@@ -131,9 +131,9 @@ namespace KinKal {
     status_ = converged; 
     unsigned niter=0;
     while(status_ == converged && niter++ < maxiter && index != oldindex){
-    // call down to LHelix TPOCA
+    // call down to LHelix TPoca
       LHelix const& piece = phelix.pieces()[index];
-      TPOCA<LHelix,TLine> tpoca(piece,tline,precision);
+      TPoca<LHelix,TLine> tpoca(piece,tline,precision);
     // copy over state
       status_ = tpoca.status();
       poca_[0] = tpoca.poca0();
@@ -146,16 +146,16 @@ namespace KinKal {
     if(status_ == converged && niter >= maxiter) status_ = unconverged;
   }
 
-  // same for TDPOCA
-  template<> TDPOCA<PLHelix,TLine>::TDPOCA(TPOCA<PLHelix,TLine> const& tpoca) : TPOCA<PLHelix,TLine>(tpoca) {
+  // same for TDPoca
+  template<> TDPoca<PLHelix,TLine>::TDPoca(TPoca<PLHelix,TLine> const& tpoca) : TPoca<PLHelix,TLine>(tpoca) {
     if(usable()){
-      // call down to piece TDPOCA.  Unfortunately this re-computes TPOCA FIXME
-      TDPOCA<LHelix,TLine> tdpoca(ttraj0().nearestPiece(poca0().T()),ttraj1(),precision());
+      // call down to piece TDPoca.  Unfortunately this re-computes TPoca FIXME
+      TDPoca<LHelix,TLine> tdpoca(ttraj0().nearestPiece(poca0().T()),ttraj1(),precision());
       // copy over state
       dDdP_ = tdpoca.dDdP();
       dTdP_ = tdpoca.dTdP();
     }
   }
-  template<> TDPOCA<PLHelix,TLine>::TDPOCA(PLHelix const& phelix, TLine const& tline, double precision) :
-    TPOCA<PLHelix,TLine>(TPOCA<PLHelix,TLine>(phelix,tline,precision)) { }
+  template<> TDPoca<PLHelix,TLine>::TDPoca(PLHelix const& phelix, TLine const& tline, double precision) :
+    TPoca<PLHelix,TLine>(TPoca<PLHelix,TLine>(phelix,tline,precision)) { }
 }

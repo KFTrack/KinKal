@@ -3,7 +3,7 @@
 //
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
 
 #include <iostream>
@@ -209,7 +209,7 @@ int main(int argc, char **argv) {
   leg->AddEntry(mend.arrow,title,"L");
   leg->Draw();
 
-  // create a TLine near this helix, and draw it and the TPOCA vector
+  // create a TLine near this helix, and draw it and the TPoca vector
   Vec3 pos, dir;
   lhel.position(ltime,pos);
   lhel.direction(ltime,dir);
@@ -225,11 +225,11 @@ int main(int argc, char **argv) {
 // time range;
   TRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
   TLine tline(ppos, pvel,ltime,prange);
-// find TPOCA
-  TPOCA<LHelix,TLine> tp(lhel,tline);
-  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
-  if(tp.status() == TPOCABase::converged) {
-    // draw the line and TPOCA
+// find TPoca
+  TPoca<LHelix,TLine> tp(lhel,tline);
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  if(tp.status() == TPocaBase::converged) {
+    // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);

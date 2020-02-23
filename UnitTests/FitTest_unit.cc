@@ -1,5 +1,5 @@
 // 
-// ToyMC test of hits on a LHelix-based 
+// ToyMC test of fitting an LHelix-based KKTrk
 //
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
@@ -10,11 +10,11 @@
 #include "KinKal/Types.hh"
 #include "KinKal/Constants.hh"
 #include "KinKal/KKHit.hh"
+#include "KinKal/KKTrk.hh"
 
 #include <iostream>
-#include <stdio.h>
-#include <iostream>
 #include <getopt.h>
+#include <typeinfo>
 
 #include "TH1F.h"
 #include "TSystem.h"
@@ -40,14 +40,14 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 typedef KinKal::PKTraj<LHelix> PLHelix;
-
+typedef KinKal::KKTrk<LHelix> KKTRK;
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
 double sprop(0.8*KinKal::c_), sdrift(0.06), rstraw(2.5);
 double sigt(0.3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f\n");
 }
 
 // helper function
@@ -95,6 +95,7 @@ int main(int argc, char **argv) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
+  float escale(1.0);;
   unsigned nhits(40);
   int iseed(124223);
 
@@ -108,6 +109,7 @@ int main(int argc, char **argv) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
+    {"escale",     required_argument, 0, 'e'  },
   };
 
   int long_index =0;
@@ -132,6 +134,8 @@ int main(int argc, char **argv) {
 		 break;
       case 's' : iseed = atoi(optarg);
 		 break;
+      case 'e' : escale = atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
@@ -148,71 +152,57 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
+  cout << "True " << lhel << endl; 
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
   plhel.range() = TRange(-0.5*zrange/vel.Z(),0.5*zrange/vel.Z());
   // generate material effects
   // FIXME!
-
-// create Canvase
-  TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
-  TPolyLine3D* hel = new TPolyLine3D(100);
-  Vec4 hpos;
-  double tstep = plhel.range().range()/100.0;
-  for(int istep=0;istep<101;++istep){
-  // compute the position from the time
-    hpos.SetE(plhel.range().low() + tstep*istep);
-    plhel.position(hpos);
-    // add these positions to the TPolyLine3D
-    hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
-  }
-  // draw the helix
-  hel->SetLineColor(kBlue);
-  hel->Draw();
 // divide time range
   double dt = plhel.range().range()/(nhits-1);
   cout << "True " << plhel << endl;
   // generate hits
-  std::vector<StrawHit> hits;
-  std::vector<TPolyLine3D*> tpl;
+  std::vector<StrawHit> shits; // this owns the hits
+  cout << "Creating " << nhits << " hits " << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime,TR);
-//    cout << "TLine " << tline << endl;
-// try to create TPoca for a hit
     TPoca<PLHelix,TLine> tp(plhel,tline);
-//    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
     WireHit::LRAmbig ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
     StrawHit sh(tline,context,d2t,rstraw,ambig);
-    // compute residual
-    Residual res;
-    sh.resid(tp,res);
-    cout << res << endl;
-    TPolyLine3D* line = new TPolyLine3D(2);
-    Vec3 plow, phigh;
-    tline.position(tline.range().low(),plow);
-    tline.position(tline.range().high(),phigh);
-    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
-    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
-    line->SetLineColor(kRed);
-    line->Draw();
-    tpl.push_back(line);
-    // test
-    KKHit kkhit(sh,lhel);
-    cout << "KKHit NDOF " << kkhit.nDOF() << endl;
+    shits.push_back(sh);
   }
-  // draw the origin and axes
-  TAxis3D* rulers = new TAxis3D();
-  rulers->GetXaxis()->SetAxisColor(kBlue);
-  rulers->GetXaxis()->SetLabelColor(kBlue);
-  rulers->GetYaxis()->SetAxisColor(kCyan);
-  rulers->GetYaxis()->SetLabelColor(kCyan);
-  rulers->GetZaxis()->SetAxisColor(kOrange);
-  rulers->GetZaxis()->SetLabelColor(kOrange);
-  rulers->Draw();
-  hcan->SaveAs("HitTest.root"); 
-
+  std::vector<const THit*> thits; // this references them as THits
+  for(auto& shit : shits) thits.push_back(&shit);
+  cout << "vector of hit points " << thits.size() << endl;
+//  for(auto thit : thits) {
+//    cout << "Hit at time " << thit->sensorTraj().range().mid() << endl;
+//  }
+// create the fit seed by randomizing the parameters
+  double sigmas[6] = { 0.5, 0.5, 0.5, 0.5, 0.005, 5.0};
+  auto seedpar = lhel.params().parameters();
+  ROOT::Math::SMatrix<double, 6,6, ROOT::Math::MatRepSym<double,6> > seedcov = ROOT::Math::SMatrixIdentity();
+  for(unsigned ipar=0;ipar < 6; ipar++){
+    seedpar[ipar] += TR->Gaus(0.0,sigmas[ipar]*escale);
+    seedcov[ipar][ipar] *= sigmas[ipar]*sigmas[ipar];
+  }
+  cout << "Createing seed helix params " << seedpar <<" covariance " << endl << seedcov << endl;
+  LHelix seedhel(seedpar,seedcov,lhel.mass(),lhel.charge(),context,lhel.range());
+// Create the KKTrk from these hits
+  KKTRK kktrk(seedhel,thits,1e6);
+  auto& effs = kktrk.effects();
+// fit the track
+  kktrk.fit();
+  cout << "KKTrk fit status = " << kktrk.status() << endl;
+  for(auto const& eff : effs) {
+    cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards) << endl;
+    auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
+    if(ihit != 0){
+      cout << "Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << endl;
+      cout << "Hit residual = " << ihit->resid() << endl;
+    }
+  }
   exit(EXIT_SUCCESS);
 }

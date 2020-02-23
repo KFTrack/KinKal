@@ -1,7 +1,7 @@
 #include "KinKal/WireHit.hh"
 
 namespace KinKal {
-  void WireHit::resid(TPOCABase const& tpoca, Residual& resid) const {
+  void WireHit::resid(TPocaBase const& tpoca, Residual& resid) const {
     if(ambig_ != null){ 
       // convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
       float rho = tpoca.doca()*ambig_; // this is allowed to go negative

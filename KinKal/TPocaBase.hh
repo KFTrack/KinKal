@@ -1,5 +1,5 @@
-#ifndef KinKal_TPOCABase_hh
-#define KinKal_TPOCABase_hh
+#ifndef KinKal_TPocaBase_hh
+#define KinKal_TPocaBase_hh
 //
 // Untemplated base class for POCA calculations
 //
@@ -8,7 +8,7 @@
 #include <string>
 #include <vector>
 namespace KinKal {
-  class TPOCABase {
+  class TPocaBase {
     public:
       enum TPStat{converged=0,unconverged,pocafailed,derivfailed,unknown};
       static std::string const& statusName(TPStat status);
@@ -28,7 +28,7 @@ namespace KinKal {
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }
       bool inRange() { return ttraj_[0]->inRange(poca_[0].T()) && ttraj_[1]->inRange(poca_[1].T()); }
-      virtual ~TPOCABase(){}
+      virtual ~TPocaBase(){}
     protected:
       TPStat status_; // status of computation
       double doca_; // geometric distance of closest approach, signed by angular momentunm
@@ -37,7 +37,7 @@ namespace KinKal {
       std::array<const TTraj*,2> ttraj_; // base class pointers to trajs
       // override default constructor:
       // default precision = 10 um on DOCA
-      TPOCABase(TTraj const& traj0,TTraj const& traj1, double precision=0.01) : status_(unknown), doca_(-1.0), precision_(precision),
+      TPocaBase(TTraj const& traj0,TTraj const& traj1, double precision=0.01) : status_(unknown), doca_(-1.0), precision_(precision),
       ttraj_{&traj0,&traj1} {}
       void reset() {status_ = unknown;}
     private:
