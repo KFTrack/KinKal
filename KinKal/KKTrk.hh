@@ -20,6 +20,20 @@
 #include <stdexcept>
 
 namespace KinKal {
+  // struct to define fit parameters
+  struct Config {
+    unsigned maxniter_; // maximum number of iterations
+    double dwt_; // dweighting of initial seed covariance
+  };
+// struct to define fit status
+  struct FitStatus {
+    enum status {current=0,needsfit,unconverged,failed}; // fit status
+    unsigned niter_; // number of iterations executed;
+    status status_; // current status
+    FitStatus() : niter_(0), status_(needsfit) {}
+  };
+
+
   template<class KTRAJ> class KKTrk {
     public:
       typedef KKEff<KTRAJ> KKEFF;
@@ -33,10 +47,8 @@ namespace KinKal {
 	}
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
-
-      enum FitStatus {current=0,needsfit,unconverged,failed}; // fit status
       // construct from a set of hits and material elements.  Must deweight initial covariance matrix
-      KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits, double dwt=1.0e6); 
+      KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits, Config const& config ); 
       void fit(bool force=false); // process the effects.
       FitStatus status() const { return status_; }
       PKTRAJ const& refTraj() const { return reftraj_; }
@@ -48,19 +60,19 @@ namespace KinKal {
       bool update();
       bool fitIteration();
       // payload
+      Config config_; // configuration
       FitStatus status_; // current fit status
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated
       PKTRAJ fittraj_; // result of the current fit
-      //      std::vector<DetElem& > elems_; // all the detector elements potentially used (intersected) in this fit
       KKCON effects_; // effects used in this fit, sorted by time
   };
 
-  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,double dwt) : 
-    status_(needsfit), reftraj_(reftraj), fittraj_(reftraj){
+  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,Config const& config) : 
+    config_(config), reftraj_(reftraj), fittraj_(reftraj){
       // create end sites
-      auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,dwt));
+      auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
-      iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,dwt));
+      iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       // loop over the hits
       for(auto hit : hits ) {
@@ -77,23 +89,22 @@ namespace KinKal {
   // fit iteration management.  This should cover simulated annealing too FIXME!
   template <class KTRAJ> void KKTrk<KTRAJ>::fit(bool force) {
     // don't fit unless necessary or forced
-    if(!force && status_ == current)return;
+    if(!force && status_.status_ == FitStatus::current)return;
     // iterate to convergence
-    unsigned iter(0);
-    static unsigned maxniter(10); //should be a parameter FIXME!
+    status_.niter_ = 0;
     bool fitOK(true);
-    while(fitOK && iter < maxniter && status_ != current) {
-      if(iter>0) fitOK = update();
+    while(fitOK && status_.niter_ < config_.maxniter_ && status_.status_ != FitStatus::current) {
+      if(status_.niter_>0) fitOK = update();
       if(fitOK) fitOK = fitIteration();
       // test for convergence/divergence FIXME!
-      iter++;
+      status_.niter_++;
     }
     if(!fitOK){
-      status_ = failed;
-    } else if(iter == maxniter) {
-      status_ = unconverged;
+      status_.status_ = FitStatus::failed;
+    } else if(status_.niter_ == config_.maxniter_) {
+      status_.status_ = FitStatus::unconverged;
     } else {
-      status_ = current;
+      status_.status_ = FitStatus::current;
     }
   }
 
@@ -123,7 +134,14 @@ namespace KinKal {
 
   // convert a final fit into a trajectory
   template <class KTRAJ> bool KKTrk<KTRAJ>::buildTraj() {
-    //FIXME!
+  // convert the fit result into a new trajectory.  Start at one end
+  // for now, take the fit at one end, this won't work with materials FIXME!
+    auto newtraj = reftraj_.front();
+    // overwrite the parameters
+    auto const& front = *effects_.begin();
+    newtraj.params() = front->params(TDir::backwards);
+    // create the piecetraj from that
+    fittraj_ = PKTRAJ(newtraj);
     return true;
   }
 

@@ -37,6 +37,7 @@ namespace KinKal {
       // This also requires the BField, through Context
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
       // construct from parameters
+      LHelix(PDATA const& pdata, double mass, int charge, Context const& context,TRange const& range=TRange());
       LHelix(PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
       virtual ~LHelix() {} 
       // particle position and momentum as a function of time
@@ -55,6 +56,7 @@ namespace KinKal {
      // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
+      PDATA& params() { return pars_; }
       double rad() const { return param(rad_); }
       double lam() const { return param(lam_); }
       double cx() const { return param(cx_); }

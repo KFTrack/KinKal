@@ -10,7 +10,7 @@
 namespace KinKal {
   class TPocaBase {
     public:
-      enum TPStat{converged=0,unconverged,pocafailed,derivfailed,unknown};
+      enum TPStat{converged=0,unconverged,pocafailed,derivfailed,invalid,unknown};
       static std::string const& statusName(TPStat status);
       //accessors
       Vec4 const& poca(size_t itraj) const { return poca_[itraj]; }
@@ -39,6 +39,8 @@ namespace KinKal {
       // default precision = 10 um on DOCA
       TPocaBase(TTraj const& traj0,TTraj const& traj1, double precision=0.01) : status_(unknown), doca_(-1.0), precision_(precision),
       ttraj_{&traj0,&traj1} {}
+      // allow constructing an invalid object
+      TPocaBase() : status_(invalid), doca_(-1.0), precision_(0.0) {}
       void reset() {status_ = unknown;}
     private:
       static std::vector<std::string> statusNames_;

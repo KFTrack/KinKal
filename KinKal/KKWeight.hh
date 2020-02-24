@@ -19,6 +19,7 @@ namespace KinKal {
     protected:
     // allow subclasses to construct without a weight
       KKWeight(KTRAJ const& reftraj) : KKEFF(reftraj) {}
+      KKWeight() {} // no local reftraj; must be set
       WDATA weight_; // weight representation of this site's constraint/measurement
   };
 

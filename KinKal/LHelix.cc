@@ -47,6 +47,10 @@ namespace KinKal {
     param(cy_) = pos.Y() - mom.X()*momToRad;
   }
 
+  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Context const& context, TRange const& range) : 
+    LHelix(pdata.parameters(), pdata.covariance(),mass,charge, context, range)
+    {}
+
   LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
       TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
     double momToRad = 1000.0/(charge_*context.bNom()*c_);

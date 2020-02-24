@@ -43,11 +43,11 @@ typedef KinKal::PKTraj<LHelix> PLHelix;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*KinKal::c_), sdrift(0.06), rstraw(2.5);
-double sigt(0.3); // drift time resolution in ns
+double sprop(0.8*KinKal::c_), sdrift(0.065), rstraw(2.5);
+double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f\n");
 }
 
 // helper function
@@ -92,6 +92,7 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
 int main(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
+  double ambigdoca(0.5); // minimum DOCA to consider sign accurate
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
@@ -108,6 +109,7 @@ int main(int argc, char **argv) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
+    {"ambigdoca",     required_argument, 0, 'd'  },
   };
 
   int long_index =0;
@@ -132,6 +134,8 @@ int main(int argc, char **argv) {
 		 break;
       case 's' : iseed = atoi(optarg);
 		 break;
+      case 'd' : ambigdoca = atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
@@ -152,9 +156,6 @@ int main(int argc, char **argv) {
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
   plhel.range() = TRange(-0.5*zrange/vel.Z(),0.5*zrange/vel.Z());
-  // generate material effects
-  // FIXME!
-
 // create Canvase
   TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
   TPolyLine3D* hel = new TPolyLine3D(100);
@@ -183,13 +184,17 @@ int main(int argc, char **argv) {
 // try to create TPoca for a hit
     TPoca<PLHelix,TLine> tp(plhel,tline);
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
-    WireHit::LRAmbig ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
+// only set ambiguity if DOCA is above this value
+    WireHit::LRAmbig ambig(WireHit::null);
+    if(fabs(tp.doca())> ambigdoca) 
+      ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
     StrawHit sh(tline,context,d2t,rstraw,ambig);
-    // compute residual
+    hits.push_back(sh);
+   // compute residual
     Residual res;
     sh.resid(tp,res);
-    cout << res << endl;
+    cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);
@@ -199,9 +204,6 @@ int main(int argc, char **argv) {
     line->SetLineColor(kRed);
     line->Draw();
     tpl.push_back(line);
-    // test
-    KKHit kkhit(sh,lhel);
-    cout << "KKHit NDOF " << kkhit.nDOF() << endl;
   }
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
@@ -213,6 +215,47 @@ int main(int argc, char **argv) {
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
   hcan->SaveAs("HitTest.root"); 
+// test updating the hit residual and derivatives with different trajectories 
+  vector<double> delpars { 0.5, 0.5, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
+  unsigned nsteps(10);
+  vector<TGraph*> hderivg(LHelix::NParams());
+  for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
+    hderivg[ipar] = new TGraph(hits.size()*nsteps);
+    hderivg[ipar]->SetTitle(LHelix::paramTitle(static_cast<LHelix::paramIndex>(ipar)).c_str());
+  }
+  unsigned ipt(0);
+  for(int istep=0;istep<nsteps; istep++){
+    for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
+      double dpar = delpars[ipar]*(-0.5 + float(istep)/float(nsteps)); 
+      // modify the helix
+      LHelix modlhel =lhel;
+      modlhel.params().parameters()[ipar] += dpar;
+      ROOT::Math::SVector<double,6> dpvec;
+      dpvec[ipar] += dpar;
+      // update the hits
+      for(auto& hit : hits) {
+	KKHit kkhit(hit,lhel);
+	Residual ores = kkhit.resid(); // original residual
+	kkhit.update(modlhel);// refer to moded helix
+	Residual mres = kkhit.resid();
+	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think 
+	// it means the fit needs to know how much to change the ref parameters, which is
+	// opposite from how much the ref parameters are different from the measurement
+	// compare the change with the expected from the derivatives
+	auto pder = kkhit.dRdP();
+	double ddr = ROOT::Math::Dot(pder,dpvec);
+	hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+      }
+    }
+  }
+  TCanvas* hderivgc = new TCanvas("hderivgc","hderivgc",800,600);
+  hderivgc->Divide(3,2);
+  for(size_t ipar=0;ipar<6;++ipar){
+    hderivgc->cd(ipar+1);
+    hderivg[ipar]->Draw("A*");
+  };
+  hderivgc->SaveAs("HitDeriv.root");
+
 
   exit(EXIT_SUCCESS);
 }

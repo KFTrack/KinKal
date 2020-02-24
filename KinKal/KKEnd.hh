@@ -56,7 +56,7 @@ namespace KinKal {
     }
 
   template<class KTRAJ> bool KKEnd<KTRAJ>::update(PKTRAJ const& ref) {
-    KKEFF::resetRefTraj(ref);
+    KKEFF::setRefTraj(ref);
     // extract the parameter vector and deweight the covariance
     auto endpars = KKEFF::referenceTraj().params();
     endpars.covariance() *= dwt_;

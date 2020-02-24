@@ -22,7 +22,7 @@ namespace KinKal {
       virtual unsigned nDOF() const = 0;
       Status status(TDir tdir) const { return status_[static_cast<std::underlying_type<TDir>::type>(tdir)]; }
       bool isActive() const { return active_; }
-      KKEffBase() : status_{{unprocessed,unprocessed}},active_(true) {}
+      KKEffBase(bool active=true) : status_{{unprocessed,unprocessed}},active_(active) {}
       virtual ~KKEffBase(){}
     protected:
       void setStatus(TDir tdir, Status status) { status_[static_cast<std::underlying_type<TDir>::type>(tdir)] = status; }
@@ -54,12 +54,15 @@ namespace KinKal {
       KTRAJ const& referenceTraj() const { return *reftraj_; }
       virtual ~KKEff(){} 
     protected:
+      KKEff() : KKEffBase(false), reftraj_(0) {}
       KKEff(KTRAJ const& reftraj) : reftraj_(&reftraj) {}
       // allow subclasses to change the reference: this happens during updating
-      void resetRefTraj(PKTRAJ const& newref) { reftraj_ = &(newref.nearestPiece(time())); }
-      KTRAJ const* reftraj_; // reference trajectory for this site
+      void setRefTraj(KTRAJ const& newref) { reftraj_ = &newref; }
+      void setRefTraj(PKTRAJ const& newref) { reftraj_ = &(newref.nearestPiece(time())); }
+      // payload
       mutable std::array<PDATA,2> params_; // params after processing
       mutable std::array<WDATA,2> weights_; // weights after processing
+      KTRAJ const* reftraj_; // reference trajectory for this site
   };
 
 }

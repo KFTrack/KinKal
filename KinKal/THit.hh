@@ -26,7 +26,7 @@ namespace KinKal {
       // check if this POCA is within the sensor range, geometrically and temporally.
       // return value is the dimensionless number of sigma outside range, 0.0 = consistent with the range
       virtual float inRange(TPocaBase const& tpoca) const = 0;
-      bool active() const { return active_; }
+      bool isActive() const { return active_; }
       Context const& context() const { return context_; }
     private:
       THit() = delete;

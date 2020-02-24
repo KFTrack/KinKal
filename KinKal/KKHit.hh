@@ -17,45 +17,82 @@ namespace KinKal {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef TPoca<KTRAJ,TLine> TPOCA;
       typedef TDPoca<KTRAJ,TLine> TDPOCA;
+      typedef typename KTRAJ::PDer PDer; // forward derivative type
       virtual unsigned nDOF() const override { return thit_.nDOF(); }
       THit const& hit() const { return thit_; }
-      virtual bool update(PKTRAJ const& ref)  override {
-	KKEFF::resetRefTraj(ref);
-//	thit_.update(ref); FIXME!
-	return true;
-      }
+      virtual bool update(PKTRAJ const& ref)  override;
       virtual double time() const override { return tdpoca_.poca0().T(); } // time on the main trajectory
       virtual ~KKHit(){}
       // construct from a hit and reference trajectory
       KKHit(THit const& thit, KTRAJ const& reftraj);
+      KKHit(THit const& thit, PKTRAJ const& reftraj);
       Residual const& resid() const { return rresid_; }
       TDPOCA const& poca() const { return tdpoca_; }
+      // residual derivatives WRT local trajectory parameters
+      PDer dRdP() const { return rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP(); }
     private:
+    // helpers
+      void setWeight();
       THit const& thit_; // hit used for this constraint
       TDPOCA tdpoca_; // POCA between the reference trajectory and the sensor trajectory
       Residual rresid_; // residual between the hit and reference
   };
 
-  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, KTRAJ const& reftraj) : KKWeight<KTRAJ>(reftraj), thit_(thit) , tdpoca_(reftraj,thit_.sensorTraj()) {
-    // translate tdpoca into a residual
+  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, PKTRAJ const& reftraj) : thit_(thit) {
+  // use POCA to define the time for sampling the
+    TPOCA tpoca(reftraj,thit_.sensorTraj());
+    thit_.update(tpoca);
+    KKEFF::active_ = thit.isActive();
+    KKEFF::setRefTraj(reftraj.nearestPiece(tpoca.poca0().T()));
+    // re-compute POCA and residual: there should be a way to re-use the TPOCA FIXME!
+    tdpoca_ = TDPOCA(KKEFF::referenceTraj(),thit_.sensorTraj());
     thit_.resid(tdpoca_,rresid_);
-    // compute the total derivative (space and time combined) of the residual WRT ktraj parameters
-    auto dRdP = rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP();
-    // convert this to a Nx1 matrix (for root)
+    // set the weight
+    setWeight();
+  }
+
+
+  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, KTRAJ const& reftraj) : KKWeight<KTRAJ>(reftraj), thit_(thit) , tdpoca_(reftraj,thit_.sensorTraj()) {
+    thit_.update(tdpoca_);
+    KKEFF::active_ = thit_.isActive();
+  // translate tdpoca into a residual
+    thit_.resid(tdpoca_,rresid_);
+  // set the weight
+    setWeight();
+  }
+
+  template<class KTRAJ> bool KKHit<KTRAJ>::update(PKTRAJ const& ref) {
+  // update to the previous TPOCA
+    thit_.update(tdpoca_);
+    KKEFF::active_ = thit_.isActive();
+  // update the reference traj, assuming the TPOCA time doesn't change FIXME!
+    KKEFF::setRefTraj(ref);
+  // now update TPOCA and residual
+    tdpoca_ = TDPOCA(KKEFF::referenceTraj(),thit_.sensorTraj());
+    thit_.resid(tdpoca_,rresid_);
+    // set the weight
+    setWeight();
+    return true;
+  }
+
+  template<class KTRAJ> void KKHit<KTRAJ>::setWeight() {
+    // convert derivatives to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dRdPM;
-    dRdPM.Place_in_col(dRdP,0,0);
+    auto drdp = dRdP();
+    dRdPM.Place_in_col(drdp,0,0);
     // convert the variance into a 1X1 matrix
     ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > RVarM;
-    RVarM(0,0) = rresid_.residVar();
+    RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
     KKWeight<KTRAJ>::weight_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
     // reference weight vector from reference parameters
-    auto refvec = KKWeight<KTRAJ>::weight().weightMat()*reftraj.params().parameters();
+    auto refvec = KKWeight<KTRAJ>::weight().weightMat()*KKEFF::referenceTraj().params().parameters();
     // translate residual value into weight vector WRT the reference parameters
-    auto delta = dRdP*rresid_.resid()*rresid_.residVar();
+    auto delta = drdp*rresid_.resid()/rresid_.residVar();
     // add change WRT reference; sign convention reflects resid = measurement - prediction
-    KKWeight<KTRAJ>::weight_.weightVec() = refvec + delta; 
+    KKWeight<KTRAJ>::weight_.weightVec() = refvec + delta;
   }
 }
 #endif

@@ -17,11 +17,11 @@ namespace KinKal {
       // should add intrinsic measurement effects to tdvar FIXME!
       float totvar = tdvar;
       // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
-      resid = Residual(tpoca.dt()-tdrift,totvar,vdrift,1.0);
+      resid = Residual(tpoca.dt()-tdrift,totvar,ambig_/vdrift,1.0);
     } else {
       // interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
       // residual is in space, so unit dependendence on distance, none on time
-      Residual(tpoca.doca(),nullvar_,1.0,0.0);
+      resid = Residual(tpoca.doca(),nullvar_,1.0,0.0);
     }
   }
 }

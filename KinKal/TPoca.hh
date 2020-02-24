@@ -21,6 +21,7 @@ namespace KinKal {
     public:
       // construct from a pair of trajs; POCA is computed on construction
       TPoca(T0 const& t0, T1 const& t1, double precision=0.01);
+      TPoca() {} 
       // accessors
       T0 const& ttraj0() const override { return static_cast<T0 const&>(TPocaBase::ttraj0()); }
       T1 const& ttraj1() const override { return static_cast<T1 const&>(TPocaBase::ttraj1()); }
@@ -32,6 +33,7 @@ namespace KinKal {
       typedef typename T0::PDer PDer; // forward derivative type from the 0th traj parameters
       TDPoca(T0 const& t0, T1 const& t1, double precision=0.01);
       TDPoca(TPoca<T0,T1> const& tpoca); // 'upgrade' a regular POCA 
+      TDPoca() {} 
       PDer const& dDdP() const { return dDdP_; }
       PDer const& dTdP() const { return dTdP_; } 
     private:
