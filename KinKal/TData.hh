@@ -7,7 +7,6 @@
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
-#include <iostream>
 
 namespace KinKal {
   template <size_t DDIM> class TData {

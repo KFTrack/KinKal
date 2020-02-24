@@ -1,9 +1,9 @@
 // 
-// test basic functions of TPOCA using LHelix and TLine
+// test basic functions of TPoca using LHelix and TLine
 //
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
 
 #include <iostream>
@@ -36,7 +36,7 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: TPOCA --charge i--gap f --time f --dtime f --dphi f --vprop f\n");
+  printf("Usage: TPoca --charge i--gap f --time f --dtime f --dphi f --vprop f\n");
 }
 
 int main(int argc, char **argv) {
@@ -104,24 +104,24 @@ int main(int argc, char **argv) {
   TRange prange(ptime-hlen/pspeed, ptime+hlen/pspeed);
   // create the TLine
   TLine tline(ppos, pvel,time+dtime,prange);
-  // create TPOCA from these
-  TPOCA<LHelix,TLine> tp(lhel,tline);
-  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  // create TPoca from these
+  TPoca<LHelix,TLine> tp(lhel,tline);
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);
   double refd = tp.doca();
-  cout << " Helix Pos " << pos << " TPOCA LHelix pos " << thpos << " TPOCA TLine pos " << tlpos << endl;
-  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << " DOCA " << refd << endl;
+  cout << " Helix Pos " << pos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
+  cout << " TPoca poca0 " << tp.poca0() << " TPoca poca1 " << tp.poca1()  << " DOCA " << refd << endl;
 
   // now derivatives
-  TDPOCA<LHelix,TLine> tdp(tp);
-  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
+  TDPoca<LHelix,TLine> tdp(tp);
+  cout << "TDPoca dDdP " << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
   // test against numerical derivatives
   std::vector<TGraph*> dtpoca;
   // range to change specific parameters; most are a few mm
   std::vector<double> pchange = {10.0,5.0,10.0,10.0,0.1,0.1};
-  TCanvas* dtpcan = new TCanvas("dtpcan","DTPOCA",1200,800);
+  TCanvas* dtpcan = new TCanvas("dtpcan","DTPoca",1200,800);
   dtpcan->Divide(3,2);
   for(int ipar=0;ipar<lhel.npars_;ipar++){
     LHelix::paramIndex pi = static_cast<LHelix::paramIndex>(ipar);
@@ -136,16 +136,16 @@ int main(int argc, char **argv) {
       double dpar = dstart + dstep*istep;
       dvec[ipar] += dpar; 
       LHelix dlhel(dvec,lhel.params().covariance(),lhel.mass(),lhel.charge(),context);
-      TPOCA<LHelix,TLine> dtp(dlhel,tline);
+      TPoca<LHelix,TLine> dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives
-      double dd = tdp.dDOCAdP()[ipar][0]*dpar;
+      double dd = tdp.dDdP()[ipar]*dpar;
       dtpoca.back()->SetPoint(istep,xd-refd,dd);
     }
     dtpcan->cd(ipar+1);
     dtpoca.back()->Draw("AC*");
   }
-  dtpcan->SaveAs("TPOCA.root");
+  dtpcan->SaveAs("TPoca.root");
   return 0;
 }
 

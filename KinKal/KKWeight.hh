@@ -4,41 +4,47 @@
 // Class to add information; a measurement or constraint
 // This effect provides information content and is processed in weight space 
 //
-#include "KinKal/KKEffect.hh"
+#include "KinKal/KKEff.hh"
 namespace KinKal {
-  template<class PTRAJ> class KKWeight : public KKEffect<PTRAJ> {
+  template<class KTRAJ> class KKWeight : public KKEff<KTRAJ> {
     public:
-      typedef typename KKEffect::WDATA WDATA; // forward the typedef
+      typedef KKEff<KTRAJ> KKEFF;
+      typedef typename KKEFF::WDATA WDATA; // forward the typedef
       // process this site given the adjacent site
-      virtual bool process(KKEffect const& other,TDir tdir) override;
+      virtual bool process(KKEFF const& other,TDir tdir) override;
       // construct from a weight
-      KKWeight(PTRAJ const& reftraj, WDATA const& weight) : KKEffect<PTRAJ>(reftraj), weight_(weight) {}
-      virtual unsigned nDOF() const = 0;
+      KKWeight(KTRAJ const& reftraj, WDATA const& weight) : KKEFF(reftraj), weight_(weight) {}
       virtual ~KKWeight(){}
+      WDATA const& weight() const { return weight_; }
     protected:
-      KKWeight(PTRAJ const& reftraj) : KKEffect<PTRAJ>(reftraj) {}
+    // allow subclasses to construct without a weight
+      KKWeight(KTRAJ const& reftraj) : KKEFF(reftraj) {}
+      KKWeight() {} // no local reftraj; must be set
       WDATA weight_; // weight representation of this site's constraint/measurement
   };
 
-  template<> bool KKWeight<PTRAJ>::process(KKEffect const& other,TDir tdir) {
+  template<class KTRAJ> bool KKWeight<KTRAJ>::process(KKEFF const& other,TDir tdir) {
     bool retval(false);
-    if( other.status() == KKEffect<PTRAJ>::processed) {
-      if(isActive()){
+    auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
+    if( other.status(tdir) == KKEFF::processed) {
+      if(KKEFF::isActive()){
       // copy in the other sites weight to my cache
-	weight_[tdir] = other.weight(tdir);
-	if(weight_[tdir].matrixOK()){
+	KKEFF::weights_[idir] = other.weights(tdir);
+	if(KKEFF::weights_[idir].matrixOK()){
 	// add this site's information
-	  weight_[tdir] += weight_;
-	  setStatus(tdir,TData::valid);
+	  KKEFF::weights_[idir] += weight_;
 	  retval = true;
 	}
       } else {
 	// copy over the raw state from the previous site
-	weight_[tdir] = other.weight_[tdir];
-	params_[tdir] = other.params_[tdir];
+	KKEFF::weights_[idir] = other.weights(tdir);
+	KKEFF::params_[idir] = other.params(tdir);
 	retval = true;
       }
+      KKEFF::setStatus(tdir,KKEFF::processed);
+      return retval;
     }
+    if(retval)KKEffBase::setStatus(tdir,KKEffBase::processed);
     return retval;
   }
 

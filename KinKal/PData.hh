@@ -5,7 +5,6 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-//#include "KinKal/WData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class PData : public TData<DDIM> {
@@ -16,6 +15,7 @@ namespace KinKal {
       // construct from vector and matrix
       PData(DVec const& pars, DMat const& pcov) : TData<DDIM>(pars,pcov) {}
       PData(DVec const& pars) : TData<DDIM>(pars) {}
+      PData(TData<DDIM> const& tdata) : TData<DDIM>(tdata) {}
       PData() : TData<DDIM>() {}
       // construct from a WData object: this requires inversion and may result in an unusable object
 //      PData(WData const& wdata) : PData(wdata,true) {}
@@ -31,6 +31,7 @@ namespace KinKal {
 	covariance() += other.covariance();
 	return *this;
       }
+      void invert(TData<DDIM> const& other) { TData<DDIM>::invert(other); }
   };
 }
 #endif

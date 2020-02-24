@@ -167,10 +167,7 @@ int main(int argc, char **argv) {
       LHelix::PDer pder;
       refhel.momDeriv(tdir,ttest,pder);
 //      cout << "derivative vector" << pder << endl;
-      auto dvec = refhel.params().parameters();
-      for(size_t ipar=0;ipar<6;ipar++)
-	dvec[ipar] += delta*pder[ipar][0];
-      //dvec += pder;
+      auto dvec = refhel.params().parameters() + delta*pder;
       LHelix dhel(dvec,refhel.params().covariance(),refhel.mass(),refhel.charge(),context);
       // test
       Vec4 xpos, dpos;
