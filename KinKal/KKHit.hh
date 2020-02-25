@@ -19,11 +19,14 @@ namespace KinKal {
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef TPoca<KTRAJ,TLine> TPOCA;
       typedef TDPoca<KTRAJ,TLine> TDPOCA;
+      typedef typename KTRAJ::PDATA PDATA; // forward derivative type
       typedef typename KTRAJ::PDer PDer; // forward derivative type
-      virtual unsigned nDOF() const override { return thit_.nDOF(); }
+      virtual unsigned nDOF() const override { return thit_.isActive() ? thit_.nDOF() : 0; }
       THit const& hit() const { return thit_; }
       virtual bool update(PKTRAJ const& ref)  override;
+      virtual bool isActive() const override { return thit_.isActive(); }
       virtual double time() const override { return tdpoca_.poca0().T(); } // time on the main trajectory
+      virtual double chisq(PDATA const& pars) const override;
       virtual ~KKHit(){}
       // construct from a hit and reference trajectory
       KKHit(THit const& thit, KTRAJ const& reftraj);
@@ -44,7 +47,6 @@ namespace KinKal {
   // use POCA to define the time for sampling the
     TPOCA tpoca(reftraj,thit_.sensorTraj());
     thit_.update(tpoca);
-    KKEFF::active_ = thit.isActive();
     KKEFF::setRefTraj(reftraj.nearestPiece(tpoca.poca0().T()));
     // re-compute POCA and residual: there should be a way to re-use the TPOCA FIXME!
     tdpoca_ = TDPOCA(KKEFF::referenceTraj(),thit_.sensorTraj());
@@ -56,7 +58,6 @@ namespace KinKal {
 
   template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, KTRAJ const& reftraj) : KKWeight<KTRAJ>(reftraj), thit_(thit) , tdpoca_(reftraj,thit_.sensorTraj()) {
     thit_.update(tdpoca_);
-    KKEFF::active_ = thit_.isActive();
   // translate tdpoca into a residual
     thit_.resid(tdpoca_,rresid_);
   // set the weight
@@ -66,7 +67,6 @@ namespace KinKal {
   template<class KTRAJ> bool KKHit<KTRAJ>::update(PKTRAJ const& ref) {
   // update to the previous TPOCA
     thit_.update(tdpoca_);
-    KKEFF::active_ = thit_.isActive();
   // update the reference traj, assuming the TPOCA time doesn't change FIXME!
     KKEFF::setRefTraj(ref);
   // now update TPOCA and residual
@@ -94,5 +94,18 @@ namespace KinKal {
     // add change WRT reference; sign convention reflects resid = measurement - prediction
     KKWeight<KTRAJ>::weight_.weightVec() = refvec + delta;
   }
+
+  template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pars) const {
+    // compute the difference between these parameters and the reference parameters
+    auto dpvec = pars.parameters() - KKEFF::referenceTraj().params().parameters();
+    // use the differnce to 'correct' the reference residual to be WRT these parameters
+    double newres = resid().resid() - ROOT::Math::Dot(dpvec,dRdP()); // check sign FIXME!
+    // project the parameter covariance into a residual space variance (adding the intrinsic variance)
+    double rvar = ROOT::Math::Similarity(dRdP(),pars.covariance()) + resid().residVar();
+    // chisquared is the residual squared divided by the variance
+    double chisq = newres*newres/rvar;
+    return chisq;
+  }
+
 }
 #endif

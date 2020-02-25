@@ -16,6 +16,7 @@
 #include <getopt.h>
 #include <typeinfo>
 #include <vector>
+#include <cmath>
 
 #include "TH1F.h"
 #include "TSystem.h"
@@ -132,6 +133,7 @@ int main(int argc, char **argv) {
   double pmass;
   unsigned maxniter(10);
   unsigned ntries(1000);
+  double mindchisq(0.1);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -147,6 +149,7 @@ int main(int argc, char **argv) {
     {"maxniter",     required_argument, 0, 'x'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
+    {"mindchisq",     required_argument, 0, 'i'  },
   };
 
   int long_index =0;
@@ -179,6 +182,8 @@ int main(int argc, char **argv) {
 		 break;
       case 't' : ntries = atoi(optarg);
 		 break;
+      case 'i' : mindchisq= atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
@@ -210,6 +215,7 @@ int main(int argc, char **argv) {
   // Create the KKTrk from these hits
   Config config;
   config.dwt_ = 1.0e6;
+  config.mindchisq_ = mindchisq;
   config.maxniter_ = maxniter;
   KKTRK kktrk(seedhel,thits,config);
   // fit the track
@@ -227,11 +233,15 @@ int main(int argc, char **argv) {
       cout << endl;
   }
   // now repeat this to gain statistics
-  vector<TH1F*> dprefh(LHelix::NParams());
   vector<TH1F*> dpgenh(LHelix::NParams());
-  vector<TH1F*> dpullrefh(LHelix::NParams());
   vector<TH1F*> dpullgenh(LHelix::NParams());
   vector<TH1F*> fiterrh(LHelix::NParams());
+  TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
+  TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
+  TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
+  TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
+  TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
+  TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
   string htitle, hname;
   TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",LHelix::NParams(),-0.5,LHelix::NParams()-0.5,LHelix::NParams(), -0.5,LHelix::NParams()-0.5);
   TAxis* xax = corravg->GetXaxis();
@@ -282,19 +292,22 @@ int main(int argc, char **argv) {
     }
     // accumulate average correlation matrix
     auto const& cov = fpars.covariance();
+//    auto cormat = cov;
     for(unsigned ipar=0; ipar <LHelix::NParams();ipar++){
       for(unsigned jpar=ipar;jpar < LHelix::NParams(); jpar++){
 	double corr = cov[ipar][jpar]/(cerr[ipar]*cerr[jpar]);
+//	cormat[ipar][jpar] = corr;
 	corravg->Fill(ipar,jpar,fabs(corr));
       }
     }
     // accumulate chisquared info
-    //    double chisqprob = TMath::Prob(chisq,ndof);
-    //    chisqh->Fill(chisq);
-    //    chisqndofh->Fill(chisq/ndof);
-    //    chisqprobh->Fill(chisqprob);
-    //    logchisqprobh->Fill(log10(chisqprob));
-
+    double chiprob = TMath::Prob(kktrk.status().chisq_,kktrk.status().ndof_);
+    niter->Fill(kktrk.status().niter_);
+    ndof->Fill(kktrk.status().ndof_);
+    chisq->Fill(kktrk.status().chisq_);
+    chisqndof->Fill(kktrk.status().chisq_/kktrk.status().ndof_);
+    chisqprob->Fill(chiprob);
+    logchisqprob->Fill(log10(chiprob));
   }
   TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
   dpcan->Divide(3,2);
@@ -325,6 +338,22 @@ int main(int argc, char **argv) {
   gPad->SetLogz(); 
   corravg->Draw("colorztext0");
   corrcan->SaveAs("FitTest_corr.root");
+
+  TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
+  statuscan->Divide(3,2);
+  statuscan->cd(1);
+  niter->Draw();
+  statuscan->cd(2);
+  ndof->Draw();
+  statuscan->cd(3);
+  chisq->Draw();
+  statuscan->cd(4);
+  chisqndof->Draw();
+  statuscan->cd(5);
+  chisqprob->Draw();
+  statuscan->cd(6);
+  logchisqprob->Draw();
+  statuscan->SaveAs("FitTest_status.root");
 
   exit(EXIT_SUCCESS);
 }

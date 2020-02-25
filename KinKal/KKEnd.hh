@@ -1,7 +1,7 @@
 #ifndef KinKal_KKEnd_hh
 #define KinKal_KKEnd_hh
 //
-// End of the KK fit site set, used transiently to start the fit 
+// End of the KK fit effect set, used transiently to start the fit 
 //
 #include "KinKal/KKWeight.hh"
 #include "KinKal/PKTraj.hh"
@@ -17,18 +17,21 @@ namespace KinKal {
       typedef KKWeight<KTRAJ> KKWT;
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef typename KTRAJ::PDATA PDATA; // forward derivative type
 
       // provide interface
       virtual bool process(KKEFF const& other,TDir tdir) override;
       virtual bool update(PKTRAJ const& ref) override;
       virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       virtual unsigned nDOF() const override { return 0; }
+      virtual bool isActive() const override { return true; }
+      virtual double chisq(PDATA const& pars) const override { return 0.0; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
       KKEnd(PKTRAJ const& pktraj,TDir tdir, double dweight=1e6); 
       virtual ~KKEnd(){}
     private:
-      TDir tdir_; // direction for this site
+      TDir tdir_; // direction for this effect
       double dwt_; // deweighting factor
   };
 
@@ -50,7 +53,7 @@ namespace KinKal {
     KKWT(pktraj.front()), tdir_(tdir) , dwt_(dweight) {
       auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
       update(pktraj);
-      // auto-process this site by copying the state
+      // auto-process this effect by copying the state
       KKEFF::weights_[idir] = KKWT::weight_;
       KKEFF::setStatus(tdir, KKEFF::processed); 
     }

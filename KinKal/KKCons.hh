@@ -12,7 +12,7 @@ namespace KinKal {
     public:
       typedef std::array<bool,KTRAJ::PDATA::PDim()> PMASK; // parameter mask
       typedef typename KKEff::WDATA WDATA; // forward the typedef
-      // process this site given the adjacent site
+      // process this effect given the adjacent effect
       virtual bool process(KKEff const& other,TDir tdir) override;
 
       // construct from (masked) parameters

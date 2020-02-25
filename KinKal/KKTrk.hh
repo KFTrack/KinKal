@@ -24,15 +24,17 @@ namespace KinKal {
   struct Config {
     unsigned maxniter_; // maximum number of iterations
     double dwt_; // dweighting of initial seed covariance
+    double mindchisq_; // minimum change in chisquared for convergence
   };
 // struct to define fit status
   struct FitStatus {
-    enum status {current=0,needsfit,unconverged,failed}; // fit status
+    enum status {needsfit=-1,converged,unconverged,failed}; // fit status
     unsigned niter_; // number of iterations executed;
     status status_; // current status
-    FitStatus() : niter_(0), status_(needsfit) {}
+    double chisq_; // current chisquared
+    int ndof_; // number of degrees of freedom
+    FitStatus() : niter_(0), status_(needsfit), chisq_(0.0), ndof_(0) {}
   };
-
 
   template<class KTRAJ> class KKTrk {
     public:
@@ -50,7 +52,7 @@ namespace KinKal {
       // construct from a set of hits and material elements.  Must deweight initial covariance matrix
       KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits, Config const& config ); 
       void fit(bool force=false); // process the effects.
-      FitStatus status() const { return status_; }
+      FitStatus const& status() const { return status_; }
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKCON const& effects() const { return effects_; }
@@ -69,7 +71,7 @@ namespace KinKal {
 
   template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,Config const& config) : 
     config_(config), reftraj_(reftraj), fittraj_(reftraj){
-      // create end sites
+      // create end effects
       auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,config_.dwt_));
@@ -89,34 +91,44 @@ namespace KinKal {
   // fit iteration management.  This should cover simulated annealing too FIXME!
   template <class KTRAJ> void KKTrk<KTRAJ>::fit(bool force) {
     // don't fit unless necessary or forced
-    if(!force && status_.status_ == FitStatus::current)return;
-    // iterate to convergence
-    status_.niter_ = 0;
-    bool fitOK(true);
-    while(fitOK && status_.niter_ < config_.maxniter_ && status_.status_ != FitStatus::current) {
-      if(status_.niter_>0) fitOK = update();
-      if(fitOK) fitOK = fitIteration();
-      // test for convergence/divergence FIXME!
-      status_.niter_++;
-    }
-    if(!fitOK){
-      status_.status_ = FitStatus::failed;
-    } else if(status_.niter_ == config_.maxniter_) {
-      status_.status_ = FitStatus::unconverged;
+    if(status_.status_ == FitStatus::needsfit || force ){
+      // iterate to convergence
+      status_.niter_ = 0;
+      bool fitOK(true);
+      while(fitOK && status_.niter_ < config_.maxniter_ && status_.status_ != FitStatus::converged) {
+	if(status_.niter_>0) fitOK = update();
+	double oldchisq = status_.chisq_;
+	if(fitOK) fitOK = fitIteration(); // this call updates chisq
+	// test for convergence/divergence 
+	if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_)
+	  status_.status_ = FitStatus::converged;
+	status_.niter_++;
+      }
+      if(!fitOK){
+	status_.status_ = FitStatus::failed;
+      } else if ( status_.status_ != FitStatus::converged) 
+	status_.status_ = FitStatus::unconverged;
     } else {
-      status_.status_ = FitStatus::current;
+      status_.status_ = FitStatus::converged;
     }
   }
 
   // single fit iteration 
   template <class KTRAJ> bool KKTrk<KTRAJ>::fitIteration() {
-  // fit in both directions
+    status_.ndof_ = -(int)KTRAJ::NParams();
+    status_.chisq_ = 0.0;
+    // fit in both directions
     for(TDir tdir=TDir::forwards; tdir != TDir::end; ++tdir){
       if(tdir==TDir::forwards){
 	auto ieff = effects_.begin(); ieff++;
 	while(ieff != effects_.end()){
 	  auto iprev = ieff; iprev--;
 	  if(!ieff->get()->process(**iprev,tdir)) return false;
+	  if(ieff->get()->nDOF() > 0){
+	    status_.ndof_ += ieff->get()->nDOF();
+	    auto const& ppars = iprev->get()->params(tdir);
+	    status_.chisq_ += ieff->get()->chisq(ppars);
+	  }
 	  ieff++;
 	}
       } else {
@@ -134,8 +146,8 @@ namespace KinKal {
 
   // convert a final fit into a trajectory
   template <class KTRAJ> bool KKTrk<KTRAJ>::buildTraj() {
-  // convert the fit result into a new trajectory.  Start at one end
-  // for now, take the fit at one end, this won't work with materials FIXME!
+    // convert the fit result into a new trajectory.  Start at one end
+    // for now, take the fit at one end, this won't work with materials FIXME!
     auto newtraj = reftraj_.front();
     // overwrite the parameters
     auto const& front = *effects_.begin();
@@ -157,8 +169,5 @@ namespace KinKal {
     }
     return retval;
   }
-
-
-
 }
 #endif
