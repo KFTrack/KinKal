@@ -9,30 +9,30 @@ namespace KinKal {
   template<class KTRAJ> class KKParams : public KKEff<KTRAJ> {
     public:
       typedef typename KKEff::WDATA WDATA; // forward the typedef
-      // process this site given the adjacent site
+      // process this effect given the adjacent effect
       virtual bool process(KKEff const& other,TDir tdir) override;
       // construct from a params
       KKParams(WDATA const& params) : params_(params) {}
       virtual ~KKParams(){}
     protected:
       KKParams() {}
-      WDATA params_; // params of this site
+      WDATA params_; // params of this effect
   };
 
   template<> bool KKParams<KTRAJ>::process(KKEff const& other,TDir tdir) {
     bool retval(false);
     if( other.status() == KKEff<KTRAJ>::processed) {
       if(isActive()){
-      // copy in the other sites params to my cache
+      // copy in the other effects params to my cache
 	params_[tdir] = other.params(tdir);
 	if(params_[tdir].matrixOK()){
-	// add this site's information
+	// add this effect's information
 	  params_[tdir] += params_;
 	  setStatus(tdir,TData::valid);
 	  retval = true;
 	}
       } else {
-	// simply copy over the statefrom the previous site
+	// simply copy over the statefrom the previous effect
 	params_[tdir] = other.params(tdir);
 	params_[tdir] = other.params(tdir);
 	retval = true;
