@@ -88,7 +88,6 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   return TLine(mpos,vprop,tmeas,trange);
 }
 
-
 int main(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -115,6 +114,7 @@ int main(int argc, char **argv) {
   int long_index =0;
   while ((opt = getopt_long_only(argc, argv,"", 
 	  long_options, &long_index )) != -1) {
+    cout << "found option " << opt << " argument " <<optarg << endl;
     switch (opt) {
       case 'm' : mom = atof(optarg); 
 		 break;
@@ -177,6 +177,7 @@ int main(int argc, char **argv) {
   // generate hits
   std::vector<StrawHit> hits;
   std::vector<TPolyLine3D*> tpl;
+  cout << "ambigdoca = " << ambigdoca << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime,TR);
@@ -189,7 +190,7 @@ int main(int argc, char **argv) {
     if(fabs(tp.doca())> ambigdoca) 
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambig);
+    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;
@@ -216,12 +217,16 @@ int main(int argc, char **argv) {
   rulers->Draw();
   hcan->SaveAs("HitTest.root"); 
 // test updating the hit residual and derivatives with different trajectories 
-  vector<double> delpars { 0.5, 0.5, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
+  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
+    auto tpar = static_cast<LHelix::paramIndex>(ipar);
     hderivg[ipar] = new TGraph(hits.size()*nsteps);
-    hderivg[ipar]->SetTitle(LHelix::paramTitle(static_cast<LHelix::paramIndex>(ipar)).c_str());
+    std::string title = LHelix::paramTitle(tpar) + " Derivative Test;" 
+    + LHelix::paramName(tpar) +" Exact #Delta" + LHelix::paramUnit(tpar) + ";"
+    + LHelix::paramName(tpar) +" algebraic #Delta" + LHelix::paramUnit(tpar);
+    hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);
   for(int istep=0;istep<nsteps; istep++){

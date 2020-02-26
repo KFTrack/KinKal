@@ -15,9 +15,13 @@ namespace KinKal {
     "Time at Z=0 Plane"}; 
   vector<string> LHelix::paramNames_ = {
   "Radius","Lambda","CenterX","CenterY","Phi0","Time0"};
+  vector<string> LHelix::paramUnits_ = {
+  "m","mm","mm","mm","radians","ns"};
   std::vector<std::string> const& LHelix::paramNames() { return paramNames_; }
+  std::vector<std::string> const& LHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& LHelix::paramTitles() { return paramTitles_; }
   std::string const& LHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& LHelix::paramUnit(paramIndex index) { return paramUnits_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,

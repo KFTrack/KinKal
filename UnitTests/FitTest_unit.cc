@@ -120,7 +120,7 @@ void createHits(PLHelix const& plhel, std::vector<StrawHit>& shits) {
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambig);
+    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
     shits.push_back(sh);
   }
 }

@@ -29,8 +29,10 @@ namespace KinKal {
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type 
       static std::vector<std::string> const& paramNames(); 
+      static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
+      static std::string const& paramUnit(paramIndex index);
       static std::string const& paramTitle(paramIndex index);
 
       // construct from momentum, position, and particle properties.
@@ -89,6 +91,7 @@ namespace KinKal {
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
+      static std::vector<std::string> paramUnits_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
  };
