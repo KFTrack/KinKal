@@ -78,12 +78,8 @@ namespace KinKal {
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       // loop over the hits
       for(auto hit : hits ) {
-	// use POCA to find the local piece associated with this hit on the reference
-	TPoca<PKTRAJ,TLine> tp(reftraj,hit->sensorTraj());
-	if(!tp.usable()) throw std::runtime_error("TPoca failure");
-	auto ltraj = reftraj_.nearestPiece(tp.poca0().T());
 	// create the hit effects and insert them in the set
-	iemp = effects_.emplace(new KKHit(*hit,ltraj));
+	iemp = effects_.emplace(new KKHit(*hit,reftraj));
 	if(!iemp.second)throw std::runtime_error("Insertion failure");
       }
     }

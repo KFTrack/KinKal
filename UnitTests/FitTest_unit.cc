@@ -8,9 +8,9 @@
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
 #include "KinKal/Types.hh"
-#include "KinKal/Constants.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/KKTrk.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <getopt.h>
@@ -45,7 +45,7 @@ typedef KinKal::PKTraj<LHelix> PLHelix;
 typedef KinKal::KKTrk<LHelix> KKTRK;
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*KinKal::c_), sdrift(0.065), rstraw(2.5);
+double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double ambigdoca(0.5);// minimum doca to set ambiguity
 double sigt(3); // drift time resolution in ns
 int iseed(124223);

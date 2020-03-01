@@ -8,8 +8,8 @@
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
 #include "KinKal/Types.hh"
-#include "KinKal/Constants.hh"
 #include "KinKal/KKHit.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -43,7 +43,7 @@ typedef KinKal::PKTraj<LHelix> PLHelix;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*KinKal::c_), sdrift(0.065), rstraw(2.5);
+double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
@@ -235,18 +235,20 @@ int main(int argc, char **argv) {
       // modify the helix
       LHelix modlhel =lhel;
       modlhel.params().parameters()[ipar] += dpar;
+      PLHelix modplhel(modlhel);
       ROOT::Math::SVector<double,6> dpvec;
       dpvec[ipar] += dpar;
       // update the hits
       for(auto& hit : hits) {
-	KKHit kkhit(hit,lhel);
+	KKHit kkhit(hit,plhel);
 	Residual ores = kkhit.resid(); // original residual
-	kkhit.update(modlhel);// refer to moded helix
+	kkhit.update(modplhel);// refer to moded helix
 	Residual mres = kkhit.resid();
 	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think 
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement
 	// compare the change with the expected from the derivatives
+	kkhit.update(plhel);// refer back to original
 	auto pder = kkhit.dRdP();
 	double ddr = ROOT::Math::Dot(pder,dpvec);
 	hderivg[ipar]->SetPoint(ipt++,dr,ddr);

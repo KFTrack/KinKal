@@ -1,5 +1,4 @@
 #include "KinKal/TLine.hh"
-#include "KinKal/Constants.hh"
 #include <iostream>
 #include <stdexcept>
 

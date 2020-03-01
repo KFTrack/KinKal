@@ -17,8 +17,7 @@ namespace KinKal {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef TPoca<KTRAJ,TLine> TPOCA;
-      typedef TDPoca<KTRAJ,TLine> TDPOCA;
+      typedef TDPoca<PKTRAJ,TLine> TDPOCA;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
       typedef typename KTRAJ::PDer PDer; // forward derivative type
       virtual unsigned nDOF() const override { return thit_.isActive() ? thit_.nDOF() : 0; }
@@ -43,37 +42,22 @@ namespace KinKal {
       Residual rresid_; // residual between the hit and reference
   };
 
-  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, PKTRAJ const& reftraj) : thit_(thit) {
-  // use POCA to define the time for sampling the
-    TPOCA tpoca(reftraj,thit_.sensorTraj());
-    thit_.update(tpoca);
-    KKEFF::setRefTraj(reftraj.nearestPiece(tpoca.poca0().T()));
-    // re-compute POCA and residual: there should be a way to re-use the TPOCA FIXME!
-    tdpoca_ = TDPOCA(KKEFF::referenceTraj(),thit_.sensorTraj());
+  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, PKTRAJ const& reftraj) : thit_(thit) ,
+    tdpoca_(reftraj,thit_.sensorTraj()) {
+    KKEFF::setRefTraj(reftraj.nearestPiece(tdpoca_.poca0().T()));
     thit_.resid(tdpoca_,rresid_);
-    // set the weight
     setWeight();
   }
-
-
-  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, KTRAJ const& reftraj) : KKWeight<KTRAJ>(reftraj), thit_(thit) , tdpoca_(reftraj,thit_.sensorTraj()) {
-    thit_.update(tdpoca_);
-  // translate tdpoca into a residual
-    thit_.resid(tdpoca_,rresid_);
-  // set the weight
-    setWeight();
-  }
-
+  
   template<class KTRAJ> bool KKHit<KTRAJ>::update(PKTRAJ const& ref) {
-  // update to the previous TPOCA
+  // update the hit state to the previous TPOCA
     thit_.update(tdpoca_);
-  // update the reference traj, assuming the TPOCA time doesn't change FIXME!
+    tdpoca_ = TDPOCA(ref,thit_.sensorTraj());
     KKEFF::setRefTraj(ref);
-  // now update TPOCA and residual
-    tdpoca_ = TDPOCA(KKEFF::referenceTraj(),thit_.sensorTraj());
     thit_.resid(tdpoca_,rresid_);
-    // set the weight
     setWeight();
+    KKEFF::setStatus(TDir::forwards,KKEFF::unprocessed);
+    KKEFF::setStatus(TDir::backwards,KKEFF::unprocessed);
     return true;
   }
 

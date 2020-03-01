@@ -25,26 +25,30 @@ namespace KinKal {
 
   template<class KTRAJ> bool KKWeight<KTRAJ>::process(KKEFF const& other,TDir tdir) {
     bool retval(false);
-    auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-    if( other.status(tdir) == KKEFF::processed) {
-      if(this->isActive()){
-      // copy in the other effects weight to my cache
-	KKEFF::weights_[idir] = other.weights(tdir);
-	if(KKEFF::weights_[idir].matrixOK()){
-	// add this effect's information
-	  KKEFF::weights_[idir] += weight_;
+    if(KKEFF::status(tdir) == KKEFF::processed){
+      retval = true;
+    } else {
+      auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
+      if( other.status(tdir) == KKEFF::processed) {
+	if(this->isActive()){
+	  // copy in the other effects weight to my cache
+	  KKEFF::weights_[idir] = other.weights(tdir);
+	  if(KKEFF::weights_[idir].matrixOK()){
+	    // add this effect's information
+	    KKEFF::weights_[idir] += weight_;
+	    retval = true;
+	  }
+	} else {
+	  // copy over the raw state from the previous effect
+	  KKEFF::weights_[idir] = other.weights(tdir);
+	  KKEFF::params_[idir] = other.params(tdir);
 	  retval = true;
 	}
-      } else {
-	// copy over the raw state from the previous effect
-	KKEFF::weights_[idir] = other.weights(tdir);
-	KKEFF::params_[idir] = other.params(tdir);
-	retval = true;
+	KKEFF::setStatus(tdir,KKEFF::processed);
+	return retval;
       }
-      KKEFF::setStatus(tdir,KKEFF::processed);
-      return retval;
+      if(retval)KKEffBase::setStatus(tdir,KKEffBase::processed);
     }
-    if(retval)KKEffBase::setStatus(tdir,KKEffBase::processed);
     return retval;
   }
 

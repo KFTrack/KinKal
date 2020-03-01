@@ -12,7 +12,7 @@
 #include "KinKal/KTraj.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Constants.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 #include <vector>
 #include <string>
 #include <ostream>
@@ -71,7 +71,7 @@ namespace KinKal {
       double ebar() const { return  sqrt(rad()*rad() + lam()*lam() + mbar_*mbar_); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mbar_/mass_; } // reduced charge
-      double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
+      double omega() const { return copysign(CLHEP::c_light,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double dphi(double t) const { return omega()*(t - t0()); }

@@ -6,6 +6,7 @@
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -229,7 +230,7 @@ int main(int argc, char **argv) {
   Vec3 rdir(cos(lhphi),sin(lhphi),0.0); // radial perpendicular to the helix
   double dphi = atan2(middir.Y(),middir.X());
   Vec3 pdir(-sin(dphi),cos(dphi),0.0);
-  double pspeed = c_*vprop; // vprop is relative to c
+  double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
   Vec3 pvel = pdir*pspeed;
   TRange prange(ptraj.range().mid()-hlen/pspeed, ptraj.range().mid()+hlen/pspeed);
   // shift the position

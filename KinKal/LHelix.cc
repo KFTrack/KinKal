@@ -31,7 +31,7 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
-    double momToRad = 1000.0/(charge_*context.bNom()*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
@@ -57,7 +57,7 @@ namespace KinKal {
 
   LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
       TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
-    double momToRad = 1000.0/(charge_*context.bNom()*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
   }
 
@@ -93,7 +93,7 @@ namespace KinKal {
   void LHelix::velocity(double tval,Vec3& vel) const{
     Mom4 mom;
     momentum(tval,mom);
-    vel = mom.Vect()*(c_*fabs(Q()/ebar()));
+    vel = mom.Vect()*(CLHEP::c_light*fabs(Q()/ebar()));
   }
 
   void LHelix::direction(double tval,Vec3& dir) const{
