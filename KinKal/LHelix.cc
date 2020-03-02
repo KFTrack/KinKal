@@ -15,9 +15,13 @@ namespace KinKal {
     "Time at Z=0 Plane"}; 
   vector<string> LHelix::paramNames_ = {
   "Radius","Lambda","CenterX","CenterY","Phi0","Time0"};
+  vector<string> LHelix::paramUnits_ = {
+  "m","mm","mm","mm","radians","ns"};
   std::vector<std::string> const& LHelix::paramNames() { return paramNames_; }
+  std::vector<std::string> const& LHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& LHelix::paramTitles() { return paramTitles_; }
   std::string const& LHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& LHelix::paramUnit(paramIndex index) { return paramUnits_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,
@@ -27,7 +31,7 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
-    double momToRad = 1000.0/(charge_*context.bNom()*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
@@ -53,7 +57,7 @@ namespace KinKal {
 
   LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
       TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
-    double momToRad = 1000.0/(charge_*context.bNom()*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
   }
 
@@ -89,7 +93,7 @@ namespace KinKal {
   void LHelix::velocity(double tval,Vec3& vel) const{
     Mom4 mom;
     momentum(tval,mom);
-    vel = mom.Vect()*(c_*fabs(Q()/ebar()));
+    vel = mom.Vect()*(CLHEP::c_light*fabs(Q()/ebar()));
   }
 
   void LHelix::direction(double tval,Vec3& dir) const{

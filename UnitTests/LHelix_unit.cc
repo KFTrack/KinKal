@@ -5,6 +5,7 @@
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
   cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 vel;
   lhel.velocity(ot,vel);
-  double dot = vel.Dot(testmom)/KinKal::c_;
+  double dot = vel.Dot(testmom)/CLHEP::c_light;
   cout << "velocity dot mom = " << dot << endl;
   cout << "momentum beta =" << momv.Beta() << " LHelix beta = " << lhel.beta() << endl;
   Vec3 mdir;
@@ -217,7 +218,7 @@ int main(int argc, char **argv) {
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + M_PI/2.0;
   Vec3 pdir(cos(pphi),sin(pphi),0.0);
-  double pspeed = c_*vprop; // vprop is relative to c
+  double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
   Vec3 pvel = pdir*pspeed;
   // shift the position
   Vec3 perpdir(-sin(phi),cos(phi),0.0);

@@ -1,6 +1,6 @@
-#ifndef KinKal_Types_hh
-#define KinKal_Types_hh
-// typedefs used throughout the KinKal package
+#ifndef KinKal_Vectors_hh
+#define KinKal_Vectors_hh
+// vetor typedefs used throughout the KinKal package
 #include "Math/Cartesian3D.h"
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"

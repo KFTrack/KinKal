@@ -157,5 +157,5 @@ namespace KinKal {
     }
   }
   template<> TDPoca<PLHelix,TLine>::TDPoca(PLHelix const& phelix, TLine const& tline, double precision) :
-    TPoca<PLHelix,TLine>(TPoca<PLHelix,TLine>(phelix,tline,precision)) { }
+    TDPoca<PLHelix,TLine>(TPoca<PLHelix,TLine>(phelix,tline,precision)) { }
 }

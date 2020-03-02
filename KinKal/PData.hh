@@ -15,11 +15,8 @@ namespace KinKal {
       // construct from vector and matrix
       PData(DVec const& pars, DMat const& pcov) : TData<DDIM>(pars,pcov) {}
       PData(DVec const& pars) : TData<DDIM>(pars) {}
-      PData(TData<DDIM> const& tdata) : TData<DDIM>(tdata) {}
+      PData(TData<DDIM> const& tdata,bool inv=false) : TData<DDIM>(tdata,inv) {}
       PData() : TData<DDIM>() {}
-      // construct from a WData object: this requires inversion and may result in an unusable object
-//      PData(WData const& wdata) : PData(wdata,true) {}
-      PData(TData<DDIM> const& tdata,bool invert=false) : TData<DDIM>(tdata,invert) {}
       // accessors; just re-interpret the base class accessors
       DVec const& parameters() const { return TData<DDIM>::vec(); }
       DMat const& covariance() const { return TData<DDIM>::mat(); }
@@ -27,11 +24,9 @@ namespace KinKal {
       DMat& covariance() { return TData<DDIM>::mat(); }
       // addition: only works for other parameters
       PData & operator +=(PData const& other) {
-	parameters() += other.parameters();
-	covariance() += other.covariance();
+	TData<DDIM>::operator +=(other);
 	return *this;
       }
-      void invert(TData<DDIM> const& other) { TData<DDIM>::invert(other); }
   };
 }
 #endif

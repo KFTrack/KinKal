@@ -5,7 +5,7 @@
 //  As a function of the distance and azimuthal angle of the POCA
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 namespace KinKal {
   class D2T { 
     public:

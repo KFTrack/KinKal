@@ -5,6 +5,7 @@
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -94,7 +95,7 @@ int main(int argc, char **argv) {
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + dphi;
   Vec3 pdir(cos(pphi),sin(pphi),0.0);
-  double pspeed = c_*vprop; // vprop is relative to c
+  double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
   Vec3 pvel = pdir*pspeed;
   // shift the position
   Vec3 perpdir(-sin(phi),cos(phi),0.0);

@@ -9,8 +9,8 @@
 namespace KinKal {
   class StrawHit : public WireHit {
     public:
-      StrawHit(TLine const& straj, Context const& context, D2T const& d2t,double radius, LRAmbig ambig=null,bool active=true) : 
-	WireHit(straj,context,d2t,radius*0.289,ambig,active), radius_(radius) {} // null error set to radius/sqrt(12) FIXME!
+      StrawHit(TLine const& straj, Context const& context, D2T const& d2t,double radius,double nulldoca, LRAmbig ambig=null,bool active=true) : 
+	WireHit(straj,context,d2t,std::min(nulldoca,radius)*std::min(nulldoca,radius)/3.0,ambig,active), radius_(radius) {}
       virtual float inRange(TPocaBase const& tpoca) const override;
       virtual void update(TPocaBase const& tpoca) const override;
       virtual ~StrawHit(){}

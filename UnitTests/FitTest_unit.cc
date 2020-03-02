@@ -7,10 +7,10 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Types.hh"
-#include "KinKal/Constants.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/KKTrk.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <getopt.h>
@@ -45,7 +45,7 @@ typedef KinKal::PKTraj<LHelix> PLHelix;
 typedef KinKal::KKTrk<LHelix> KKTRK;
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*KinKal::c_), sdrift(0.065), rstraw(2.5);
+double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double ambigdoca(0.5);// minimum doca to set ambiguity
 double sigt(3); // drift time resolution in ns
 int iseed(124223);
@@ -120,7 +120,7 @@ void createHits(PLHelix const& plhel, std::vector<StrawHit>& shits) {
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambig);
+    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
     shits.push_back(sh);
   }
 }
@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
   // create the fit seed by randomizing the parameters
   LHelix seedhel(lhel);
   createSeed(seedhel);
-  cout << "Createing seed helix params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
+  cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
   Config config;
   config.dwt_ = 1.0e6;
@@ -222,13 +222,11 @@ int main(int argc, char **argv) {
   kktrk.fit();
   auto const& effs = kktrk.effects();
   cout << "KKTrk fit status = " << kktrk.status().status_ << " niters " << kktrk.status().niter_ << endl;
-  auto const& ftraj = kktrk.fitTraj().front();
-  cout << "Fit traj params " << ftraj.params().parameters() << " covariance " << endl << ftraj.params().covariance() << endl;
   for(auto const& eff : effs) {
     cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
     auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
     if(ihit != 0){
-      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->resid() << endl;
+      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
     } else
       cout << endl;
   }

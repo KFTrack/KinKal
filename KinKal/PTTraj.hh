@@ -22,7 +22,9 @@ namespace KinKal {
       virtual void position(double time, Vec3& pos) const override;
       virtual void velocity(double time, Vec3& vel) const override;
       virtual void direction(double time, Vec3& dir) const override;
-// must have at least 1 initial piece
+// construct without any pieces, but specify the range
+      PTTraj(TRange const& range) : TTraj(range) {}
+// one initial piece
       PTTraj(TT const& piece);
       virtual ~PTTraj(){} 
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
@@ -83,58 +85,72 @@ namespace KinKal {
   }
 
   template <class TT> bool PTTraj<TT>::prepend(TT const& newpiece, bool allowremove) {
-    if(pieces_.empty())throw std::length_error("Empty PTTraj!"); 
-    bool retval(allowremove);// if we allow removal this function will always succeed
-    // if the new piece completely contains the existing pieces, overwrite or fail
-    if(newpiece.range().contains(range())){
-      if(allowremove)
-	*this = PTTraj(newpiece);
+    bool retval(false);
+    if(pieces_.empty()){
+      pieces_.push_back(newpiece);
+      // override the range
+      pieces_.front().range() = range();
+      retval = true;
     } else {
-      // find the piece that needs to be modified
-      size_t ipiece = nearestIndex(newpiece.range().high());
-      // see if truncation is needed
-      if( allowremove){
-	while(ipiece >0 ) 
-	  pieces_.pop_front();
-	ipiece--;
-      }
-      // if we're at the start, prepend
-      if(ipiece == 0){
-	// update ranges and add the piece
-	pieces_.front().range().low() = newpiece.range().high();
-	range().low() = newpiece.range().low();
-	pieces_.push_front(newpiece);
-	// subtract a small buffer to prevent overlaps
-	pieces_.front().range().high() -= TRange::tbuff_;
-	retval = true;
+      bool retval(allowremove);// if we allow removal this function will always succeed
+      // if the new piece completely contains the existing pieces, overwrite or fail
+      if(newpiece.range().contains(range())){
+	if(allowremove)
+	  *this = PTTraj(newpiece);
+      } else {
+	// find the piece that needs to be modified
+	size_t ipiece = nearestIndex(newpiece.range().high());
+	// see if truncation is needed
+	if( allowremove){
+	  while(ipiece >0 ) 
+	    pieces_.pop_front();
+	  ipiece--;
+	}
+	// if we're at the start, prepend
+	if(ipiece == 0){
+	  // update ranges and add the piece
+	  pieces_.front().range().low() = newpiece.range().high();
+	  range().low() = newpiece.range().low();
+	  pieces_.push_front(newpiece);
+	  // subtract a small buffer to prevent overlaps
+	  pieces_.front().range().high() -= TRange::tbuff_;
+	  retval = true;
+	}
       }
     }
     return retval;
   }
 
   template <class TT> bool PTTraj<TT>::append(TT const& newpiece, bool allowremove) {
-    if(pieces_.empty())throw std::length_error("Empty PTTraj!"); 
-    bool retval(allowremove);// if we allow removal this function will always succeed
-    // if the new piece completely contains the existing pieces, overwrite or fail
-    if(newpiece.range().contains(range())){
-      if(allowremove)
-	*this = PTTraj(newpiece);
+    bool retval(false);
+    if(pieces_.empty()){
+      pieces_.push_back(newpiece);
+      // override the range
+      pieces_.front().range() = range();
+      retval = true;
     } else {
-      // find the piece that needs to be modified
-      size_t ipiece = nearestIndex(newpiece.range().low());
-      // see if truncation is needed
-      if( allowremove){
-	while(ipiece < pieces_.size()-1) {
-	  pieces_.pop_back();
+      bool retval(allowremove);// if we allow removal this function will always succeed
+      // if the new piece completely contains the existing pieces, overwrite or fail
+      if(newpiece.range().contains(range())){
+	if(allowremove)
+	  *this = PTTraj(newpiece);
+      } else {
+	// find the piece that needs to be modified
+	size_t ipiece = nearestIndex(newpiece.range().low());
+	// see if truncation is needed
+	if( allowremove){
+	  while(ipiece < pieces_.size()-1) {
+	    pieces_.pop_back();
+	  }
 	}
-      }
-      // if we're at the end, append
-      if(ipiece == pieces_.size()-1){
-	// update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
-	pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
-	range().high() = newpiece.range().high();
-	pieces_.push_back(newpiece);
-	retval = true;
+	// if we're at the end, append
+	if(ipiece == pieces_.size()-1){
+	  // update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
+	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
+	  range().high() = newpiece.range().high();
+	  pieces_.push_back(newpiece);
+	  retval = true;
+	}
       }
     }
     return retval;

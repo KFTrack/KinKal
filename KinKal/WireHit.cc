@@ -21,7 +21,7 @@ namespace KinKal {
     } else {
       // interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
       // residual is in space, so unit dependendence on distance, none on time
-      resid = Residual(tpoca.doca(),nullvar_,1.0,0.0);
+      resid = Residual(-tpoca.doca(),nullvar_,1.0,0.0);
     }
   }
 }

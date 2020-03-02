@@ -7,9 +7,9 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Types.hh"
-#include "KinKal/Constants.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -43,7 +43,7 @@ typedef KinKal::PKTraj<LHelix> PLHelix;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*KinKal::c_), sdrift(0.065), rstraw(2.5);
+double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
@@ -88,7 +88,6 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   return TLine(mpos,vprop,tmeas,trange);
 }
 
-
 int main(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -115,6 +114,7 @@ int main(int argc, char **argv) {
   int long_index =0;
   while ((opt = getopt_long_only(argc, argv,"", 
 	  long_options, &long_index )) != -1) {
+    cout << "found option " << opt << " argument " <<optarg << endl;
     switch (opt) {
       case 'm' : mom = atof(optarg); 
 		 break;
@@ -177,6 +177,7 @@ int main(int argc, char **argv) {
   // generate hits
   std::vector<StrawHit> hits;
   std::vector<TPolyLine3D*> tpl;
+  cout << "ambigdoca = " << ambigdoca << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime,TR);
@@ -189,7 +190,7 @@ int main(int argc, char **argv) {
     if(fabs(tp.doca())> ambigdoca) 
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambig);
+    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;
@@ -216,12 +217,16 @@ int main(int argc, char **argv) {
   rulers->Draw();
   hcan->SaveAs("HitTest.root"); 
 // test updating the hit residual and derivatives with different trajectories 
-  vector<double> delpars { 0.5, 0.5, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
+  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
+    auto tpar = static_cast<LHelix::paramIndex>(ipar);
     hderivg[ipar] = new TGraph(hits.size()*nsteps);
-    hderivg[ipar]->SetTitle(LHelix::paramTitle(static_cast<LHelix::paramIndex>(ipar)).c_str());
+    std::string title = LHelix::paramTitle(tpar) + " Derivative Test;" 
+    + LHelix::paramName(tpar) +" Exact #Delta" + LHelix::paramUnit(tpar) + ";"
+    + LHelix::paramName(tpar) +" algebraic #Delta" + LHelix::paramUnit(tpar);
+    hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);
   for(int istep=0;istep<nsteps; istep++){
@@ -230,18 +235,20 @@ int main(int argc, char **argv) {
       // modify the helix
       LHelix modlhel =lhel;
       modlhel.params().parameters()[ipar] += dpar;
+      PLHelix modplhel(modlhel);
       ROOT::Math::SVector<double,6> dpvec;
       dpvec[ipar] += dpar;
       // update the hits
       for(auto& hit : hits) {
-	KKHit kkhit(hit,lhel);
-	Residual ores = kkhit.resid(); // original residual
-	kkhit.update(modlhel);// refer to moded helix
-	Residual mres = kkhit.resid();
+	KKHit kkhit(hit,plhel);
+	Residual ores = kkhit.refResid(); // original residual
+	kkhit.update(modplhel);// refer to moded helix
+	Residual mres = kkhit.refResid();
 	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think 
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement
 	// compare the change with the expected from the derivatives
+	kkhit.update(plhel);// refer back to original
 	auto pder = kkhit.dRdP();
 	double ddr = ROOT::Math::Dot(pder,dpvec);
 	hderivg[ipar]->SetPoint(ipt++,dr,ddr);

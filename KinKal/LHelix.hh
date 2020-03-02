@@ -7,12 +7,12 @@
 // Original Author David Brown (LBNL) 1/2020
 //
 
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/TTraj.hh"
 #include "KinKal/KTraj.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Constants.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 #include <vector>
 #include <string>
 #include <ostream>
@@ -29,8 +29,10 @@ namespace KinKal {
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type 
       static std::vector<std::string> const& paramNames(); 
+      static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(paramIndex index);
+      static std::string const& paramUnit(paramIndex index);
       static std::string const& paramTitle(paramIndex index);
 
       // construct from momentum, position, and particle properties.
@@ -69,7 +71,7 @@ namespace KinKal {
       double ebar() const { return  sqrt(rad()*rad() + lam()*lam() + mbar_*mbar_); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mbar_/mass_; } // reduced charge
-      double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
+      double omega() const { return copysign(CLHEP::c_light,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double dphi(double t) const { return omega()*(t - t0()); }
@@ -89,6 +91,7 @@ namespace KinKal {
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
+      static std::vector<std::string> paramUnits_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
  };
