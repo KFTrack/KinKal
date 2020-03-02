@@ -30,7 +30,7 @@ namespace KinKal {
       // construct from a hit and reference trajectory
       KKHit(THit const& thit, KTRAJ const& reftraj);
       KKHit(THit const& thit, PKTRAJ const& reftraj);
-      Residual const& resid() const { return rresid_; }
+      Residual const& refResid() const { return rresid_; }
       TDPOCA const& poca() const { return tdpoca_; }
       // residual derivatives WRT local trajectory parameters
       PDer dRdP() const { return rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP(); }
@@ -56,8 +56,7 @@ namespace KinKal {
     KKEFF::setRefTraj(ref);
     thit_.resid(tdpoca_,rresid_);
     setWeight();
-    KKEFF::setStatus(TDir::forwards,KKEFF::unprocessed);
-    KKEFF::setStatus(TDir::backwards,KKEFF::unprocessed);
+    KKEffBase::updateStatus();
     return true;
   }
 
@@ -71,6 +70,7 @@ namespace KinKal {
     RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
     KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
+    KKWEff<KTRAJ>::wdata_.setStatus(PDATA::valid);
     // reference weight vector from reference parameters
     auto refvec = KKWEff<KTRAJ>::wData().weightMat()*KKEFF::referenceTraj().params().parameters();
     // translate residual value into weight vector WRT the reference parameters
@@ -79,13 +79,13 @@ namespace KinKal {
     KKWEff<KTRAJ>::wdata_.weightVec() = refvec + delta;
   }
 
-  template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pars) const {
+  template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
     // compute the difference between these parameters and the reference parameters
-    auto dpvec = pars.parameters() - KKEFF::referenceTraj().params().parameters();
+    typename PDATA::DVec dpvec = pdata.parameters() - KKEFF::referenceTraj().params().parameters();
     // use the differnce to 'correct' the reference residual to be WRT these parameters
-    double newres = resid().resid() - ROOT::Math::Dot(dpvec,dRdP()); // check sign FIXME!
+    double newres = refResid().resid() - ROOT::Math::Dot(dpvec,dRdP()); 
     // project the parameter covariance into a residual space variance (adding the intrinsic variance)
-    double rvar = ROOT::Math::Similarity(dRdP(),pars.covariance()) + resid().residVar();
+    double rvar = ROOT::Math::Similarity(dRdP(),pdata.covariance()) + refResid().residVar();
     // chisquared is the residual squared divided by the variance
     double chisq = newres*newres/rvar;
     return chisq;

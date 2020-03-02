@@ -33,7 +33,7 @@ namespace KinKal {
       retval = true;
     } else if(this->isActive()){
       // add this effect's information
-      kkdata.addWData(wdata_);
+      kkdata.append(wdata_);
       retval = kkdata.wData().matrixOK();
     }
     KKEffBase::setStatus(tdir,KKEffBase::processed);

@@ -211,7 +211,7 @@ int main(int argc, char **argv) {
   // create the fit seed by randomizing the parameters
   LHelix seedhel(lhel);
   createSeed(seedhel);
-  cout << "Createing seed helix params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
+  cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
   Config config;
   config.dwt_ = 1.0e6;
@@ -222,13 +222,11 @@ int main(int argc, char **argv) {
   kktrk.fit();
   auto const& effs = kktrk.effects();
   cout << "KKTrk fit status = " << kktrk.status().status_ << " niters " << kktrk.status().niter_ << endl;
-  auto const& ftraj = kktrk.fitTraj().front();
-  cout << "Fit traj params " << ftraj.params().parameters() << " covariance " << endl << ftraj.params().covariance() << endl;
   for(auto const& eff : effs) {
     cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
     auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
     if(ihit != 0){
-      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->resid() << endl;
+      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
     } else
       cout << endl;
   }

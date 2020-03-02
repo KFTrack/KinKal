@@ -24,7 +24,9 @@ namespace KinKal {
   };
 
   template<> bool KKMat<KTRAJ>::update(KPKTRAJ const& ref) {
-    bool retval(false);
+  // check if the intersection of this material has changed FIXME!
+    bool retval(true);
+    update();
     return retval;
   }
 

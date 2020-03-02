@@ -28,7 +28,7 @@ namespace KinKal {
       // accessors
       TDir const& tDir() const { return tdir_; }
       double dWeighting() const { return dwt_; }
-      PDATA const& endPData() const { return endpd_; }
+      PDATA const& endPData() const { return pdata_; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
       KKEnd(PKTRAJ const& pktraj,TDir tdir, double dweight=1e6); 
@@ -36,7 +36,7 @@ namespace KinKal {
     private:
       TDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       double dwt_; // deweighting factor
-      PDATA endpd_; // parameters at the end of processing this direction 
+      PDATA pdata_; // cache of parameters at the end of processing this direction, used in traj creation
  };
 
   template <class KTRAJ> KKEnd<KTRAJ>::KKEnd(PKTRAJ const& pktraj, TDir tdir, double dweight) : 
@@ -51,7 +51,7 @@ namespace KinKal {
       retval = KKWEFF::process(kkdata,tdir);
     else
     // at the opposite end, cache the final weight
-      endpd_ = kkdata.pData();
+      pdata_ = kkdata.pData();
     return retval;
   }
 
@@ -62,6 +62,7 @@ namespace KinKal {
     endpars.covariance() *= dwt_;
     // convert this to a weight (inversion)
     KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(endpars,true);
+    KKEffBase::updateStatus();
     return KKWEFF::wData().matrixOK();
   }
 
@@ -71,7 +72,7 @@ namespace KinKal {
     if(tdir_ == TDir::forwards && fit.pieces().size() == 0){
     // start with the reference traj, and override the range and parameters
       KTRAJ endpiece(KKEFF::referenceTraj());
-      endpiece.params() = endpd_;
+      endpiece.params() = pdata_;
       endpiece.range() = fit.range();
       // append this to the (empty) fit
       fit.append(endpiece);

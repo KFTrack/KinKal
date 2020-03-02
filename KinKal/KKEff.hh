@@ -15,11 +15,12 @@ namespace KinKal {
 // base class for KKEff, for untemplated functions and content
   class KKEffBase {
     public:
-      enum Status{unprocessed=0,processed,reset,failed};
+      enum Status{unprocessed=0,processed,updated,failed};
       // time of this effect 
       virtual double time() const = 0;
       virtual unsigned nDOF() const = 0;
       virtual bool isActive() const = 0;
+      void updateStatus() { status_[0] = status_[1] = updated; }
       Status status(TDir tdir) const { return status_[static_cast<std::underlying_type<TDir>::type>(tdir)]; }
       KKEffBase() : status_{{unprocessed,unprocessed}} {}
       virtual ~KKEffBase(){}

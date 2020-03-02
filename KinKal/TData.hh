@@ -15,6 +15,8 @@ namespace KinKal {
       constexpr static size_t PDim() { return DDIM; }
       Status status() const { return status_; }
       bool matrixOK() const { return status_ == valid; }
+      // set status
+      void setStatus(Status status) { status_ = status; }
     protected:
       // define the parameter types
       typedef ROOT::Math::SVector<double,DDIM> DVec; // data vector
@@ -31,8 +33,6 @@ namespace KinKal {
       DMat& mat() { return mat_; }
       // scale the matrix
       void scale(double sfac) { mat_ *= sfac; }
-      // set status
-      void setStatus(Status status) { status_ = status; }
 
       // inversion changes from params <-> weight. 
       // Invert in-place, overriding status
@@ -44,11 +44,15 @@ namespace KinKal {
 	} else
 	  setStatus(invalid);
       }
-      // invert a different object
-      void invert(TData const& other) { 
-	*this = other;
-	invert();
+     // append
+      TData & operator += (TData const& other) {
+	vec_ += other.vec();
+	mat_ += other.mat();
+	//  assume if one is OK they both are (??) FIXME! 
+	if(status() == valid || other.status() == valid)status_=valid;
+	return *this;
       }
+
     private:
       DVec vec_; // parameters
       DMat mat_; // parameter covariance

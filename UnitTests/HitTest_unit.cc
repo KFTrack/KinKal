@@ -241,9 +241,9 @@ int main(int argc, char **argv) {
       // update the hits
       for(auto& hit : hits) {
 	KKHit kkhit(hit,plhel);
-	Residual ores = kkhit.resid(); // original residual
+	Residual ores = kkhit.refResid(); // original residual
 	kkhit.update(modplhel);// refer to moded helix
-	Residual mres = kkhit.resid();
+	Residual mres = kkhit.refResid();
 	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think 
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement

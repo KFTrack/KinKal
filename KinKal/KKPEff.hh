@@ -9,8 +9,9 @@ namespace KinKal {
   template<class KTRAJ> class KKPEff : public KKEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
-      typedef typename KKEFF::PDATA PDATA; // forward the typedef
-      typedef typename KKEFF::KKDATA KKDATA; // forward the typedef
+      typedef typename KKEFF::PDATA PDATA; // forward the typedefs
+      typedef typename KKEFF::WDATA WDATA;
+      typedef typename KKEFF::KKDATA KKDATA;
       // process this effect given the adjacent effect
       virtual bool process(KKDATA& kkdata,TDir tdir) override;
       virtual unsigned nDOF() const { return 0; } // no information content, therefore no NDOF
@@ -23,28 +24,34 @@ namespace KinKal {
       virtual ~KKPEff(){}
     protected:
       KKPEff() {}
-      PDATA pdata_; // parameter data for  this effect
-      std::array<WDATA,2> weights_; // cache of weight processing in opposite directions, used to build the traj piece
+      // reset the cached weight; this must be done for each update cycle
+      void resetCache() { wdata_ = WDATA();
+      PDATA pdata_; // parameter space description of this effect
+      WDATA wdata_; // cache of weight processing in opposite directions, used to build the fit trajectory
   };
 
   template<> bool KKPEff<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     bool retval(false);
     if(this->isActive()){
-      kkdata.addPData(pdata_);
+      // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
+      if(tdir == TDir::backwards)wdata_ += kkdata.wData();
+      kkdata.append(pdata_);
+      // forwards, set the cache to AFTER processing this effect
+      if(tdir == TDir::forwards)wdata_ += kkdata.wData();
       retval = kkdata.pData().matrixOK();
     }
     KKEffBase::setStatus(tdir,KKEffBase::processed);
-    // set the cache for this direction
-    auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-    if(kkdata.hasWData()){
-
-    }
     return retval;
   }
 
   template<> bool KKPEff<KTRAJ>::append(PKTRAJ& fit) override {
-  // 
-
+    // create a trajectory piece from the cached weight
+    KTRAJ endpiece(KKEFF::referenceTraj());
+    endpiece.params() = PDATA(wdata_);
+    // adjust the range appropriately
+    endpiece.range() = TRange(time(),fit.range().high());
+    // append this to the fit
+    fit.append(endpiece);
   }
 
 }

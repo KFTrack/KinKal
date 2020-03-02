@@ -95,8 +95,7 @@ namespace KinKal {
 	double oldchisq = status_.chisq_;
 	if(fitOK) fitOK = fitIteration(); // this call updates chisq
 	// test for convergence/divergence 
-	if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_)
-	  status_.status_ = FitStatus::converged;
+	if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_) status_.status_ = FitStatus::converged;
 	status_.niter_++;
       }
       if(!fitOK){
@@ -113,25 +112,25 @@ namespace KinKal {
     status_.ndof_ = -(int)KTRAJ::NParams();
     status_.chisq_ = 0.0;
     // fit in both directions
-    std::array<KKData<KTRAJ::NParams()>,2> fitdata;
     for(TDir tdir=TDir::forwards; tdir != TDir::end; ++tdir){
-      auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-      auto& fdata = fitdata[idir];
+    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
+      KKData<KTRAJ::NParams()> fitdata;
       if(tdir==TDir::forwards){
 	auto ieff = effects_.begin();
 	while(ieff != effects_.end()){
-	  if(!ieff->get()->process(fdata,tdir)) return false;
 	  // update chisq, NDOF only forwards to save time
 	  if(ieff->get()->nDOF() > 0){
 	    status_.ndof_ += ieff->get()->nDOF();
-	    status_.chisq_ += ieff->get()->chisq(fdata.pData());
+	    // I'm not sure this is the most efficient way to get chisq FIXME!
+	    status_.chisq_ += ieff->get()->chisq(fitdata.pData());
 	  }
+	  if(!ieff->get()->process(fitdata,tdir)) return false;
 	  ieff++;
 	}
       } else {
 	auto ieff = effects_.rbegin();
 	while(ieff != effects_.rend()){
-	  if(!ieff->get()->process(fdata,tdir)) return false;
+	  if(!ieff->get()->process(fitdata,tdir)) return false;
 	  ieff++;
 	}
       }
