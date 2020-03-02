@@ -58,7 +58,6 @@ namespace KinKal {
       KKCON const& effects() const { return effects_; }
     private:
       // helper functions
-      bool buildTraj();
       bool update();
       bool fitIteration();
       // payload
@@ -70,7 +69,7 @@ namespace KinKal {
   };
 
   template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,Config const& config) : 
-    config_(config), reftraj_(reftraj), fittraj_(reftraj){
+    config_(config), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()){
       // create end effects
       auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
@@ -114,42 +113,35 @@ namespace KinKal {
     status_.ndof_ = -(int)KTRAJ::NParams();
     status_.chisq_ = 0.0;
     // fit in both directions
+    std::array<KKData<KTRAJ::NParams()>,2> fitdata;
     for(TDir tdir=TDir::forwards; tdir != TDir::end; ++tdir){
+      auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
+      auto& fdata = fitdata[idir];
       if(tdir==TDir::forwards){
-	auto ieff = effects_.begin(); ieff++;
+	auto ieff = effects_.begin();
 	while(ieff != effects_.end()){
-	  auto iprev = ieff; iprev--;
-	  if(!ieff->get()->process(**iprev,tdir)) return false;
+	  if(!ieff->get()->process(fdata,tdir)) return false;
+	  // update chisq, NDOF only forwards to save time
 	  if(ieff->get()->nDOF() > 0){
 	    status_.ndof_ += ieff->get()->nDOF();
-	    auto const& ppars = iprev->get()->params(tdir);
-	    status_.chisq_ += ieff->get()->chisq(ppars);
+	    status_.chisq_ += ieff->get()->chisq(fdata.pData());
 	  }
 	  ieff++;
 	}
       } else {
-	auto ieff = effects_.rbegin(); ieff++;
+	auto ieff = effects_.rbegin();
 	while(ieff != effects_.rend()){
-	  auto iprev = ieff; iprev--;
-	  if(!ieff->get()->process(**iprev,tdir)) return false;
+	  if(!ieff->get()->process(fdata,tdir)) return false;
 	  ieff++;
 	}
       }
     }
-    // build the fit trajectory
-    return buildTraj();
-  }
-
-  // convert a final fit into a trajectory
-  template <class KTRAJ> bool KKTrk<KTRAJ>::buildTraj() {
-    // convert the fit result into a new trajectory.  Start at one end
-    // for now, take the fit at one end, this won't work with materials FIXME!
-    auto newtraj = reftraj_.front();
-    // overwrite the parameters
-    auto const& front = *effects_.begin();
-    newtraj.params() = front->params(TDir::backwards);
-    // create the piecetraj from that
-    fittraj_ = PKTRAJ(newtraj);
+    // convert the fit result into a new trajectory
+    fittraj_ = PKTRAJ(reftraj_.range(),reftraj_.mass(),reftraj_.charge());
+    // process forwards by convention
+    for(auto& ieff : effects_) {
+      ieff->append(fittraj_);
+    }
     return true;
   }
 

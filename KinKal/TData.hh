@@ -11,7 +11,7 @@
 namespace KinKal {
   template <size_t DDIM> class TData {
     public:
-      enum Status {unknown=-1, valid=0, invalid}; //  
+      enum Status {unknown=-1, valid=0, invalid}; // not clear if this is the right place for this FIXME!
       constexpr static size_t PDim() { return DDIM; }
       Status status() const { return status_; }
       bool matrixOK() const { return status_ == valid; }

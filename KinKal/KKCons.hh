@@ -4,11 +4,11 @@
 // Class to add a constraint to the fit
 // This effect provides information content and is processed in weight space 
 //
-#include "KinKal/KKWeight.hh"
+#include "KinKal/KKWEff.hh"
 #include <array>
 
 namespace KinKal {
-  template<class KTRAJ> class KKCons : public KKWeight<KTRAJ> {
+  template<class KTRAJ> class KKCons : public KKWEff<KTRAJ> {
     public:
       typedef std::array<bool,KTRAJ::PDATA::PDim()> PMASK; // parameter mask
       typedef typename KKEff::WDATA WDATA; // forward the typedef

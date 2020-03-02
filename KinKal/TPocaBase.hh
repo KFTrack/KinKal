@@ -3,7 +3,7 @@
 //
 // Untemplated base class for POCA calculations
 //
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/TTraj.hh"
 #include <string>
 #include <vector>

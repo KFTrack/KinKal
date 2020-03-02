@@ -7,7 +7,7 @@
 // Original Author David Brown (LBNL) 1/2020
 //
 
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/TTraj.hh"
 #include "KinKal/KTraj.hh"
 #include "KinKal/PData.hh"

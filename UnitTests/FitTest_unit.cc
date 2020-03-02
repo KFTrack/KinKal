@@ -7,7 +7,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/KKTrk.hh"
 #include "CLHEP/Units/PhysicalConstants.h"

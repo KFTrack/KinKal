@@ -16,6 +16,7 @@ namespace KinKal {
       // base class implementation
 // construct from an initial piece, which also provides kinematic information
       PKTraj(KT const& piece) : PTTraj<KT>(piece), KTraj(piece.mass(),piece.charge()) {}
+      PKTraj(TRange const& range, double mass, int charge) : PTTraj<KT>(range), KTraj(mass,charge) {}
       virtual ~PKTraj(){}
 // base class overrides; these just rely on the PTTraj to find the appropriate piece
       virtual void dirVector(trajdir dir,double time,Vec3& unit) const override {

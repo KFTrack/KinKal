@@ -4,12 +4,12 @@
 // Class to describe effect of passing through discrete material
 // This effect provides information content and is processed in params space 
 //
-#include "KinKal/KKParams.hh"
+#include "KinKal/KKPEff.hh"
 #include "KinKal/TDMInter.hh"
 namespace KinKal {
-  template<class KTRAJ> class KKMat : public KKParams<KTRAJ> {
+  template<class KTRAJ> class KKMat : public KKPEff<KTRAJ> {
     public:
-      typedef typename KKParams::PDATA PDATA; // forward the typedef
+      typedef typename KKPEff::PDATA PDATA; // forward the typedef
       // construct from a params
       KKMat(PDATA const& params) : params_(params) {}
       virtual double time() const override { return time_; }
@@ -29,4 +29,4 @@ namespace KinKal {
   }
 
 }
-#
+#endif

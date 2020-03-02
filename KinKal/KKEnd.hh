@@ -1,62 +1,59 @@
 #ifndef KinKal_KKEnd_hh
 #define KinKal_KKEnd_hh
 //
-// End of the KK fit effect set, used transiently to start the fit 
+// End of the KK fit effect set, used transiently to start the fit and trajectory building
 //
-#include "KinKal/KKWeight.hh"
-#include "KinKal/PKTraj.hh"
-#include "KinKal/PData.hh"
-#include "KinKal/WData.hh"
+#include "KinKal/KKWEff.hh"
 #include <stdexcept>
 #include <limits>
 
 namespace KinKal {
-  template<class KTRAJ> class KKEnd : public KKWeight<KTRAJ> {
+  template<class KTRAJ> class KKEnd : public KKWEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
-      typedef KKWeight<KTRAJ> KKWT;
-      typedef typename KKEFF::WDATA WDATA; // forward the typedef
+      typedef KKWEff<KTRAJ> KKWEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
+      typedef typename KKEFF::WDATA WDATA; // forward the typedef
+      typedef typename KKEFF::KKDATA KKDATA;
 
       // provide interface
-      virtual bool process(KKEFF const& other,TDir tdir) override;
       virtual bool update(PKTRAJ const& ref) override;
       virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       virtual unsigned nDOF() const override { return 0; }
       virtual bool isActive() const override { return true; }
       virtual double chisq(PDATA const& pars) const override { return 0.0; }
+      virtual bool process(KKDATA& kkdata,TDir tdir) override;
+      virtual bool append(PKTRAJ& fit) override;
+      // accessors
+      TDir const& tDir() const { return tdir_; }
+      double dWeighting() const { return dwt_; }
+      PDATA const& endPData() const { return endpd_; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
       KKEnd(PKTRAJ const& pktraj,TDir tdir, double dweight=1e6); 
       virtual ~KKEnd(){}
     private:
-      TDir tdir_; // direction for this effect
+      TDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       double dwt_; // deweighting factor
-  };
-
-  template <class KTRAJ> bool KKEnd<KTRAJ>::process(KKEFF const& other,TDir tdir) {
-    bool retval(false);
-    if(tdir == tdir_){
-      throw std::runtime_error("Cannot process KKEnd in its own direction");
-    } else {
-      // copy over previous state
-      auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-      KKEFF::weights_[idir] = other.weights(tdir);
-      KKEFF::params_[idir] = other.params(tdir);
-      retval = true;
-    }
-    return retval;
-  }
+      PDATA endpd_; // parameters at the end of processing this direction 
+ };
 
   template <class KTRAJ> KKEnd<KTRAJ>::KKEnd(PKTRAJ const& pktraj, TDir tdir, double dweight) : 
-    KKWT(pktraj.front()), tdir_(tdir) , dwt_(dweight) {
-      auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
+    KKWEFF(tdir == TDir::forwards ? pktraj.front() : pktraj.back()), tdir_(tdir) , dwt_(dweight) {
       update(pktraj);
-      // auto-process this effect by copying the state
-      KKEFF::weights_[idir] = KKWT::weight_;
-      KKEFF::setStatus(tdir, KKEFF::processed); 
     }
+
+  template<class KTRAJ> bool KKEnd<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
+    bool retval(true);
+    if(tdir == tdir_) 
+    // start the fit with the de-weighted info from the previous iteration or seed
+      retval = KKWEFF::process(kkdata,tdir);
+    else
+    // at the opposite end, cache the final weight
+      endpd_ = kkdata.pData();
+    return retval;
+  }
 
   template<class KTRAJ> bool KKEnd<KTRAJ>::update(PKTRAJ const& ref) {
     KKEFF::setRefTraj(ref);
@@ -64,8 +61,22 @@ namespace KinKal {
     auto endpars = KKEFF::referenceTraj().params();
     endpars.covariance() *= dwt_;
     // convert this to a weight (inversion)
-    KKWT::weight_ = WData<PKTRAJ::NParams()>(endpars,true);
-    return KKWT::weight_.matrixOK();
+    KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(endpars,true);
+    return KKWEFF::wData().matrixOK();
+  }
+
+  template<class KTRAJ> bool KKEnd<KTRAJ>::append(PKTRAJ& fit) {
+    // if the fit is empty and we're going in the right direction, take the end cache and
+    // seed the fit with it
+    if(tdir_ == TDir::forwards && fit.pieces().size() == 0){
+    // start with the reference traj, and override the range and parameters
+      KTRAJ endpiece(KKEFF::referenceTraj());
+      endpiece.params() = endpd_;
+      endpiece.range() = fit.range();
+      // append this to the (empty) fit
+      fit.append(endpiece);
+    }
+    return true;
   }
 
 }

@@ -1,7 +1,7 @@
 #ifndef KinKal_BField_hh
 #define KinKal_BField_hh
 // class defining a BField Map interface for use in KinKal.
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 namespace KinKal {
   class BField {
     public:

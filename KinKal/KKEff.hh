@@ -5,10 +5,9 @@
 // This is a base class for specific subclasses representing measurements, material interactions, etc.
 // Templated on the trajectory class representing the particle in this fit
 //
-#include "KinKal/Types.hh"
 #include "KinKal/TDir.hh"
 #include "KinKal/PKTraj.hh"
-#include "KinKal/WData.hh"
+#include "KinKal/KKData.hh"
 #include <array>
 #include <memory>
 
@@ -31,26 +30,18 @@ namespace KinKal {
 
   template<class KTRAJ> class KKEff : public KKEffBase {
     public:
-      // type of the data payload used in this trajectory
-      typedef typename KTRAJ::PDATA PDATA; // forward the parameter type 
-      typedef WData<KTRAJ::PDATA::PDim()> WDATA; // declare the associated weights type as well 
+      // type of the data payload used for processing the fit
+      typedef KKData<KTRAJ::PDATA::PDim()> KKDATA;
+      typedef WData<KTRAJ::PDATA::PDim()> WDATA;
+      typedef typename KTRAJ::PDATA PDATA;
       typedef PKTraj<KTRAJ> PKTRAJ;
-      // process this effect given the adjacent effect.  Return value indicates success
-      virtual bool process(KKEff const& other,TDir tdir) = 0;
+      // Add this effect to the ongoing fit in a give direction.  Return value indicates success
+      virtual bool process(KKDATA& kkdata,TDir tdir) = 0;
       virtual double chisq(PDATA const& pars) const = 0; // compute chisquared WRT some parameters
       // update this effect for a new refernce trajectory.  This must be overriden, but the base class implementation is still useful
       virtual bool update(PKTRAJ const& ref) = 0;
-      // Access the processed data from this effect in a particular direction; uses lazy conversion between parameter and weights space
-      PDATA const& params(TDir tdir) const {
-	auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-	if(!params_[idir].matrixOK() && weights_[idir].matrixOK()) params_[idir].invert(weights_[idir]);
-	return params_[idir];
-      }
-      WDATA const& weights(TDir tdir) const {
-	auto idir = static_cast<std::underlying_type<TDir>::type>(tdir);
-	if(!weights_[idir].matrixOK() && params_[idir].matrixOK()) weights_[idir].invert(params_[idir]);
-	return weights_[idir];
-      }
+      // append this effects trajectory change (if appropriate)
+      virtual bool append(PKTRAJ& fit) = 0;
       KTRAJ const& referenceTraj() const { return *reftraj_; }
       virtual ~KKEff(){} 
     protected:
@@ -59,9 +50,6 @@ namespace KinKal {
       // allow subclasses to change the reference: this happens during updating
       void setRefTraj(KTRAJ const& newref) { reftraj_ = &newref; }
       void setRefTraj(PKTRAJ const& newref) { reftraj_ = &(newref.nearestPiece(time())); }
-      // payload
-      mutable std::array<PDATA,2> params_; // params after processing
-      mutable std::array<WDATA,2> weights_; // weights after processing
       KTRAJ const* reftraj_; // reference trajectory for this effect
   };
 

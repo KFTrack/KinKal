@@ -4,7 +4,7 @@
 //  class to use information from a hit in the Kinematic fit.
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/KKWeight.hh"
+#include "KinKal/KKWEff.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/THit.hh"
 #include "KinKal/TPoca.hh"
@@ -13,7 +13,7 @@
 
 namespace KinKal {
   class TTraj;
-  template <class KTRAJ> class KKHit : public KKWeight<KTRAJ> {
+  template <class KTRAJ> class KKHit : public KKWEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
@@ -70,13 +70,13 @@ namespace KinKal {
     ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > RVarM;
     RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
-    KKWeight<KTRAJ>::weight_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
+    KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
     // reference weight vector from reference parameters
-    auto refvec = KKWeight<KTRAJ>::weight().weightMat()*KKEFF::referenceTraj().params().parameters();
+    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*KKEFF::referenceTraj().params().parameters();
     // translate residual value into weight vector WRT the reference parameters
     auto delta = drdp*rresid_.resid()/rresid_.residVar();
     // add change WRT reference; sign convention reflects resid = measurement - prediction
-    KKWeight<KTRAJ>::weight_.weightVec() = refvec + delta;
+    KKWEff<KTRAJ>::wdata_.weightVec() = refvec + delta;
   }
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pars) const {
