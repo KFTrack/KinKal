@@ -1,7 +1,7 @@
 #ifndef KinKal_KKPEff_hh
 #define KinKal_KKPEff_hh
 //
-// Class to describe parameter transport/noise i
+// Class to describe parameter transport and noise due to material effects or model descrepencies
 // This effect provides information content and is processed in params space 
 //
 #include "KinKal/KKEff.hh"
