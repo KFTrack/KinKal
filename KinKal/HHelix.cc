@@ -178,7 +178,7 @@ namespace KinKal {
     switch ( dir ) {
       case theta1:
         // polar bending: only momentum and position are unchanged
-        dermat[d0_][0] = -tanDip()*(1-cos(omval*l))/omval;
+        dermat[d0_][0] = tanval*(1-cos(omval*l))/omval;
         dermat[phi0_][0] = tanval*sin(omval*l)/(1+omval*d0val);
         dermat[omega_][0] = -omval*tanval;
         dermat[z0_][0] = tanval*tanval*sin(omval*l)/(omval*(1+omval*d0val)) - l;
