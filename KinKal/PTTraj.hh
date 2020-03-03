@@ -13,10 +13,10 @@
 #include <typeinfo>
 
 namespace KinKal {
-  template <class TT> class PTTraj : public TTraj {
+  template <class TTRAJ> class PTTraj : public TTraj {
     public:
-      constexpr static size_t NParams() { return TT::NParams(); }
-      typedef typename std::deque<TT> DTT;
+      constexpr static size_t NParams() { return TTRAJ::NParams(); }
+      typedef typename std::deque<TTRAJ> DTTRAJ;
       // base class implementation
       virtual void position(Vec4& pos) const override;
       virtual void position(double time, Vec3& pos) const override;
@@ -25,51 +25,51 @@ namespace KinKal {
 // construct without any pieces, but specify the range
       PTTraj(TRange const& range) : TTraj(range) {}
 // one initial piece
-      PTTraj(TT const& piece);
+      PTTraj(TTRAJ const& piece);
       virtual ~PTTraj(){} 
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
 // If appending requires truncation and allowremove=false, the return is false
-      bool append(TT const& newpiece, bool allowremove=false);
-      bool prepend(TT const& newpiece, bool allowremove=false);
-      bool add(TT const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
+      virtual bool append(TTRAJ const& newpiece, bool allowremove=false);
+      virtual bool prepend(TTRAJ const& newpiece, bool allowremove=false);
+      bool add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
-      TT const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
-      TT const& front() const { return pieces_.front(); }
-      TT const& back() const { return pieces_.back(); }
+      TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& front() const { return pieces_.front(); }
+      TTRAJ const& back() const { return pieces_.back(); }
       size_t nearestIndex(double time) const;
-      DTT const& pieces() const { return pieces_; }
+      DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
       void gaps(double& largest, size_t& ilargest, double& average) const;
     private:
       PTTraj() = delete; // no default/null constructor
-      DTT pieces_; // constituent pieces
+      DTTRAJ pieces_; // constituent pieces
   };
 
-  template <class TT> std::ostream& operator <<(std::ostream& os, PTTraj<TT> const& pttraj) {
-    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TT).name();
+  template <class TTRAJ> std::ostream& operator <<(std::ostream& os, PTTraj<TTRAJ> const& pttraj) {
+    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TTRAJ).name();
     return os;
   }
 
   // implementation: just return the values from the piece
-  template <class TT> void PTTraj<TT>::position(Vec4& pos) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::position(Vec4& pos) const {
     nearestPiece(pos.T()).position(pos);
   }
-  template <class TT> void PTTraj<TT>::position(double time, Vec3& pos) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::position(double time, Vec3& pos) const {
     nearestPiece(time).position(time,pos);
   }
-  template <class TT> void PTTraj<TT>::velocity(double time, Vec3& vel) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::velocity(double time, Vec3& vel) const {
     nearestPiece(time).velocity(time,vel);
   }
-  template <class TT> void PTTraj<TT>::direction(double time, Vec3& dir) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::direction(double time, Vec3& dir) const {
     nearestPiece(time).direction(time,dir);
   }
 
-  template <class TT> PTTraj<TT>::PTTraj(TT const& piece) : TTraj(piece.range()),pieces_(1,piece)
+  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : TTraj(piece.range()),pieces_(1,piece)
   {}
 
-  template <class TT> bool PTTraj<TT>::add(TT const& newpiece, TDir tdir, bool allowremove){
+  template <class TTRAJ> bool PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
     bool retval(false);
     switch (tdir) {
       case TDir::forwards:
@@ -84,7 +84,7 @@ namespace KinKal {
     return  retval;
   }
 
-  template <class TT> bool PTTraj<TT>::prepend(TT const& newpiece, bool allowremove) {
+  template <class TTRAJ> bool PTTraj<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
     bool retval(false);
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
@@ -121,7 +121,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TT> bool PTTraj<TT>::append(TT const& newpiece, bool allowremove) {
+  template <class TTRAJ> bool PTTraj<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
     bool retval(false);
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
@@ -156,7 +156,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TT> size_t PTTraj<TT>::nearestIndex(double time) const {
+  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
     if(time <= range().low()){
@@ -173,7 +173,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TT> void PTTraj<TT>::gaps(double& largest,  size_t& ilargest, double& average) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::gaps(double& largest,  size_t& ilargest, double& average) const {
     largest = average = 0.0;
     ilargest =0;
     // loop over adjacent pairs

@@ -9,7 +9,7 @@
 
 #include "KinKal/Vectors.hh"
 #include "KinKal/TTraj.hh"
-#include "KinKal/KTraj.hh"
+#include "KinKal/KInter.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/Context.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -19,21 +19,21 @@
 
 namespace KinKal {
 
-  class LHelix : public TTraj, public KTraj {
+  class LHelix : public TTraj, public KInter {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
-      enum paramIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
+      enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
-      typedef ROOT::Math::SVector<double,npars_> PDer; // derivative of parameters type 
+      typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type 
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
-      static std::string const& paramName(paramIndex index);
-      static std::string const& paramUnit(paramIndex index);
-      static std::string const& paramTitle(paramIndex index);
+      static std::string const& paramName(ParamIndex index);
+      static std::string const& paramUnit(ParamIndex index);
+      static std::string const& paramTitle(ParamIndex index);
 
       // construct from momentum, position, and particle properties.
       // This also requires the BField, through Context
@@ -45,15 +45,18 @@ namespace KinKal {
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
       void position(double t,Vec3& pos) const override; // time is input 
-      void momentum(double t,Mom4& mom) const override;
       void velocity(double time, Vec3& vel) const override;
       void direction(double tval,Vec3& dir) const override;
+      void momentum(double t,Mom4& mom) const override;
+      // scalar momentum and energy in MeV/c units
+      double momentum(double time) const override { return  mass_*pbar()/mbar_; }
+      double energy(double time) const override { return  mass_*ebar()/mbar_; }
 
       // local momentum direction basis
-      virtual void dirVector(trajdir dir,double time,Vec3& unit) const override;
+      virtual void dirVector(MDir dir,double time,Vec3& unit) const override;
 
-      // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(trajdir dir, double time, PDer& der) const;
+      // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
+      void momDeriv(MDir mdir, double time, PDER& der) const;
 
      // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }

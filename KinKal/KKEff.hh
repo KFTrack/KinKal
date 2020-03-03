@@ -43,7 +43,7 @@ namespace KinKal {
       virtual bool update(PKTRAJ const& ref) = 0;
       // append this effects trajectory change (if appropriate)
       virtual bool append(PKTRAJ& fit) = 0;
-      KTRAJ const& referenceTraj() const { return *reftraj_; }
+      KTRAJ const& refTraj() const { return *reftraj_; }
       virtual ~KKEff(){} 
     protected:
       KKEff() : reftraj_(0) {}

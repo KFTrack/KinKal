@@ -9,13 +9,13 @@
 namespace KinKal {
   class TLine : public TTraj {
     public:
-      enum paramIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
+      enum ParamIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramTitles();
-      static std::string const& paramName(paramIndex index);
-      static std::string const& paramTitle(paramIndex index);
+      static std::string const& paramName(ParamIndex index);
+      static std::string const& paramTitle(ParamIndex index);
  
       // construct from a spacepoint and propagation velocity (mm/ns)
       // by default, the line has infinite unforced range

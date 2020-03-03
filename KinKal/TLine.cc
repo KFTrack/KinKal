@@ -16,8 +16,8 @@ namespace KinKal {
   "D0","Phi0","Z0","CTheta","Time0"};
   std::vector<std::string> const& TLine::paramNames() { return paramNames_; }
   std::vector<std::string> const& TLine::paramTitles() { return paramTitles_; }
-  std::string const& TLine::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
-  std::string const& TLine::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
+  std::string const& TLine::paramName(ParamIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& TLine::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   TLine::TLine(Vec4 const& pos0, Vec3 const& svel, TRange const& range,bool forcerange) : TLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {}
   TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : TTraj(range), 
@@ -80,7 +80,7 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, TLine const& tline) {
     ost << " TLine parameters: ";
     for(size_t ipar=0;ipar < TLine::npars_;ipar++){
-      ost << TLine::paramName(static_cast<TLine::paramIndex>(ipar) ) << " : " << tline.param(ipar);
+      ost << TLine::paramName(static_cast<TLine::ParamIndex>(ipar) ) << " : " << tline.param(ipar);
       if(ipar < TLine::npars_-1) ost << " , ";
     }
     ost <<  tline.range();

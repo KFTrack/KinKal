@@ -82,9 +82,9 @@ int main(int argc, char **argv) {
 	exit(EXIT_FAILURE);
     }
   }
-  KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
+  KInter::MDir tdir =static_cast<KInter::MDir>(idir);
   cout << "Testing PKTraj with "
-    << nsteps << " kinks in " << KTraj::directionName(tdir) << " direction of size "
+    << nsteps << " kinks in " << KInter::directionName(tdir) << " direction of size "
     << delta << endl;
 
   // create a helix
@@ -102,7 +102,7 @@ int main(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    LHelix::PDer pder;
+    LHelix::PDER pder;
     LHelix const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
     back.momDeriv(tdir,tcomp,pder);
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    LHelix::PDer pder;
+    LHelix::PDER pder;
     LHelix const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
     front.momDeriv(tdir,tcomp,pder);
@@ -267,7 +267,7 @@ int main(int argc, char **argv) {
   cout << "TDPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
   char fname[100];
-  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
   pttcan->SaveAs(fname); 
   // 
   return 0;

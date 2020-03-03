@@ -30,15 +30,15 @@ namespace KinKal {
   // Compute POCA and the derivatives of DOCA WRT the parameters of T0
   template<class T0, class T1> class TDPoca : public TPoca<T0,T1> {
     public:
-      typedef typename T0::PDer PDer; // forward derivative type from the 0th traj parameters
+      typedef typename T0::PDER PDER; // forward derivative type from the 0th traj parameters
       TDPoca(T0 const& t0, T1 const& t1, double precision=0.01);
       TDPoca(TPoca<T0,T1> const& tpoca); // 'upgrade' a regular POCA 
       TDPoca() {} 
-      PDer const& dDdP() const { return dDdP_; }
-      PDer const& dTdP() const { return dTdP_; } 
+      PDER const& dDdP() const { return dDdP_; }
+      PDER const& dTdP() const { return dTdP_; } 
     private:
-      PDer dDdP_; // derivative of DOCA WRT Parameters
-      PDer dTdP_; // derivative of Dt WRT Parameters
+      PDER dDdP_; // derivative of DOCA WRT Parameters
+      PDER dTdP_; // derivative of Dt WRT Parameters
   };
 
 }

@@ -77,6 +77,11 @@ class DetMaterial{
       return energyLossRMS(mom,pathlen,tpart.mass());	}
 
     double energyLossRMS(double mom,double pathlen,double mass) const;
+    double energyLossVar(double mom,double pathlen,double mass) const {
+      double elrms = energyLossRMS(mom,pathlen,mass);
+      return elrms*elrms;
+    }
+
     // functions to describe scattering
     // highland formula (without log term)
     double highlandSigma(double mom,double pathlen,
@@ -100,6 +105,11 @@ class DetMaterial{
       return scatterAngleRMS(mom,pathlen,tpart.mass());
     }
     double scatterAngleRMS(double mom,double pathlen,double mass) const;
+    double scatterAngleVar(double mom,double pathlen,double mass) const {
+      double sarms = scatterAngleRMS(mom,pathlen,mass);
+      return sarms*sarms;
+    }
+
     //
     //  Generic kinematic functions
     //

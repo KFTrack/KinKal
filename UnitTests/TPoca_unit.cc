@@ -125,9 +125,9 @@ int main(int argc, char **argv) {
   TCanvas* dtpcan = new TCanvas("dtpcan","DTPoca",1200,800);
   dtpcan->Divide(3,2);
   for(int ipar=0;ipar<lhel.npars_;ipar++){
-    LHelix::paramIndex pi = static_cast<LHelix::paramIndex>(ipar);
+    LHelix::ParamIndex parindex = static_cast<LHelix::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(ndtest));
-    string ts = LHelix::paramTitle(pi)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
+    string ts = LHelix::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
     dtpoca.back()->SetTitle(ts.c_str());
     double dstep = pchange[ipar]/(ndtest-1);
     double dstart = -0.5*pchange[ipar];

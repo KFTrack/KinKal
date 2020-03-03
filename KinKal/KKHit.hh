@@ -19,7 +19,7 @@ namespace KinKal {
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef TDPoca<PKTRAJ,TLine> TDPOCA;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
-      typedef typename KTRAJ::PDer PDer; // forward derivative type
+      typedef typename KTRAJ::PDER PDER; // forward derivative type
       virtual unsigned nDOF() const override { return thit_.isActive() ? thit_.nDOF() : 0; }
       THit const& hit() const { return thit_; }
       virtual bool update(PKTRAJ const& ref)  override;
@@ -33,7 +33,7 @@ namespace KinKal {
       Residual const& refResid() const { return rresid_; }
       TDPOCA const& poca() const { return tdpoca_; }
       // residual derivatives WRT local trajectory parameters
-      PDer dRdP() const { return rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP(); }
+      PDER dRdP() const { return rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP(); }
     private:
     // helpers
       void setWeight();
@@ -72,7 +72,7 @@ namespace KinKal {
     KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
     KKWEff<KTRAJ>::wdata_.setStatus(PDATA::valid);
     // reference weight vector from reference parameters
-    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*KKEFF::referenceTraj().params().parameters();
+    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*KKEFF::refTraj().params().parameters();
     // translate residual value into weight vector WRT the reference parameters
     auto delta = drdp*rresid_.resid()/rresid_.residVar();
     // add change WRT reference; sign convention reflects resid = measurement - prediction
@@ -81,7 +81,7 @@ namespace KinKal {
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
     // compute the difference between these parameters and the reference parameters
-    typename PDATA::DVec dpvec = pdata.parameters() - KKEFF::referenceTraj().params().parameters();
+    typename PDATA::DVec dpvec = pdata.parameters() - KKEFF::refTraj().params().parameters();
     // use the differnce to 'correct' the reference residual to be WRT these parameters
     double newres = refResid().resid() - ROOT::Math::Dot(dpvec,dRdP()); 
     // project the parameter covariance into a residual space variance (adding the intrinsic variance)

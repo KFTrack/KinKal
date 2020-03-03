@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   double nsig(10.0);
   double pscale = nsig/sqrt(nhits);
   for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
-    auto tpar = static_cast<LHelix::paramIndex>(ipar);
+    auto tpar = static_cast<LHelix::ParamIndex>(ipar);
     hname = string("d") + LHelix::paramName(tpar);
     htitle = string("#Delta ") + LHelix::paramTitle(tpar);
     dpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
