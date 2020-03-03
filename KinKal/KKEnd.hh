@@ -58,7 +58,7 @@ namespace KinKal {
   template<class KTRAJ> bool KKEnd<KTRAJ>::update(PKTRAJ const& ref) {
     KKEFF::setRefTraj(ref);
     // extract the parameter vector and deweight the covariance
-    auto endpars = KKEFF::referenceTraj().params();
+    auto endpars = KKEFF::refTraj().params();
     endpars.covariance() *= dwt_;
     // convert this to a weight (inversion)
     KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(endpars,true);
@@ -71,7 +71,7 @@ namespace KinKal {
     // seed the fit with it
     if(tdir_ == TDir::forwards && fit.pieces().size() == 0){
     // start with the reference traj, and override the range and parameters
-      KTRAJ endpiece(KKEFF::referenceTraj());
+      KTRAJ endpiece(KKEFF::refTraj());
       endpiece.params() = pdata_;
       endpiece.range() = fit.range();
       // append this to the (empty) fit

@@ -20,12 +20,12 @@ namespace KinKal {
   std::vector<std::string> const& LHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& LHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& LHelix::paramTitles() { return paramTitles_; }
-  std::string const& LHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
-  std::string const& LHelix::paramUnit(paramIndex index) { return paramUnits_[static_cast<size_t>(index)];}
-  std::string const& LHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
+  std::string const& LHelix::paramName(ParamIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& LHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)];}
+  std::string const& LHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   LHelix::LHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,
-      TRange const& range) : TTraj(range), KTraj(mom.M(),charge) {
+      TRange const& range) : TTraj(range), KInter(mom.M(),charge) {
     static double twopi = 2*M_PI;
     // compute some simple useful parameters
     double pt = mom.Pt(); 
@@ -56,7 +56,7 @@ namespace KinKal {
     {}
 
   LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
-      TRange const& range) : TTraj(range), KTraj(mass,charge), pars_(pvec,pcov) {
+      TRange const& range) : TTraj(range), KInter(mass,charge), pars_(pvec,pcov) {
     double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
   }
@@ -90,7 +90,7 @@ namespace KinKal {
     mom.SetM(mass_);;
   }
 
-  void LHelix::velocity(double tval,Vec3& vel) const{
+ void LHelix::velocity(double tval,Vec3& vel) const{
     Mom4 mom;
     momentum(tval,mom);
     vel = mom.Vect()*(CLHEP::c_light*fabs(Q()/ebar()));
@@ -102,10 +102,10 @@ namespace KinKal {
     dir = mom.Vect().Unit();
   }
 
-  void LHelix::dirVector(trajdir dir,double tval,Vec3& unit) const {
+  void LHelix::dirVector(MDir mdir,double tval,Vec3& unit) const {
     double phival = phi(tval); // azimuth at this point
     double norm = 1.0/copysign(pbar(),mbar_); // sign matters!
-    switch ( dir ) {
+    switch ( mdir ) {
       case theta1:
 	unit.SetX(lam()*cos(phival));
 	unit.SetY(lam()*sin(phival));
@@ -126,14 +126,14 @@ namespace KinKal {
 
   }
 
-  void LHelix::momDeriv(trajdir dir, double time, PDer& pder) const {
+  void LHelix::momDeriv(MDir mdir, double time, PDER& pder) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
     double pb = pbar();
     double phival = omval*(time - t0()) + phi0();
     // cases
-    switch ( dir ) {
+    switch ( mdir ) {
       case theta1:
 	// polar bending: only momentum and position are unchanged
 	pder[rad_] = lam();
@@ -168,7 +168,7 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
     ost << " LHelix parameters: ";
     for(size_t ipar=0;ipar < LHelix::npars_;ipar++){
-      ost << LHelix::paramName(static_cast<LHelix::paramIndex>(ipar) ) << " : " << lhel.param(ipar);
+      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " : " << lhel.param(ipar);
       if(ipar < LHelix::npars_-1) ost << " , ";
     }
     ost << lhel.range();

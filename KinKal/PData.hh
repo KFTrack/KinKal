@@ -27,6 +27,10 @@ namespace KinKal {
 	TData<DDIM>::operator +=(other);
 	return *this;
       }
+      PData & operator -=(PData const& other) {
+	TData<DDIM>::operator -=(other);
+	return *this;
+      }
   };
 }
 #endif

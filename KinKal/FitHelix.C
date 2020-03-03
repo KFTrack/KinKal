@@ -58,7 +58,7 @@ TRandom* gRandom = new TRandom3(324913);
 
 typedef SVector<double,6> PVec;
 typedef SMatrix<double,6,6,MatRepSym<double,6> > PMat;
-typedef SMatrix<double,6,1> PDer;
+typedef SMatrix<double,6,1> PDER;
 
 //struct Vec4 {
 //  double _x, _y, _z, _t;
@@ -1092,7 +1092,7 @@ void FitHelix(std::vector<DHit>const& hits, THit const& thit, HelixPars const& r
   //  cout << " initial beta " << endl << fbeta << endl;
   // now process the hits
   SMatrix<double, 1,1, MatRepSym<double,1> > I1 = SMatrixIdentity();
-  PDer pder;
+  PDER pder;
   chisq = 0.0;
   for(auto hit : hits) {
     // compute residual WRT the reference parameters

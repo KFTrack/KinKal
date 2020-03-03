@@ -221,7 +221,7 @@ int main(int argc, char **argv) {
   unsigned nsteps(10);
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
-    auto tpar = static_cast<LHelix::paramIndex>(ipar);
+    auto tpar = static_cast<LHelix::ParamIndex>(ipar);
     hderivg[ipar] = new TGraph(hits.size()*nsteps);
     std::string title = LHelix::paramTitle(tpar) + " Derivative Test;" 
     + LHelix::paramName(tpar) +" Exact #Delta" + LHelix::paramUnit(tpar) + ";"

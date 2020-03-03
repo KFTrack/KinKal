@@ -7,6 +7,7 @@ namespace KinKal {
     public:
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; // nominal field defined at the origin
       virtual ~BField(){}
+      // add interface for path integration FIXME!
   };
 
   // trivial instance of the above, used for testing

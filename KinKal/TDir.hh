@@ -1,7 +1,7 @@
 #ifndef KinKal_TDir_hh
 #define KinKal_TDir_hh
 //
-//  Define processing directions according to the flow of time
+//  Define directions of time
 //
 #include <ostream>
 namespace KinKal { 

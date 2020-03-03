@@ -1,7 +1,7 @@
 #ifndef KinKal_KKPEff_hh
 #define KinKal_KKPEff_hh
 //
-// Class to describe parameter transport/noise i
+// Class to describe parameter transport and noise due to material effects or model descrepencies
 // This effect provides information content and is processed in params space 
 //
 #include "KinKal/KKEff.hh"
@@ -9,6 +9,7 @@ namespace KinKal {
   template<class KTRAJ> class KKPEff : public KKEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
+      typedef PKTraj<KTRAJ> PKTRAJ;
       typedef typename KKEFF::PDATA PDATA; // forward the typedefs
       typedef typename KKEFF::WDATA WDATA;
       typedef typename KKEFF::KKDATA KKDATA;
@@ -25,7 +26,7 @@ namespace KinKal {
     protected:
       KKPEff() {}
       // reset the cached weight; this must be done for each update cycle
-      void resetCache() { wdata_ = WDATA();
+      void resetCache() { wdata_ = WDATA(); }
       PDATA pdata_; // parameter space description of this effect
       WDATA wdata_; // cache of weight processing in opposite directions, used to build the fit trajectory
   };
@@ -46,7 +47,7 @@ namespace KinKal {
 
   template<> bool KKPEff<KTRAJ>::append(PKTRAJ& fit) override {
     // create a trajectory piece from the cached weight
-    KTRAJ endpiece(KKEFF::referenceTraj());
+    KTRAJ endpiece(KKEFF::refTraj());
     endpiece.params() = PDATA(wdata_);
     // adjust the range appropriately
     endpiece.range() = TRange(time(),fit.range().high());

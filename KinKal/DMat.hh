@@ -3,9 +3,14 @@
 //
 //  Interface describing a piece of detector material
 //
+#include "MatEnv/MatDBInfo.hh"
+#include "MatEnv/DetMaterial.hh"
+#include "MatEnv/TrkParticle.hh"
+
 namespace KinKal {
   class DMat {
     public:
+      // Given the trajectory, find the material 
     private:
   };
 }
