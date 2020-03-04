@@ -6,7 +6,6 @@
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
 #include "MatEnv/TrkParticle.hh"
-
 namespace KinKal {
   class DMat {
     public:
