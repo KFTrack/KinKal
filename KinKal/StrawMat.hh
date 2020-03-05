@@ -25,6 +25,9 @@ namespace KinKal {
       float wallPath(float doca, float ddoca, float adot) const; 
       // add up the material effects for a given doca.
       void intersect(float doca, float ddoca, float adot, std::vector<MIsect>& misects) const;
+      float strawRadius() const { return rad_; }
+      float wallThickness() const { return thick_; }
+      float wireRadius() const { return rwire_; }
     private:
       float rad_; // outer transverse radius of the straw
       float rad2_; // outer transverse radius of the straw squared

@@ -1,11 +1,14 @@
 // 
 // ToyMC test of hits on a LHelix-based 
 //
+#include "MatEnv/MatDBInfo.hh"
+#include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
+#include "KinKal/StrawMat.hh"
 #include "KinKal/Context.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -97,6 +100,7 @@ int main(int argc, char **argv) {
   double pmass;
   unsigned nhits(40);
   int iseed(124223);
+  float rwire(0.025), wthick(0.015);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -174,6 +178,12 @@ int main(int argc, char **argv) {
 // divide time range
   double dt = plhel.range().range()/(nhits-1);
   cout << "True " << plhel << endl;
+  // create straw material
+  MatDBInfo matdbinfo;
+  const DetMaterial* wallmat = matdbinfo.findDetMaterial("straw-wall");
+  const DetMaterial* gasmat = matdbinfo.findDetMaterial("straw-gas");
+  const DetMaterial* wiremat = matdbinfo.findDetMaterial("straw-wire");
+  StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
   // generate hits
   std::vector<StrawHit> hits;
   std::vector<TPolyLine3D*> tpl;
@@ -190,7 +200,7 @@ int main(int argc, char **argv) {
     if(fabs(tp.doca())> ambigdoca) 
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
+    StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;

@@ -1,11 +1,14 @@
 // 
 // ToyMC test of fitting an LHelix-based KKTrk
 //
+#include "MatEnv/MatDBInfo.hh"
+#include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
+#include "KinKal/StrawMat.hh"
 #include "KinKal/Context.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -109,7 +112,7 @@ void createSeed(LHelix& seed){
   }
 }
 
-void createHits(PLHelix const& plhel, std::vector<StrawHit>& shits) {
+void createHits(PLHelix const& plhel,StrawMat const& smat, std::vector<StrawHit>& shits) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = plhel.range().range()/(nhits-1);
@@ -120,7 +123,7 @@ void createHits(PLHelix const& plhel, std::vector<StrawHit>& shits) {
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,rstraw,ambigdoca,ambig);
+    StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
     shits.push_back(sh);
   }
 }
@@ -189,6 +192,13 @@ int main(int argc, char **argv) {
     }
   }
 
+  MatDBInfo matdbinfo;
+  const DetMaterial* wallmat = matdbinfo.findDetMaterial("straw-wall");
+  const DetMaterial* gasmat = matdbinfo.findDetMaterial("straw-gas");
+  const DetMaterial* wiremat = matdbinfo.findDetMaterial("straw-wire");
+  float rwire(0.025), wthick(0.015);
+  StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
+
   pmass = masses[imass];
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
@@ -205,7 +215,7 @@ int main(int argc, char **argv) {
   // generate hits
   std::vector<StrawHit> shits; // this owns the hits
   std::vector<const THit*> thits; // this references them as THits
-  createHits(plhel,shits);
+  createHits(plhel,smat, shits);
   for(auto& shit : shits) thits.push_back(&shit);
   cout << "vector of hit points " << thits.size() << endl;
   // create the fit seed by randomizing the parameters
@@ -273,7 +283,7 @@ int main(int argc, char **argv) {
     LHelix seedhel(tlhel);
     createSeed(seedhel);
     shits.clear();
-    createHits(tplhel,shits);
+    createHits(tplhel,smat, shits);
     thits.clear();
     for(auto& shit : shits) thits.push_back(&shit);
     KKTRK kktrk(seedhel,thits,config);
