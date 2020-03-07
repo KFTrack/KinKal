@@ -2,7 +2,8 @@
 #define KinKal_MIsect_hh
 //
 //  Struct to describe the intersection of a kinematic trajectory with a piece of material
-// 
+//
+class DetMaterial;
 namespace KinKal {
   struct MIsect {
     DetMaterial const& dmat_; // material

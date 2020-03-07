@@ -194,7 +194,7 @@ int main(int argc, char **argv) {
 //    cout << "TLine " << tline << endl;
 // try to create TPoca for a hit
     TPoca<PLHelix,TLine> tp(plhel,tline);
-//    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+//    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
 // only set ambiguity if DOCA is above this value
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) 

@@ -41,6 +41,15 @@ namespace KinKal {
     return retval/sqrt(1.0-adot*adot);
   }
 
+  void StrawMat::intersect(TPocaBase const& tpoca, std::vector<MIsect>& misects) const {
+  // calculate the angle between traj0 and traj1
+    Vec3 dir0, dir1;
+    tpoca.ttraj0().direction(tpoca.t0(),dir0);
+    tpoca.ttraj1().direction(tpoca.t1(),dir1);
+    double adot = dir0.Dot(dir1);
+    return intersect(tpoca.doca(),tpoca.dDoca(),adot,misects);
+  }
+
   void StrawMat::intersect(float doca, float ddoca, float adot, std::vector<MIsect>& misects) const {
     misects.clear();
     misects.push_back(MIsect(wallmat_,wallPath(doca,ddoca,adot)));
@@ -48,6 +57,5 @@ namespace KinKal {
 // for now, take 0 path on the wire: this should be some probability based on doca and ddoca FIXME!
     if(rwire_<0.0) misects.push_back(MIsect(wiremat_,0.0));
   }
-
 
 }

@@ -228,7 +228,7 @@ int main(int argc, char **argv) {
   TLine tline(ppos, pvel,ltime,prange);
 // find TPoca
   TPoca<LHelix,TLine> tp(lhel,tline);
-  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   if(tp.status() == TPocaBase::converged) {
     // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);

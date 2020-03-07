@@ -32,10 +32,11 @@ namespace KinKal {
     public:
       typedef typename T0::PDER PDER; // forward derivative type from the 0th traj parameters
       TDPoca(T0 const& t0, T1 const& t1, double precision=0.01);
-      TDPoca(TPoca<T0,T1> const& tpoca); // 'upgrade' a regular POCA 
+      TDPoca(TPoca<T0,T1> const& tpoca); // 'upgrade' a regular POCA.  This avoids re-computing POCA
       TDPoca() {} 
       PDER const& dDdP() const { return dDdP_; }
-      PDER const& dTdP() const { return dTdP_; } 
+      PDER const& dTdP() const { return dTdP_; }
+      // compute the T0 parameter covariance into an error on DOCA
     private:
       PDER dDdP_; // derivative of DOCA WRT Parameters
       PDER dTdP_; // derivative of Dt WRT Parameters

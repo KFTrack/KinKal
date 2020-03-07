@@ -6,18 +6,22 @@
 //  offset between the wire and the straw
 //
 #include "KinKal/DMat.hh"
-#include "KinKal/MIsect.hh"
 #include "MatEnv/DetMaterial.hh"
 #include "KinKal/Vectors.hh"
 namespace KinKal {
   class StrawMat : public DMat {
     public:
+    // explicit constructor from geometry and materials
       StrawMat(float rad, float thick, float rwire,
 	  DetMaterial const& wallmat, DetMaterial const& gasmat, DetMaterial const& wiremat) :
 	rad_(rad), thick_(thick), rwire_(rwire), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
 	  rad2_ = rad_*rad_;
 	  rdmax_ = (rad_ - thick_)/rad_;
 	}
+	// DMat interface; first, for materials associated with a hit
+      virtual void intersect(TPocaBase const& poca,std::vector<MIsect>& misects) const override;
+      // then in general
+//      template <class KTRAJ> void intersect(KTRAJ const& ktraj, std::vector<MIsect>& misects) const override;
       // pathlength through gas, give DOCA to the axis, uncertainty on that,
       // and the dot product of the path direction WRT the axis.
       float gasPath(float doca, float ddoca, float adot) const;

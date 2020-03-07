@@ -15,7 +15,7 @@ namespace KinKal {
       virtual float inRange(TPocaBase const& tpoca) const override;
       virtual void update(TPocaBase const& tpoca) const override;
       virtual ~StrawHit(){}
-      virtual const StrawMat* detMaterial() const override { return &smat_; }
+      virtual const StrawMat* material() const override { return &smat_; }
     private:
       StrawMat const& smat_; // straw material information
       // add state for longitudinal resolution, transverse resolution FIXME!

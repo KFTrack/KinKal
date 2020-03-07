@@ -1,5 +1,5 @@
-#ifndef KinKal_KalSite_hh
-#define KinKal_KalSite_hh
+#ifndef KinKal_KKTrk_hh
+#define KinKal_KKTrk_hh
 //
 // Primary class of the Kinematic Kalman fit.  This class owns the state describing
 // the fit (hits, material interactions, BField corrections) and coordinates the
@@ -10,7 +10,9 @@
 #include "KinKal/PKTraj.hh"
 #include "KinKal/KKEff.hh"
 #include "KinKal/KKEnd.hh"
+#include "KinKal/KKMHit.hh"
 #include "KinKal/KKHit.hh"
+#include "KinKal/KKMat.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/THit.hh"
 //#include "KinKal/DetElem.hh"
@@ -25,6 +27,9 @@ namespace KinKal {
     unsigned maxniter_; // maximum number of iterations
     double dwt_; // dweighting of initial seed covariance
     double mindchisq_; // minimum change in chisquared for convergence
+    bool addmat_; // add material
+    double tbuff_; // time buffer for final fit
+    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), tbuff_(10.0) {} 
   };
 // struct to define fit status
   struct FitStatus {
@@ -49,7 +54,7 @@ namespace KinKal {
 	}
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
-      // construct from a set of hits and material elements.  Must deweight initial covariance matrix
+      // construct from a set of hits (and materials FIXME!)
       KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits, Config const& config ); 
       void fit(bool force=false); // process the effects.
       FitStatus const& status() const { return status_; }
@@ -63,24 +68,38 @@ namespace KinKal {
       // payload
       Config config_; // configuration
       FitStatus status_; // current fit status
-      PKTRAJ reftraj_; // reference against which the derivatives were evaluated
-      PKTRAJ fittraj_; // result of the current fit
+      PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
+      PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is iterated
       KKCON effects_; // effects used in this fit, sorted by time
   };
 
   template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,Config const& config) : 
     config_(config), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()){
+      // loop over the hits
+      for(auto hit : hits ) {
+	// create the hit effects and insert them in the set
+	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
+	if(config_.addmat_ && hit->material() != 0){
+	  auto iemp = effects_.emplace(new KKMHit(*hit,reftraj));
+	  if(!iemp.second)throw std::runtime_error("Insertion failure");
+	} else{ 
+	  auto iemp = effects_.emplace(new KKHit(*hit,reftraj));
+	  if(!iemp.second)throw std::runtime_error("Insertion failure");
+	}
+      }
+      //add pure material and BField inhomogeneity effects FIXME!
+      // reset the range if necessary
+      if( reftraj_.range().infinite()
+	  || reftraj_.range().low() > effects_.begin()->get()->time()
+	  || reftraj_.range().high() < effects_.end()->get()->time()){
+	reftraj_.range().low() = std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_);
+	reftraj_.range().high() = std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_);
+      }
       // create end effects
       auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
-      // loop over the hits
-      for(auto hit : hits ) {
-	// create the hit effects and insert them in the set
-	iemp = effects_.emplace(new KKHit(*hit,reftraj));
-	if(!iemp.second)throw std::runtime_error("Insertion failure");
-      }
     }
 
   // fit iteration management.  This should cover simulated annealing too FIXME!
@@ -109,6 +128,7 @@ namespace KinKal {
 
   // single fit iteration 
   template <class KTRAJ> bool KKTrk<KTRAJ>::fitIteration() {
+    bool retval(true);
     status_.ndof_ = -(int)KTRAJ::NParams();
     status_.chisq_ = 0.0;
     // fit in both directions
@@ -124,13 +144,19 @@ namespace KinKal {
 	    // I'm not sure this is the most efficient way to get chisq FIXME!
 	    status_.chisq_ += ieff->get()->chisq(fitdata.pData());
 	  }
-	  if(!ieff->get()->process(fitdata,tdir)) return false;
+	  if(!ieff->get()->process(fitdata,tdir)){
+	    retval = false;
+	    break;
+	  }
 	  ieff++;
 	}
       } else {
 	auto ieff = effects_.rbegin();
 	while(ieff != effects_.rend()){
-	  if(!ieff->get()->process(fitdata,tdir)) return false;
+	  if(!ieff->get()->process(fitdata,tdir)){
+	    retval = false;
+	    break;
+	  }
 	  ieff++;
 	}
       }
@@ -141,7 +167,7 @@ namespace KinKal {
     for(auto& ieff : effects_) {
       ieff->append(fittraj_);
     }
-    return true;
+    return retval;
   }
 
   // update fit internal state between iterations

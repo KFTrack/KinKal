@@ -62,7 +62,7 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt); 
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i\n");
 }
 
 // helper function
@@ -137,6 +137,7 @@ int main(int argc, char **argv) {
   unsigned maxniter(10);
   unsigned ntries(1000);
   double mindchisq(0.1);
+  bool addmat(true);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -150,6 +151,7 @@ int main(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
+    {"addmat",     required_argument, 0, 'b'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"mindchisq",     required_argument, 0, 'i'  },
@@ -180,6 +182,8 @@ int main(int argc, char **argv) {
       case 'e' : escale = atof(optarg);
 		 break;
       case 'x' : maxniter = atoi(optarg);
+		 break;
+      case 'b' : addmat = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
@@ -227,6 +231,7 @@ int main(int argc, char **argv) {
   config.dwt_ = 1.0e6;
   config.mindchisq_ = mindchisq;
   config.maxniter_ = maxniter;
+  config.addmat_ = addmat;
   KKTRK kktrk(seedhel,thits,config);
   // fit the track
   kktrk.fit();

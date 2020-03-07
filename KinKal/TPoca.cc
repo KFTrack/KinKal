@@ -116,6 +116,8 @@ namespace KinKal {
 
       // no spatial dependence, DT is purely temporal
       dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
+      // propagate T0 errors to the error on doca
+      ddoca_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
     }
   }
 
@@ -154,6 +156,7 @@ namespace KinKal {
       // copy over state
       dDdP_ = tdpoca.dDdP();
       dTdP_ = tdpoca.dTdP();
+      ddoca_ = tdpoca.dDoca();
     }
   }
   template<> TDPoca<PLHelix,TLine>::TDPoca(PLHelix const& phelix, TLine const& tline, double precision) :

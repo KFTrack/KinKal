@@ -29,7 +29,7 @@ namespace KinKal {
       virtual float inRange(TPocaBase const& tpoca) const = 0;
       bool isActive() const { return active_; }
       Context const& context() const { return context_; }
-      virtual const DMat* detMaterial() const { return 0; } // return the material associated with this hit
+      virtual const DMat* material() const { return 0; } // return the material associated with this hit
     private:
       THit() = delete;
       Context const& context_; // context,including BField for ExB effects

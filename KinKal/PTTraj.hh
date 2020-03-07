@@ -166,9 +166,10 @@ namespace KinKal {
     } else {
       // scan
       retval = 0;
-      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time)){
+      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time) && time > pieces_[retval].range().high()){
 	retval++;
       }
+      if(retval == pieces_.size())throw std::range_error("Failed PTraj range search");
     }
     return retval;
   }

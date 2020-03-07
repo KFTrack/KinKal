@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
   TLine tline(ppos, pvel,time+dtime,prange);
   // create TPoca from these
   TPoca<LHelix,TLine> tp(lhel,tline);
-  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);

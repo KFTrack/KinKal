@@ -20,13 +20,13 @@ namespace KinKal {
     bool hasWData() const { return hasWData_; }
     // add to either parameters or weights
     void append(PDATA const& pdata) {
-      pdata_ += pdata;
+      pData() += pdata;
       // this invalidates the weight information
       hasPData_ = true;
       hasWData_ = false;
     }
     void append(WDATA const& wdata) {
-      wdata_ += wdata;
+      wData() += wdata;
       // this invalidates the parameter information
       hasWData_ = true;
       hasPData_ = false;
