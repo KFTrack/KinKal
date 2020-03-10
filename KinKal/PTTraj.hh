@@ -30,7 +30,7 @@ namespace KinKal {
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
-// If appending requires truncation and allowremove=false, the return is false
+// If appending requires truncation and allowremove=false, the piece is not appended and the return code is false
       virtual bool append(TTRAJ const& newpiece, bool allowremove=false);
       virtual bool prepend(TTRAJ const& newpiece, bool allowremove=false);
       bool add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);

@@ -31,6 +31,13 @@ namespace KinKal {
       virtual TTraj const& ttraj0() const { return *ttraj_[0]; }
       virtual TTraj const& ttraj1() const { return *ttraj_[1]; }
       bool inRange() { return ttraj_[0]->inRange(poca_[0].T()) && ttraj_[1]->inRange(poca_[1].T()); }
+      double dirDot() const { // dot product between directions at POCA
+	Vec3 dir0, dir1;
+	ttraj0().direction(t0(),dir0);
+	ttraj1().direction(t1(),dir1);
+	return dir0.Dot(dir1);
+      }
+
       virtual ~TPocaBase(){}
     protected:
       TPStat status_; // status of computation

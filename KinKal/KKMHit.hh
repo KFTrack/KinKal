@@ -24,6 +24,9 @@ namespace KinKal {
       virtual double chisq(PDATA const& pars) const override { return kkhit_.chisq(pars); }
       virtual bool update(PKTRAJ const& ref) override;
       virtual bool append(PKTRAJ& fit) override { return kkmat_.append(fit); }
+      // accessors
+      KKHIT const& hit() const { return kkhit_; }
+      KKMAT const& mat() const { return kkmat_; }
     private:
       KKHIT kkhit_; // associated hit
       KKMAT kkmat_; // associated material

@@ -12,6 +12,7 @@
 #include "KinKal/Context.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
+#include "KinKal/KTMIsect.hh"
 #include "KinKal/KKTrk.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
@@ -51,6 +52,7 @@ double zrange(3000.0), rmax(800.0); // tracker dimension
 double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double ambigdoca(0.5);// minimum doca to set ambiguity
 double sigt(3); // drift time resolution in ns
+double tbuff(2.0);
 int iseed(124223);
 unsigned nhits(40);
 double escale(5.0);
@@ -112,19 +114,44 @@ void createSeed(LHelix& seed){
   }
 }
 
-void createHits(PLHelix const& plhel,StrawMat const& smat, std::vector<StrawHit>& shits) {
+void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shits,bool addmat) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
-  double dt = plhel.range().range()/(nhits-1);
+  double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
   for(size_t ihit=0; ihit<nhits; ihit++){
-    double htime = plhel.range().low() + ihit*dt;
+    double htime = tbuff + plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime);
-    TPoca<PLHelix,TLine> tp(plhel,tline);
+    TDPoca<PLHelix,TLine> tp(plhel,tline);
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
     StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
     shits.push_back(sh);
+    // compute material effects and change trajectory accordingly
+    if(addmat){
+      std::vector<MIsect> misects;
+      smat.intersect(tp,misects);
+      auto const& endpiece = plhel.nearestPiece(tp.t0());
+      KTMIsect<LHelix> ktmi(endpiece,tp.t0(),misects);
+      Mom4 endmom;
+      endpiece.momentum(tp.t0(),endmom);
+      Vec4 endpos; endpos.SetE(tp.t0());
+      endpiece.position(endpos);
+      for(int idir=0;idir<=KInter::theta2; idir++) {
+	auto mdir = static_cast<KInter::MDir>(idir);
+	double dmom, momvar;
+	ktmi.momEffect(TDir::forwards, mdir, dmom, momvar);
+	// generate a random effect given this variance and mean
+	double dm = TR->Gaus(dmom,sqrt(momvar));
+	Vec3 dmvec;
+	endpiece.dirVector(mdir,tp.t0(),dmvec);
+	dmvec *= dm;
+	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+      }
+      // generate a new piece and append
+      LHelix newend(endpos,endmom,endpiece.charge(),context,TRange(tp.t0(),plhel.range().high()));
+      if(!plhel.append(newend)) cout << "Error appending traj " << newend << endl;
+    }
   }
 }
 
@@ -208,22 +235,20 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
-  cout << "True " << lhel << endl; 
+  cout << "True initial helix" << lhel << endl; 
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
-  plhel.range() = TRange(-0.5*zrange/vel.Z(),0.5*zrange/vel.Z());
-  // generate material effects
-  // FIXME!
-  cout << "True " << plhel << endl;
+  plhel.range() = TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff);
   // generate hits
   std::vector<StrawHit> shits; // this owns the hits
   std::vector<const THit*> thits; // this references them as THits
-  createHits(plhel,smat, shits);
+  createHits(plhel,smat, shits,addmat);
   for(auto& shit : shits) thits.push_back(&shit);
   cout << "vector of hit points " << thits.size() << endl;
-  // create the fit seed by randomizing the parameters
-  LHelix seedhel(lhel);
+  cout << "True " << plhel << endl;
+  // create the fit seed by randomizing the parameters at the middle
+  auto seedhel = plhel.nearestPiece(0.0);
   createSeed(seedhel);
   cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
@@ -240,133 +265,163 @@ int main(int argc, char **argv) {
   for(auto const& eff : effs) {
     cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
     auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
+    auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
     if(ihit != 0){
       cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
+    } else if(imhit != 0){
+      cout << " MHit status " << imhit->hit().poca().status() << " doca " << imhit->hit().poca().doca() << imhit->hit().refResid() << endl;
     } else
       cout << endl;
   }
-  // now repeat this to gain statistics
-  vector<TH1F*> dpgenh(LHelix::NParams());
-  vector<TH1F*> dpullgenh(LHelix::NParams());
-  vector<TH1F*> fiterrh(LHelix::NParams());
-  TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
-  TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
-  TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
-  TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
-  TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
-  TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
-  string htitle, hname;
-  TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",LHelix::NParams(),-0.5,LHelix::NParams()-0.5,LHelix::NParams(), -0.5,LHelix::NParams()-0.5);
-  TAxis* xax = corravg->GetXaxis();
-  TAxis* yax = corravg->GetYaxis();
-  double nsig(10.0);
-  double pscale = nsig/sqrt(nhits);
-  for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
-    auto tpar = static_cast<LHelix::ParamIndex>(ipar);
-    hname = string("d") + LHelix::paramName(tpar);
-    htitle = string("#Delta ") + LHelix::paramTitle(tpar);
-    dpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
-    hname = string("p") + LHelix::paramName(tpar);
-    htitle = string("Pull ") + LHelix::paramTitle(tpar);
-    dpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
-    hname = string("e") + LHelix::paramName(tpar);
-    htitle = string("Error ") + LHelix::paramTitle(tpar);
-    fiterrh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,0.0,pscale*sigmas[ipar]);
-    xax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
-    yax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
-  }
-  for(unsigned itry=0;itry<ntries;itry++){
-    // randomize the helix
-    Vec4 torigin(TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0),TR->Gaus(0.0,3.0));
-    double tphi = TR->Uniform(-M_PI,M_PI);
-    double tcost = TR->Uniform(0.5,0.8);
-    double tsint = sqrt(1.0-tcost*tcost);
-    Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
-    LHelix tlhel(torigin,tmomv,icharge,context);
-    auto const& tpars = tlhel.params();
-    PLHelix tplhel(tlhel);
-    LHelix seedhel(tlhel);
-    createSeed(seedhel);
-    shits.clear();
-    createHits(tplhel,smat, shits);
-    thits.clear();
-    for(auto& shit : shits) thits.push_back(&shit);
-    KKTRK kktrk(seedhel,thits,config);
-    kktrk.fit();
-    // look at the first traj won't work with material effects FIXME!
-    auto const& fpars = kktrk.fitTraj().front().params();
-    // accumulate parameter difference and pull
-    vector<double> cerr(6,0.0);
+  if(ntries <=0 ){
+// now draw using the PTraj
+    TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
+    unsigned np = nhits*plhel.pieces().size();
+    TPolyLine3D* all = new TPolyLine3D(np);
+    all->SetLineColor(kGreen);
+    all->SetLineStyle(kDotted);
+    double ts = (plhel.range().high()-plhel.range().low())/(np-1);
+    for(unsigned ip=0;ip<np;ip++){
+      double tp = plhel.range().low() + ip*ts;
+      Vec3 ppos;
+      plhel.position(tp,ppos);
+      all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+    }
+    all->Draw();
+    // draw the origin and axes
+    TAxis3D* rulers = new TAxis3D();
+    rulers->GetXaxis()->SetAxisColor(kBlue);
+    rulers->GetXaxis()->SetLabelColor(kBlue);
+    rulers->GetYaxis()->SetAxisColor(kCyan);
+    rulers->GetYaxis()->SetLabelColor(kCyan);
+    rulers->GetZaxis()->SetAxisColor(kOrange);
+    rulers->GetZaxis()->SetLabelColor(kOrange);
+    rulers->Draw();
+    pttcan->SaveAs("FitTest_lhelix.root");
+
+  } else {
+    // now repeat this to gain statistics
+    vector<TH1F*> dpgenh(LHelix::NParams());
+    vector<TH1F*> dpullgenh(LHelix::NParams());
+    vector<TH1F*> fiterrh(LHelix::NParams());
+    TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
+    TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
+    TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
+    TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
+    TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
+    TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
+    string htitle, hname;
+    TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",LHelix::NParams(),-0.5,LHelix::NParams()-0.5,LHelix::NParams(), -0.5,LHelix::NParams()-0.5);
+    TAxis* xax = corravg->GetXaxis();
+    TAxis* yax = corravg->GetYaxis();
+    double nsig(10.0);
+    double pscale = nsig/sqrt(nhits);
     for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
-      cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
-      dpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
-      dpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
-      fiterrh[ipar]->Fill(cerr[ipar]);
+      auto tpar = static_cast<LHelix::ParamIndex>(ipar);
+      hname = string("d") + LHelix::paramName(tpar);
+      htitle = string("#Delta ") + LHelix::paramTitle(tpar);
+      dpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      hname = string("p") + LHelix::paramName(tpar);
+      htitle = string("Pull ") + LHelix::paramTitle(tpar);
+      dpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      hname = string("e") + LHelix::paramName(tpar);
+      htitle = string("Error ") + LHelix::paramTitle(tpar);
+      fiterrh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,0.0,pscale*sigmas[ipar]);
+      xax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
+      yax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
     }
-    // accumulate average correlation matrix
-    auto const& cov = fpars.covariance();
-//    auto cormat = cov;
-    for(unsigned ipar=0; ipar <LHelix::NParams();ipar++){
-      for(unsigned jpar=ipar;jpar < LHelix::NParams(); jpar++){
-	double corr = cov[ipar][jpar]/(cerr[ipar]*cerr[jpar]);
-//	cormat[ipar][jpar] = corr;
-	corravg->Fill(ipar,jpar,fabs(corr));
+    for(unsigned itry=0;itry<ntries;itry++){
+      // randomize the helix
+      Vec4 torigin(TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0),TR->Gaus(0.0,3.0));
+      double tphi = TR->Uniform(-M_PI,M_PI);
+      double tcost = TR->Uniform(0.5,0.8);
+      double tsint = sqrt(1.0-tcost*tcost);
+      Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
+      LHelix tlhel(torigin,tmomv,icharge,context);
+      auto const& tpars = tlhel.params();
+      PLHelix tplhel(tlhel);
+      shits.clear();
+      createHits(tplhel,smat, shits,addmat);
+      auto seedhel = tplhel.nearestPiece(0.0);
+      createSeed(seedhel);
+      thits.clear();
+      for(auto& shit : shits) thits.push_back(&shit);
+      KKTRK kktrk(seedhel,thits,config);
+      kktrk.fit();
+      // look at the first traj won't work with material effects FIXME!
+      auto const& fpars = kktrk.fitTraj().front().params();
+      // accumulate parameter difference and pull
+      vector<double> cerr(6,0.0);
+      for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
+	cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
+	dpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
+	dpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
+	fiterrh[ipar]->Fill(cerr[ipar]);
       }
+      // accumulate average correlation matrix
+      auto const& cov = fpars.covariance();
+      //    auto cormat = cov;
+      for(unsigned ipar=0; ipar <LHelix::NParams();ipar++){
+	for(unsigned jpar=ipar;jpar < LHelix::NParams(); jpar++){
+	  double corr = cov[ipar][jpar]/(cerr[ipar]*cerr[jpar]);
+	  //	cormat[ipar][jpar] = corr;
+	  corravg->Fill(ipar,jpar,fabs(corr));
+	}
+      }
+      // accumulate chisquared info
+      double chiprob = TMath::Prob(kktrk.status().chisq_,kktrk.status().ndof_);
+      niter->Fill(kktrk.status().niter_);
+      ndof->Fill(kktrk.status().ndof_);
+      chisq->Fill(kktrk.status().chisq_);
+      chisqndof->Fill(kktrk.status().chisq_/kktrk.status().ndof_);
+      chisqprob->Fill(chiprob);
+      logchisqprob->Fill(log10(chiprob));
     }
-    // accumulate chisquared info
-    double chiprob = TMath::Prob(kktrk.status().chisq_,kktrk.status().ndof_);
-    niter->Fill(kktrk.status().niter_);
-    ndof->Fill(kktrk.status().ndof_);
-    chisq->Fill(kktrk.status().chisq_);
-    chisqndof->Fill(kktrk.status().chisq_/kktrk.status().ndof_);
-    chisqprob->Fill(chiprob);
-    logchisqprob->Fill(log10(chiprob));
-  }
-  TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
-  dpcan->Divide(3,2);
-  for(int ipar=0;ipar<LHelix::NParams();++ipar){
-    dpcan->cd(ipar+1);
-    dpgenh[ipar]->Fit("gaus");
-  }
-  dpcan->SaveAs("FitTest_dp.root");
-  TCanvas* pullcan = new TCanvas("pullcan","pullcan",800,600);
-  pullcan->Divide(3,2);
-  for(int ipar=0;ipar<LHelix::NParams();++ipar){
-    pullcan->cd(ipar+1);
-    dpullgenh[ipar]->Fit("gaus");
-  }
-  pullcan->SaveAs("FitTest_pull.root");
-  TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
-  perrcan->Divide(3,2);
-  for(int ipar=0;ipar<LHelix::NParams();++ipar){
-    perrcan->cd(ipar+1);
-    fiterrh[ipar]->Draw();
-  }
-  perrcan->SaveAs("FitTest_perr.root");
-  TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
-  corrcan->Divide(1,1);
-  corrcan->cd(1);
-  corravg->Scale(1.0/float(ntries));
-  corravg->SetStats(0);
-  gPad->SetLogz(); 
-  corravg->Draw("colorztext0");
-  corrcan->SaveAs("FitTest_corr.root");
+    TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
+    dpcan->Divide(3,2);
+    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+      dpcan->cd(ipar+1);
+      dpgenh[ipar]->Fit("gaus");
+    }
+    dpcan->SaveAs("FitTest_dp.root");
+    TCanvas* pullcan = new TCanvas("pullcan","pullcan",800,600);
+    pullcan->Divide(3,2);
+    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+      pullcan->cd(ipar+1);
+      dpullgenh[ipar]->Fit("gaus");
+    }
+    pullcan->SaveAs("FitTest_pull.root");
+    TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
+    perrcan->Divide(3,2);
+    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+      perrcan->cd(ipar+1);
+      fiterrh[ipar]->Draw();
+    }
+    perrcan->SaveAs("FitTest_perr.root");
+    TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
+    corrcan->Divide(1,1);
+    corrcan->cd(1);
+    corravg->Scale(1.0/float(ntries));
+    corravg->SetStats(0);
+    gPad->SetLogz(); 
+    corravg->Draw("colorztext0");
+    corrcan->SaveAs("FitTest_corr.root");
 
-  TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
-  statuscan->Divide(3,2);
-  statuscan->cd(1);
-  niter->Draw();
-  statuscan->cd(2);
-  ndof->Draw();
-  statuscan->cd(3);
-  chisq->Draw();
-  statuscan->cd(4);
-  chisqndof->Draw();
-  statuscan->cd(5);
-  chisqprob->Draw();
-  statuscan->cd(6);
-  logchisqprob->Draw();
-  statuscan->SaveAs("FitTest_status.root");
-
+    TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
+    statuscan->Divide(3,2);
+    statuscan->cd(1);
+    niter->Draw();
+    statuscan->cd(2);
+    ndof->Draw();
+    statuscan->cd(3);
+    chisq->Draw();
+    statuscan->cd(4);
+    chisqndof->Draw();
+    statuscan->cd(5);
+    chisqprob->Draw();
+    statuscan->cd(6);
+    logchisqprob->Draw();
+    statuscan->SaveAs("FitTest_status.root");
+  }
   exit(EXIT_SUCCESS);
 }

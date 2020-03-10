@@ -38,7 +38,6 @@ namespace KinKal {
       float rdmax_; // maximum relative DOCA
       float thick_; // wall thickness
       float rwire_; // transverse radius of the wire
-      Pol2 axis_; // cylinder axis offset WRT wire.  Not used FIXME!
       DetMaterial const& wallmat_; // material of the straw wall
       DetMaterial const& gasmat_; // material of the straw gas
       DetMaterial const& wiremat_; // material of the wire

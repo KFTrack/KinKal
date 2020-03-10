@@ -50,7 +50,7 @@ double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f\n");
 }
 
 // helper function
@@ -101,6 +101,7 @@ int main(int argc, char **argv) {
   unsigned nhits(40);
   int iseed(124223);
   float rwire(0.025), wthick(0.015);
+  float ddoca(0.1);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -113,6 +114,7 @@ int main(int argc, char **argv) {
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
+    {"ddoca",     required_argument, 0, 'x'  },
   };
 
   int long_index =0;
@@ -139,6 +141,8 @@ int main(int argc, char **argv) {
       case 's' : iseed = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
+		 break;
+      case 'x' : ddoca = atof(optarg);
 		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
@@ -184,6 +188,9 @@ int main(int argc, char **argv) {
   const DetMaterial* gasmat = matdbinfo.findDetMaterial("straw-gas");
   const DetMaterial* wiremat = matdbinfo.findDetMaterial("straw-wire");
   StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
+  TGraph* gplen = new TGraph(nhits); gplen->SetTitle("Gas Pathlength;DOCA (mm);Pathlength (mm)");
+  TGraph* wplen = new TGraph(nhits); wplen->SetTitle("Wall Pathlength;DOCA (mm);Pathlength (mm)");
+
   // generate hits
   std::vector<StrawHit> hits;
   std::vector<TPolyLine3D*> tpl;
@@ -193,7 +200,7 @@ int main(int argc, char **argv) {
     auto tline = GenerateStraw(plhel,htime,TR);
 //    cout << "TLine " << tline << endl;
 // try to create TPoca for a hit
-    TPoca<PLHelix,TLine> tp(plhel,tline);
+    TDPoca<PLHelix,TLine> tp(plhel,tline);
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
 // only set ambiguity if DOCA is above this value
     WireHit::LRAmbig ambig(WireHit::null);
@@ -215,6 +222,14 @@ int main(int argc, char **argv) {
     line->SetLineColor(kRed);
     line->Draw();
     tpl.push_back(line);
+    // compute material effects
+//    double adot = tp.dirDot();
+    double adot =0.0; // transverse
+    gplen->SetPoint(ihit,fabs(tp.doca()), smat.gasPath(tp.doca(),ddoca,adot));
+    wplen->SetPoint(ihit,fabs(tp.doca()), smat.wallPath(tp.doca(),ddoca,adot));
+//    cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),tp.dDoca(),adot)
+//    << " wall path " << smat.wallPath(tp.doca(),tp.dDoca(),adot) << endl;
+
   }
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
@@ -273,6 +288,13 @@ int main(int argc, char **argv) {
   };
   hderivgc->SaveAs("HitDeriv.root");
 
+  TCanvas* mateff = new TCanvas("mateff","mateff",800,600);
+  mateff->Divide(2,2);
+  mateff->cd(1);
+  gplen->Draw("A*");
+  mateff->cd(2);
+  wplen->Draw("A*");
+  mateff->SaveAs("HitMat.root");
 
   exit(EXIT_SUCCESS);
 }
