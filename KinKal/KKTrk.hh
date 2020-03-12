@@ -15,6 +15,7 @@
 #include "KinKal/KKMat.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/THit.hh"
+#include "KinKal/FitStatus.hh"
 //#include "KinKal/DetElem.hh"
 #include <set>
 #include <vector>
@@ -30,15 +31,6 @@ namespace KinKal {
     bool addmat_; // add material
     double tbuff_; // time buffer for final fit
     Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), tbuff_(10.0) {} 
-  };
-// struct to define fit status
-  struct FitStatus {
-    enum status {needsfit=-1,converged,unconverged,failed}; // fit status
-    unsigned niter_; // number of iterations executed;
-    status status_; // current status
-    double chisq_; // current chisquared
-    int ndof_; // number of degrees of freedom
-    FitStatus() : niter_(0), status_(needsfit), chisq_(0.0), ndof_(0) {}
   };
 
   template<class KTRAJ> class KKTrk {
@@ -91,9 +83,9 @@ namespace KinKal {
       // reset the range if necessary
       if( reftraj_.range().infinite()
 	  || reftraj_.range().low() > effects_.begin()->get()->time()
-	  || reftraj_.range().high() < effects_.end()->get()->time()){
-	reftraj_.range().low() = std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_);
-	reftraj_.range().high() = std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_);
+	  || reftraj_.range().high() < effects_.rbegin()->get()->time()){
+	reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_),
+	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_)));
       }
       // create end effects
       auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));

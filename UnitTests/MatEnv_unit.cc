@@ -13,6 +13,7 @@
 #include "TH1F.h"
 #include "TSystem.h"
 #include "THelix.h"
+#include "TFile.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
@@ -113,6 +114,7 @@ int main(int argc, char **argv) {
       double betagamma = dmat->particleBetaGamma(mom,ptype);
       gbetagamma->SetPoint(istep,mom,betagamma);
     }
+    TFile mefile("MatEnv.root","RECREATE");
     TCanvas* matcan = new TCanvas("matcan","MatEnv",1000,1000);
     matcan->Divide(2,2);
     matcan->cd(1);
@@ -123,6 +125,8 @@ int main(int argc, char **argv) {
     gascat->Draw("AC*");
     matcan->cd(4);
     gbetagamma->Draw("AC*");
-    matcan->SaveAs("MatEnv.root");
+    matcan->Write();
+    mefile.Write();
+    mefile.Close();
   }
 }

@@ -27,6 +27,7 @@
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
+#include "TFile.h"
 #include "TCanvas.h"
 #include "TStyle.h"
 #include "TVector3.h"
@@ -40,6 +41,7 @@
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
+#include "Math/VectorUtil.h"
 
 using namespace KinKal;
 using namespace std;
@@ -52,7 +54,7 @@ double zrange(3000.0), rmax(800.0); // tracker dimension
 double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double ambigdoca(0.5);// minimum doca to set ambiguity
 double sigt(3); // drift time resolution in ns
-double tbuff(2.0);
+double tbuff(0.1);
 int iseed(124223);
 unsigned nhits(40);
 double escale(5.0);
@@ -118,6 +120,8 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
+  double desum(0.0);
+  double dscatsum(0.0);
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = tbuff + plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime);
@@ -128,31 +132,48 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
     StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
     shits.push_back(sh);
     // compute material effects and change trajectory accordingly
-    if(addmat){
+    bool simmat(true);
+    if(addmat && simmat){
       std::vector<MIsect> misects;
       smat.intersect(tp,misects);
       auto const& endpiece = plhel.nearestPiece(tp.t0());
       KTMIsect<LHelix> ktmi(endpiece,tp.t0(),misects);
+      double mom = endpiece.momentum(tp.t0());
       Mom4 endmom;
       endpiece.momentum(tp.t0(),endmom);
       Vec4 endpos; endpos.SetE(tp.t0());
       endpiece.position(endpos);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
-	double dmom, momvar;
+	double dmom, momvar, dm;
 	ktmi.momEffect(TDir::forwards, mdir, dmom, momvar);
-	// generate a random effect given this variance and mean
-	double dm = TR->Gaus(dmom,sqrt(momvar));
+	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
+	switch( mdir ) { 
+	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
+	    dm = TR->Gaus(dmom,sqrt(momvar));
+	    dscatsum += dm;
+	    break;
+	  case KinKal::KInter::momdir :
+//	    dm = -TR->Landau(-dmom,sqrt(momvar)); // have to flip sign for root!
+	    dm = dmom;
+	    desum += dm*mom;
+	    break;
+	  default:
+	    throw std::invalid_argument("Invalid direction");
+	}
+//	cout << "direction " << mdir << " doca " << tp.doca() << " dmom " << dmom << " +- " << sqrt(momvar) << " sample " << dm  << endl;
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.t0(),dmvec);
-	dmvec *= dm;
+	dmvec *= dm*mom;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }
       // generate a new piece and append
       LHelix newend(endpos,endmom,endpiece.charge(),context,TRange(tp.t0(),plhel.range().high()));
-      if(!plhel.append(newend)) cout << "Error appending traj " << newend << endl;
+      if(!plhel.append(newend))
+	cout << "Error appending traj " << newend << endl;
     }
   }
+//  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
 }
 
 int main(int argc, char **argv) {
@@ -235,18 +256,25 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
-  cout << "True initial helix" << lhel << endl; 
+  cout << "True initial " << lhel << endl; 
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
-  plhel.range() = TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff);
+  plhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
   // generate hits
   std::vector<StrawHit> shits; // this owns the hits
   std::vector<const THit*> thits; // this references them as THits
   createHits(plhel,smat, shits,addmat);
   for(auto& shit : shits) thits.push_back(&shit);
-  cout << "vector of hit points " << thits.size() << endl;
+//  cout << "vector of hit points " << thits.size() << endl;
   cout << "True " << plhel << endl;
+  double startmom = plhel.momentum(plhel.range().low());
+  double endmom = plhel.momentum(plhel.range().high());
+  Vec3 end, bend;
+  plhel.front().direction(plhel.range().high(),bend);
+  plhel.back().direction(plhel.range().high(),end);
+  double angle = ROOT::Math::VectorUtil::Angle(bend,end);
+  cout << "total momentum change = " << startmom-endmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle
   auto seedhel = plhel.nearestPiece(0.0);
   createSeed(seedhel);
@@ -261,7 +289,7 @@ int main(int argc, char **argv) {
   // fit the track
   kktrk.fit();
   auto const& effs = kktrk.effects();
-  cout << "KKTrk fit status = " << kktrk.status().status_ << " niters " << kktrk.status().niter_ << endl;
+  cout << "KKTrk " << kktrk.status() << endl;
   for(auto const& eff : effs) {
     cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
     auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
@@ -273,21 +301,37 @@ int main(int argc, char **argv) {
     } else
       cout << endl;
   }
+  TFile fitfile("FitTest.root","RECREATE");
   if(ntries <=0 ){
-// now draw using the PTraj
+  // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
-    unsigned np = nhits*plhel.pieces().size();
-    TPolyLine3D* all = new TPolyLine3D(np);
-    all->SetLineColor(kGreen);
-    all->SetLineStyle(kDotted);
-    double ts = (plhel.range().high()-plhel.range().low())/(np-1);
+    auto const& fithel = kktrk.fitTraj();
+    unsigned np = fithel.range().range()*fithel.speed(fithel.range().mid());
+    TPolyLine3D* fitpl = new TPolyLine3D(np);
+    fitpl->SetLineColor(kBlack);
+    fitpl->SetLineStyle(kSolid);
+    cout << "Fit Result " << fithel << endl;
+    double ts = fithel.range().range()/(np-1);
+    for(unsigned ip=0;ip<np;ip++){
+      double tp = fithel.range().low() + ip*ts;
+      Vec3 ppos;
+      fithel.position(tp,ppos);
+      fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+    }
+    fitpl->Draw();
+// now draw the truth 
+    TPolyLine3D* thelpl = new TPolyLine3D(np);
+    thelpl->SetLineColor(kGreen);
+    thelpl->SetLineStyle(kDotted);
+    ts = plhel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = plhel.range().low() + ip*ts;
       Vec3 ppos;
       plhel.position(tp,ppos);
-      all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+      thelpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
-    all->Draw();
+    thelpl->Draw();
+
     // draw the origin and axes
     TAxis3D* rulers = new TAxis3D();
     rulers->GetXaxis()->SetAxisColor(kBlue);
@@ -297,7 +341,7 @@ int main(int argc, char **argv) {
     rulers->GetZaxis()->SetAxisColor(kOrange);
     rulers->GetZaxis()->SetLabelColor(kOrange);
     rulers->Draw();
-    pttcan->SaveAs("FitTest_lhelix.root");
+    pttcan->Write();
 
   } else {
     // now repeat this to gain statistics
@@ -338,8 +382,9 @@ int main(int argc, char **argv) {
       double tsint = sqrt(1.0-tcost*tcost);
       Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
       LHelix tlhel(torigin,tmomv,icharge,context);
-      auto const& tpars = tlhel.params();
       PLHelix tplhel(tlhel);
+      Vec3 vel; tplhel.velocity(0.0,vel);
+      tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
       shits.clear();
       createHits(tplhel,smat, shits,addmat);
       auto seedhel = tplhel.nearestPiece(0.0);
@@ -348,7 +393,8 @@ int main(int argc, char **argv) {
       for(auto& shit : shits) thits.push_back(&shit);
       KKTRK kktrk(seedhel,thits,config);
       kktrk.fit();
-      // look at the first traj won't work with material effects FIXME!
+      // compare parameters at the first traj of both true and fit
+      auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
       // accumulate parameter difference and pull
       vector<double> cerr(6,0.0);
@@ -383,21 +429,21 @@ int main(int argc, char **argv) {
       dpcan->cd(ipar+1);
       dpgenh[ipar]->Fit("gaus");
     }
-    dpcan->SaveAs("FitTest_dp.root");
+    dpcan->Write();
     TCanvas* pullcan = new TCanvas("pullcan","pullcan",800,600);
     pullcan->Divide(3,2);
     for(int ipar=0;ipar<LHelix::NParams();++ipar){
       pullcan->cd(ipar+1);
       dpullgenh[ipar]->Fit("gaus");
     }
-    pullcan->SaveAs("FitTest_pull.root");
+    pullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
     for(int ipar=0;ipar<LHelix::NParams();++ipar){
       perrcan->cd(ipar+1);
       fiterrh[ipar]->Draw();
     }
-    perrcan->SaveAs("FitTest_perr.root");
+    perrcan->Write();
     TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
     corrcan->Divide(1,1);
     corrcan->cd(1);
@@ -405,7 +451,7 @@ int main(int argc, char **argv) {
     corravg->SetStats(0);
     gPad->SetLogz(); 
     corravg->Draw("colorztext0");
-    corrcan->SaveAs("FitTest_corr.root");
+    corrcan->Write();
 
     TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
     statuscan->Divide(3,2);
@@ -421,7 +467,9 @@ int main(int argc, char **argv) {
     chisqprob->Draw();
     statuscan->cd(6);
     logchisqprob->Draw();
-    statuscan->SaveAs("FitTest_status.root");
+    statuscan->Write();
   }
+  fitfile.Write();
+  fitfile.Close();
   exit(EXIT_SUCCESS);
 }

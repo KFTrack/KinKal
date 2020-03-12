@@ -15,6 +15,7 @@
 #include "TH1F.h"
 #include "TSystem.h"
 #include "THelix.h"
+#include "TFile.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
@@ -122,6 +123,7 @@ int main(int argc, char **argv) {
   std::vector<TGraph*> dtpoca;
   // range to change specific parameters; most are a few mm
   std::vector<double> pchange = {10.0,5.0,10.0,10.0,0.1,0.1};
+  TFile tpfile("TPoca.root","RECREATE");
   TCanvas* dtpcan = new TCanvas("dtpcan","DTPoca",1200,800);
   dtpcan->Divide(3,2);
   for(int ipar=0;ipar<lhel.npars_;ipar++){
@@ -146,7 +148,9 @@ int main(int argc, char **argv) {
     dtpcan->cd(ipar+1);
     dtpoca.back()->Draw("AC*");
   }
-  dtpcan->SaveAs("TPoca.root");
+  dtpcan->Write();
+  tpfile.Write();
+  tpfile.Close();
   return 0;
 }
 

@@ -124,7 +124,7 @@ int main(int argc, char **argv) {
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
-
+  TFile lhderiv("LHelixDerivs.root","RECREATE");
   // loop over derivative directions
   for(int idir=0;idir<3;++idir){
     KInter::MDir tdir =static_cast<KInter::MDir>(idir);
@@ -203,10 +203,9 @@ int main(int argc, char **argv) {
       refhel.dirVector(KInter::theta2,ttest,changedir);
       mom2graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
     }
-    // draw comparisons
     char title[80];
     char name[80];
-    snprintf(name,80,"dhcan%s",KInter::directionName(tdir).c_str());
+    snprintf(name,80,"dh%s",KInter::directionName(tdir).c_str());
     snprintf(title,80,"Helix Change %s",KInter::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(name,title,1200,800);
     dhcan[idir]->Divide(3,2);
@@ -223,8 +222,9 @@ int main(int argc, char **argv) {
     dhcan[idir]->cd(6);
     cygraph[idir]->Draw("AC*");
     dhcan[idir]->Draw();
+    dhcan[idir]->Write();
 
-    snprintf(name,80,"dmcan_%s",KInter::directionName(tdir).c_str());
+    snprintf(name,80,"dm%s",KInter::directionName(tdir).c_str());
     snprintf(title,80,"Mom Change %s",KInter::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(name,title,800,800);
     dmomcan[idir]->Divide(2,2);
@@ -237,15 +237,10 @@ int main(int argc, char **argv) {
     dmomcan[idir]->cd(4);
     gapgraph[idir]->Draw("AC*");
     dmomcan[idir]->Draw();
-  
-    char fname[100];
-    snprintf(fname,100,"LHelixDerivs_dh_%s.root",KInter::directionName(tdir).c_str());
-    dhcan[idir]->SaveAs(fname);
-    snprintf(fname,100,"LHelixDerivs_dmom_%s.root",KInter::directionName(tdir).c_str());
-    dmomcan[idir]->SaveAs(fname);
-
+    dmomcan[idir]->Write();
   }
-
- return 0;
+  lhderiv.Write();
+  lhderiv.Close();
+  return 0;
 }
 

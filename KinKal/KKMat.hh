@@ -9,6 +9,7 @@
 #include "KinKal/KTMIsect.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/TDir.hh"
+#include <iostream>
 namespace KinKal {
   template<class KTRAJ> class KKMat : public KKPEff<KTRAJ> {
     public:
@@ -83,6 +84,9 @@ namespace KinKal {
        MVar(0,0) = momvar;
        this->pdata_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
      }
+     // constrain time continuity.  This is a hack FIXME!
+//     std::cout << "pdata " << this->pdata_.covariance() << std::endl;
+//     this->pdata_.covariance()[5][5] = 0.0;
      return true;
    }
 

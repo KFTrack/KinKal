@@ -35,33 +35,23 @@ namespace KinKal {
     // compute the derivative of momentum to energy
     double mom = ktraj_.momentum(tisect_);
     double mass = ktraj_.mass();
-    double dmdE = sqrt(mom*mom+mass*mass)/mom;
+    double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     for(auto const& misect : misects_){
       switch (mdir) {
 	case KInter::momdir:
-	  switch (tdir) {
-	    case TDir::forwards:
-	      dmom += misect.dmat_.energyLoss(mom,misect.plen_,mass)*dmdE;
-	      momvar += misect.dmat_.energyLossVar(mom,misect.plen_,mass)*dmdE*dmdE;
-	      break;
-	    case TDir::backwards:
-	      dmom += misect.dmat_.energyGain(mom,misect.plen_,mass)*dmdE;
-	      momvar += misect.dmat_.energyLossVar(mom,misect.plen_,mass)*dmdE*dmdE;
-	      break;
-	    default :
-	      throw std::invalid_argument("Invalid direction");
-	  }
-	  break;
-	  // scattering is the same in both directions
+	  // compute FRACTIONAL momentum change and variance on that in the given direction
+	  momvar += misect.dmat_.energyLossVar(mom,misect.plen_,mass)*dmFdE*dmFdE;
+	  dmom += misect.dmat_.energyLoss(mom,misect.plen_,mass)*dmFdE;
 	case KInter::theta1 : case KInter::theta2:
-	  // time direction doesn't matter for scattering
+	  // scattering is the same in each direction and has no net effect, it only adds noise
 	  momvar += misect.dmat_.scatterAngleVar(mom,misect.plen_,mass);
 	  break;
 	default :
 	  throw std::invalid_argument("Invalid direction");
       }
     }
+    // correct for time direction
+    if(tdir ==TDir::backwards && mdir ==KInter::momdir) dmom *= -1.0;
   }
-
 }
 #endif

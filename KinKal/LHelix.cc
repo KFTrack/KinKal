@@ -168,8 +168,8 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
     ost << " LHelix parameters: ";
     for(size_t ipar=0;ipar < LHelix::npars_;ipar++){
-      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " : " << lhel.param(ipar);
-      if(ipar < LHelix::npars_-1) ost << " , ";
+      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << lhel.param(ipar);
+      if(ipar < LHelix::npars_-1) ost << " ";
     }
     ost << lhel.range();
     return ost;
