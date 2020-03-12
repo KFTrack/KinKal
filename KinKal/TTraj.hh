@@ -25,6 +25,7 @@ namespace KinKal {
       virtual ~TTraj() {}
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
+      virtual void setRange(TRange const& trange) { trange_ = trange; }
       bool inRange(double t) const { return trange_.inRange(t); }
     protected:
       TRange trange_;

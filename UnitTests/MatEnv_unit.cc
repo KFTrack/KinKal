@@ -13,6 +13,7 @@
 #include "TH1F.h"
 #include "TSystem.h"
 #include "THelix.h"
+#include "TFile.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
@@ -87,41 +88,45 @@ int main(int argc, char **argv) {
      + dmat->name() + string(" ") + part.name()
      + string(";Mom (MeV/c);MeV");
     geloss->SetTitle(title.c_str());
-    TGraph* gedep = new TGraph(nstep);
-    title = string("EDep vs Momentum ")
+    TGraph* gelossrms = new TGraph(nstep);
+    title = string("Eloss RMS vs Momentum ")
      + dmat->name() + string(" ") + part.name()
      + string(";Mom (MeV/c);MeV");
-    gedep->SetTitle(title.c_str());
+    gelossrms->SetTitle(title.c_str());
     TGraph* gascat = new TGraph(nstep);
     title = string("Scattering RMS vs Momentum ") 
      + dmat->name() + string(" ") + part.name()
      + string(";Mom (MeV/c);Radians");
+    gascat->SetTitle(title.c_str());
     TGraph* gbetagamma = new TGraph(nstep);
     title = string("Particle #beta#gamma vs Momentum ") 
      + dmat->name() + string(" ") + part.name()
-     + string(";Mom (MeV/c);Radians");
+     + string(";Mom (MeV/c);#beta#gamma");
     gbetagamma->SetTitle(title.c_str());
     for(unsigned istep = 0;istep < nstep; istep++){
       double mom = momstart + istep*momstep;
       double eloss = dmat->energyLoss(mom,thickness,ptype);
       geloss->SetPoint(istep,mom,eloss);
-      double edep = dmat->energyDeposit(mom,thickness,ptype);
-      gedep->SetPoint(istep,mom,edep);
+      double elossrms = dmat->energyLossRMS(mom,thickness,ptype);
+      gelossrms->SetPoint(istep,mom,elossrms);
       double ascat = dmat->scatterAngleRMS(mom,thickness,ptype);
       gascat->SetPoint(istep,mom,ascat);
       double betagamma = dmat->particleBetaGamma(mom,ptype);
       gbetagamma->SetPoint(istep,mom,betagamma);
     }
+    TFile mefile("MatEnv.root","RECREATE");
     TCanvas* matcan = new TCanvas("matcan","MatEnv",1000,1000);
     matcan->Divide(2,2);
     matcan->cd(1);
     geloss->Draw("AC*");
     matcan->cd(2);
-    gedep->Draw("AC*");
+    gelossrms->Draw("AC*");
     matcan->cd(3);
     gascat->Draw("AC*");
     matcan->cd(4);
     gbetagamma->Draw("AC*");
-    matcan->SaveAs("MatEnv.root");
+    matcan->Write();
+    mefile.Write();
+    mefile.Close();
   }
 }

@@ -16,6 +16,7 @@
 #include "TH1F.h"
 #include "TSystem.h"
 #include "THelix.h"
+#include "TFile.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
@@ -178,6 +179,9 @@ int main(int argc, char **argv) {
   << largest << " average gap = " << average << endl;
 
 // draw each piece of the piecetraj
+  char fname[100];
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
+  TFile pkfile(fname,"RECREATE");
   TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
   std::vector<TPolyLine3D*> plhel;
   int icolor(kBlue);
@@ -238,7 +242,7 @@ int main(int argc, char **argv) {
   TLine tline(lpos, pvel,ptraj.range().mid(),prange);
   // create TPoca from these
   TPoca<PLHelix,TLine> tp(ptraj,tline);
-  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);
@@ -266,9 +270,10 @@ int main(int argc, char **argv) {
   TDPoca<PLHelix,TLine> tdp(tp);
   cout << "TDPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
-  char fname[100];
-  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
-  pttcan->SaveAs(fname); 
+  pttcan->Write();
+
+  pkfile.Write();
+  pkfile.Close();
   // 
   return 0;
 }

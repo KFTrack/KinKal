@@ -3,15 +3,12 @@
 //
 //  Interface describing a piece of detector material
 //
-#include "MatEnv/MatDBInfo.hh"
-#include "MatEnv/DetMaterial.hh"
-#include "MatEnv/TrkParticle.hh"
-
+#include "KinKal/MIsect.hh"
+#include "KinKal/TPocaBase.hh"
 namespace KinKal {
   class DMat {
     public:
-      // Given the trajectory, find the material 
-    private:
+      virtual void intersect(TPocaBase const& poca,std::vector<MIsect>& misects) const =0;
   };
 }
 #endif

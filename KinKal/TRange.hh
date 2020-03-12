@@ -18,6 +18,7 @@ namespace KinKal {
       double range() const { return (range_[1]-range_[0]); }
       double& low() { return range_[0]; }
       double& high() { return range_[1]; }
+      bool infinite() const { return high() < low(); }
       bool overlaps(TRange const& other ) const {
 	return (high() > other.low() || low() < other.high()); }
       bool contains(TRange const& other) const {

@@ -5,65 +5,53 @@
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/KInter.hh"
+#include "KinKal/MIsect.hh"
 #include "KinKal/TDir.hh"
-#include "MatEnv/DetMaterial.hh"
 #include <vector>
 #include <stdexcept>
 namespace KinKal {
 // struct to describe a particular interaction with a particular material
-  struct MInter {
-    DetMaterial const& dmat_; // material
-    double plen_; // path length through this material
-    MInter(DetMaterial const& dmat,double plen) : dmat_(dmat), plen_(plen) {}
-  };
-
   template <class KTRAJ> class KTMIsect {
     public:
       // construct from a trajectory and a time:
-      KTMIsect(KTRAJ const& ktraj,double tinter) : ktraj_(ktraj), tinter_(tinter) {}
+      KTMIsect(KTRAJ const& ktraj,double tisect, std::vector<MIsect> misects) : ktraj_(ktraj), tisect_(tisect), misects_(misects) {}
       // append an interaction
-      void addMInter(MInter const& minter) { minters_.push_back(minter); }
+      void addMIsect(MIsect const& misect) { misects_.push_back(misect); }
       // accessors
       KTRAJ const& kTraj() const { return ktraj_; }
-
+      double intersectTime() const { return tisect_; }
+      std::vector<MIsect>const&  matIntersections() { return misects_; }
       // calculate the cumulative material effect from these intersections
-      void momEffect(TDir tdir, KInter::MDir mdir, double& dmom, double& momvar) {
-	dmom = momvar = 0.0;
-	// compute the derivative of momentum to energy
-	double mom = ktraj_.momentum(tinter_);
-	double mass = ktraj_.mass();
-	double dmdE = sqrt(mom*mom+mass*mass)/mom;
-	for(auto const& minter : minters_){
-	  switch (mdir) {
-	    case momdir:
-	      switch (tdir) {
-		case TDir::forwards:
-		  dmom += minter.dmat_.energyLoss(mom,minter.plen_,mass)*dmdE;
-		  momvar += minter.dmat_.energyLossVar(mom,minter.plen_,mass)*dmdE*dmdE;
-		  break;
-		case TDir::backwards:
-		  dmom += minter.dmat_.energyGain(mom,minter.plen_,mass)*dmdE;
-		  momvar += minter.dmat_.energyLossVar(mom,minter.plen_,mass)*dmdE*dmdE;
-		  break;
-		default :
-		  throw std::invalid_argument("Invalid direction");
-	      }
-	      break;
-	      // scattering is the same in both directions
-	    case theta1 : case theta2:
-	      // time direction doesn't matter for scattering
-	      dmom += minter.dmat_.scatterAngle(mom,minter.plen_,mass);
-	      momvar += minter.dmat_.scatterAngleVar(mom,minter.plen_,mass);
-	      break;
-	    default :
-	      throw std::invalid_argument("Invalid direction");
-	  }
-	}
-      }
+      void momEffect(TDir tdir, KInter::MDir mdir, double& dmom, double& momvar) const;
     private:
       KTRAJ const& ktraj_; // kinematic trajectory which intersects the material
-      double tinter_; // time of the intersection
-      std::vector<MInter> minters_; // material intersections for this piece of matter
+      double tisect_; // time of the intersection
+      std::vector<MIsect> misects_; // material intersections for this piece of matter
   };
+
+
+  template <class KTRAJ> void KTMIsect<KTRAJ>::momEffect(TDir tdir, KInter::MDir mdir, double& dmom, double& momvar) const {
+    dmom = momvar = 0.0;
+    // compute the derivative of momentum to energy
+    double mom = ktraj_.momentum(tisect_);
+    double mass = ktraj_.mass();
+    double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
+    for(auto const& misect : misects_){
+      switch (mdir) {
+	case KInter::momdir:
+	  // compute FRACTIONAL momentum change and variance on that in the given direction
+	  momvar += misect.dmat_.energyLossVar(mom,misect.plen_,mass)*dmFdE*dmFdE;
+	  dmom += misect.dmat_.energyLoss(mom,misect.plen_,mass)*dmFdE;
+	case KInter::theta1 : case KInter::theta2:
+	  // scattering is the same in each direction and has no net effect, it only adds noise
+	  momvar += misect.dmat_.scatterAngleVar(mom,misect.plen_,mass);
+	  break;
+	default :
+	  throw std::invalid_argument("Invalid direction");
+      }
+    }
+    // correct for time direction
+    if(tdir ==TDir::backwards && mdir ==KInter::momdir) dmom *= -1.0;
+  }
 }
 #endif
