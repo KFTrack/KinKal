@@ -16,7 +16,7 @@ namespace KinKal {
   vector<string> LHelix::paramNames_ = {
   "Radius","Lambda","CenterX","CenterY","Phi0","Time0"};
   vector<string> LHelix::paramUnits_ = {
-  "m","mm","mm","mm","radians","ns"};
+  "mm","mm","mm","mm","radians","ns"};
   std::vector<std::string> const& LHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& LHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& LHelix::paramTitles() { return paramTitles_; }
@@ -55,7 +55,7 @@ namespace KinKal {
     LHelix(pdata.parameters(), pdata.covariance(),mass,charge, context, range)
     {}
 
-  LHelix::LHelix( PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,
+  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Context const& context,
       TRange const& range) : TTraj(range), KInter(mass,charge), pars_(pvec,pcov) {
     double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
@@ -126,20 +126,22 @@ namespace KinKal {
 
   }
 
+// derivatives of momentum projected along the given basis WRT the 6 parameters
   void LHelix::momDeriv(MDir mdir, double time, PDER& pder) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
     double pb = pbar();
-    double phival = omval*(time - t0()) + phi0();
+    double dt = time-t0();
+    double phival = omval*dt + phi0();
     // cases
     switch ( mdir ) {
       case theta1:
 	// polar bending: only momentum and position are unchanged
 	pder[rad_] = lam();
 	pder[lam_] = -rad();
-	pder[t0_] = -(time-t0())*rad()/lam();
-	pder[phi0_] = -omval*(time-t0())*rad()/lam();
+	pder[t0_] = -dt*rad()/lam();
+	pder[phi0_] = -omval*dt*rad()/lam();
 	pder[cx_] = -lam()*sin(phival);
 	pder[cy_] = lam()*cos(phival);
 	break;
@@ -156,8 +158,8 @@ namespace KinKal {
 	// fractional momentum change: position and direction are unchanged
 	pder[rad_] = rad();
 	pder[lam_] = lam();
-	pder[t0_] = (time-t0())*(1.0-bval*bval);
-	pder[phi0_] = omval*(time-t0());
+	pder[t0_] = dt*(1.0-bval*bval);
+	pder[phi0_] = omval*dt;
 	pder[cx_] = -rad()*sin(phival);
 	pder[cy_] = +rad()*cos(phival);
 	break;
@@ -165,6 +167,31 @@ namespace KinKal {
 	throw std::invalid_argument("Invalid direction");
     }
   }
+
+  // derivatives of position.Dot(direction) WRT the 6 parameters
+  // these are used to apply the continuity constraint at lossy effects
+  void LHelix::posDeriv(double time, PDER& pder) const {
+  // precompute some values
+    double df = dphi(time);
+    double phival = phi0() + df;
+    double sphi = sin(phival);
+    double cphi = cos(phival);
+    double pb = pbar();
+    double inveb2 = 1.0/ebar2();
+    double invpb = 1.0/pb;
+    double om = omega();
+    double rad2 = rad()*rad();
+
+    pder[rad_] = -pb*inveb2*rad()*df;
+    pder[lam_] = invpb*mbar()*mbar()*lam()*df*inveb2;
+    pder[cx_] = invpb*rad()*cphi;
+    pder[cy_] = invpb*rad()*sphi;
+    pder[phi0_] = invpb*rad2;
+    pder[t0_] = -om*pb;
+
+  }
+
+
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
     ost << " LHelix parameters: ";
     for(size_t ipar=0;ipar < LHelix::npars_;ipar++){

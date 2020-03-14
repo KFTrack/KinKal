@@ -81,7 +81,7 @@ namespace KinKal {
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
     // compute the difference between these parameters and the reference parameters
-    typename PDATA::DVec dpvec = pdata.parameters() - KKEFF::refTraj().params().parameters();
+    typename PDATA::DVEC dpvec = pdata.parameters() - KKEFF::refTraj().params().parameters();
     // use the differnce to 'correct' the reference residual to be WRT these parameters
     double newres = refResid().resid() - ROOT::Math::Dot(dpvec,dRdP()); 
     // project the parameter covariance into a residual space variance (adding the intrinsic variance)

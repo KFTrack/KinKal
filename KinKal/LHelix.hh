@@ -25,6 +25,7 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
+      constexpr static ParamIndex t0Index() { return t0_; }
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type 
@@ -40,7 +41,7 @@ namespace KinKal {
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Context const& context,TRange const& range=TRange());
-      LHelix(PDATA::DVec const& pvec, PDATA::DMat const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
+      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
       virtual ~LHelix() {} 
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
@@ -57,6 +58,9 @@ namespace KinKal {
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
       void momDeriv(MDir mdir, double time, PDER& der) const;
+      // position change derivatives; this is required to instantiate a KalTrk using this KInter
+      // we only care about this along the momentum direction
+      void posDeriv(double time, PDER& der) const;
 
      // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
@@ -70,8 +74,10 @@ namespace KinKal {
       double t0() const { return param(t0_); }
       
       // simple functions 
-      double pbar() const { return  sqrt(rad()*rad() + lam()*lam() ); } // momentum in mm
-      double ebar() const { return  sqrt(rad()*rad() + lam()*lam() + mbar_*mbar_); } // energy in mm
+      double pbar2() const { return  rad()*rad() + lam()*lam(); } 
+      double pbar() const { return  sqrt(pbar2()); } // momentum in mm
+      double ebar2() const { return  rad()*rad() + lam()*lam() + mbar_*mbar_; }
+      double ebar() const { return  sqrt(ebar2()); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mbar_/mass_; } // reduced charge
       double omega() const { return copysign(CLHEP::c_light,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
