@@ -36,7 +36,7 @@ namespace KinKal {
     if(this->isActive()){
       // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
       if(tdir == TDir::backwards)wdata_ += kkdata.wData();
-      kkdata.append(pdata_);
+//      kkdata.append(pdata_);
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards)wdata_ += kkdata.wData();
       retval = kkdata.pData().matrixOK();
@@ -47,14 +47,35 @@ namespace KinKal {
 
   template<class KTRAJ> bool KKPEff<KTRAJ>::append(PKTRAJ& fit) {
     // create a trajectory piece from the cached weight
-    KTRAJ endpiece(KKEFF::refTraj());
-    endpiece.params() = PDATA(wdata_,true);
-    // adjust the range appropriately
-    endpiece.range() = TRange(this->time(),fit.range().high());
+    double time = this->time();
+    KTRAJ newpiece(KKEFF::refTraj());
+    newpiece.params() = PDATA(wdata_,true);
+    newpiece.range() = TRange(time,fit.range().high());
+    // adjust the parameters to enforce spatial continuity.
+    // this comes from a Lagrange multiplier constrained minimization
+    // first, get the position and direction at the reference end
+    KTRAJ const& refpiece = fit.back();
+    Vec3 refpos,refdir,newpos;
+    refpiece.position(time,refpos);
+    refpiece.direction(time,refdir);
+    // now the change in position WRT parameters at this point
+    typename KTRAJ::PDER posderiv;
+    refpiece.posDeriv(time,posderiv);
+    auto const& covmat = newpiece.params().covariance();
+    auto dpar = covmat*posderiv/Similarity(posderiv,covmat);
+    // loop till convergence
+    unsigned niter(0);
+    double dp(100.0);
+    while(fabs(dp) > 1.0 && niter < 10){ // should be a parameter FIXME!
+      newpiece.position(time,newpos);
+      dp = (refpos-newpos).Dot(refdir);
+//      std::cout << "Old dpos " << dp << " iteration "  << niter << std::endl;
+      newpiece.params().parameters() += dp*dpar;
+      niter++;
+    }
     // append this to the fit
-    fit.append(endpiece);
+    fit.append(newpiece);
     return true;
   }
-
 }
 #endif

@@ -36,15 +36,9 @@ namespace KinKal {
     kkmat_(*thit.material(),kkhit_.poca(),thit.isActive()) {}
 
   template <class KTRAJ> bool KKMHit<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
-    // process the effect with the valid cache first; this minimizes the number of matrix inversions
-    bool retval(true);
-    if(kkdata.hasPData()){
-      retval &= kkmat_.process(kkdata,tdir);
-      retval &= kkhit_.process(kkdata,tdir);
-    } else {
-      retval &= kkhit_.process(kkdata,tdir);
-      retval &= kkmat_.process(kkdata,tdir);
-    }
+    // process the hit effect first
+    bool retval = kkhit_.process(kkdata,tdir);
+    retval &= kkmat_.process(kkdata,tdir);
     return retval;
   }
 

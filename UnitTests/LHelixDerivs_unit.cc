@@ -101,10 +101,10 @@ int main(int argc, char **argv) {
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix refhel(origin,momv,icharge,context);
   cout << "Reference " << refhel << endl;
-  Vec4 refpos;
-  refpos.SetE(ttest);
-  refhel.position(refpos);
-  cout << "origin position " << origin << " test position " << refpos << endl;
+  Vec4 refpos4;
+  refpos4.SetE(ttest);
+  refhel.position(refpos4);
+  cout << "origin position " << origin << " test position " << refpos4 << endl;
   Mom4 refmom;
   refhel.momentum(ttest,refmom);
   int ndel(50);
@@ -119,6 +119,8 @@ int main(int argc, char **argv) {
   TGraph* mom0graph[3];
   TGraph* mom1graph[3];
   TGraph* mom2graph[3];
+  // position change
+  TGraph* posgraph[6];
   // gaps
   TGraph* gapgraph[3];
   // canvases
@@ -126,6 +128,7 @@ int main(int argc, char **argv) {
   TCanvas* dmomcan[3];
   TFile lhderiv("LHelixDerivs.root","RECREATE");
   // loop over derivative directions
+  double del = (dmax-dmin)/(ndel-1);
   for(int idir=0;idir<3;++idir){
     KInter::MDir tdir =static_cast<KInter::MDir>(idir);
     Vec3 dmomdir;
@@ -155,14 +158,13 @@ int main(int argc, char **argv) {
     gapgraph[idir]->SetTitle("Gap;change;gap value (mm)");
 
     // scan range of change
-    double del = (dmax-dmin)/(ndel-1);
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
-      LHelix xhel(refpos,momv,icharge,context);
+      LHelix xhel(refpos4,momv,icharge,context);
       // now, compute 1st order change in parameters
       LHelix::PDER pder;
       refhel.momDeriv(tdir,ttest,pder);
@@ -181,7 +183,7 @@ int main(int argc, char **argv) {
       dhel.momentum(ttest,dmom);
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
-      Vec4 gap = dpos - refpos;
+      Vec4 gap = dpos - refpos4;
       gapgraph[idir]->SetPoint(id,delta,sqrt(gap.Vect().Mag2()));
       // parameter diff
       radgraph[idir]->SetPoint(id,xhel.rad()-refhel.rad(),dhel.rad()-refhel.rad());
@@ -239,6 +241,38 @@ int main(int argc, char **argv) {
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();
   }
+
+// now spatial derivatives: these are used to constrain continuity between traj pieces
+  LHelix::PDER pder;
+  refhel.posDeriv(ttest,pder);
+  Vec3 refpos, refdir;
+  refhel.position(ttest,refpos);
+  refhel.direction(ttest,refdir);
+  double refpdot = refpos.Dot(refdir);
+
+  TCanvas* dpdotcan = new TCanvas("dpdot","P dot D derivatives",1200,800);
+  dpdotcan->Divide(3,2);
+  for(size_t ipar=0;ipar< LHelix::NParams();ipar++){
+    LHelix::ParamIndex ip = static_cast<LHelix::ParamIndex>(ipar);
+    posgraph[ipar] = new TGraph(ndel);
+    string title = LHelix::paramName(ip) + string(" #Delta #vec{P} #bullet #vec{D};exact;1st derivative");
+    posgraph[ipar]->SetTitle(title.c_str());
+    LHelix xhel(refhel);
+    for(int id=0;id<ndel;++id){
+      double delta = dmin + del*id;
+      xhel.params().parameters()[ipar] = refhel.params().parameters()[ipar]*(1.0 + delta);
+      Vec3 pos;
+      xhel.position(ttest,pos);
+      double dpdot = pos.Dot(refdir) - refpdot;
+      // linear approximation
+      double dirdpdot = pder[ipar]*delta*refhel.params().parameters()[ipar];
+      posgraph[ipar]->SetPoint(id,dpdot,dirdpdot);
+    }
+    dpdotcan->cd(ipar+1);
+    posgraph[ipar]->Draw("AC*");
+  }
+  dpdotcan->Write();
+
   lhderiv.Write();
   lhderiv.Close();
   return 0;

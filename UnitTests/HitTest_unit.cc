@@ -264,15 +264,15 @@ int main(int argc, char **argv) {
   rulers->Draw();
   hcan->Write();
 // test updating the hit residual and derivatives with different trajectories 
-  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.01, 0.5}; // small parameter changes for derivative calcs
+  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.005, 5.0}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
     auto tpar = static_cast<LHelix::ParamIndex>(ipar);
     hderivg[ipar] = new TGraph(hits.size()*nsteps);
-    std::string title = LHelix::paramTitle(tpar) + " Derivative Test;" 
-    + LHelix::paramName(tpar) +" Exact #Delta" + LHelix::paramUnit(tpar) + ";"
-    + LHelix::paramName(tpar) +" algebraic #Delta" + LHelix::paramUnit(tpar);
+    std::string title = LHelix::paramTitle(tpar) + " Residual Derivative Test;" 
+    + LHelix::paramName(tpar) + " Exact #Delta (mm);"
+    + LHelix::paramName(tpar) + " Algebraic #Delta (mm)";
     hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);

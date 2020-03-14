@@ -165,6 +165,7 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.t0(),dmvec);
 	dmvec *= dm*mom;
+//	dmvec *= 0.0;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }
       // generate a new piece and append
