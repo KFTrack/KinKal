@@ -1,5 +1,5 @@
-// 
-// ToyMC test of hits on a LHelix-based 
+//
+// ToyMC test of hits on a LHelix-based
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
@@ -60,7 +60,7 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   Vec4 hpos; hpos.SetE(htime);
   traj.position(hpos);
   Vec3 hdir; traj.direction(htime,hdir);
-  // generate a random direction for the straw 
+  // generate a random direction for the straw
   double eta = TR->Uniform(-M_PI,M_PI);
   Vec3 sdir(cos(eta),sin(eta),0.0);
   // generate a random drift perp to this and the trajectory
@@ -120,11 +120,11 @@ int main(int argc, char **argv) {
   };
 
   int long_index =0;
-  while ((opt = getopt_long_only(argc, argv,"", 
+  while ((opt = getopt_long_only(argc, argv,"",
 	  long_options, &long_index )) != -1) {
     cout << "found option " << opt << " argument " <<optarg << endl;
     switch (opt) {
-      case 'm' : mom = atof(optarg); 
+      case 'm' : mom = atof(optarg);
 		 break;
       case 'c' : cost = atof(optarg);
 		 break;
@@ -146,7 +146,7 @@ int main(int argc, char **argv) {
 		 break;
       case 'x' : ddoca = atof(optarg);
 		 break;
-      default: print_usage(); 
+      default: print_usage();
 	       exit(EXIT_FAILURE);
     }
   }
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
 // define the context
   UniformBField BF(1.0); // 1 Tesla
   Context context(BF);
-  CVD2T d2t(sdrift,sigt*sigt); 
+  CVD2T d2t(sdrift,sigt*sigt);
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -215,7 +215,7 @@ int main(int argc, char **argv) {
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
 // only set ambiguity if DOCA is above this value
     WireHit::LRAmbig ambig(WireHit::null);
-    if(fabs(tp.doca())> ambigdoca) 
+    if(fabs(tp.doca())> ambigdoca)
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
     StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
@@ -239,7 +239,7 @@ int main(int argc, char **argv) {
     double gpath = smat.gasPath(tp.doca(),ddoca,adot);
     double wpath = smat.wallPath(tp.doca(),ddoca,adot);
     ggplen->SetPoint(ihit,fabs(tp.doca()),gpath );
-    gwplen->SetPoint(ihit,fabs(tp.doca()),wpath); 
+    gwplen->SetPoint(ihit,fabs(tp.doca()),wpath);
     cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),ddoca,adot)
     << " wall path " << smat.wallPath(tp.doca(),ddoca,adot) << endl;
 
@@ -263,22 +263,22 @@ int main(int argc, char **argv) {
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
   hcan->Write();
-// test updating the hit residual and derivatives with different trajectories 
+// test updating the hit residual and derivatives with different trajectories
   vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.005, 5.0}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
     auto tpar = static_cast<LHelix::ParamIndex>(ipar);
     hderivg[ipar] = new TGraph(hits.size()*nsteps);
-    std::string title = LHelix::paramTitle(tpar) + " Residual Derivative Test;" 
+    std::string title = LHelix::paramTitle(tpar) + " Residual Derivative Test;"
     + LHelix::paramName(tpar) + " Exact #Delta (mm);"
     + LHelix::paramName(tpar) + " Algebraic #Delta (mm)";
     hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);
-  for(int istep=0;istep<nsteps; istep++){
+  for(size_t istep=0;istep<nsteps; istep++){
     for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
-      double dpar = delpars[ipar]*(-0.5 + float(istep)/float(nsteps)); 
+      double dpar = delpars[ipar]*(-0.5 + float(istep)/float(nsteps));
       // modify the helix
       LHelix modlhel =lhel;
       modlhel.params().parameters()[ipar] += dpar;
@@ -291,7 +291,7 @@ int main(int argc, char **argv) {
 	Residual ores = kkhit.refResid(); // original residual
 	kkhit.update(modplhel);// refer to moded helix
 	Residual mres = kkhit.refResid();
-	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think 
+	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement
 	// compare the change with the expected from the derivatives
