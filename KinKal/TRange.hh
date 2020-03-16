@@ -2,6 +2,7 @@
 #define KinKal_TRange_hh
 // simple struct to describe a time range, defined [ )
 #include <algorithm>
+#include <ostream>
 #include <array>
 namespace KinKal {
   class TRange {
@@ -17,6 +18,7 @@ namespace KinKal {
       double range() const { return (range_[1]-range_[0]); }
       double& low() { return range_[0]; }
       double& high() { return range_[1]; }
+      bool infinite() const { return high() < low(); }
       bool overlaps(TRange const& other ) const {
 	return (high() > other.low() || low() < other.high()); }
       bool contains(TRange const& other) const {
@@ -28,5 +30,6 @@ namespace KinKal {
     private:
       std::array<double,2> range_; // range of times
   };
+  std::ostream& operator <<(std::ostream& ost, TRange const& trange);
 }
 #endif

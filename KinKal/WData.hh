@@ -5,30 +5,26 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-//#include "KinKal/PData.hh"
 #include <iostream>
 namespace KinKal {
   template <size_t DDIM> class WData : public TData<DDIM> {
     public:
     // forward the typedefs
-      typedef typename TData<DDIM>::DVec DVec;
-      typedef typename TData<DDIM>::DMat DMat;
+      typedef typename TData<DDIM>::DVEC DVEC;
+      typedef typename TData<DDIM>::DMAT DMAT;
       // construct from vector and matrix
-      WData(DVec const& wvec, DMat const& wmat) : TData<DDIM>(wvec,wmat) {}
-      WData(DVec const& wvec) : TData<DDIM>(wvec) {}
+      WData(DVEC const& wvec, DMAT const& wmat) : TData<DDIM>(wvec,wmat) {}
+      WData(DVEC const& wvec) : TData<DDIM>(wvec) {}
+      WData(TData<DDIM> const& tdata,bool inv=false) : TData<DDIM>(tdata,inv) {}
       WData() : TData<DDIM>() {}
-      // construct from a PData object: this requires inversion and may result in an unusable object
-//      WData(PData const& pdata) : WData(pdata,true) {}
-      WData(TData<DDIM> const& tdata,bool invert=false) : TData<DDIM>(tdata,invert) {}
       // accessors; just re-interpret the base class accessors
-      DVec const& weightvec() const { return TData<DDIM>::vec(); }
-      DMat const& weightmat() const { return TData<DDIM>::mat(); }
-      DVec& weightvec() { return TData<DDIM>::vec(); }
-      DMat& weightmat() { return TData<DDIM>::mat(); }
+      DVEC const& weightVec() const { return TData<DDIM>::vec(); }
+      DMAT const& weightMat() const { return TData<DDIM>::mat(); }
+      DVEC& weightVec() { return TData<DDIM>::vec(); }
+      DMAT& weightMat() { return TData<DDIM>::mat(); }
       // addition: only works for other weights
       WData & operator +=(WData const& other) {
-	weightvec() += other.weightvec();
-	weightmat() += other.weightmat();
+	TData<DDIM>::operator +=(other);
 	return *this;
       }
   };

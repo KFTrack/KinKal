@@ -4,8 +4,9 @@
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -15,6 +16,7 @@
 #include "TH1F.h"
 #include "TSystem.h"
 #include "THelix.h"
+#include "TFile.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
@@ -81,9 +83,9 @@ int main(int argc, char **argv) {
 	exit(EXIT_FAILURE);
     }
   }
-  KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
+  KInter::MDir tdir =static_cast<KInter::MDir>(idir);
   cout << "Testing PKTraj with "
-    << nsteps << " kinks in " << KTraj::directionName(tdir) << " direction of size "
+    << nsteps << " kinks in " << KInter::directionName(tdir) << " direction of size "
     << delta << endl;
 
   // create a helix
@@ -101,14 +103,12 @@ int main(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    LHelix::PDer pder;
+    LHelix::PDER pder;
     LHelix const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
     back.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    auto dvec = back.params().parameters();
-    for(size_t ipar=0;ipar<6;ipar++)
-      dvec[ipar] += delta*pder[ipar][0];
+    auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
     LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),context,range);
     // test
@@ -139,14 +139,12 @@ int main(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    LHelix::PDer pder;
+    LHelix::PDER pder;
     LHelix const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
     front.momDeriv(tdir,tcomp,pder);
     // create modified helix
-    auto dvec = front.params().parameters();
-    for(size_t ipar=0;ipar<6;ipar++)
-      dvec[ipar] -= delta*pder[ipar][0];
+    auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
     LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),context,range);
     // test
@@ -181,6 +179,9 @@ int main(int argc, char **argv) {
   << largest << " average gap = " << average << endl;
 
 // draw each piece of the piecetraj
+  char fname[100];
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
+  TFile pkfile(fname,"RECREATE");
   TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
   std::vector<TPolyLine3D*> plhel;
   int icolor(kBlue);
@@ -225,7 +226,7 @@ int main(int argc, char **argv) {
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
 
-// TPOCA test:
+// TPoca test:
   Vec3 midpos, middir;
   ptraj.position(ptraj.range().mid(),midpos);
   ptraj.direction(ptraj.range().mid(),middir);
@@ -233,23 +234,23 @@ int main(int argc, char **argv) {
   Vec3 rdir(cos(lhphi),sin(lhphi),0.0); // radial perpendicular to the helix
   double dphi = atan2(middir.Y(),middir.X());
   Vec3 pdir(-sin(dphi),cos(dphi),0.0);
-  double pspeed = c_*vprop; // vprop is relative to c
+  double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
   Vec3 pvel = pdir*pspeed;
   TRange prange(ptraj.range().mid()-hlen/pspeed, ptraj.range().mid()+hlen/pspeed);
   // shift the position
   Vec3 lpos = midpos + gap*rdir;
   TLine tline(lpos, pvel,ptraj.range().mid(),prange);
-  // create TPOCA from these
-  TPOCA<PLHelix,TLine> tp(ptraj,tline);
-  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
+  // create TPoca from these
+  TPoca<PLHelix,TLine> tp(ptraj,tline);
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
   tp.ttraj0().position(tp.poca0().T(),thpos);
   tp.ttraj1().position(tp.poca1().T(),tlpos);
   double refd = tp.doca();
-  cout << " Helix Pos " << midpos << " TPOCA LHelix pos " << thpos << " TPOCA TLine pos " << tlpos << endl;
-  cout << " TPOCA poca0 " << tp.poca0() << " TPOCA poca1 " << tp.poca1()  << " DOCA " << refd << endl;
-  if(tp.status() == TPOCABase::converged) {
-    // draw the line and TPOCA
+  cout << " Helix Pos " << midpos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
+  cout << " TPoca poca0 " << tp.poca0() << " TPoca poca1 " << tp.poca1()  << " DOCA " << refd << endl;
+  if(tp.status() == TPocaBase::converged) {
+    // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);
@@ -266,12 +267,13 @@ int main(int argc, char **argv) {
   }
 
   // now derivatives
-  TDPOCA<PLHelix,TLine> tdp(tp);
-  cout << "TDPOCA Derivs" << tdp.dDOCAdP() << endl;
+  TDPoca<PLHelix,TLine> tdp(tp);
+  cout << "TDPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
-  char fname[100];
-  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KTraj::directionName(tdir).c_str(),delta);
-  pttcan->SaveAs(fname); 
+  pttcan->Write();
+
+  pkfile.Write();
+  pkfile.Close();
   // 
   return 0;
 }

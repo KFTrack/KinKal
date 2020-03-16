@@ -7,33 +7,32 @@
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
-#include <iostream>
 
 namespace KinKal {
   template <size_t DDIM> class TData {
     public:
-      enum Status {unknown=-1, valid=0, invalid}; //  
+      enum Status {unknown=-1, valid=0, invalid}; // not clear if this is the right place for this FIXME!
       constexpr static size_t PDim() { return DDIM; }
       Status status() const { return status_; }
       bool matrixOK() const { return status_ == valid; }
+      // set status
+      void setStatus(Status status) { status_ = status; }
     protected:
       // define the parameter types
-      typedef ROOT::Math::SVector<double,DDIM> DVec; // data vector
-      typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMat;  // associated matrix
+      typedef ROOT::Math::SVector<double,DDIM> DVEC; // data vector
+      typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMAT;  // associated matrix
       // construct from vector and matrix
-      TData(DVec const& vec, DMat const& mat = ROOT::Math::SVector<double,DDIM>::SMatrixIdentity()) : vec_(vec), mat_(mat), status_(valid) {}// assume valid?  FIXME!
+      TData(DVEC const& vec, DMAT const& mat = ROOT::Math::SVector<double,DDIM>::SMatrixIdentity()) : vec_(vec), mat_(mat), status_(valid) {}// assume valid?  FIXME!
       TData() : status_(invalid) {}
       // copy with optional inversion
       TData(TData const& tdata, bool inv) : TData(tdata) { if (inv) invert(); }
       // accessors
-      DVec const& vec() const { return vec_; }
-      DMat const& mat() const { return mat_; }
-      DVec& vec() { return vec_; }
-      DMat& mat() { return mat_; }
+      DVEC const& vec() const { return vec_; }
+      DMAT const& mat() const { return mat_; }
+      DVEC& vec() { return vec_; }
+      DMAT& mat() { return mat_; }
       // scale the matrix
       void scale(double sfac) { mat_ *= sfac; }
-      // set status
-      void setStatus(Status status) { status_ = status; }
 
       // inversion changes from params <-> weight. 
       // Invert in-place, overriding status
@@ -45,14 +44,26 @@ namespace KinKal {
 	} else
 	  setStatus(invalid);
       }
-      // invert a different object
-      void invert(TData const& other) { 
-	*this = other;
-	invert();
+     // append
+      TData & operator += (TData const& other) {
+	vec_ += other.vec();
+	mat_ += other.mat();
+	//  assume if one is OK they both are (??) FIXME! 
+	if(status() == valid || other.status() == valid)status_=valid;
+	return *this;
       }
+      // subtract: note the covariance is always additive
+      TData & operator -= (TData const& other) {
+	vec_ -= other.vec();
+	mat_ += other.mat();
+	//  assume if one is OK they both are (??) FIXME! 
+	if(status() == valid || other.status() == valid)status_=valid;
+	return *this;
+      }
+
     private:
-      DVec vec_; // parameters
-      DMat mat_; // parameter covariance
+      DVEC vec_; // parameters
+      DMAT mat_; // parameter covariance
       Status status_; // matrix status
   };
 }

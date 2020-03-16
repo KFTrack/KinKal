@@ -1,0 +1,236 @@
+MatEnv Package:
+===============
+
+The MatEnv Package is the material database package responsible 
+for loading and/or retrieving materials information of the BaBar 
+subdetectors from the condition database. 
+
+In MatEnv, material description is based upon 3 base classes: 
+MatMaterialObj for materials, MatElementObj for element and 
+MatIsotopeObj for isotopes.  
+Materials for simulation (Bogus) and reconstruction can be build 
+either from scratch or as mixture of elements and/or materials. 
+Optionally elements can be build as mixture of isotopes. 
+
+
+Storing material information in the Condition database:
+======================================================
+The module responsible for loading the materials information 
+into the database is MatEnvLoad. When invoked MatEnvLoad creates 
+first and for each data type (isotopes, elements, materials) 
+transient collections (MatIsotopeList, MatElementList, MatMaterialList) 
+as RWTPtrOrderedVector of material objects (MatIsotopeObj, 
+MatElementObj, MatMaterialObj). These transient collections are build 
+from materials information stored in ASCII files (IsotopesList.data, 
+ElementsList.data, MaterialsList.data). 
+Once the transient collections are build, persistent version of them 
+are created and then stored in the condition database in a container 
+named matContainer. These persistent collections (MatIsotopeListP, 
+MatElementListP, MatMaterialListP) are oovarrays of the persistent 
+version of material objects (MatIsotopeObjP, MatElementObjP, 
+MatMaterialObjP). 
+
+
+How to load Condition database with materials:
+==============================================
+Since the release 7.5.1 MatEnvLoad module is part of BdbCondLoaders. 
+As a consequence material information is automatically loaded into 
+the condition database at every new release. 
+Caution: It is highly recommended to users not to use material 
+information from the condition database for releases prior to 7.6.2. 
+(releases # < 7.6.2 contain an old MatMaterialObj schema). 
+
+A user who wants to add a new material entry in the 
+condition database is given the possibility to do so. 
+He/she needs to:
+- create a test release based on 7.6.2 onward,
+- add packages MatEnv, PackageList and workdir,
+- in MatEnv directory, edit MaterialsList.data file 
+  and add the new material entry. IsotopesList.data and  
+  ElementsList.data files should not be modified, they are 
+  complete, and contain all known isotopes and elements.
+- in the release directory do "setboot" followed by 
+  "gmake database.import BYPASS_LOAD=yes" (BYPASS_LOAD=yes allows 
+  the user not to load the federation database with the default 
+  material and other database automatically loaded components),
+- build the MatEnv executable (gmake MatEnv.all),
+- copy the tcl script MatEnv.tcl in the workdir directory, 
+  and type "MatEnv MatEnv.tcl", to load material information 
+  into the condition database (MatEnv.tcl is part of MatEnv 
+  package since release 7.7.0).  
+
+
+Retrieving material information from the Condition database:
+============================================================
+Material information is retrieved from the condition database 
+via Proxy classes (MatIsotopeListProxy, MatElementListProxy, 
+MatMaterialListProxy) which basically open the condition database 
+get a handle of the persistent collections of objects (MatIsotopeListP, 
+MatElementListP, MatMaterialListP) and build transient version of 
+them (MatIsotopeList, MatElementList, MatMaterialList). 
+To allow access to materials by their name, the transient collections 
+are stored in hash dictionaries (MatIsoDictionary, MatElmDictionary, 
+MatMtrDictionary) with keys being respectively isotopes, elements 
+and materials names.
+
+A simulation (Bogus) user interacts with material information 
+in the condition database via a class called BgsMatFactory. 
+This class (which is part of Bogus package) is a singleton and 
+is designed in such a way that once the static method getInstance() 
+is invoked the first time, all isotopes, elements and materials are 
+loaded from the condition database into memory via the mechanism 
+described above. This class has three public methods getIsotope(), 
+getElement() and getMaterial() which allow the user to access 
+isotopes, elements and materials information respectively. 
+When invoked, these methods store (if not already existing) the 
+requested G4 object (G4Material, G4Element, G4Isotope) in a dictionary 
+and return it back to the user. 
+Bogus provides a function getMaterial(const G4String&) in BgsEnv 
+which returns a pointer to the G4Material object invoked through 
+its name. This function interacts directly with BgsMatFactory.
+
+
+MatMaterialObj:
+==============
+Name 
+Density 
+Zeff (effective atomic number)  \ Zeff and Aeff are used to  
+Aeff (effetive atomic mass)     / build materials from scratch.
+Number of components:=0 if material build from scratch
+	             >0 components by fraction
+                     <0 components by number of atomes.
+For each component:  weight, component name, id (0:element, 1:material) 
+Radiation length       \
+Interaction length       used for reconstruction purposes.
+Refraction index       /
+Temperature
+Pressure
+State (solid, liquid or gas)
+
+MatElementObj:
+=============
+Name 
+Symbol
+Z (atomic number)
+Aeff (effective atomic mass)
+Number of isotopes
+abundance, isotope name / component
+
+MatIsotopeObj:  (used in simulation only)
+=============
+Name 
+Z (atomic number)
+N (number of nucleons)
+A (atomic mass)
+
+
+List of classes in MatEnv Package:
+==================================
+
+MatIsotopeObj.cc  MatIsotopeObj.hh
+MatIsotopeList.cc MatIsotopeList.hh
+MatIsotopeObjP.cc  MatIsotopeObjP.ddl
+MatIsotopeListP.cc MatIsotopeListP.ddl
+MatIsotopeListProxy.cc MatIsotopeListProxy.hh
+MatIsoDictionary.cc MatIsoDictionary.hh
+
+MatElementObj.cc MatElementObj.hh
+MatElementList.cc MatElementList.hh
+MatElementObjP.cc MatElementObjP.ddl
+MatElementListP.cc MatElementListP.ddl
+MatElementListProxy.cc MatElementListProxy.hh
+MatElmDictionary.cc MatElmDictionary.hh
+
+MatMaterialObj.cc MatMaterialObj.hh
+MatMaterialList.cc MatMaterialList.hh
+MatMaterialObjP.cc MatMaterialObjP.ddl
+MatMaterialListP.cc MatMaterialListP.ddl
+MatMaterialListProxy.cc MatMaterialListProxy.hh
+MatMtrDictionary.cc MatMtrDictionary.hh
+
+MatEnvSchema.hh  
+
+
+Names of materials stored in the condition database: 
+====================================================
+
+# Non subsetectors specific materials
+air     
+
+#
+# Materials build from scratch (i.e. not as a mixture of elements)
+vacuum    
+
+#
+# Subdetectors specific materials
+# Material composition for the beam pipe
+bp-Air   
+bp-H2O   
+bp-SS3316L    
+bp-Sm2Co17    
+bp-Cuwater    
+bp-Steel      
+bp-Steelair   
+bp-Brass      
+bp-SiCarb     
+bp-gold       
+bp-CFiber     
+bp-nickel     
+#
+# Material composition for the Svt
+svt-CFiber    
+svt-Kapton    
+svt-KaptCu    
+svt-Aluminum  
+svt-AlN       
+svt-water     
+svt-Brass     
+svt-Silicon   
+svt-Air       
+svt-Shield    
+#
+# Material composition for the Dch
+dch-CFiber    
+dch-Silicon   
+dch-Tungsten  
+dch-Aluminum  
+dch-Beryllium 
+dch-Copper    
+dch-Air      
+dch-ibu
+dch-He-ibu
+dch-He-ibu-wir
+#
+# Material composition for the Dirc
+dirc-dioxygen 
+dirc-quartz   
+dirc-CFiber   
+dirc-stainless-Fe  
+dirc-water     
+#
+# Material composition for the Emc
+emc-Air         
+emc-Al          
+emc-Fluorinert  
+emc-RSS         
+emc-RFShld      
+emc-CFiber      
+emc-Tyvek       
+emc-CFC         
+emc-CsI         
+emc-PbShld      
+emc-CH2Shld     
+emc-BNShld      
+#
+# Material composition for the Ifr (not complete)
+ifr-RPCgas        
+ifr-RPCfoam       
+ifr-Air        
+ifr-Bakelite  
+ifr-Mylar  
+ifr-Graphite     
+ifr-ABSplastic   
+ifr-Iron       
+
+
+

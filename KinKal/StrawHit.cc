@@ -1,12 +1,15 @@
 #include "KinKal/StrawHit.hh"
+#include <algorithm>
+
 namespace KinKal {
-  bool StrawHit::inCell(TPOCABase const& tpoca, double nsigma) const {
+  float StrawHit::inRange(TPocaBase const& tpoca) const {
     Vec3 tpos; tpoca.delta(tpos); // transverse to wire
     // correct for axis offset FIXME!
-   return sqrt(tpos.Mag2()) < radius_ + nsigma*0.05; // error should come from hit FIXME!
+   float retval = std::max((double)0.0,sqrt(tpos.Mag2()) -smat_.strawRadius()) /0.05; // error should come from hit FIXME!
    // should also check length along straw FIXME!
+   return retval;
   }
-  void StrawHit::update(TPOCABase const& tpoca) const {
+  void StrawHit::update(TPocaBase const& tpoca) const {
     //FIXME!
   }
 }

@@ -3,8 +3,9 @@
 //
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
 #include <stdio.h>
@@ -126,7 +127,7 @@ int main(int argc, char **argv) {
   cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 vel;
   lhel.velocity(ot,vel);
-  double dot = vel.Dot(testmom)/KinKal::c_;
+  double dot = vel.Dot(testmom)/CLHEP::c_light;
   cout << "velocity dot mom = " << dot << endl;
   cout << "momentum beta =" << momv.Beta() << " LHelix beta = " << lhel.beta() << endl;
   Vec3 mdir;
@@ -209,7 +210,7 @@ int main(int argc, char **argv) {
   leg->AddEntry(mend.arrow,title,"L");
   leg->Draw();
 
-  // create a TLine near this helix, and draw it and the TPOCA vector
+  // create a TLine near this helix, and draw it and the TPoca vector
   Vec3 pos, dir;
   lhel.position(ltime,pos);
   lhel.direction(ltime,dir);
@@ -217,7 +218,7 @@ int main(int argc, char **argv) {
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + M_PI/2.0;
   Vec3 pdir(cos(pphi),sin(pphi),0.0);
-  double pspeed = c_*vprop; // vprop is relative to c
+  double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
   Vec3 pvel = pdir*pspeed;
   // shift the position
   Vec3 perpdir(-sin(phi),cos(phi),0.0);
@@ -225,11 +226,11 @@ int main(int argc, char **argv) {
 // time range;
   TRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
   TLine tline(ppos, pvel,ltime,prange);
-// find TPOCA
-  TPOCA<LHelix,TLine> tp(lhel,tline);
-  cout << "TPOCA status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.dt() << endl;
-  if(tp.status() == TPOCABase::converged) {
-    // draw the line and TPOCA
+// find TPoca
+  TPoca<LHelix,TLine> tp(lhel,tline);
+  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+  if(tp.status() == TPocaBase::converged) {
+    // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);

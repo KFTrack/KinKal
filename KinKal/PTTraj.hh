@@ -6,71 +6,89 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TTraj.hh"
+#include "KinKal/TDir.hh"
 #include <deque>
 #include <ostream>
 #include <stdexcept>
 #include <typeinfo>
 
 namespace KinKal {
-  template <class TT> class PTTraj : public TTraj {
+  template <class TTRAJ> class PTTraj : public TTraj {
     public:
-      constexpr static size_t NParams() { return TT::NParams(); }
-      typedef typename std::deque<TT> DTT;
+      constexpr static size_t NParams() { return TTRAJ::NParams(); }
+      typedef typename std::deque<TTRAJ> DTTRAJ;
       // base class implementation
       virtual void position(Vec4& pos) const override;
       virtual void position(double time, Vec3& pos) const override;
       virtual void velocity(double time, Vec3& vel) const override;
       virtual void direction(double time, Vec3& dir) const override;
-// must have at least 1 initial piece
-      PTTraj(TT const& piece);
+      virtual void setRange(TRange const& trange) override;
+// construct without any pieces, but specify the range
+      PTTraj(TRange const& range) : TTraj(range) {}
+// one initial piece
+      PTTraj(TTRAJ const& piece);
       virtual ~PTTraj(){} 
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
-// If appending requires truncation and allowremove=false, the return is false
-      bool append(TT const& newpiece, bool allowremove=false);
-      bool prepend(TT const& newpiece, bool allowremove=false);
-      bool add(TT const& newpiece, TDir tdir=forwards, bool allowremove=false);
+// If appending requires truncation and allowremove=false, the piece is not appended and the return code is false
+      virtual bool append(TTRAJ const& newpiece, bool allowremove=false);
+      virtual bool prepend(TTRAJ const& newpiece, bool allowremove=false);
+      bool add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
-      TT const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& front() const { return pieces_.front(); }
+      TTRAJ const& back() const { return pieces_.back(); }
       size_t nearestIndex(double time) const;
-      DTT const& pieces() const { return pieces_; }
+      DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
       void gaps(double& largest, size_t& ilargest, double& average) const;
     private:
       PTTraj() = delete; // no default/null constructor
-      DTT pieces_; // constituent pieces
+      DTTRAJ pieces_; // constituent pieces
   };
 
-  template <class TT> std::ostream& operator <<(std::ostream& os, PTTraj<TT> const& pttraj) {
-    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TT).name();
+  template <class TTRAJ> std::ostream& operator <<(std::ostream& os, PTTraj<TTRAJ> const& pttraj) {
+    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TTRAJ).name() << pttraj.range() << std::endl;
+    for(auto const& piece : pttraj.pieces()) os << piece << std::endl;
+//    << "Front " << pttraj.front() << std::endl
+//    << "Back " << pttraj.back();
     return os;
   }
 
   // implementation: just return the values from the piece
-  template <class TT> void PTTraj<TT>::position(Vec4& pos) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::position(Vec4& pos) const {
     nearestPiece(pos.T()).position(pos);
   }
-  template <class TT> void PTTraj<TT>::position(double time, Vec3& pos) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::position(double time, Vec3& pos) const {
     nearestPiece(time).position(time,pos);
   }
-  template <class TT> void PTTraj<TT>::velocity(double time, Vec3& vel) const {
-    nearestPiece(time).position(time,vel);
+  template <class TTRAJ> void PTTraj<TTRAJ>::velocity(double time, Vec3& vel) const {
+    nearestPiece(time).velocity(time,vel);
   }
-  template <class TT> void PTTraj<TT>::direction(double time, Vec3& dir) const {
-    nearestPiece(time).position(time,dir);
+  template <class TTRAJ> void PTTraj<TTRAJ>::direction(double time, Vec3& dir) const {
+    nearestPiece(time).direction(time,dir);
+  }
+  template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange) {
+    TTraj::setRange(trange);
+// trim pieces as necessary
+    while(pieces_.size() > 0 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
+    while(pieces_.size() > 0 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
+// update piece range
+    pieces_.front().setRange(TRange(trange.low(),pieces_.front().range().high()));
+    pieces_.back().setRange(TRange(pieces_.front().range().low(),trange.high()));
   }
 
-  template <class TT> PTTraj<TT>::PTTraj(TT const& piece) : TTraj(piece.range()),pieces_(1,piece)
+  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : TTraj(piece.range()),pieces_(1,piece)
   {}
 
-  template <class TT> bool PTTraj<TT>::add(TT const& newpiece, TDir tdir, bool allowremove){
+  template <class TTRAJ> bool PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
     bool retval(false);
     switch (tdir) {
-      case KinKal::forwards:
+      case TDir::forwards:
 	retval = append(newpiece,allowremove);
 	break;
-      case KinKal::backwards:
+      case TDir::backwards:
 	retval = prepend(newpiece,allowremove);
 	break;
       default:
@@ -79,65 +97,84 @@ namespace KinKal {
     return  retval;
   }
 
-  template <class TT> bool PTTraj<TT>::prepend(TT const& newpiece, bool allowremove) {
-    if(pieces_.empty())throw std::length_error("Empty PTTraj!"); 
-    bool retval(allowremove);// if we allow removal this function will always succeed
-    // if the new piece completely contains the existing pieces, overwrite or fail
-    if(newpiece.range().contains(range())){
-      if(allowremove)
-	*this = PTTraj(newpiece);
-    } else {
-      // find the piece that needs to be modified
-      size_t ipiece = nearestIndex(newpiece.range().high());
-      // see if truncation is needed
-      if( allowremove){
-	while(ipiece >0 ) 
-	  pieces_.pop_front();
-	ipiece--;
-      }
-      // if we're at the start, prepend
-      if(ipiece == 0){
-	// update ranges and add the piece
-	pieces_.front().range().low() = newpiece.range().high();
-	range().low() = newpiece.range().low();
-	pieces_.push_front(newpiece);
-	// subtract a small buffer to prevent overlaps
-	pieces_.front().range().high() -= TRange::tbuff_;
-	retval = true;
-      }
-    }
-    return retval;
-  }
+  template <class TTRAJ> bool PTTraj<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
+  // new piece can't have infinite range
+    if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
 
-  template <class TT> bool PTTraj<TT>::append(TT const& newpiece, bool allowremove) {
-    if(pieces_.empty())throw std::length_error("Empty PTTraj!"); 
-    bool retval(allowremove);// if we allow removal this function will always succeed
-    // if the new piece completely contains the existing pieces, overwrite or fail
-    if(newpiece.range().contains(range())){
-      if(allowremove)
-	*this = PTTraj(newpiece);
+    bool retval(false);
+    if(pieces_.empty()){
+      pieces_.push_back(newpiece);
+      // override the range
+      pieces_.front().setRange(range());
+      retval = true;
     } else {
-      // find the piece that needs to be modified
-      size_t ipiece = nearestIndex(newpiece.range().low());
-      // see if truncation is needed
-      if( allowremove){
-	while(ipiece < pieces_.size()-1) {
-	  pieces_.pop_back();
+      retval = allowremove;// if we allow removal this function will always succeed
+      // if the new piece completely contains the existing pieces, overwrite or fail
+      if(newpiece.range().contains(range())){
+	if(allowremove)
+	  *this = PTTraj(newpiece);
+      } else {
+	// find the piece that needs to be modified
+	size_t ipiece = nearestIndex(newpiece.range().high());
+	// see if truncation is needed
+	if( allowremove){
+	  while(ipiece >0 ) 
+	    pieces_.pop_front();
+	  ipiece--;
+	}
+	// if we're at the start, prepend
+	if(ipiece == 0){
+	  // update ranges and add the piece
+	  pieces_.front().range().low() = newpiece.range().high();
+	  range().low() = std::min(range().low(),newpiece.range().low());
+	  pieces_.push_front(newpiece);
+	  // subtract a small buffer to prevent overlaps
+	  pieces_.front().range().high() -= TRange::tbuff_;
+	  retval = true;
 	}
       }
-      // if we're at the end, append
-      if(ipiece == pieces_.size()-1){
-	// update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
-	pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
-	range().high() = newpiece.range().high();
-	pieces_.push_back(newpiece);
-	retval = true;
+    }
+    return retval;
+  }
+
+  template <class TTRAJ> bool PTTraj<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
+  // new piece can't have infinite range
+    if(newpiece.range().infinite())throw std::invalid_argument("Can't append infinite range traj");
+    bool retval(false);
+    if(pieces_.empty()){
+      pieces_.push_back(newpiece);
+      // override the range
+      pieces_.front().setRange(range());
+      retval = true;
+    } else {
+     retval = allowremove;// if we allow removal this function will always succeed
+      // if the new piece completely contains the existing pieces, overwrite or fail
+      if(newpiece.range().contains(range())){
+	if(allowremove)
+	  *this = PTTraj(newpiece);
+      } else {
+	// find the piece that needs to be modified
+	size_t ipiece = nearestIndex(newpiece.range().low());
+	// see if truncation is needed
+	if( allowremove){
+	  while(ipiece < pieces_.size()-1) {
+	    pieces_.pop_back();
+	  }
+	}
+	// if we're at the end, append
+	if(ipiece == pieces_.size()-1){
+	  // update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
+	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
+	  range().high() = std::max(range().high(),newpiece.range().high());
+	  pieces_.push_back(newpiece);
+	  retval = true;
+	}
       }
     }
     return retval;
   }
 
-  template <class TT> size_t PTTraj<TT>::nearestIndex(double time) const {
+  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
     if(time <= range().low()){
@@ -147,14 +184,15 @@ namespace KinKal {
     } else {
       // scan
       retval = 0;
-      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time)){
+      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time) && time > pieces_[retval].range().high()){
 	retval++;
       }
+      if(retval == pieces_.size())throw std::range_error("Failed PTraj range search");
     }
     return retval;
   }
 
-  template <class TT> void PTTraj<TT>::gaps(double& largest,  size_t& ilargest, double& average) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::gaps(double& largest,  size_t& ilargest, double& average) const {
     largest = average = 0.0;
     ilargest =0;
     // loop over adjacent pairs
