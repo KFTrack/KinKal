@@ -10,6 +10,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/TDir.hh"
 #include <iostream>
+#include <stdexcept>
 namespace KinKal {
   template<class KTRAJ> class KKMat : public KKPEff<KTRAJ> {
     public:
@@ -57,7 +58,7 @@ namespace KinKal {
      KKEffBase::updateStatus();
      KKPEFF::resetCache();
      // define the time of this effect using POCA.  Add a small offset, this should be a parameter, FIXME!
-     static double epsilon_(1e-6);
+     static double epsilon_(1e-3);
      time_ = tdpoca.t0() + epsilon_;
      // find and fill the individual material intersections given this poca
      std::vector<MIsect> misects;
@@ -77,16 +78,16 @@ namespace KinKal {
        // for now, do this in the time forwards direction only, in future this may be split
        double dmom, momvar;
        ktmisect.momEffect(TDir::forwards, mdir, dmom, momvar);
+       // test
+       if(isnan(momvar))throw std::runtime_error("Invalid momvar");
        // update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
        this->pdata_.parameters() += pder*dmom;
        // now the variance: this doesn't depend on time direction
        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
        MVar(0,0) = momvar;
        this->pdata_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
+
      }
-     // constrain time continuity.  This is a hack FIXME!
-//     std::cout << "pdata " << this->pdata_.covariance() << std::endl;
-//     this->pdata_.covariance()[5][5] = 0.0;
      return true;
    }
 

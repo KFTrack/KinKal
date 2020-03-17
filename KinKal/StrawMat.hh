@@ -17,6 +17,8 @@ namespace KinKal {
 	rad_(rad), thick_(thick), rwire_(rwire), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
 	  rad2_ = rad_*rad_;
 	  rdmax_ = (rad_ - thick_)/rad_;
+	  wpmax_ = sqrt(8.0*rad_*thick_);
+	  ddmax_ = 0.05*rad_;
 	}
 	// DMat interface; first, for materials associated with a hit
       virtual void intersect(TPocaBase const& poca,std::vector<MIsect>& misects) const override;
@@ -36,6 +38,8 @@ namespace KinKal {
       float rad_; // outer transverse radius of the straw
       float rad2_; // outer transverse radius of the straw squared
       float rdmax_; // maximum relative DOCA
+      float wpmax_; // maximum wall path
+      float ddmax_; // max ddoca to integrate
       float thick_; // wall thickness
       float rwire_; // transverse radius of the wire
       DetMaterial const& wallmat_; // material of the straw wall

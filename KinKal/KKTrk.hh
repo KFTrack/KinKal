@@ -20,6 +20,7 @@
 #include <set>
 #include <vector>
 #include <memory>
+#include <cmath>
 #include <stdexcept>
 
 namespace KinKal {
@@ -105,8 +106,12 @@ namespace KinKal {
 	if(status_.niter_>0) fitOK = update();
 	double oldchisq = status_.chisq_;
 	if(fitOK) fitOK = fitIteration(); // this call updates chisq
-	// test for convergence/divergence 
-	if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_) status_.status_ = FitStatus::converged;
+	// test for convergence/divergence/failure
+	if(isnan(status_.chisq_)){
+	  status_.status_ = FitStatus::failed;
+	  fitOK = false;
+	} else if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_)
+	  status_.status_ = FitStatus::converged;
 	status_.niter_++;
       }
       if(!fitOK){
@@ -135,6 +140,7 @@ namespace KinKal {
 	    status_.ndof_ += ieff->get()->nDOF();
 	    // I'm not sure this is the most efficient way to get chisq FIXME!
 	    status_.chisq_ += ieff->get()->chisq(fitdata.pData());
+	    if(isnan(status_.chisq_))throw std::runtime_error("FPE");
 	  }
 	  if(!ieff->get()->process(fitdata,tdir)){
 	    retval = false;

@@ -86,7 +86,7 @@ def validateDebugLevel():
 def defineMergeFlags( debug_level):
 #   commonFlags = [ '-std=c++17', '-rdynamic', '-Wall', '-Wno-unused-local-typedefs', '-g', '-Werror',
    commonFlags = [ '-std=c++17', '-Wall', '-Wno-unused-local-typedefs', '-g', '-Werror',
-                   '-gdwarf-2', '-Werror=return-type', '-Winit-self', '-Woverloaded-virtual', '-fPIC' ]
+                   '-gdwarf-2', '-Werror=return-type', '-Winit-self', '-Woverloaded-virtual', '-fPIC', '-ftrapping-math' ]
                    # Linker flags
                    #'-Wl,--no-undefined',
 #                   '-Wl,--as-needed' ]
