@@ -7,6 +7,7 @@
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
+#include <stdexcept>
 
 namespace KinKal {
   template <size_t DDIM> class TData {
@@ -41,8 +42,12 @@ namespace KinKal {
 	if(mat_.Invert()){
 	  vec_ = mat_*vec_;
 	  setStatus(valid);
-	} else
+	} else {
 	  setStatus(invalid);
+	  throw std::runtime_error("Inversion failure");
+	}
+	// check
+	if(isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
       }
      // append
       TData & operator += (TData const& other) {

@@ -21,8 +21,11 @@
 #include <typeinfo>
 #include <vector>
 #include <cmath>
+#include <cfenv>
 
 #include "TH1F.h"
+#include "TTree.h"
+#include "TBranch.h"
 #include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
@@ -68,6 +71,13 @@ CVD2T d2t(sdrift,sigt*sigt);
 void print_usage() {
   printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i\n");
 }
+
+struct LHelixPars{
+  Float_t pars_[6];
+  static std::string leafnames() {
+    return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f,:err/f:p0err/f:omerr/f:z0err/f:tderr/f");
+  }
+};
 
 // helper function
 KinKal::TLine GenerateStraw(PLHelix const& traj, double htime) {
@@ -178,6 +188,9 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
 }
 
 int main(int argc, char **argv) {
+// enable throw on FPE
+  fetestexcept(FE_ALL_EXCEPT );
+
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -268,7 +281,7 @@ int main(int argc, char **argv) {
   createHits(plhel,smat, shits,addmat);
   for(auto& shit : shits) thits.push_back(&shit);
 //  cout << "vector of hit points " << thits.size() << endl;
-  cout << "True " << plhel << endl;
+//  cout << "True " << plhel << endl;
   double startmom = plhel.momentum(plhel.range().low());
   double endmom = plhel.momentum(plhel.range().high());
   Vec3 end, bend;
@@ -289,20 +302,24 @@ int main(int argc, char **argv) {
   KKTRK kktrk(seedhel,thits,config);
   // fit the track
   kktrk.fit();
-  auto const& effs = kktrk.effects();
   cout << "KKTrk " << kktrk.status() << endl;
-  for(auto const& eff : effs) {
-    cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
-    auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
-    auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
-    if(ihit != 0){
-      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
-    } else if(imhit != 0){
-      cout << " MHit status " << imhit->hit().poca().status() << " doca " << imhit->hit().poca().doca() << imhit->hit().refResid() << endl;
-    } else
-      cout << endl;
-  }
+//  auto const& effs = kktrk.effects();
+//  for(auto const& eff : effs) {
+//    cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
+//    auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
+//    auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
+//    if(ihit != 0){
+//      cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
+//    } else if(imhit != 0){
+//      cout << " MHit status " << imhit->hit().poca().status() << " doca " << imhit->hit().poca().doca() << imhit->hit().refResid() << endl;
+//    } else
+//      cout << endl;
+//  }
   TFile fitfile("FitTest.root","RECREATE");
+  // tree variables
+  LHelixPars tfpars_, tepars_, fseedpars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
+  float chisq_, temom_, tfmom_, ffitmom_, efitmom_;
+  int ndof_, niter_;
   if(ntries <=0 ){
   // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
@@ -345,6 +362,21 @@ int main(int argc, char **argv) {
     pttcan->Write();
 
   } else {
+    TTree* ftree = new TTree("FitTree","FitTree");
+    ftree->Branch("tfpars.", &tfpars_,LHelixPars::leafnames().c_str());
+    ftree->Branch("tepars.", &tepars_,LHelixPars::leafnames().c_str());
+    ftree->Branch("fseedpars.", &fseedpars_,LHelixPars::leafnames().c_str());
+    ftree->Branch("ffitpars.", &ffitpars_,LHelixPars::leafnames().c_str());
+    ftree->Branch("ffiterrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
+    ftree->Branch("efitpars.", &efitpars_,LHelixPars::leafnames().c_str());
+    ftree->Branch("efiterrs.", &efiterrs_,LHelixPars::leafnames().c_str());
+    ftree->Branch("chisq", &chisq_,"chisq/F");
+    ftree->Branch("ndof", &ndof_,"ndof/I");
+    ftree->Branch("niter", &niter_,"niter/I");
+    ftree->Branch("tfmom", &tfmom_,"tfmom/F");
+    ftree->Branch("temom", &temom_,"temom/F");
+    ftree->Branch("ffitmom", &ffitmom_,"ffitmom/F");
+    ftree->Branch("efitmom", &efitmom_,"efitmom/F");
     // now repeat this to gain statistics
     vector<TH1F*> dpgenh(LHelix::NParams());
     vector<TH1F*> dpullgenh(LHelix::NParams());
@@ -423,7 +455,26 @@ int main(int argc, char **argv) {
       chisqndof->Fill(kktrk.status().chisq_/kktrk.status().ndof_);
       chisqprob->Fill(chiprob);
       logchisqprob->Fill(log10(chiprob));
+      // fill tree
+      for(size_t ipar=0;ipar<6;ipar++){
+	fseedpars_.pars_[ipar] = seedhel.params().parameters()[ipar];
+	tfpars_.pars_[ipar] = tplhel.front().params().parameters()[ipar];
+	tepars_.pars_[ipar] = tplhel.back().params().parameters()[ipar];
+	ffitpars_.pars_[ipar] = kktrk.fitTraj().front().params().parameters()[ipar];
+	efitpars_.pars_[ipar] = kktrk.fitTraj().back().params().parameters()[ipar];
+	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
+	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
+      }
+      tfmom_ = tplhel.front().momentum(tplhel.range().low());
+      temom_ = tplhel.back().momentum(tplhel.range().high());
+      ffitmom_ = kktrk.fitTraj().front().momentum(tplhel.range().low());
+      efitmom_ = kktrk.fitTraj().back().momentum(tplhel.range().high());
+      chisq_ = kktrk.status().chisq_;
+      ndof_ = kktrk.status().ndof_;
+      niter_ = kktrk.status().niter_;
+      ftree->Fill();
     }
+    // fill canvases
     TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
     dpcan->Divide(3,2);
     for(int ipar=0;ipar<LHelix::NParams();++ipar){

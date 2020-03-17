@@ -32,7 +32,7 @@ namespace KinKal {
       hasPData_ = false;
     }
     PDATA& pData() { 
-      if(!hasPData_){
+      if(!hasPData_ && hasWData_ ){
 	// invert the weight
 	pdata_ = PDATA(wdata_,true);
 	hasPData_ = pdata_.matrixOK();
@@ -40,7 +40,7 @@ namespace KinKal {
       return pdata_;
     }
     WDATA& wData() { 
-      if(!hasWData_){
+      if(!hasWData_ && hasPData_ ){
 	// invert the parameters
 	wdata_ = WDATA(pdata_,true);
 	hasWData_ = wdata_.matrixOK();
@@ -49,7 +49,7 @@ namespace KinKal {
     }
     PDATA pdata_; // parameters space representation of (intermediate) fit data
     WDATA wdata_; // weight space representation of fit data
-    bool hasPData_, hasWData_; 
+    bool hasPData_, hasWData_;  // keep track of validity for lazy evaluation
   };
 }
 #endif
