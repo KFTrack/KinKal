@@ -20,9 +20,10 @@ namespace KinKal {
   std::string const& HHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& HHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  HHelix::HHelix( Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,
-      TRange const& range) : TTraj(range), KTraj(mom.M(),charge) {
-    double momToRad = 1000.0 / (charge * context.bNom() * c_);
+  HHelix::HHelix(Vec4 const &pos, Mom4 const &mom, int charge, Context const &context,
+                 TRange const &range) : TTraj(range), KInter(mom.M(), charge)
+  {
+    double momToRad = 1000.0 / (charge * context.bNom() * CLHEP::c_light);
     mbar_ = -mass_*momToRad;
 
     double pt = sqrt(mom.perp2());
@@ -50,8 +51,7 @@ namespace KinKal {
     double dphi = deltaPhi(phival, refphi);
     param(z0_) = dphi * tanDip() / omega();
 
-    param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * c_ * beta());
-
+    param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
   }
 
   double HHelix::deltaPhi(double &phi, double refphi) const
@@ -71,10 +71,10 @@ namespace KinKal {
     return dphi;
   }
 
-  HHelix::HHelix(PDATA::DVec const &pvec, PDATA::DMat const &pcov, double mass, int charge, Context const &context,
-                 TRange const &range) : TTraj(range), KTraj(mass, charge), pars_(pvec, pcov)
+  HHelix::HHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Context const &context,
+                 TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pvec, pcov)
   {
-    double momToRad = 1000.0/(charge_*context.bNom()*c_);
+    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
   }
 
@@ -82,7 +82,7 @@ namespace KinKal {
   {
     double cDip = cosDip();
     double phi00 = phi0();
-    double l = c_ * beta() * (pos.T() - t0()) * cDip;
+    double l = CLHEP::c_light * beta() * (pos.T() - t0()) * cDip;
     double ang = phi00 + l * omega();
     double cang = cos(ang);
     double sang = sin(ang);
@@ -98,7 +98,7 @@ namespace KinKal {
   {
     double cDip = cosDip();
     double phi00 = phi0();
-    double l = c_ * beta() * (t - t0()) * cDip;
+    double l = CLHEP::c_light * beta() * (t - t0()) * cDip;
     double ang = phi00 + l * omega();
     double cang = cos(ang);
     double sang = sin(ang);
@@ -112,7 +112,7 @@ namespace KinKal {
 
   void HHelix::momentum(double tval, Mom4 &mom) const
   {
-    double l = beta() * c_ * (tval - t0()) * cosDip();
+    double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
     mom.SetPx(Q() / omega() * cos(phi0() + omega() * l));
     mom.SetPy(Q() / omega() * sin(phi0() + omega() * l));
     mom.SetPz(Q() / omega() * tanDip());
@@ -128,7 +128,7 @@ namespace KinKal {
   {
     Mom4 mom;
     momentum(tval, mom);
-    vel = mom.Vect() * (c_ * fabs(Q() / ebar()));
+    vel = mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
   void HHelix::direction(double tval, Vec3 &dir) const
@@ -138,19 +138,21 @@ namespace KinKal {
     dir = mom.Vect().Unit();
   }
 
-  void HHelix::dirVector(trajdir dir, double tval, Vec3 &unit) const
+  void HHelix::dirVector(MDir dir, double tval, Vec3 &unit) const
   {
     // FIXME: these formulas need to be verified
     double phival = phi(tval);                   // azimuth at this point
-    double norm = 1.0 / copysign(pbar(), mbar_); // sign matters!
-    double lam = tanDip()/omega();
+    // double norm = 1.0 / copysign(pbar(), mbar_); // sign matters!
+    double sinval = sinDip();
+    double cosval = cosDip();
+
     switch (dir)
     {
     case theta1:
-      unit.SetX(lam * cos(phival));
-      unit.SetY(lam * sin(phival));
-      unit.SetZ(-copysign(1., mbar_) /omega());
-      unit *= norm;
+      unit.SetX(-sinval * cos(phival));
+      unit.SetY(-sinval * sin(phival));
+      unit.SetZ(cosval);
+      // unit *= norm;
       break;
     case theta2: // purely transverse
       unit.SetX(-sin(phival));
@@ -165,13 +167,13 @@ namespace KinKal {
     }
   }
 
-  void HHelix::momDeriv(trajdir dir, double time, PDer& dermat) const {
+  void HHelix::momDeriv(MDir dir, double time, PDer& dermat) const {
     // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
     double cosval = cosDip();
     double omval = omega();
-    double l = c_ * beta() * (time - t0()) * cosDip();
+    double l = CLHEP::c_light * beta() * (time - t0()) * cosDip();
     double d0val = d0();
     double bval = beta();
     // cases
@@ -179,8 +181,8 @@ namespace KinKal {
       case theta1:
         // polar bending: only momentum and position are unchanged
         dermat[d0_][0] = tanval*(1-cos(omval*l))/omval;
-        dermat[phi0_][0] = tanval*sin(omval*l)/(1+omval*d0val);
-        dermat[omega_][0] = -omval*tanval;
+        dermat[phi0_][0] = -tanval*sin(omval*l)/(1+omval*d0val);
+        dermat[omega_][0] = omval*tanval;
         dermat[z0_][0] = tanval*tanval*sin(omval*l)/(omval*(1+omval*d0val)) - l;
         dermat[tanDip_][0] = -1/(cosval*cosval);
         dermat[t0_][0] = -(time-t0())/tanval;
@@ -190,7 +192,7 @@ namespace KinKal {
         dermat[d0_][0] = -sin(omval*l)/(omval*cosval);
         dermat[phi0_][0] = cos(omval*l)/(cosval*(1+omval*d0val));
         dermat[omega_][0] = 0;
-        dermat[z0_][0] = -tanval/(omval*cosval)*(1-cos(omval*l)/(1+omval*d0val));
+        dermat[z0_][0] = tanval/(omval*cosval)*(1-cos(omval*l)/(1+omval*d0val));
         dermat[tanDip_][0] = 0;
         dermat[t0_][0] = 0.;
         break;

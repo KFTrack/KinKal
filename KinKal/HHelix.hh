@@ -7,19 +7,19 @@
 // Original Author David Brown (LBNL) 1/2020
 //
 
-#include "KinKal/Types.hh"
+#include "KinKal/Vectors.hh"
 #include "KinKal/TTraj.hh"
-#include "KinKal/KTraj.hh"
+#include "KinKal/KInter.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/Context.hh"
-#include "KinKal/Constants.hh"
+#include "CLHEP/Units/PhysicalConstants.h"
 #include <vector>
 #include <string>
 #include <ostream>
 
 namespace KinKal {
 
-  class HHelix : public TTraj, public KTraj {
+  class HHelix : public TTraj, public KInter {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
@@ -36,20 +36,23 @@ namespace KinKal {
       // This also requires the BField, through Context
       HHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
       // construct from parameters
-      HHelix(PDATA::DVec const &pvec, PDATA::DMat const &pcov, double mass, int charge, Context const &context, TRange const &range = TRange());
+      HHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Context const &context, TRange const &range = TRange());
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input
       void position(double t,Vec3& pos) const override; // time is input
       void momentum(double t,Mom4& mom) const override;
       void velocity(double time, Vec3& vel) const override;
       void direction(double tval,Vec3& dir) const override;
+      // scalar momentum and energy in MeV/c units
+      double momentum(double time) const override { return mass_ * pbar() / mbar_; }
+      double energy(double time) const override { return mass_ * ebar() / mbar_; }
 
       // local momentum direction basis
-      virtual void dirVector(trajdir dir, double time, Vec3 &unit) const override;
+      virtual void dirVector(MDir dir, double time, Vec3 &unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       typedef ROOT::Math::SMatrix<double, npars_, 1> PDer; // derivative of parameters type in a particular direction
-      void momDeriv(trajdir dir, double time, PDer &der) const;
+      void momDeriv(MDir dir, double time, PDer &der) const;
 
       // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }

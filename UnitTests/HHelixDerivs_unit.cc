@@ -127,10 +127,10 @@ int main(int argc, char **argv) {
 
   // loop over derivative directions
   for(int idir=0;idir<3;++idir){
-    KTraj::trajdir tdir =static_cast<KTraj::trajdir>(idir);
+    KInter::MDir tdir = static_cast<KInter::MDir>(idir);
     Vec3 dmomdir;
     refhel.dirVector(tdir,ttest,dmomdir);
-//    cout << "testing direction " << KTraj::directionName(tdir) << endl;
+//    cout << "testing direction " << KInter::directionName(tdir) << endl;
     // parameter change
 
     d0graph[idir] = new TGraph(ndel);
@@ -199,19 +199,19 @@ int main(int argc, char **argv) {
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
       Vec3 changedir;
-      refhel.dirVector(KTraj::momdir,ttest,changedir);
-      mom0graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KTraj::theta1,ttest,changedir);
-      mom1graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KTraj::theta2,ttest,changedir);
-      mom2graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
+      refhel.dirVector(KInter::momdir, ttest, changedir);
+      mom0graph[idir]->SetPoint(id, dxmom.Dot(changedir), ddmom.Dot(changedir));
+      refhel.dirVector(KInter::theta1, ttest, changedir);
+      mom1graph[idir]->SetPoint(id, dxmom.Dot(changedir), ddmom.Dot(changedir));
+      refhel.dirVector(KInter::theta2, ttest, changedir);
+      mom2graph[idir]->SetPoint(id, dxmom.Dot(changedir), ddmom.Dot(changedir));
     }
 
     // draw comparisons
     char title[80];
     char name[80];
-    snprintf(name,80,"dhcan%s",KTraj::directionName(tdir).c_str());
-    snprintf(title,80,"Helix Change %s",KTraj::directionName(tdir).c_str());
+    snprintf(name,80,"dhcan%s",KInter::directionName(tdir).c_str());
+    snprintf(title,80,"Helix Change %s",KInter::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(name,title,1200,800);
     dhcan[idir]->Divide(3,2);
     dhcan[idir]->cd(1);
@@ -228,8 +228,8 @@ int main(int argc, char **argv) {
     z0graph[idir]->Draw("AC*");
     dhcan[idir]->Draw();
 
-    snprintf(name,80,"dmcan_%s",KTraj::directionName(tdir).c_str());
-    snprintf(title,80,"Mom Change %s",KTraj::directionName(tdir).c_str());
+    snprintf(name,80,"dmcan_%s",KInter::directionName(tdir).c_str());
+    snprintf(title,80,"Mom Change %s",KInter::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(name,title,800,800);
     dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);
@@ -243,9 +243,9 @@ int main(int argc, char **argv) {
     dmomcan[idir]->Draw();
   
     char fname[100];
-    snprintf(fname,100,"HHelixDerivs_dh_%s.root",KTraj::directionName(tdir).c_str());
+    snprintf(fname,100,"HHelixDerivs_dh_%s.root",KInter::directionName(tdir).c_str());
     dhcan[idir]->SaveAs(fname);
-    snprintf(fname,100,"HHelixDerivs_dmom_%s.root",KTraj::directionName(tdir).c_str());
+    snprintf(fname,100,"HHelixDerivs_dmom_%s.root",KInter::directionName(tdir).c_str());
     dmomcan[idir]->SaveAs(fname);
 
   }

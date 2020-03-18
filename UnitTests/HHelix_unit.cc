@@ -3,7 +3,7 @@
 //
 #include "KinKal/HHelix.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPOCA.hh"
+#include "KinKal/TPoca.hh"
 #include "KinKal/Context.hh"
 
 #include <iostream>
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
   cout << "HHelix with momentum " << testmom << " position " << origin << " has parameters: " << HHel << endl;
   Vec3 vel;
   HHel.velocity(ot, vel);
-  double dot = vel.Dot(testmom) / KinKal::c_;
+  double dot = vel.Dot(testmom) / CLHEP::c_light;
   cout << "velocity dot mom = " << dot << endl;
   cout << "momentum beta =" << momv.Beta() << " HHelix beta = " << HHel.beta() << endl;
   Vec3 mdir;

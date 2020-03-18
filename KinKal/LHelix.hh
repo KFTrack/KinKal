@@ -80,7 +80,7 @@ namespace KinKal {
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge
-      double omega() const { return copysign(c_,mbar_)/ebar(); } // rotational velocity, sign set by magnetic force 
+      double omega() const { return copysign(CLHEP::c_light, mbar_) / ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double dphi(double t) const { return omega()*(t - t0()); }
