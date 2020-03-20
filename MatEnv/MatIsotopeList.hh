@@ -29,39 +29,40 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+namespace MatEnv {
 
-class MatIsotopeList
-{
-  
-public:
-  
-  // Constructor to create an Isotope
-  
-  MatIsotopeList();
-  MatIsotopeList(const std::string& isotopesFile); 
-  MatIsotopeList(const std::vector<MatIsotopeObj*>& vector);
+  class MatIsotopeList
+  {
 
-  // Destructor
-  virtual ~MatIsotopeList();
-  
-  inline std::vector<MatIsotopeObj*>* getIsotopeVector();
-  inline const std::vector<MatIsotopeObj*>* getVector() const;
+    public:
 
-private:
- 
-  std::vector<MatIsotopeObj*> _vector;
-  
-  friend bool testCdb(const MatIsotopeList*, const MatIsotopeList*);
-};
+      // Constructor to create an Isotope
 
-inline std::vector<MatIsotopeObj*>* MatIsotopeList::getIsotopeVector()
-{
-  return &_vector;
+      MatIsotopeList();
+      MatIsotopeList(const std::string& isotopesFile); 
+      MatIsotopeList(const std::vector<MatIsotopeObj*>& vector);
+
+      // Destructor
+      virtual ~MatIsotopeList();
+
+      inline std::vector<MatIsotopeObj*>* getIsotopeVector();
+      inline const std::vector<MatIsotopeObj*>* getVector() const;
+
+    private:
+
+      std::vector<MatIsotopeObj*> _vector;
+
+      friend bool testCdb(const MatIsotopeList*, const MatIsotopeList*);
+  };
+
+  inline std::vector<MatIsotopeObj*>* MatIsotopeList::getIsotopeVector()
+  {
+    return &_vector;
+  }
+
+  inline const std::vector<MatIsotopeObj*>* MatIsotopeList::getVector() const
+  {
+    return &_vector;
+  }
 }
-
-inline const std::vector<MatIsotopeObj*>* MatIsotopeList::getVector() const
-{
-  return &_vector;
-}
-
 #endif

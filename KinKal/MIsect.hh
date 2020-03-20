@@ -3,12 +3,12 @@
 //
 //  Struct to describe the intersection of a kinematic trajectory with a piece of material
 //
-class DetMaterial;
+#include "MatEnv/DetMaterial.hh"
 namespace KinKal {
   struct MIsect {
-    DetMaterial const& dmat_; // material
+    MatEnv::DetMaterial const& dmat_; // material
     double plen_; // path length through this material
-    MIsect(DetMaterial const& dmat,double plen) : dmat_(dmat), plen_(plen) {}
+    MIsect(MatEnv::DetMaterial const& dmat,double plen) : dmat_(dmat), plen_(plen) {}
   };
 }
 #endif

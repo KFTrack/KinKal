@@ -39,6 +39,7 @@
 #include "TProfile.h"
 #include "TProfile2D.h"
 
+using namespace MatEnv;
 using namespace KinKal;
 using namespace std;
 // avoid confusion with root

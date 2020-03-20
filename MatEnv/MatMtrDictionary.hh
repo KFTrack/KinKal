@@ -31,24 +31,25 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+namespace MatEnv {
 
-class MatMtrDictionary : public std::map<std::string*, MatMaterialObj*, PtrLess>
-{
+  class MatMtrDictionary : public std::map<std::string*, MatMaterialObj*, PtrLess>
+  {
 
-public:
+    public:
 
-// Constructor 
-  MatMtrDictionary(FileFinderInterface const& interface =SimpleFileFinder());
+      // Constructor 
+      MatMtrDictionary(FileFinderInterface const& interface =SimpleFileFinder());
 
-// Destructor
-  virtual ~MatMtrDictionary();
+      // Destructor
+      virtual ~MatMtrDictionary();
 
-  void FillMtrDict(MatMaterialList* mtrlist);
-  private:
-  FileFinderInterface const& fileFinder_;
+      void FillMtrDict(MatMaterialList* mtrlist);
+    private:
+      FileFinderInterface const& fileFinder_;
 
-};
-
+  };
+}
 #endif /* MATMTRDICTIONARY_HH */
 
 

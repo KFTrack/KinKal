@@ -33,43 +33,44 @@
 #include "MatEnv/ErrLog.hh"
 
 using std::fstream;
+namespace MatEnv {
 
-// Create Constructor
+  // Create Constructor
 
-MatMtrDictionary::MatMtrDictionary(FileFinderInterface const& fileFinder) : fileFinder_(fileFinder)
-{
-  std::string fullPath = fileFinder_.matMtrDictionaryFileName();
-  MatMaterialList* mtrList = new MatMaterialList(fullPath);
-  FillMtrDict(mtrList);
-}
-
-void MatMtrDictionary::FillMtrDict(MatMaterialList* mtrList)
-{
-  std::vector<MatMaterialObj*>* mtrVec = mtrList->getMaterialVector();
-  size_t nmaterial = mtrVec->size();
-  for (size_t im=0; im<nmaterial; im++){
-    //
-    // copy the object into the dictionary. The disctionary now has
-    // ownership of the copied objects. Use clearAndDestroy in dtor to remove
-    // copies from memory.
-    MatMaterialObj* Obj = new MatMaterialObj(*(*mtrVec)[im]);
-    std::string* key = new std::string(Obj->getName());
-    (*this)[key] = Obj;
-    //ErrMsg(routine) << "MatMtrDictionary: Inserted Material " << *key << endmsg;
-    }
-}
-
-MatMtrDictionary::~MatMtrDictionary()
-{
-  std::map<std::string*, MatMaterialObj*, PtrLess>::iterator
-    iter = begin();
-  for (; iter != end(); ++iter) {
-    delete iter->first;
-    delete iter->second;
+  MatMtrDictionary::MatMtrDictionary(FileFinderInterface const& fileFinder) : fileFinder_(fileFinder)
+  {
+    std::string fullPath = fileFinder_.matMtrDictionaryFileName();
+    MatMaterialList* mtrList = new MatMaterialList(fullPath);
+    FillMtrDict(mtrList);
   }
-  clear();
-}
 
+  void MatMtrDictionary::FillMtrDict(MatMaterialList* mtrList)
+  {
+    std::vector<MatMaterialObj*>* mtrVec = mtrList->getMaterialVector();
+    size_t nmaterial = mtrVec->size();
+    for (size_t im=0; im<nmaterial; im++){
+      //
+      // copy the object into the dictionary. The disctionary now has
+      // ownership of the copied objects. Use clearAndDestroy in dtor to remove
+      // copies from memory.
+      MatMaterialObj* Obj = new MatMaterialObj(*(*mtrVec)[im]);
+      std::string* key = new std::string(Obj->getName());
+      (*this)[key] = Obj;
+      //ErrMsg(routine) << "MatMtrDictionary: Inserted Material " << *key << endmsg;
+    }
+  }
+
+  MatMtrDictionary::~MatMtrDictionary()
+  {
+    std::map<std::string*, MatMaterialObj*, PtrLess>::iterator
+      iter = begin();
+    for (; iter != end(); ++iter) {
+      delete iter->first;
+      delete iter->second;
+    }
+    clear();
+  }
+}
 
 
 
