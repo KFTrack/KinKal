@@ -34,78 +34,79 @@
 #include "MatEnv/ErrLog.hh"
 using std::fstream;
 using std::ifstream;
+namespace MatEnv {
 
-//-------------------------------
-// Collaborating Class Headers --
-//-------------------------------
+  //-------------------------------
+  // Collaborating Class Headers --
+  //-------------------------------
 
 
-// Constructor to create an Isotope
+  // Constructor to create an Isotope
 
-MatIsotopeList::MatIsotopeList()
-  : _vector(0)
-{
-}
-
-MatIsotopeList::MatIsotopeList(const std::vector<MatIsotopeObj*>& vector)
-  : _vector(vector)
-{
-}
-
-MatIsotopeList::MatIsotopeList(const std::string& isotopesFile) 
-{
-// open input file isotopesFile to read isotopes one by one 
-  ifstream isotopes( isotopesFile.c_str() );
-  assert( isotopes.good() );
-  if (isotopes.eof()) {
-    ErrMsg(fatal) << "MatEnv/MatIsotopesList.data file empty!" << endmsg; 
+  MatIsotopeList::MatIsotopeList()
+    : _vector(0)
+  {
   }
 
-  std::string chline;
-  std::string tagname;
-  std::string fline;
-
-//  Read, skipping comments
-  tagname = "Isotopes_list";
-  bool tag = false;
-  while(!tag){
-    do {  
-      getline(isotopes, fline);
-    } while (fline == "" && !isotopes.eof());
-    tag = ( fline.find(tagname) != std::string::npos );
+  MatIsotopeList::MatIsotopeList(const std::vector<MatIsotopeObj*>& vector)
+    : _vector(vector)
+  {
   }
-  assert(tag);
-// read first line (Name, Z, N, A)
-  for( size_t i=0; i<4; i++) 
-     { 
-       isotopes >> chline;
-     }
-// read Isotopes data (IsotopeName, Z, N, A)
-  std::string name;
-  int z = 0;
-  int n = 0;
-  double a=0.;
-  isotopes >> name;
-  while( !isotopes.eof() )
-     {
-       isotopes >> z >> n >> a;
-       MatIsotopeObj* isoObj = new MatIsotopeObj();
-       isoObj->setName(name);
-       isoObj->setZ(z);
-       isoObj->setN(n);
-       isoObj->setA(a);
-       _vector.push_back(isoObj);
-//       _vector.push_back(new MatIsotopeObj(name, z, n, a));
-       isotopes >> name;
-     } 
-}
 
-MatIsotopeList::~MatIsotopeList() 
-{
-  std::for_each(_vector.begin(), _vector.end(), DeleteObject());
-  _vector.clear();   
-}
+  MatIsotopeList::MatIsotopeList(const std::string& isotopesFile) 
+  {
+    // open input file isotopesFile to read isotopes one by one 
+    ifstream isotopes( isotopesFile.c_str() );
+    assert( isotopes.good() );
+    if (isotopes.eof()) {
+      ErrMsg(fatal) << "MatEnv/MatIsotopesList.data file empty!" << endmsg; 
+    }
 
+    std::string chline;
+    std::string tagname;
+    std::string fline;
+
+    //  Read, skipping comments
+    tagname = "Isotopes_list";
+    bool tag = false;
+    while(!tag){
+      do {  
+	getline(isotopes, fline);
+      } while (fline == "" && !isotopes.eof());
+      tag = ( fline.find(tagname) != std::string::npos );
+    }
+    assert(tag);
+    // read first line (Name, Z, N, A)
+    for( size_t i=0; i<4; i++) 
+    { 
+      isotopes >> chline;
+    }
+    // read Isotopes data (IsotopeName, Z, N, A)
+    std::string name;
+    int z = 0;
+    int n = 0;
+    double a=0.;
+    isotopes >> name;
+    while( !isotopes.eof() )
+    {
+      isotopes >> z >> n >> a;
+      MatIsotopeObj* isoObj = new MatIsotopeObj();
+      isoObj->setName(name);
+      isoObj->setZ(z);
+      isoObj->setN(n);
+      isoObj->setA(a);
+      _vector.push_back(isoObj);
+      //       _vector.push_back(new MatIsotopeObj(name, z, n, a));
+      isotopes >> name;
+    } 
+  }
+
+  MatIsotopeList::~MatIsotopeList() 
+  {
+    std::for_each(_vector.begin(), _vector.end(), DeleteObject());
+    _vector.clear();   
+  }
+}
 
 
 

@@ -27,50 +27,51 @@
 //-------------------------------
 
 #include <string>
+namespace MatEnv {
 
-class MatIsotopeObj
-{
-   public:   
+  class MatIsotopeObj
+  {
+    public:   
 
-// Constructor to create Isotopes
-    MatIsotopeObj();
-    MatIsotopeObj(const std::string& name, int z, int n, double a);
+      // Constructor to create Isotopes
+      MatIsotopeObj();
+      MatIsotopeObj(const std::string& name, int z, int n, double a);
 
-// Destructor
-    virtual ~MatIsotopeObj();
+      // Destructor
+      virtual ~MatIsotopeObj();
 
-// copy constructor
-    MatIsotopeObj(const MatIsotopeObj&);
+      // copy constructor
+      MatIsotopeObj(const MatIsotopeObj&);
 
-// print constructor
-    void print();
+      // print constructor
+      void print();
 
-// Operators (Assignment op)
-    MatIsotopeObj& operator= ( const MatIsotopeObj& );   
-    int operator==( const MatIsotopeObj& ) const;
+      // Operators (Assignment op)
+      MatIsotopeObj& operator= ( const MatIsotopeObj& );   
+      int operator==( const MatIsotopeObj& ) const;
 
 
-// Selectors
-    const std::string& getName() const { return _isoName; };              
-    int getZ() const { return _isoZ; };           
-    int getN() const { return _isoN; };           
-    double getA() const { return _isoA; };             
+      // Selectors
+      const std::string& getName() const { return _isoName; };              
+      int getZ() const { return _isoZ; };           
+      int getN() const { return _isoN; };           
+      double getA() const { return _isoA; };             
 
-    void setName(const std::string Name) {_isoName=Name;};
-    void setZ(int Z) {_isoZ=Z;};
-    void setN(int N) {_isoN=N;};
-    void setA(double A) {_isoA=A;};
+      void setName(const std::string Name) {_isoName=Name;};
+      void setZ(int Z) {_isoZ=Z;};
+      void setN(int N) {_isoN=N;};
+      void setA(double A) {_isoA=A;};
 
-   private:
- 
-// Basic data members (define an Isotope)
+    private:
 
-    std::string _isoName;
-    int _isoZ;
-    int _isoN;
-    double _isoA;
+      // Basic data members (define an Isotope)
 
-    friend bool testCdb(const MatIsotopeObj*, const MatIsotopeObj*);
-};
+      std::string _isoName;
+      int _isoZ;
+      int _isoN;
+      double _isoA;
 
+      friend bool testCdb(const MatIsotopeObj*, const MatIsotopeObj*);
+  };
+}
 #endif

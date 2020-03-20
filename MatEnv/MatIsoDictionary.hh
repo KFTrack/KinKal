@@ -31,22 +31,23 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+namespace MatEnv {
 
-class MatIsoDictionary : public std::map<std::string*, MatIsotopeObj*, PtrLess>
-{
+  class MatIsoDictionary : public std::map<std::string*, MatIsotopeObj*, PtrLess>
+  {
 
-  public:
+    public:
 
-    // Constructor 
-    MatIsoDictionary(FileFinderInterface const& interface =SimpleFileFinder());
+      // Constructor 
+      MatIsoDictionary(FileFinderInterface const& interface =SimpleFileFinder());
 
-    // Destructor
-    virtual ~MatIsoDictionary();
+      // Destructor
+      virtual ~MatIsoDictionary();
 
-    void FillIsoDict(MatIsotopeList* isolist);
-  private:
-    FileFinderInterface const& fileFinder_;
-};
-
+      void FillIsoDict(MatIsotopeList* isolist);
+    private:
+      FileFinderInterface const& fileFinder_;
+  };
+}
 #endif /* MATISODICTIONARY_HH */
 

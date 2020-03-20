@@ -3,7 +3,6 @@
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
-#include "MatEnv/TrkParticle.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -31,6 +30,7 @@
 #include "TProfile2D.h"
 
 using namespace std;
+using namespace MatEnv;
 
 void print_usage() {
   printf("Usage: MatEnv --material c --particle i --momstart f --momend f --thickness f\n");
@@ -39,9 +39,13 @@ void print_usage() {
 int main(int argc, char **argv) {
 
   string matname("straw-wall");
-  TrkParticle::Type ptype(TrkParticle::e_minus); 
   double momstart(10.0), momend(200.0);
   double thickness(0.015);
+  int imass(0);
+  double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
+  const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
+  double pmass;
+  string pname;
 
   static struct option long_options[] = {
     {"material",     required_argument, 0, 'c'  },
@@ -60,7 +64,7 @@ int main(int argc, char **argv) {
 	matname = string(optarg);
 	break;
       case 'p' : 
-	ptype = static_cast<TrkParticle::Type>(atoi(optarg));
+	imass =atoi(optarg);
 	break;
       case 's' : 
 	momstart = atof(optarg);
@@ -75,43 +79,45 @@ int main(int argc, char **argv) {
 	       exit(EXIT_FAILURE);
     }
   }
+  pmass = masses[imass];
+  pname = pnames[imass];
+  cout << "Test for particle " << pname  << " mass " << pmass << endl;
   cout << "Searching for material " << matname << endl;
   MatDBInfo matdbinfo;
   const DetMaterial* dmat = matdbinfo.findDetMaterial(matname);
   if(dmat != 0){
     cout << "Found DetMaterial " << dmat->name() << endl;
-    TrkParticle part(ptype);
     unsigned nstep(100);
     double momstep = (momend-momstart)/(nstep-1); 
     TGraph* geloss = new TGraph(nstep);
     string title = string("Eloss vs Momentum ")
-     + dmat->name() + string(" ") + part.name()
+     + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);MeV");
     geloss->SetTitle(title.c_str());
     TGraph* gelossrms = new TGraph(nstep);
     title = string("Eloss RMS vs Momentum ")
-     + dmat->name() + string(" ") + part.name()
+     + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);MeV");
     gelossrms->SetTitle(title.c_str());
     TGraph* gascat = new TGraph(nstep);
     title = string("Scattering RMS vs Momentum ") 
-     + dmat->name() + string(" ") + part.name()
+     + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);Radians");
     gascat->SetTitle(title.c_str());
     TGraph* gbetagamma = new TGraph(nstep);
     title = string("Particle #beta#gamma vs Momentum ") 
-     + dmat->name() + string(" ") + part.name()
+     + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);#beta#gamma");
     gbetagamma->SetTitle(title.c_str());
     for(unsigned istep = 0;istep < nstep; istep++){
       double mom = momstart + istep*momstep;
-      double eloss = dmat->energyLoss(mom,thickness,ptype);
+      double eloss = dmat->energyLoss(mom,thickness,pmass);
       geloss->SetPoint(istep,mom,eloss);
-      double elossrms = dmat->energyLossRMS(mom,thickness,ptype);
+      double elossrms = dmat->energyLossRMS(mom,thickness,pmass);
       gelossrms->SetPoint(istep,mom,elossrms);
-      double ascat = dmat->scatterAngleRMS(mom,thickness,ptype);
+      double ascat = dmat->scatterAngleRMS(mom,thickness,pmass);
       gascat->SetPoint(istep,mom,ascat);
-      double betagamma = dmat->particleBetaGamma(mom,ptype);
+      double betagamma = dmat->particleBetaGamma(mom,pmass);
       gbetagamma->SetPoint(istep,mom,betagamma);
     }
     TFile mefile("MatEnv.root","RECREATE");

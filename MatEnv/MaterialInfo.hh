@@ -19,22 +19,23 @@
 #ifndef MATERIALINFO_HH
 #define MATERIALINFO_HH
 
-class DetMaterial;
 #include <string>
 #include <vector>
+namespace MatEnv {
+  class DetMaterial;
 
-class MaterialInfo {
-public:
-  MaterialInfo(){;}
-  virtual ~MaterialInfo(){;}
-//  Find the material, given the name
-  virtual const DetMaterial* findDetMaterial( const std::string& matName ) const = 0;
-  const std::vector< std::string >& materialNames() const {
-    return _matNameList; }
-  std::vector< std::string >& materialNames() {
-    return _matNameList; }
-private:
-  std::vector< std::string > _matNameList;
-};
-
+  class MaterialInfo {
+    public:
+      MaterialInfo(){;}
+      virtual ~MaterialInfo(){;}
+      //  Find the material, given the name
+      virtual const DetMaterial* findDetMaterial( const std::string& matName ) const = 0;
+      const std::vector< std::string >& materialNames() const {
+	return _matNameList; }
+      std::vector< std::string >& materialNames() {
+	return _matNameList; }
+    private:
+      std::vector< std::string > _matNameList;
+  };
+}
 #endif

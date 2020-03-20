@@ -14,67 +14,68 @@
 //
 
 #include <iostream>
+namespace MatEnv {
 
-enum Severity {debugging=-1, trace=0, routine, warning, error, fatal};
+  enum Severity {debugging=-1, trace=0, routine, warning, error, fatal};
 
-class ErrMsg{
+  class ErrMsg{
 
-public:
-  explicit ErrMsg(Severity severity)
-//  : _severity(severity)
+    public:
+      explicit ErrMsg(Severity severity)
+	//  : _severity(severity)
+      {
+      }
+
+      ~ErrMsg()
+      {
+      }
+
+      operator std::ostream&() { return std::cout; }
+
+      template< class T >
+	ErrMsg &  operator<< ( T const & t )
+	{
+	  std::cout << t;
+	  return *this;
+	}
+
+      ErrMsg &  operator<< ( std::ostream & f(std::ostream &) )
+      {
+	std::cout << f;
+	return *this;
+      }
+      ErrMsg &  operator<< ( std::ios_base & f(std::ios_base &) )
+      {
+	std::cout << f;
+	return *this;
+      }
+      void  operator<< ( void f(ErrMsg &) )
+      {
+	f(*this);
+      }
+
+      static Severity ErrLoggingLevel;
+      // private:
+      //  int _severity;
+  };
+
+  // Implementation of the global operator<< that allows "endmsg" to be used
+  // with a plain ostream as a manipulator.  
+  inline std::ostream& operator<<( std::ostream& os, void (* fp)(ErrMsg&) )
   {
+    os<<std::endl;
+    return os; 
   }
 
-  ~ErrMsg()
+  inline void endmsg( ErrMsg & err )
   {
+    err << std::endl;
   }
 
-  operator std::ostream&() { return std::cout; }
 
-  template< class T >
-  ErrMsg &  operator<< ( T const & t )
-  {
-   std::cout << t;
-   return *this;
+  // Free function to inquire about the severity level.
+  inline bool ErrLogging( Severity sev ){
+    return (sev >= ErrMsg::ErrLoggingLevel);
   }
-
-  ErrMsg &  operator<< ( std::ostream & f(std::ostream &) )
-  {
-   std::cout << f;
-   return *this;
-  }
-  ErrMsg &  operator<< ( std::ios_base & f(std::ios_base &) )
-  {
-    std::cout << f;
-    return *this;
-  }
-  void  operator<< ( void f(ErrMsg &) )
-  {
-    f(*this);
-  }
-
-  static Severity ErrLoggingLevel;
-// private:
-//  int _severity;
-};
-
-// Implementation of the global operator<< that allows "endmsg" to be used
-// with a plain ostream as a manipulator.  
-inline std::ostream& operator<<( std::ostream& os, void (* fp)(ErrMsg&) )
-{
-  os<<std::endl;
-  return os; 
 }
-
-inline void endmsg( ErrMsg & err )
-{
-  err << std::endl;
-}
-
-
-// Free function to inquire about the severity level.
-inline bool ErrLogging( Severity sev ){
-  return (sev >= ErrMsg::ErrLoggingLevel);
-}
-
 #endif

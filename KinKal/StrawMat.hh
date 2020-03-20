@@ -13,7 +13,7 @@ namespace KinKal {
     public:
     // explicit constructor from geometry and materials
       StrawMat(float rad, float thick, float rwire,
-	  DetMaterial const& wallmat, DetMaterial const& gasmat, DetMaterial const& wiremat) :
+	  MatEnv::DetMaterial const& wallmat, MatEnv::DetMaterial const& gasmat, MatEnv::DetMaterial const& wiremat) :
 	rad_(rad), thick_(thick), rwire_(rwire), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
 	  rad2_ = rad_*rad_;
 	  rdmax_ = (rad_ - thick_)/rad_;
@@ -42,9 +42,9 @@ namespace KinKal {
       float ddmax_; // max ddoca to integrate
       float thick_; // wall thickness
       float rwire_; // transverse radius of the wire
-      DetMaterial const& wallmat_; // material of the straw wall
-      DetMaterial const& gasmat_; // material of the straw gas
-      DetMaterial const& wiremat_; // material of the wire
+      MatEnv::DetMaterial const& wallmat_; // material of the straw wall
+      MatEnv::DetMaterial const& gasmat_; // material of the straw gas
+      MatEnv::DetMaterial const& wiremat_; // material of the wire
   };
 }
 #endif

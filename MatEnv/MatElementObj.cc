@@ -23,46 +23,47 @@
 #include "MatEnv/MatElementObj.hh"
 using std::cout;
 using std::endl;
+namespace MatEnv {
 
-//-------------------------------
-// Collaborating Class Headers --
-//-------------------------------
-// Constructor to create Elements from a combination of Isotopes
+  //-------------------------------
+  // Collaborating Class Headers --
+  //-------------------------------
+  // Constructor to create Elements from a combination of Isotopes
 
-MatElementObj::MatElementObj() 
-  : _elmName(" "),
+  MatElementObj::MatElementObj() 
+    : _elmName(" "),
     _elmSymbol(" "),
     _elmZeff(0),
     _elmAeff(0),
     _nbrIsotope(0),
     _weight(0),
     _isotopeName(0)
-{
-}
+  {
+  }
 
-MatElementObj::MatElementObj(const std::string& name, const std::string& symbol, 
-                       int Zeff, double Aeff, int nbrIsotope, 
-                       std::vector<double>* weight, 
-                       std::vector<std::string>* isotopeName)
-{
+  MatElementObj::MatElementObj(const std::string& name, const std::string& symbol, 
+      int Zeff, double Aeff, int nbrIsotope, 
+      std::vector<double>* weight, 
+      std::vector<std::string>* isotopeName)
+  {
     _elmName = name;
     _elmSymbol = symbol;
     _elmZeff = Zeff;
     _elmAeff = Aeff;
     _nbrIsotope = nbrIsotope;
     for (int i=0; i<nbrIsotope; i++) {
-       _weight.push_back((*weight)[i]);
-       _isotopeName.push_back((*isotopeName)[i]);
+      _weight.push_back((*weight)[i]);
+      _isotopeName.push_back((*isotopeName)[i]);
     }
-}
- 
-MatElementObj::~MatElementObj() {;}
+  }
 
-//------------
-// Operator --
-//------------
-MatElementObj::MatElementObj(const MatElementObj& elmcp)
-{
+  MatElementObj::~MatElementObj() {;}
+
+  //------------
+  // Operator --
+  //------------
+  MatElementObj::MatElementObj(const MatElementObj& elmcp)
+  {
     _elmName = elmcp.getName();
     _elmSymbol = elmcp.getSymbol();
     _elmZeff = elmcp.getZeff();
@@ -73,12 +74,12 @@ MatElementObj::MatElementObj(const MatElementObj& elmcp)
       _weight.push_back(elmcp.getWeight(index));   
       _isotopeName.push_back(elmcp.getIsotopeName(index));
     }
-}
+  }
 
-MatElementObj& MatElementObj::operator= (const MatElementObj& elmt)
-{
-  if (&elmt == this) return *this;
-    
+  MatElementObj& MatElementObj::operator= (const MatElementObj& elmt)
+  {
+    if (&elmt == this) return *this;
+
     _elmName = elmt.getName();
     _elmSymbol = elmt.getSymbol();
     _elmZeff = elmt.getZeff();
@@ -91,33 +92,33 @@ MatElementObj& MatElementObj::operator= (const MatElementObj& elmt)
     }
 
     return *this;
-}
+  }
 
-int MatElementObj::operator==(const MatElementObj& other) const
-{
-  int equal = 1;
-  if (_elmName != other.getName() || _elmSymbol != other.getSymbol() || 
-      _elmZeff != other.getZeff() || _elmAeff != other.getAeff() || 
-      _nbrIsotope || other.getNbrIsotope()) equal = 0;
-      for(int index=0; index<_nbrIsotope; index++)
-      {       
-        if (_weight[index] != other.getWeight(index) ||  
-            _isotopeName[index] != other.getIsotopeName(index)) equal = 0;
-      }
-  return equal;
-}
+  int MatElementObj::operator==(const MatElementObj& other) const
+  {
+    int equal = 1;
+    if (_elmName != other.getName() || _elmSymbol != other.getSymbol() || 
+	_elmZeff != other.getZeff() || _elmAeff != other.getAeff() || 
+	_nbrIsotope || other.getNbrIsotope()) equal = 0;
+    for(int index=0; index<_nbrIsotope; index++)
+    {       
+      if (_weight[index] != other.getWeight(index) ||  
+	  _isotopeName[index] != other.getIsotopeName(index)) equal = 0;
+    }
+    return equal;
+  }
 
-void MatElementObj::print()
-{
-  cout << "Name: " << getName() << "  Symbol: " << getSymbol() 
-       << "  Z: " << getZeff() << "  Aeff: " << getAeff() 
-       << "  Nisotope: " << getNbrIsotope() << endl; 
-  for(int idx=0; idx<getNbrIsotope(); idx++) {
-    cout << "IsoName: " << getIsotopeName(idx) << "  Weight: " 
-         << getWeight(idx) << endl;
-  } 
+  void MatElementObj::print()
+  {
+    cout << "Name: " << getName() << "  Symbol: " << getSymbol() 
+      << "  Z: " << getZeff() << "  Aeff: " << getAeff() 
+      << "  Nisotope: " << getNbrIsotope() << endl; 
+    for(int idx=0; idx<getNbrIsotope(); idx++) {
+      cout << "IsoName: " << getIsotopeName(idx) << "  Weight: " 
+	<< getWeight(idx) << endl;
+    } 
+  }
 }
-
 
 
 
