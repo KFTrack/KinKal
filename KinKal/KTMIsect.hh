@@ -4,6 +4,7 @@
 //  Describe the intersection of a kinematic trajectory with a piece of material
 //  Used in the kinematic Kalman fit
 //
+#include "MatEnv/DetMaterial.hh"
 #include "KinKal/KInter.hh"
 #include "KinKal/MIsect.hh"
 #include "KinKal/TDir.hh"
