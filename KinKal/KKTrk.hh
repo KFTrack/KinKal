@@ -73,10 +73,10 @@ namespace KinKal {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
 	if(config_.addmat_ && hit->material() != 0){
-	  auto iemp = effects_.emplace(new KKMHit(*hit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(*hit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	} else{ 
-	  auto iemp = effects_.emplace(new KKHit(*hit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKHit<KTRAJ> >(*hit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	}
       }
@@ -89,9 +89,9 @@ namespace KinKal {
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_)));
       }
       // create end effects
-      auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
+      auto iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
-      iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,config_.dwt_));
+      iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::backwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
     }
 

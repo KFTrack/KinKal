@@ -1,4 +1,4 @@
-// 
+//
 // ToyMC test of fitting an LHelix-based KKTrk
 //
 #include "MatEnv/MatDBInfo.hh"
@@ -66,7 +66,7 @@ vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.03, 3.0}; // base sigmas for par
 UniformBField BF(1.0); // 1 Tesla
 Context context(BF);
 TRandom* TR = new TRandom3(iseed);
-CVD2T d2t(sdrift,sigt*sigt); 
+CVD2T d2t(sdrift,sigt*sigt);
 
 void print_usage() {
   printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i\n");
@@ -85,7 +85,7 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime) {
   Vec4 hpos; hpos.SetE(htime);
   traj.position(hpos);
   Vec3 hdir; traj.direction(htime,hdir);
-  // generate a random direction for the straw 
+  // generate a random direction for the straw
   double eta = TR->Uniform(-M_PI,M_PI);
   Vec3 sdir(cos(eta),sin(eta),0.0);
   // generate a random drift perp to this and the trajectory
@@ -158,7 +158,7 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
 	double dmom, momvar, dm;
 	ktmi.momEffect(TDir::forwards, mdir, dmom, momvar);
 	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
-	switch( mdir ) { 
+	switch( mdir ) {
 	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
 	    dm = TR->Gaus(dmom,sqrt(momvar));
 	    dscatsum += dm;
@@ -220,10 +220,10 @@ int main(int argc, char **argv) {
   };
 
   int long_index =0;
-  while ((opt = getopt_long_only(argc, argv,"", 
+  while ((opt = getopt_long_only(argc, argv,"",
 	  long_options, &long_index )) != -1) {
     switch (opt) {
-      case 'm' : mom = atof(optarg); 
+      case 'm' : mom = atof(optarg);
 		 break;
       case 'c' : cost = atof(optarg);
 		 break;
@@ -253,7 +253,7 @@ int main(int argc, char **argv) {
 		 break;
       case 'i' : mindchisq= atof(optarg);
 		 break;
-      default: print_usage(); 
+      default: print_usage();
 	       exit(EXIT_FAILURE);
     }
   }
@@ -270,7 +270,7 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,context);
-  cout << "True initial " << lhel << endl; 
+  cout << "True initial " << lhel << endl;
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
@@ -337,7 +337,7 @@ int main(int argc, char **argv) {
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     fitpl->Draw();
-// now draw the truth 
+// now draw the truth
     TPolyLine3D* thelpl = new TPolyLine3D(np);
     thelpl->SetLineColor(kGreen);
     thelpl->SetLineStyle(kDotted);
@@ -477,21 +477,21 @@ int main(int argc, char **argv) {
     // fill canvases
     TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
     dpcan->Divide(3,2);
-    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
       dpcan->cd(ipar+1);
       dpgenh[ipar]->Fit("gaus");
     }
     dpcan->Write();
     TCanvas* pullcan = new TCanvas("pullcan","pullcan",800,600);
     pullcan->Divide(3,2);
-    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
       pullcan->cd(ipar+1);
       dpullgenh[ipar]->Fit("gaus");
     }
     pullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
-    for(int ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
       perrcan->cd(ipar+1);
       fiterrh[ipar]->Draw();
     }
@@ -501,7 +501,7 @@ int main(int argc, char **argv) {
     corrcan->cd(1);
     corravg->Scale(1.0/float(ntries));
     corravg->SetStats(0);
-    gPad->SetLogz(); 
+    gPad->SetLogz();
     corravg->Draw("colorztext0");
     corrcan->Write();
 
