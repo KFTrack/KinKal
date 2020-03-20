@@ -61,7 +61,7 @@ double tbuff(0.1);
 int iseed(124223);
 unsigned nhits(40);
 double escale(5.0);
-vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.03, 3.0}; // base sigmas for parameters (per hit!)
+vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
 // define the context
 UniformBField BF(1.0); // 1 Tesla
 Context context(BF);
@@ -69,7 +69,7 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i --ttree i\n");
 }
 
 struct LHelixPars{
@@ -126,7 +126,7 @@ void createSeed(LHelix& seed){
   }
 }
 
-void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shits,bool addmat) {
+double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shits,bool addmat) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
@@ -157,27 +157,36 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
 	auto mdir = static_cast<KInter::MDir>(idir);
 	double dmom, momvar, dm;
 	ktmi.momEffect(TDir::forwards, mdir, dmom, momvar);
+	double momsig = sqrt(momvar);
+	double land;
 	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
 	switch( mdir ) {
 	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
-	    dm = TR->Gaus(dmom,sqrt(momvar));
+	    dm = TR->Gaus(dmom,momsig);
 	    dscatsum += dm;
 	    break;
 	  case KinKal::KInter::momdir :
-//	    dm = -TR->Landau(-dmom,sqrt(momvar)); // have to flip sign for root!
-	    dm = dmom;
+	    // truncated Landau for the energy loss
+	    land = 1e5;
+	    while(land > fabs(momsig/dmom))
+	      land = TR->Landau(1.0,0.1); // can't use variance
+	    dm = std::min(0.0,dmom*land/1.25);
+//	    dm = dmom;
 	    desum += dm*mom;
 	    break;
 	  default:
 	    throw std::invalid_argument("Invalid direction");
 	}
 //	cout << "direction " << mdir << " doca " << tp.doca() << " dmom " << dmom << " +- " << sqrt(momvar) << " sample " << dm  << endl;
+
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.t0(),dmvec);
 	dmvec *= dm*mom;
 //	dmvec *= 0.0;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }
+	// terminate if there is catastrophic energy loss
+      if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
       LHelix newend(endpos,endmom,endpiece.charge(),context,TRange(tp.t0(),plhel.range().high()));
       if(!plhel.append(newend))
@@ -185,6 +194,7 @@ void createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shit
     }
   }
 //  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
+  return desum;
 }
 
 int main(int argc, char **argv) {
@@ -200,6 +210,7 @@ int main(int argc, char **argv) {
   unsigned ntries(1000);
   double mindchisq(0.1);
   bool addmat(true);
+  bool ttree(true);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -217,6 +228,7 @@ int main(int argc, char **argv) {
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"mindchisq",     required_argument, 0, 'i'  },
+    {"ttree",     required_argument, 0, 'r'  },
   };
 
   int long_index =0;
@@ -246,6 +258,8 @@ int main(int argc, char **argv) {
       case 'x' : maxniter = atoi(optarg);
 		 break;
       case 'b' : addmat = atoi(optarg);
+		 break;
+      case 'r' : ttree = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
@@ -318,7 +332,7 @@ int main(int argc, char **argv) {
   TFile fitfile("FitTest.root","RECREATE");
   // tree variables
   LHelixPars tfpars_, tepars_, fseedpars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, temom_, tfmom_, ffitmom_, efitmom_;
+  float chisq_, temom_, tfmom_, ffitmom_, efitmom_, tde_;
   int ndof_, niter_;
   if(ntries <=0 ){
   // draw the fit result
@@ -362,21 +376,25 @@ int main(int argc, char **argv) {
     pttcan->Write();
 
   } else {
-    TTree* ftree = new TTree("FitTree","FitTree");
-    ftree->Branch("tfpars.", &tfpars_,LHelixPars::leafnames().c_str());
-    ftree->Branch("tepars.", &tepars_,LHelixPars::leafnames().c_str());
-    ftree->Branch("fseedpars.", &fseedpars_,LHelixPars::leafnames().c_str());
-    ftree->Branch("ffitpars.", &ffitpars_,LHelixPars::leafnames().c_str());
-    ftree->Branch("ffiterrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
-    ftree->Branch("efitpars.", &efitpars_,LHelixPars::leafnames().c_str());
-    ftree->Branch("efiterrs.", &efiterrs_,LHelixPars::leafnames().c_str());
-    ftree->Branch("chisq", &chisq_,"chisq/F");
-    ftree->Branch("ndof", &ndof_,"ndof/I");
-    ftree->Branch("niter", &niter_,"niter/I");
-    ftree->Branch("tfmom", &tfmom_,"tfmom/F");
-    ftree->Branch("temom", &temom_,"temom/F");
-    ftree->Branch("ffitmom", &ffitmom_,"ffitmom/F");
-    ftree->Branch("efitmom", &efitmom_,"efitmom/F");
+    TTree* ftree(0);
+    if(ttree){
+      ftree = new TTree("FitTree","FitTree");
+      ftree->Branch("tfpars.", &tfpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("tepars.", &tepars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("fseedpars.", &fseedpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("ffitpars.", &ffitpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("ffiterrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
+      ftree->Branch("efitpars.", &efitpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("efiterrs.", &efiterrs_,LHelixPars::leafnames().c_str());
+      ftree->Branch("chisq", &chisq_,"chisq/F");
+      ftree->Branch("ndof", &ndof_,"ndof/I");
+      ftree->Branch("niter", &niter_,"niter/I");
+      ftree->Branch("tfmom", &tfmom_,"tfmom/F");
+      ftree->Branch("temom", &temom_,"temom/F");
+      ftree->Branch("ffitmom", &ffitmom_,"ffitmom/F");
+      ftree->Branch("efitmom", &efitmom_,"efitmom/F");
+      ftree->Branch("tde", &tde_,"tde/F");
+    }
     // now repeat this to gain statistics
     vector<TH1F*> dpgenh(LHelix::NParams());
     vector<TH1F*> dpullgenh(LHelix::NParams());
@@ -419,7 +437,7 @@ int main(int argc, char **argv) {
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
       shits.clear();
-      createHits(tplhel,smat, shits,addmat);
+      tde_ = createHits(tplhel,smat, shits,addmat);
       auto seedhel = tplhel.nearestPiece(0.0);
       createSeed(seedhel);
       thits.clear();
@@ -472,7 +490,7 @@ int main(int argc, char **argv) {
       chisq_ = kktrk.status().chisq_;
       ndof_ = kktrk.status().ndof_;
       niter_ = kktrk.status().niter_;
-      ftree->Fill();
+      if(ttree)ftree->Fill();
     }
     // fill canvases
     TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
