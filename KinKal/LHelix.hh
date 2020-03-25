@@ -38,10 +38,15 @@ namespace KinKal {
 
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField
-      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& Bnom, TRange const& range=TRange());
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Pol3 const& bnom, TRange const& range=TRange());
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Pol3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Pol3 const& bnom, TRange const& range=TRange());
+      // versions of the above for B parallel to z
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // construct from parameters
+      LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
+      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range=TRange());
       virtual ~LHelix() {} 
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
@@ -54,7 +59,7 @@ namespace KinKal {
       double energy(double time) const override { return  mass_*ebar()/mbar_; }
       // speed in mm/ns
       double speed(double time) const override {  return CLHEP::c_light*beta(); }
-      double timeStep(double time, double tol) const override { return tol/fabs(omega()); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override;
 
       // local momentum direction basis
       virtual void dirVector(MDir dir,double time,Vec3& unit) const override;
@@ -92,6 +97,7 @@ namespace KinKal {
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       int charge() const { return charge_; }
       Pol3 const& bnom() const { return bnom_; }
+      double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
 	mbar_ *= -1.0;
@@ -101,9 +107,10 @@ namespace KinKal {
       //
     private :
       PDATA pars_; // parameters
-      Pol3 bnom_; // nominal BField
-      ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system (along B) to the global
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
+      Pol3 bnom_; // nominal BField
+      bool needsrot_; // logical flag if Bnom is parallel to global Z or not
+      ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system (along B) to the global
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;

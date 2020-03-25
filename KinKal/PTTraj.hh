@@ -21,6 +21,7 @@ namespace KinKal {
       virtual void position(Vec4& pos) const override;
       virtual void position(double time, Vec3& pos) const override;
       virtual void velocity(double time, Vec3& vel) const override;
+      virtual double speed(double time) const override;
       virtual void direction(double time, Vec3& dir) const override;
       virtual void setRange(TRange const& trange) override;
 // construct without any pieces, but specify the range
@@ -65,6 +66,9 @@ namespace KinKal {
   }
   template <class TTRAJ> void PTTraj<TTRAJ>::velocity(double time, Vec3& vel) const {
     nearestPiece(time).velocity(time,vel);
+  }
+  template <class TTRAJ> double PTTraj<TTRAJ>::speed(double time) const {
+    return nearestPiece(time).speed(time);
   }
   template <class TTRAJ> void PTTraj<TTRAJ>::direction(double time, Vec3& dir) const {
     nearestPiece(time).direction(time,dir);

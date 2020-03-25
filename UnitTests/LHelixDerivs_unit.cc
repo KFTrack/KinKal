@@ -2,7 +2,6 @@
 // test derivatives of the Loop Helix TTraj class
 //
 #include "KinKal/LHelix.hh"
-#include "KinKal/BField.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -26,7 +25,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -35,7 +33,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: LHelixDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f\n");
+  printf("Usage: LHelixDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f \n");
 }
 
 int main(int argc, char **argv) {
@@ -47,6 +45,7 @@ int main(int argc, char **argv) {
   int imass(0), icharge(-1);
   double pmass, oz(100.0), ot(0.0), ttest(5.0);
   double dmin(-5e-2), dmax(5e-2);
+  double By(0.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -58,7 +57,8 @@ int main(int argc, char **argv) {
     {"torigin",     required_argument, 0, 'o'  },
     {"dmin",     required_argument, 0, 's'  },
     {"dmax",     required_argument, 0, 'e'  },
-    {"ttest",     required_argument, 0, 't'  }
+    {"ttest",     required_argument, 0, 't'  },
+    {"By",     required_argument, 0, 'y'  },
 
 
   };
@@ -87,13 +87,14 @@ int main(int argc, char **argv) {
 		 break;
       case 't' : ttest = atof(optarg);
 		 break;
+      case 'y' : By = atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
   }
   // construct original helix from parameters
-  double bnom(1.0);
-  UniformBField BF(bnom); // 1 Tesla
+  Pol3 bnom(1.0,By,0.5*M_PI);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   // reference helix

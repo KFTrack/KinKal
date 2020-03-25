@@ -7,7 +7,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 namespace KinKal {
-
+  class BField;
   class TTraj {
     public:
       // geometric accessors
@@ -16,8 +16,6 @@ namespace KinKal {
       virtual void velocity(double time, Vec3& vel) const =0; // velocity vector
       virtual double speed(double time) const =0;
       virtual void direction(double time, Vec3& dir) const =0; // unit vector in the direction of positive time
-      // maximum time step to keep (fractional) direction change within the given tolerance
-      virtual double timeStep(double time,double tol) const = 0;
       // constructors, etc
       TTraj(TRange const& trange) : trange_(trange){}
       TTraj() {}

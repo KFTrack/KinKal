@@ -34,7 +34,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -52,7 +51,7 @@ double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f\n");
 }
 
 // helper function
@@ -105,6 +104,7 @@ int main(int argc, char **argv) {
   float rwire(0.025), wthick(0.015);
   float ddoca(0.1);
   float scatfrac(0.995);
+  double Bgrad(0.0), By(0.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -118,6 +118,8 @@ int main(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ddoca",     required_argument, 0, 'x'  },
+    {"By",     required_argument, 0, 'y'  },
+    {"Bgrad",     required_argument, 0, 'g'  },
   };
 
   int long_index =0;
@@ -147,6 +149,10 @@ int main(int argc, char **argv) {
 		 break;
       case 'x' : ddoca = atof(optarg);
 		 break;
+      case 'y' : By = atof(optarg);
+		 break;
+      case 'g' : Bgrad = atof(optarg);
+		 break;
       default: print_usage();
 	       exit(EXIT_FAILURE);
     }
@@ -155,9 +161,16 @@ int main(int argc, char **argv) {
   TRandom* TR = new TRandom3(iseed);
   pmass = masses[imass];
   TFile htfile("HitTest.root","RECREATE");
-// define the BF
-  double bnom(1.0);
-  UniformBField BF(bnom); // 1 Tesla
+  // construct BField
+  Pol3 bnom(1.0,0.0,0.0);
+  BField* BF;
+  if(Bgrad != 0){
+    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
+  } else {
+    bnom = Pol3(0.0,By,1.0);
+    BF = new UniformBField(bnom);
+  }
   CVD2T d2t(sdrift,sigt*sigt);
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
@@ -219,7 +232,7 @@ int main(int argc, char **argv) {
     if(fabs(tp.doca())> ambigdoca)
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,BF,d2t,smat,ambigdoca,ambig);
+    StrawHit sh(tline,*BF,d2t,smat,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;

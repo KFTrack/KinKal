@@ -1,4 +1,5 @@
 #include "KinKal/LHelix.hh"
+#include "KinKal/BField.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
@@ -25,21 +26,22 @@ namespace KinKal {
   std::string const& LHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range) : TTraj(range), KInter(mom0.M(),charge), bnom_(bnom) {
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Pol3(0.0,0.0,bnom),range) {}
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Pol3 const& bnom, TRange const& range) : TTraj(range), KInter(mom0.M(),charge), bnom_(bnom), needsrot_(false) {
     static double twopi = 2*M_PI; // FIXME
     // Transform into the system where Z is along the Bfield.
     Vec4 pos(pos0);
     Mom4 mom(mom0);
-    if(bnom_.X() !=0 || bnom_.Y() != 0){
-      Vec3 rotaxis(-sin(bnom_.Phi()),cos(bnom_.Phi()),0.0);
-      Rotation3D rot(AxisAngle(rotaxis,bnom_.Theta()));
+    if(fabs(bnom_.Theta()) >1.0e-6){
+      needsrot_ = true;
+      Rotation3D rot(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
       pos = rot(pos);
       mom = rot(mom);
       // create inverse rotation
-      brot_ = rot.Inverse();
+     brot_ = rot.Inverse();
       // check
       auto test = rot(bnom_);
-      if(test.Theta() > 0.0)throw std::invalid_argument("BField Error");
+      if(fabs(test.Theta()) > 1.0e-6)throw std::invalid_argument("BField Error");
     }
     // compute some simple useful parameters
     double pt = mom.Pt(); 
@@ -65,31 +67,28 @@ namespace KinKal {
     param(cy_) = pos.Y() - mom.X()*momToRad;
   }
 
+  LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Pol3(0.0,0.0,bnom),range) {}
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, Pol3 const& bnom, TRange const& range) : 
     LHelix(pdata.parameters(), pdata.covariance(),mass,charge, bnom, range)
     {}
 
-  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Pol3 const& bnom,
-      TRange const& range) : TTraj(range), KInter(mass,charge), pars_(pvec,pcov), bnom_(bnom) {
+  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range) : 
+    LHelix(pvec,pcov,mass,charge,Pol3(0.0,0.0,bnom),range) {}
+  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Pol3 const& bnom, TRange const& range) : 
+    TTraj(range), KInter(mass,charge), pars_(pvec,pcov), bnom_(bnom) {
     if(bnom_.X() !=0 || bnom_.Y() != 0){
       Vec3 rotaxis(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0);
-      brot_ = Rotation3D(AxisAngle(rotaxis,bnom_.Theta()));
     }
     double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
     mbar_ = -mass_*momToRad;
   }
 
   void LHelix::position(Vec4& pos) const {
-    // compute azimuthal angle
-    double df = dphi(pos.T());
-    double phival = df + phi0();
-    // now compute position
-    pos.SetPx(cx() + rad()*sin(phival));
-    pos.SetPy(cy() - rad()*cos(phival));
-    pos.SetPz(df*lam());
-    pos = brot_(pos);
+    Vec3 temp;
+    position(pos.T(),temp);
+    pos.SetXYZT(temp.X(),temp.Y(),temp.Z(),pos.T());
   }
-
+  
   void LHelix::position(double t, Vec3& pos) const {
     // compute azimuthal angle
     double df = dphi(t);
@@ -98,7 +97,7 @@ namespace KinKal {
     pos.SetX(cx() + rad()*sin(phival));
     pos.SetY(cy() - rad()*cos(phival));
     pos.SetZ(df*lam());
-    pos = brot_(pos);
+    if(needsrot_) pos = brot_(pos);
  } 
 
   void LHelix::momentum(double tval,Mom4& mom) const{
@@ -108,21 +107,21 @@ namespace KinKal {
     mom.SetPy(factor * rad() * sin(phival));
     mom.SetPz(factor * lam());
     mom.SetM(mass_);
-    mom = brot_(mom);
+    if(needsrot_) mom = brot_(mom);
   }
 
  void LHelix::velocity(double tval,Vec3& vel) const{
     Mom4 mom;
     momentum(tval,mom);
     vel = mom.Vect()*(CLHEP::c_light*fabs(Q()/ebar()));
-    vel = brot_(vel);
+    if(needsrot_)vel = brot_(vel);
   }
 
   void LHelix::direction(double tval,Vec3& dir) const{
     Mom4 mom;
     momentum(tval,mom);
     dir = mom.Vect().Unit();
-    dir = brot_(dir);
+    if(needsrot_)dir = brot_(dir);
   }
 
   void LHelix::dirVector(MDir mdir,double tval,Vec3& unit) const {
@@ -146,7 +145,7 @@ namespace KinKal {
       default:
 	throw std::invalid_argument("Invalid direction");
     }
-    unit = brot_(unit);
+    if(needsrot_) unit = brot_(unit);
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters
@@ -214,6 +213,11 @@ namespace KinKal {
 
   }
 
+  void LHelix::rangeInTolerance(TRange& range, BField const& bfield, double tol) const {
+   //FIXME! 
+
+  }
+ 
 
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
     ost << " LHelix parameters: ";

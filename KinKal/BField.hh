@@ -7,6 +7,11 @@
 namespace KinKal {
   class BField {
     public:
+      virtual void fieldVect(Pol3& field, Vec3 const& position=Vec3()) const {
+	Vec3 fv;
+	fieldVect(fv,position);
+	field = fv;
+      }
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; // nominal field defined at the origin
       virtual ~BField(){}
       // add interface for path integration FIXME!
@@ -16,6 +21,7 @@ namespace KinKal {
   class UniformBField : public BField {
     public:
       virtual void fieldVect(Vec3& fvec, Vec3 const& position=Vec3()) const override { fvec = fvec_; }
+      UniformBField(Pol3 const& bnom) : fvec_(bnom) {}
       UniformBField(Vec3 const& bnom) : fvec_(bnom) {}
       UniformBField(double BZ) : UniformBField(Vec3(0.0,0.0,BZ)) {}
       virtual ~UniformBField(){}
@@ -44,8 +50,9 @@ namespace KinKal {
 
   // simple Z gradient field, used to test Field corrections
   class GradBField : public BField {
-    GradBField(double b0, double b1, double zg0, double zg1) :
-      f0_(0.0,0.0,b0), f1_(0.0,0.0,b1), z0_(zg0), z1_(zg1), grad_((b1 - b0)/(zg1-zg0)) {}
+    public:
+      GradBField(double b0, double b1, double zg0, double zg1) :
+	f0_(0.0,0.0,b0), f1_(0.0,0.0,b1), z0_(zg0), z1_(zg1), grad_((b1 - b0)/(zg1-zg0)) {}
       virtual void fieldVect(Vec3& fvec, Vec3 const& position=Vec3()) const override {
 	if(position.z() < z0_)
 	  fvec = f0_;

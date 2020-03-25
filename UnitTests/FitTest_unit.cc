@@ -40,7 +40,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -64,13 +63,14 @@ unsigned nhits(40);
 double escale(5.0);
 vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
 // define the BF
-double bnom(1.0);
-UniformBField BF(bnom); // 1 Tesla
+Pol3 bnom(1.0,0.0,0.0);
+double Bgrad(0.0), By(0.0);
+BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i --ttree i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i --ttree i --By f --Bgrad f\n");
 }
 
 struct LHelixPars{
@@ -140,7 +140,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,BF,d2t,smat,ambigdoca,ambig);
+    StrawHit sh(tline,*BF,d2t,smat,ambigdoca,ambig);
     shits.push_back(sh);
     // compute material effects and change trajectory accordingly
     bool simmat(true);
@@ -230,6 +230,8 @@ int main(int argc, char **argv) {
     {"ntries",     required_argument, 0, 't'  },
     {"mindchisq",     required_argument, 0, 'i'  },
     {"ttree",     required_argument, 0, 'r'  },
+    {"By",     required_argument, 0, 'y'  },
+    {"Bgrad",     required_argument, 0, 'g'  },
   };
 
   int long_index =0;
@@ -268,9 +270,24 @@ int main(int argc, char **argv) {
 		 break;
       case 'i' : mindchisq= atof(optarg);
 		 break;
+      case 'y' : By = atof(optarg);
+		 break;
+      case 'g' : Bgrad = atof(optarg);
+		 break;
       default: print_usage();
 	       exit(EXIT_FAILURE);
     }
+  }
+  // construct BField
+  if(Bgrad != 0){
+    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    Vec3 bn;
+    BF->fieldVect(bn,Vec3(0.0,0.0,0.0));
+    bnom = bn;
+  } else {
+    bnom = Pol3(1.0,atan(By),M_PI/2.0);
+    Vec3 bn(bnom);
+    BF = new UniformBField(bn);
   }
 
   MatDBInfo matdbinfo;
@@ -314,7 +331,7 @@ int main(int argc, char **argv) {
   config.mindchisq_ = mindchisq;
   config.maxniter_ = maxniter;
   config.addmat_ = addmat;
-  KKTRK kktrk(seedhel,thits,config);
+  KKTRK kktrk(seedhel,*BF,thits,config);
   // fit the track
   kktrk.fit();
   cout << "KKTrk " << kktrk.status() << endl;
@@ -443,7 +460,7 @@ int main(int argc, char **argv) {
       createSeed(seedhel);
       thits.clear();
       for(auto& shit : shits) thits.push_back(&shit);
-      KKTRK kktrk(seedhel,thits,config);
+      KKTRK kktrk(seedhel,*BF,thits,config);
       kktrk.fit();
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();

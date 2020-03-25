@@ -27,7 +27,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -82,7 +81,7 @@ int main(int argc, char **argv) {
     }
   }
 // create helix
-  double bnom(1.0);
+  Pol3 bnom(1.0,0.0,0.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
