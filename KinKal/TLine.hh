@@ -6,6 +6,7 @@
 //
 #include "KinKal/TTraj.hh"
 #include "KinKal/PData.hh"
+#include <limits>
 namespace KinKal {
   class TLine : public TTraj {
     public:
@@ -50,6 +51,7 @@ namespace KinKal {
       virtual void velocity(double time, Vec3& vel) const override;
       virtual void direction(double time, Vec3& dir) const override;
       virtual double speed(double time) const override;
+      double timeStep(double time, double tol) const override { return std::numeric_limits<double>::max(); }
 
     private:
       PData<npars_> pars_; // parameters

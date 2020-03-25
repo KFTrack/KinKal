@@ -9,7 +9,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -155,14 +155,14 @@ int main(int argc, char **argv) {
   TRandom* TR = new TRandom3(iseed);
   pmass = masses[imass];
   TFile htfile("HitTest.root","RECREATE");
-// define the context
-  UniformBField BF(1.0); // 1 Tesla
-  Context context(BF);
+// define the BF
+  double bnom(1.0);
+  UniformBField BF(bnom); // 1 Tesla
   CVD2T d2t(sdrift,sigt*sigt);
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,context);
+  LHelix lhel(origin,momv,icharge,bnom);
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
@@ -219,7 +219,7 @@ int main(int argc, char **argv) {
     if(fabs(tp.doca())> ambigdoca)
       ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
+    StrawHit sh(tline,BF,d2t,smat,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;

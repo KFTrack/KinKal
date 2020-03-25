@@ -6,7 +6,7 @@ namespace KinKal {
       // convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
       float rho = tpoca.doca()*ambig_; // this is allowed to go negative
       Vec3 bvec;
-      context().bField().fieldVect(bvec,tpoca.poca1().Vect());
+      bfield().fieldVect(bvec,tpoca.poca1().Vect());
       auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BField
       Vec3 dvec;
       tpoca.delta(dvec);

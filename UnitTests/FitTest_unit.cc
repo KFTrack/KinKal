@@ -9,10 +9,10 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
-#include "KinKal/KTMIsect.hh"
+#include "KinKal/KKXing.hh"
 #include "KinKal/KKTrk.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
@@ -63,9 +63,9 @@ int iseed(124223);
 unsigned nhits(40);
 double escale(5.0);
 vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-// define the context
-UniformBField BF(1.0); // 1 Tesla
-Context context(BF);
+// define the BF
+double bnom(1.0);
+UniformBField BF(bnom); // 1 Tesla
 TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
 
@@ -140,15 +140,15 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
     WireHit::LRAmbig ambig(WireHit::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,context,d2t,smat,ambigdoca,ambig);
+    StrawHit sh(tline,BF,d2t,smat,ambigdoca,ambig);
     shits.push_back(sh);
     // compute material effects and change trajectory accordingly
     bool simmat(true);
     if(addmat && simmat){
-      std::vector<MIsect> misects;
-      smat.intersect(tp,misects);
+      std::vector<MatXing> mxings;
+      smat.intersect(tp,mxings);
       auto const& endpiece = plhel.nearestPiece(tp.t0());
-      KTMIsect<LHelix> ktmi(endpiece,tp.t0(),misects);
+      KKXing<LHelix> ktmi(endpiece,tp.t0(),mxings);
       double mom = endpiece.momentum(tp.t0());
       Mom4 endmom;
       endpiece.momentum(tp.t0(),endmom);
@@ -189,7 +189,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
 	// terminate if there is catastrophic energy loss
       if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
-      LHelix newend(endpos,endmom,endpiece.charge(),context,TRange(tp.t0(),plhel.range().high()));
+      LHelix newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.t0(),plhel.range().high()));
       if(!plhel.append(newend))
 	cout << "Error appending traj " << newend << endl;
     }
@@ -284,7 +284,7 @@ int main(int argc, char **argv) {
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,context);
+  LHelix lhel(origin,momv,icharge,bnom);
   cout << "True initial " << lhel << endl;
   PLHelix plhel(lhel);
   // truncate the range according to the Z range
@@ -433,7 +433,7 @@ int main(int argc, char **argv) {
       double tcost = TR->Uniform(0.5,0.8);
       double tsint = sqrt(1.0-tcost*tcost);
       Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
-      LHelix tlhel(torigin,tmomv,icharge,context);
+      LHelix tlhel(torigin,tmomv,icharge,bnom);
       PLHelix tplhel(tlhel);
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));

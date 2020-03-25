@@ -6,7 +6,7 @@
 //
 #include "KinKal/KKPEff.hh"
 #include "KinKal/DMat.hh"
-#include "KinKal/KTMIsect.hh"
+#include "KinKal/KKXing.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/TDir.hh"
 #include <iostream>
@@ -61,10 +61,10 @@ namespace KinKal {
      static double epsilon_(1e-3);
      time_ = tdpoca.t0() + epsilon_;
      // find and fill the individual material intersections given this poca
-     std::vector<MIsect> misects;
-     dmat_.intersect(tdpoca,misects);
+     std::vector<MatXing> mxings;
+     dmat_.intersect(tdpoca,mxings);
      // translate these to material effects
-     KTMIsect<PKTRAJ> ktmisect(tdpoca.ttraj0(),tdpoca.poca0().T(),misects);
+     KKXing<PKTRAJ> kkxing(tdpoca.ttraj0(),tdpoca.poca0().T(),mxings);
      // loop over the momentum change basis directions, adding up the effects on parameters from each
      for(int idir=0;idir<=KInter::theta2; idir++) {
        auto mdir = static_cast<KInter::MDir>(idir);
@@ -77,7 +77,7 @@ namespace KinKal {
        // get the mean and variance of this momentum effect from the material
        // for now, do this in the time forwards direction only, in future this may be split
        double dmom, momvar;
-       ktmisect.momEffect(TDir::forwards, mdir, dmom, momvar);
+       kkxing.momEffect(TDir::forwards, mdir, dmom, momvar);
        // test
        if(isnan(momvar))throw std::runtime_error("Invalid momvar");
        // update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)

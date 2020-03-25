@@ -4,7 +4,7 @@
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -115,13 +115,13 @@ int main(int argc, char **argv) {
   pmass = masses[imass];
 
   printf("Testing LHelix with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
-// define the context
-  UniformBField BF(1.0); // 1 Tesla
-  Context context(BF);
+// define the BF
+  double bnom(1.0);
+  UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,context);
+  LHelix lhel(origin,momv,icharge,bnom);
   Mom4 testmom;
   lhel.momentum(ot,testmom);
   cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
@@ -138,11 +138,11 @@ int main(int argc, char **argv) {
   lhel.momentum(tmax,tmom);
   tpos.SetE(tmax);
   lhel.position(tpos);
-  LHelix lhelmax(tpos,tmom,icharge,context);
+  LHelix lhelmax(tpos,tmom,icharge,bnom);
   lhel.momentum(tmin,tmom);
   tpos.SetE(tmin);
   lhel.position(tpos);
-  LHelix lhelmin(tpos,tmom,icharge,context);
+  LHelix lhelmin(tpos,tmom,icharge,bnom);
 
   cout << "LHelix at tmax has parameters : " << lhelmax << endl;
   cout << "LHelix at tmin has parameters : " << lhelmin << endl;

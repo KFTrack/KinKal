@@ -19,8 +19,8 @@ namespace KinKal {
       virtual unsigned nDOF() const override { return 1; }
       // construct from a D2T relationship
       virtual TLine const& sensorTraj() const override { return wire_; }
-      WireHit(TLine const& wire, Context const& context, D2T const& d2t,double nullvar, LRAmbig ambig=null, bool active=true) : 
-	THit(context,active), wire_(wire), d2t_(d2t), nullvar_(nullvar), ambig_(ambig) {}
+      WireHit(TLine const& wire, BField const& bfield, D2T const& d2t,double nullvar, LRAmbig ambig=null, bool active=true) : 
+	THit(bfield,active), wire_(wire), d2t_(d2t), nullvar_(nullvar), ambig_(ambig) {}
       virtual ~WireHit(){}
       LRAmbig ambig() const { return ambig_; }
       D2T const& d2T() const { return d2t_; }

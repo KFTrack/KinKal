@@ -2,7 +2,7 @@
 // test derivatives of the Loop Helix TTraj class
 //
 #include "KinKal/LHelix.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -92,14 +92,14 @@ int main(int argc, char **argv) {
     }
   }
   // construct original helix from parameters
-  UniformBField BF(1.0);
-  Context context(BF);
+  double bnom(1.0);
+  UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   // reference helix
   pmass = masses[imass];
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix refhel(origin,momv,icharge,context);
+  LHelix refhel(origin,momv,icharge,bnom);
   cout << "Reference " << refhel << endl;
   Vec4 refpos4;
   refpos4.SetE(ttest);
@@ -164,13 +164,13 @@ int main(int argc, char **argv) {
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
-      LHelix xhel(refpos4,momv,icharge,context);
+      LHelix xhel(refpos4,momv,icharge,bnom);
       // now, compute 1st order change in parameters
       LHelix::PDER pder;
       refhel.momDeriv(tdir,ttest,pder);
 //      cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters() + delta*pder;
-      LHelix dhel(dvec,refhel.params().covariance(),refhel.mass(),refhel.charge(),context);
+      LHelix dhel(dvec,refhel.params().covariance(),refhel.mass(),refhel.charge(),bnom);
       // test
       Vec4 xpos, dpos;
       xpos.SetE(ttest);
