@@ -178,7 +178,6 @@ namespace KinKal {
     double omval = omega();
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
-    double bval = beta();
     // cases
     switch ( dir ) {
       case theta1:
@@ -206,7 +205,7 @@ namespace KinKal {
         dermat[omega_][0] = -omval;
         dermat[z0_][0] = -tanval*(l-sin(omval*l)/(omval*(1+omval*d0val)));
         dermat[tanDip_][0] = 0;
-        dermat[t0_][0] = (time-t0())*(1.0-bval*bval);
+        dermat[t0_][0] = dermat[z0_][0] / vz();
         break;
       default:
         throw std::invalid_argument("Invalid direction");
