@@ -29,39 +29,40 @@
 // Collaborating Class Headers --
 //-------------------------------
 
-class MatElementList
-{
+namespace MatEnv {
+  class MatElementList
+  {
 
-public:
+    public:
 
-  // Constructor to create an Element
-  
-  MatElementList();
-  MatElementList(const std::string& ElementsFile); 
-  MatElementList(const std::vector<MatElementObj*>&);
+      // Constructor to create an Element
 
-  // Destructor
-  virtual ~MatElementList();
-  
-  inline std::vector<MatElementObj*>* getElementVector();
-  inline const std::vector<MatElementObj*>* getVector() const;
-  
-private:
-  
-  std::vector<MatElementObj*> _vector;
- 
-  friend bool testCdb(const MatElementList*, const MatElementList*);
+      MatElementList();
+      MatElementList(const std::string& ElementsFile); 
+      MatElementList(const std::vector<MatElementObj*>&);
 
-};
+      // Destructor
+      virtual ~MatElementList();
 
-inline std::vector<MatElementObj*>* MatElementList::getElementVector()
-{
-  return &_vector;
+      inline std::vector<MatElementObj*>* getElementVector();
+      inline const std::vector<MatElementObj*>* getVector() const;
+
+    private:
+
+      std::vector<MatElementObj*> _vector;
+
+      friend bool testCdb(const MatElementList*, const MatElementList*);
+
+  };
+
+  inline std::vector<MatElementObj*>* MatElementList::getElementVector()
+  {
+    return &_vector;
+  }
+
+  inline const std::vector<MatElementObj*>* MatElementList::getVector() const
+  {
+    return &_vector;
+  }
 }
-
-inline const std::vector<MatElementObj*>* MatElementList::getVector() const
-{
-  return &_vector;
-}
-
 #endif

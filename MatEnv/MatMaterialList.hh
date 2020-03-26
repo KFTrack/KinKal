@@ -29,42 +29,43 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+namespace MatEnv {
 
-class MatMaterialList
-{
-  
-public:
-  
-  // Constructor to create an Material
-  
-  MatMaterialList();
-  MatMaterialList(const std::string& MaterialsFile); 
-  MatMaterialList(const std::vector<MatMaterialObj*>& vector);
+  class MatMaterialList
+  {
 
-  void print(std::ostream& out = std::cout);
+    public:
 
-  // Destructor
-  virtual ~MatMaterialList();
-  
-  inline std::vector<MatMaterialObj*>* getMaterialVector();
-  inline const std::vector<MatMaterialObj*>* getVector() const;
+      // Constructor to create an Material
 
-private:
-  
-  std::vector<MatMaterialObj*> _vector;
-  
-  friend bool testCdb(const MatMaterialList*, const MatMaterialList*);
+      MatMaterialList();
+      MatMaterialList(const std::string& MaterialsFile); 
+      MatMaterialList(const std::vector<MatMaterialObj*>& vector);
 
-};
+      void print(std::ostream& out = std::cout);
 
-inline std::vector<MatMaterialObj*>* MatMaterialList::getMaterialVector()
-{
-  return &_vector;
+      // Destructor
+      virtual ~MatMaterialList();
+
+      inline std::vector<MatMaterialObj*>* getMaterialVector();
+      inline const std::vector<MatMaterialObj*>* getVector() const;
+
+    private:
+
+      std::vector<MatMaterialObj*> _vector;
+
+      friend bool testCdb(const MatMaterialList*, const MatMaterialList*);
+
+  };
+
+  inline std::vector<MatMaterialObj*>* MatMaterialList::getMaterialVector()
+  {
+    return &_vector;
+  }
+
+  inline const std::vector<MatMaterialObj*>* MatMaterialList::getVector() const
+  {
+    return &_vector;
+  }
 }
-
-inline const std::vector<MatMaterialObj*>* MatMaterialList::getVector() const
-{
-  return &_vector;
-}
-
 #endif

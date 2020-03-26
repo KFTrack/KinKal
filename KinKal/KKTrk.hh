@@ -20,6 +20,7 @@
 #include <set>
 #include <vector>
 #include <memory>
+#include <cmath>
 #include <stdexcept>
 
 namespace KinKal {
@@ -72,10 +73,10 @@ namespace KinKal {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
 	if(config_.addmat_ && hit->material() != 0){
-	  auto iemp = effects_.emplace(new KKMHit(*hit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(*hit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	} else{ 
-	  auto iemp = effects_.emplace(new KKHit(*hit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKHit<KTRAJ> >(*hit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	}
       }
@@ -88,9 +89,9 @@ namespace KinKal {
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_)));
       }
       // create end effects
-      auto iemp = effects_.emplace(new KKEnd(reftraj,TDir::forwards,config_.dwt_));
+      auto iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
-      iemp = effects_.emplace(new KKEnd(reftraj,TDir::backwards,config_.dwt_));
+      iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::backwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
     }
 
@@ -105,8 +106,12 @@ namespace KinKal {
 	if(status_.niter_>0) fitOK = update();
 	double oldchisq = status_.chisq_;
 	if(fitOK) fitOK = fitIteration(); // this call updates chisq
-	// test for convergence/divergence 
-	if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_) status_.status_ = FitStatus::converged;
+	// test for convergence/divergence/failure
+	if(isnan(status_.chisq_)){
+	  status_.status_ = FitStatus::failed;
+	  fitOK = false;
+	} else if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_)
+	  status_.status_ = FitStatus::converged;
 	status_.niter_++;
       }
       if(!fitOK){
@@ -135,6 +140,7 @@ namespace KinKal {
 	    status_.ndof_ += ieff->get()->nDOF();
 	    // I'm not sure this is the most efficient way to get chisq FIXME!
 	    status_.chisq_ += ieff->get()->chisq(fitdata.pData());
+	    if(isnan(status_.chisq_))throw std::runtime_error("FPE");
 	  }
 	  if(!ieff->get()->process(fitdata,tdir)){
 	    retval = false;

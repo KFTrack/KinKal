@@ -30,22 +30,23 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+namespace MatEnv {
 
-class MatElmDictionary : public std::map<std::string*, MatElementObj*, PtrLess>
-{
+  class MatElmDictionary : public std::map<std::string*, MatElementObj*, PtrLess>
+  {
 
-public:
+    public:
 
-// Constructor 
-  MatElmDictionary(FileFinderInterface const& interface =SimpleFileFinder());
+      // Constructor 
+      MatElmDictionary(FileFinderInterface const& interface =SimpleFileFinder());
 
-// Destructor
-  virtual ~MatElmDictionary();
+      // Destructor
+      virtual ~MatElmDictionary();
 
-  void FillElmDict(MatElementList* elmlist);
-  private:
-  FileFinderInterface const& fileFinder_;
-};
-
+      void FillElmDict(MatElementList* elmlist);
+    private:
+      FileFinderInterface const& fileFinder_;
+  };
+}
 #endif /* MATELMDICTIONARY_HH */
 

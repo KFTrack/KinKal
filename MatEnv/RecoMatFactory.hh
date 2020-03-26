@@ -34,6 +34,9 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
+#include "MatEnv/MatMtrDictionary.hh"
+#include "MatEnv/MatElmDictionary.hh"
+
 
 #include <string>
 #include <map>
@@ -41,48 +44,46 @@
 //------------------------------------
 // Collaborating Class Declarations --
 //------------------------------------
-class ElmPropObj;
-class MtrPropObj;
-class MatMtrObj;
-class MatMaterialObj;
-class MatElementObj;
+namespace MatEnv {
+  class ElmPropObj;
+  class MtrPropObj;
+  class MatMtrObj;
+  class MatMaterialObj;
+  class MatElementObj;
 
-#include "MatEnv/MatMtrDictionary.hh"
-#include "MatEnv/MatElmDictionary.hh"
+  class RecoMatFactory {
+    public:
 
-class RecoMatFactory {
-public:
+      static RecoMatFactory* getInstance();
 
-  static RecoMatFactory* getInstance();
+      // Destructor
+      virtual ~RecoMatFactory();
 
-// Destructor
-  virtual ~RecoMatFactory();
+      const std::map< std::string*, ElmPropObj*, PtrLess>* GetElmPropDict() const
+      {return _theElmPropDict;}
+      const std::map< std::string*, MtrPropObj*, PtrLess >* GetMtrPropDict() const
+      {return _theMtrPropDict;}
 
-  const std::map< std::string*, ElmPropObj*, PtrLess>* GetElmPropDict() const
-    {return _theElmPropDict;}
-  const std::map< std::string*, MtrPropObj*, PtrLess >* GetMtrPropDict() const
-    {return _theMtrPropDict;}
+      ElmPropObj* GetElmProperties( const std::string& );
+      MtrPropObj* GetMtrProperties( const std::string& );
 
-  ElmPropObj* GetElmProperties( const std::string& );
-  MtrPropObj* GetMtrProperties( const std::string& );
+      std::map<std::string*, MatMaterialObj*, PtrLess>* materialDictionary() const 
+      { return _theMtrDict; }
+      std::map<std::string*, MatElementObj*, PtrLess>* elementDictionary() const 
+      { return _theElmDict; }
 
-  std::map<std::string*, MatMaterialObj*, PtrLess>* materialDictionary() const 
-  { return _theMtrDict; }
-  std::map<std::string*, MatElementObj*, PtrLess>* elementDictionary() const 
-  { return _theElmDict; }
+    private:
 
-private:
+      // Singleton: constructor private
+      RecoMatFactory(); 
 
-// Singleton: constructor private
-  RecoMatFactory(); 
-
-// Data members
-  MatElmDictionary* _theElmDict;
-  MatMtrDictionary* _theMtrDict;
-  std::map< std::string*, ElmPropObj*, PtrLess >* _theElmPropDict;
-  std::map< std::string*, MtrPropObj*, PtrLess >* _theMtrPropDict; 
-};
-
+      // Data members
+      MatElmDictionary* _theElmDict;
+      MatMtrDictionary* _theMtrDict;
+      std::map< std::string*, ElmPropObj*, PtrLess >* _theElmPropDict;
+      std::map< std::string*, MtrPropObj*, PtrLess >* _theMtrPropDict; 
+  };
+}
 #endif // RECOMATFACTORY_HH
 
 

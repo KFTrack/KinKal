@@ -22,8 +22,8 @@
 // Modification History:
 //   June 18, 1998 - Talby : created
 //-----------------------------------------------------------------------------
-#ifndef MTRPROPOBJ_HH
-#define MTRPROPOBJ_HH 1
+#ifndef MatEnv_MtrPropObj_hh
+#define MatEnv_MtrPropObj_hh
 
 //-------------
 // C Headers --
@@ -37,135 +37,135 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/DetMtrProp.hh"
 #include <string>
 #include <vector>
 
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
-class ElmPropObj;
-class MatMaterialObj;
+namespace MatEnv {
+  class ElmPropObj;
+  class MatMaterialObj;
 
-class MtrPropObj : public DetMtrProp
-{
-public:   
+  class MtrPropObj
+  {
+    public:   
 
-  enum { numShellV = 3 };
+      enum { numShellV = 3 };
 
-  // Default constructor 
-  MtrPropObj(); 
+      // Default constructor 
+      MtrPropObj(); 
 
-  // Constructor to create Material from a combination of Elements or Materials
-  MtrPropObj( MatMaterialObj* theMaterial ); 
+      // Constructor to create Material from a combination of Elements or Materials
+      MtrPropObj( MatMaterialObj* theMaterial ); 
 
-  // Copy constructor
-  MtrPropObj(const MtrPropObj&);
+      // Copy constructor
+      MtrPropObj(const MtrPropObj&);
 
-  // Destructor
-  virtual ~MtrPropObj();
+      // Destructor
+      ~MtrPropObj();
 
-  // Operators (Assignment op)
-  MtrPropObj& operator=( const MtrPropObj& );   
-  bool operator==( const MtrPropObj& ) const;
+      // Operators (Assignment op)
+      MtrPropObj& operator=( const MtrPropObj& );   
+      bool operator==( const MtrPropObj& ) const;
 
-  // Add and element, giving number of atoms
-  void AddElement( ElmPropObj* element, int nAtoms );
+      // Add and element, giving number of atoms
+      void AddElement( ElmPropObj* element, int nAtoms );
 
-  // Add and element or material, giving fraction of mass
-  void AddElement ( ElmPropObj* element , double fraction );
-  void AddMaterial( MtrPropObj* material, double fraction );
+      // Add and element or material, giving fraction of mass
+      void AddElement ( ElmPropObj* element , double fraction );
+      void AddMaterial( MtrPropObj* material, double fraction );
 
-  // print constructor
-  void print();
+      // print constructor
+      void print();
 
-  // Selectors
-  virtual const std::string& getName() const;
-  virtual double getDensity() const { return _matDensity; }
-  virtual double getCdensity() const { return _cdensity; }
-  virtual double getMdensity() const { return _mdensity; }
-  virtual double getAdensity() const { return _adensity; }
-  virtual double getX0density() const { return _x0density; }
-  virtual double getX1density() const { return _x1density; }
-  virtual double getTaul() const { return _taul; }
-  virtual double getDEdxFactor() const { return _dEdxFactor; }
-  virtual double getMeanExciEnergy() const { return _meanExciEnergy; }
-  virtual const std::vector< double >& getShellCorrectionVector() const;
-  virtual double getEnergyTcut() const { return _energyTcut; }
+      // Selectors
+      const std::string& getName() const;
+      double getDensity() const { return _matDensity; }
+      double getCdensity() const { return _cdensity; }
+      double getMdensity() const { return _mdensity; }
+      double getAdensity() const { return _adensity; }
+      double getX0density() const { return _x0density; }
+      double getX1density() const { return _x1density; }
+      double getTaul() const { return _taul; }
+      double getDEdxFactor() const { return _dEdxFactor; }
+      double getMeanExciEnergy() const { return _meanExciEnergy; }
+      const std::vector< double >& getShellCorrectionVector() const;
+      double getEnergyTcut() const { return _energyTcut; }
 
-  virtual double getRadLength() const { return _radLength; }
-  virtual double getIntLength() const { return _intLength; }
+      double getRadLength() const { return _radLength; }
+      double getIntLength() const { return _intLength; }
 
-  virtual std::vector< ElmPropObj* >* getElementVector()  const {return _theElementVector; }
-  virtual size_t getNumberOfElements()       const {return _numberOfElements; }
-  virtual const std::vector< double >& getFractionVector()        const;
-  virtual const std::vector< int >& getAtomsVector()              const;
-  virtual const std::vector< double >& getVecNbOfAtomsPerVolume() const;
-  virtual const std::vector< double >& getVecTau0() const;
-  virtual const std::vector< double >& getVecAlow() const;
-  virtual const std::vector< double >& getVecBlow() const;
-  virtual const std::vector< double >& getVecClow() const;
-  virtual const std::vector< double >& getVecZ()    const;
+      std::vector< ElmPropObj* >* getElementVector()  const {return _theElementVector; }
+      size_t getNumberOfElements()       const {return _numberOfElements; }
+      const std::vector< double >& getFractionVector()        const;
+      const std::vector< int >& getAtomsVector()              const;
+      const std::vector< double >& getVecNbOfAtomsPerVolume() const;
+      const std::vector< double >& getVecTau0() const;
+      const std::vector< double >& getVecAlow() const;
+      const std::vector< double >& getVecBlow() const;
+      const std::vector< double >& getVecClow() const;
+      const std::vector< double >& getVecZ()    const;
 
-  virtual double getZ() const;           
-  virtual double getA() const;
+      double getZ() const;           
+      double getA() const;
 
-  virtual const std::string& getState() const;
+      const std::string& getState() const;
 
-private:
+    private:
 
-// Compute derived quantities
-  void ComputeDerivedQuantities();
-  void ComputeRadiationLength();
-  void ComputeIonisationParam();
-  void ComputeOtherParams();
-  void ComputeInteractionLength();
+      // Compute derived quantities
+      void ComputeDerivedQuantities();
+      void ComputeRadiationLength();
+      void ComputeIonisationParam();
+      void ComputeOtherParams();
+      void ComputeInteractionLength();
 
-private:
+    private:
 
-// Basic data members (define a Material)
+      // Basic data members (define a Material)
 
-  std::string* _matName;     
-  double _matDensity;     
-  double _cdensity;
-  double _mdensity;
-  double _adensity;
-  double _x0density;
-  double _x1density;
-  double _taul;
-  double _radLength;    
-  double _intLength;
+      std::string* _matName;     
+      double _matDensity;     
+      double _cdensity;
+      double _mdensity;
+      double _adensity;
+      double _x0density;
+      double _x1density;
+      double _taul;
+      double _radLength;    
+      double _intLength;
 
-  double _dEdxFactor;
-  double _meanExciEnergy;
-  std::vector< double >* _shellCorrectionVector;
-  double _energyTcut;
+      double _dEdxFactor;
+      double _meanExciEnergy;
+      std::vector< double >* _shellCorrectionVector;
+      double _energyTcut;
 
-  double _zeff;
-  double _aeff;
-  std::string* _state;
-  double _temp;
-  double _pressure;
-  size_t _maxNbComponents;
-  size_t _numberOfComponents;
-  size_t _numberOfElements;
+      double _zeff;
+      double _aeff;
+      std::string* _state;
+      double _temp;
+      double _pressure;
+      size_t _maxNbComponents;
+      size_t _numberOfComponents;
+      size_t _numberOfElements;
 
-  std::vector< ElmPropObj* >* _theElementVector;
-  std::vector< double >* _massFractionVector;
-  std::vector< int >* _atomsVector;
-  std::vector< double >* _theTau0Vector;
-  std::vector< double >* _theAlowVector;
-  std::vector< double >* _theBlowVector;
-  std::vector< double >* _theClowVector;
-  std::vector< double >* _theZVector;
+      std::vector< ElmPropObj* >* _theElementVector;
+      std::vector< double >* _massFractionVector;
+      std::vector< int >* _atomsVector;
+      std::vector< double >* _theTau0Vector;
+      std::vector< double >* _theAlowVector;
+      std::vector< double >* _theBlowVector;
+      std::vector< double >* _theClowVector;
+      std::vector< double >* _theZVector;
 
-// Derived data members (computed from the basic data members)
+      // Derived data members (computed from the basic data members)
 
-  std::vector< double >* _vecNbOfAtomsPerVolume;
-                                       // vector of nb of atoms per volume
-  double  _totNbOfAtomsPerVolume;      // total nb of atoms per volume 
-  double  _totNbOfElectPerVolume;      // total nb of electrons per volume 
+      std::vector< double >* _vecNbOfAtomsPerVolume;
+      // vector of nb of atoms per volume
+      double  _totNbOfAtomsPerVolume;      // total nb of atoms per volume 
+      double  _totNbOfElectPerVolume;      // total nb of electrons per volume 
 
-};
-
+  };
+}
 #endif
