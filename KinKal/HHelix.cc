@@ -52,6 +52,9 @@ namespace KinKal {
     param(z0_) = dphi * tanDip() / omega();
 
     param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
+
+    vt_ = CLHEP::c_light * pt / mom.E();
+    vz_ = CLHEP::c_light * mom.z() / mom.E();
   }
 
   double HHelix::deltaPhi(double &phi, double refphi) const
@@ -173,7 +176,7 @@ namespace KinKal {
     double tanval = tanDip();
     double cosval = cosDip();
     double omval = omega();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cosDip();
+    double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
     double bval = beta();
     // cases
@@ -183,18 +186,18 @@ namespace KinKal {
         dermat[d0_][0] = tanval*(1-cos(omval*l))/omval;
         dermat[phi0_][0] = -tanval*sin(omval*l)/(1+omval*d0val);
         dermat[omega_][0] = omval*tanval;
-        dermat[z0_][0] = tanval*tanval*sin(omval*l)/(omval*(1+omval*d0val)) - l;
-        dermat[tanDip_][0] = -1/(cosval*cosval);
-        dermat[t0_][0] = -(time-t0())/tanval;
+        dermat[z0_][0] = -l-tanval*tanval*sin(omval*l)/(omval*(1+omval*d0val));
+        dermat[tanDip_][0] = 1/(cosval*cosval);
+        dermat[t0_][0] = dermat[z0_][0] / vz() + dermat[tanDip_][0] * (time - t0()) * cosval * cosval / tanval;
         break;
       case theta2:
         // Azimuthal bending: R, Lambda, t0 are unchanged
         dermat[d0_][0] = -sin(omval*l)/(omval*cosval);
         dermat[phi0_][0] = cos(omval*l)/(cosval*(1+omval*d0val));
         dermat[omega_][0] = 0;
-        dermat[z0_][0] = tanval/(omval*cosval)*(1-cos(omval*l)/(1+omval*d0val));
+        dermat[z0_][0] = -tanval/(omval*cosval)*(1-cos(omval*l)/(1+omval*d0val));
         dermat[tanDip_][0] = 0;
-        dermat[t0_][0] = 0.;
+        dermat[t0_][0] = dermat[z0_][0]/vz();
         break;
       case momdir:
         // fractional momentum change: position and direction are unchanged

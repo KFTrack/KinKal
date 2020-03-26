@@ -71,10 +71,12 @@ namespace KinKal {
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
+      double vt() const { return vt_; }
+      double vz() const { return vz_; }
       double Q() const { return mass_/mbar_; } // reduced charge
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
-      double dphi(double t) const { return omega()*(t - t0()); }
+      double dphi(double t) const { return omega()*vt()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double deltaPhi(double &phi, double refphi=0.) const;
       double angle(const double &f) const;
@@ -93,6 +95,8 @@ namespace KinKal {
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
+      double vt_; // transverse velocity
+      double vz_; // z velocity
       // non-const accessors
       double &param(size_t index) { return pars_.parameters()[index]; }
   };
