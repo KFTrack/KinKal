@@ -8,7 +8,8 @@
 namespace KinKal {
   class DMat {
     public:
-      virtual void intersect(TPocaBase const& poca,std::vector<MatXing>& mxings) const =0;
+    // find the material crossings give TPOCA from a hit
+      virtual void findXings(TPocaBase const& poca,std::vector<MatXing>& mxings) const =0;
   };
 }
 #endif

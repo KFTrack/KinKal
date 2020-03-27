@@ -146,7 +146,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
     bool simmat(true);
     if(addmat && simmat){
       std::vector<MatXing> mxings;
-      smat.intersect(tp,mxings);
+      smat.findXings(tp,mxings);
       auto const& endpiece = plhel.nearestPiece(tp.t0());
       KKXing<LHelix> ktmi(endpiece,tp.t0(),mxings);
       double mom = endpiece.momentum(tp.t0());
@@ -351,8 +351,9 @@ int main(int argc, char **argv) {
 //  }
   TFile fitfile("FitTest.root","RECREATE");
   // tree variables
-  LHelixPars tfpars_, tepars_, fseedpars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, temom_, tfmom_, ffitmom_, efitmom_, tde_;
+  LHelixPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
+  float chisq_, etmom_, ftmom_, ffmom_, efmom_, tde_, chiprob_;
+  float fft_,eft_;
   int ndof_, niter_;
   if(ntries <=0 ){
   // draw the fit result
@@ -399,20 +400,23 @@ int main(int argc, char **argv) {
     TTree* ftree(0);
     if(ttree){
       ftree = new TTree("FitTree","FitTree");
-      ftree->Branch("tfpars.", &tfpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("tepars.", &tepars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("fseedpars.", &fseedpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("ffitpars.", &ffitpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("ffiterrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
-      ftree->Branch("efitpars.", &efitpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("efiterrs.", &efiterrs_,LHelixPars::leafnames().c_str());
+      ftree->Branch("ftpars.", &ftpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("etpars.", &etpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("spars.", &spars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("ffpars.", &ffitpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("fferrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
+      ftree->Branch("efpars.", &efitpars_,LHelixPars::leafnames().c_str());
+      ftree->Branch("eferrs.", &efiterrs_,LHelixPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
+      ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
-      ftree->Branch("tfmom", &tfmom_,"tfmom/F");
-      ftree->Branch("temom", &temom_,"temom/F");
-      ftree->Branch("ffitmom", &ffitmom_,"ffitmom/F");
-      ftree->Branch("efitmom", &efitmom_,"efitmom/F");
+      ftree->Branch("ftmom", &ftmom_,"ftmom/F");
+      ftree->Branch("etmom", &etmom_,"etmom/F");
+      ftree->Branch("ffmom", &ffmom_,"ffmom/F");
+      ftree->Branch("efmom", &efmom_,"efmom/F");
+      ftree->Branch("fft", &fft_,"fft/F");
+      ftree->Branch("eft", &eft_,"eft/F");
       ftree->Branch("tde", &tde_,"tde/F");
     }
     // now repeat this to gain statistics
@@ -467,6 +471,7 @@ int main(int argc, char **argv) {
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
+     // momentum
       // accumulate parameter difference and pull
       vector<double> cerr(6,0.0);
       for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
@@ -486,30 +491,33 @@ int main(int argc, char **argv) {
 	}
       }
       // accumulate chisquared info
-      double chiprob = TMath::Prob(kktrk.status().chisq_,kktrk.status().ndof_);
+      chiprob_ = TMath::Prob(kktrk.status().chisq_,kktrk.status().ndof_);
       niter->Fill(kktrk.status().niter_);
       ndof->Fill(kktrk.status().ndof_);
       chisq->Fill(kktrk.status().chisq_);
       chisqndof->Fill(kktrk.status().chisq_/kktrk.status().ndof_);
-      chisqprob->Fill(chiprob);
-      logchisqprob->Fill(log10(chiprob));
+      chisqprob->Fill(chiprob_);
+      logchisqprob->Fill(log10(chiprob_));
       // fill tree
       for(size_t ipar=0;ipar<6;ipar++){
-	fseedpars_.pars_[ipar] = seedhel.params().parameters()[ipar];
-	tfpars_.pars_[ipar] = tplhel.front().params().parameters()[ipar];
-	tepars_.pars_[ipar] = tplhel.back().params().parameters()[ipar];
+	spars_.pars_[ipar] = seedhel.params().parameters()[ipar];
+	ftpars_.pars_[ipar] = tplhel.front().params().parameters()[ipar];
+	etpars_.pars_[ipar] = tplhel.back().params().parameters()[ipar];
 	ffitpars_.pars_[ipar] = kktrk.fitTraj().front().params().parameters()[ipar];
 	efitpars_.pars_[ipar] = kktrk.fitTraj().back().params().parameters()[ipar];
 	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
 	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
       }
-      tfmom_ = tplhel.front().momentum(tplhel.range().low());
-      temom_ = tplhel.back().momentum(tplhel.range().high());
-      ffitmom_ = kktrk.fitTraj().front().momentum(tplhel.range().low());
-      efitmom_ = kktrk.fitTraj().back().momentum(tplhel.range().high());
+      ftmom_ = tplhel.front().momentum(tplhel.range().low());
+      etmom_ = tplhel.back().momentum(tplhel.range().high());
+      ffmom_ = kktrk.fitTraj().front().momentum(kktrk.fitTraj().range().low());
+      efmom_ = kktrk.fitTraj().back().momentum(kktrk.fitTraj().range().high());
+      fft_ = kktrk.fitTraj().range().low();
+      eft_ = kktrk.fitTraj().range().high();
       chisq_ = kktrk.status().chisq_;
       ndof_ = kktrk.status().ndof_;
       niter_ = kktrk.status().niter_;
+
       if(ttree)ftree->Fill();
     }
     // fill canvases

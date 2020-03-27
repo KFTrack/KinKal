@@ -61,12 +61,12 @@ namespace KinKal {
     return retval;
   }
 
-  void StrawMat::intersect(TPocaBase const& tpoca, std::vector<MatXing>& mxings) const {
+  void StrawMat::findXings(TPocaBase const& tpoca, std::vector<MatXing>& mxings) const {
   // calculate the angle between traj0 and traj1
-    return intersect(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),mxings);
+    return findXings(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),mxings);
   }
 
-  void StrawMat::intersect(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const {
+  void StrawMat::findXings(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const {
     mxings.clear();
     mxings.push_back(MatXing(wallmat_,wallPath(doca,ddoca,adot)));
     mxings.push_back(MatXing(gasmat_,gasPath(doca,ddoca,adot)));

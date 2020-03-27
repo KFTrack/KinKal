@@ -57,14 +57,6 @@ namespace KinKal {
 	if(status() == valid || other.status() == valid)status_=valid;
 	return *this;
       }
-      // subtract: note the covariance is always additive
-      TData & operator -= (TData const& other) {
-	vec_ -= other.vec();
-	mat_ += other.mat();
-	//  assume if one is OK they both are (??) FIXME! 
-	if(status() == valid || other.status() == valid)status_=valid;
-	return *this;
-      }
 
     private:
       DVEC vec_; // parameters

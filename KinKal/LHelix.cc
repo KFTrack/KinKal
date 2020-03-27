@@ -213,19 +213,19 @@ namespace KinKal {
 
   }
 
-  void LHelix::rangeInTolerance(TRange& range, BField const& bfield, double tol) const {
+  void LHelix::rangeInTolerance(TRange& brange, BField const& bfield, double tol) const {
     // precompute some factors
     double fact = 0.5*sqrt(rad()*tol*bnom().R())/CLHEP::c_light;
+    // Limit to this traj's range
+    brange.high() = std::min(brange.high(),range().high());
     // compute the BField difference in the middle of the range
-    // this ignore changes in the field over this range, which should be controlled outside this call
-    // through the input range
     Vec3 midpos,bvec;
-    position(range.mid(),midpos);
+    position(brange.mid(),midpos);
     bfield.fieldVect(bvec,midpos);
     auto db = bvec-bnom();
     double dt = fact/sqrt(db.R());
     // truncate the range if necessary
-    if(dt < range.range())range.high() = range.low() + dt;
+    if(dt < brange.range())brange.high() = brange.low() + dt;
   }
  
 
