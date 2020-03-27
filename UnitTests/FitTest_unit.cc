@@ -63,7 +63,7 @@ unsigned nhits(40);
 double escale(5.0);
 vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
 // define the BF
-Pol3 bnom(1.0,0.0,0.0);
+Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
 BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
@@ -76,7 +76,7 @@ void print_usage() {
 struct LHelixPars{
   Float_t pars_[6];
   static std::string leafnames() {
-    return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f,:err/f:p0err/f:omerr/f:z0err/f:tderr/f");
+    return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f");
   }
 };
 
@@ -154,31 +154,34 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
       endpiece.momentum(tp.t0(),endmom);
       Vec4 endpos; endpos.SetE(tp.t0());
       endpiece.position(endpos);
+      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+      ktmi.momEffects(TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
-	double dmom, momvar, dm;
-	ktmi.momEffect(TDir::forwards, mdir, dmom, momvar);
-	double momsig = sqrt(momvar);
-	double land;
+	double momsig = sqrt(momvar[idir]);
+	double dm;
+//	double land;
 	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
 	switch( mdir ) {
 	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
-	    dm = TR->Gaus(dmom,momsig);
+	    dm = TR->Gaus(dmom[idir],momsig);
 	    dscatsum += dm;
 	    break;
 	  case KinKal::KInter::momdir :
 	    // truncated Landau for the energy loss
-	    land = 1e5;
-	    while(land > fabs(momsig/dmom))
-	      land = TR->Landau(1.0,0.1); // can't use variance
-	    dm = std::min(0.0,dmom*land/1.25);
+//	    land = 1e5;
+//	    while(land > fabs(momsig/dmom))
+//	      land = TR->Landau(1.0,0.1); // can't use variance
+//	    dm = std::min(0.0,dmom*land/1.25);
+//	    dm = std::min(0.0,TR->Gaus(dmom,momsig));
+	    dm = std::min(0.0,TR->Gaus(dmom[idir],momsig));
 //	    dm = dmom;
 	    desum += dm*mom;
 	    break;
 	  default:
 	    throw std::invalid_argument("Invalid direction");
 	}
-//	cout << "direction " << mdir << " doca " << tp.doca() << " dmom " << dmom << " +- " << sqrt(momvar) << " sample " << dm  << endl;
+//	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
 
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.t0(),dmvec);
@@ -285,9 +288,8 @@ int main(int argc, char **argv) {
     BF->fieldVect(bn,Vec3(0.0,0.0,0.0));
     bnom = bn;
   } else {
-    bnom = Pol3(1.0,atan(By),M_PI/2.0);
-    Vec3 bn(bnom);
-    BF = new UniformBField(bn);
+    bnom = Vec3(0.0,By,1.0);
+    BF = new UniformBField(bnom);
   }
 
   MatDBInfo matdbinfo;

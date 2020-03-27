@@ -162,13 +162,12 @@ int main(int argc, char **argv) {
   pmass = masses[imass];
   TFile htfile("HitTest.root","RECREATE");
   // construct BField
-  Pol3 bnom(1.0,0.0,0.0);
+  Vec3 bnom(0.0,By,1.0);
   BField* BF;
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
     BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
   } else {
-    bnom = Pol3(0.0,By,1.0);
     BF = new UniformBField(bnom);
   }
   CVD2T d2t(sdrift,sigt*sigt);

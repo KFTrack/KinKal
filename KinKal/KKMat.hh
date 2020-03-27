@@ -11,6 +11,7 @@
 #include "KinKal/TDir.hh"
 #include <iostream>
 #include <stdexcept>
+#include <array>
 namespace KinKal {
   template<class KTRAJ> class KKMat : public KKPEff<KTRAJ> {
     public:
@@ -66,6 +67,8 @@ namespace KinKal {
      // translate these to material effects
      KKXing<PKTRAJ> kkxing(tdpoca.ttraj0(),tdpoca.poca0().T(),mxings);
      // loop over the momentum change basis directions, adding up the effects on parameters from each
+     std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+     kkxing.momEffects(TDir::forwards, dmom, momvar);
      for(int idir=0;idir<=KInter::theta2; idir++) {
        auto mdir = static_cast<KInter::MDir>(idir);
        // get the derivatives of the parameters WRT material effects
@@ -74,22 +77,14 @@ namespace KinKal {
        // convert derivative vector to a Nx1 matrix
        ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
        dPdm.Place_in_col(pder,0,0);
-       // get the mean and variance of this momentum effect from the material
-       // for now, do this in the time forwards direction only, in future this may be split
-       double dmom, momvar;
-       kkxing.momEffect(TDir::forwards, mdir, dmom, momvar);
-       // test
-       if(isnan(momvar))throw std::runtime_error("Invalid momvar");
        // update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
-       this->pdata_.parameters() += pder*dmom;
+       this->pdata_.parameters() += pder*dmom[idir];
        // now the variance: this doesn't depend on time direction
        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
-       MVar(0,0) = momvar;
+       MVar(0,0) = momvar[idir];
        this->pdata_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
-
      }
      return true;
    }
-
 }
 #endif

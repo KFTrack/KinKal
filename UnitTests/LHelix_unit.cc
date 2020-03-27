@@ -118,7 +118,7 @@ int main(int argc, char **argv) {
 
   printf("Testing LHelix with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
 // define the BF (tesla)
-  Pol3 bnom(1.0,By,0.5*M_PI);
+  Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);

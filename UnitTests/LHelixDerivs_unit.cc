@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     }
   }
   // construct original helix from parameters
-  Pol3 bnom(1.0,By,0.5*M_PI);
+  Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   // reference helix

@@ -26,8 +26,8 @@ namespace KinKal {
   std::string const& LHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)];}
   std::string const& LHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Pol3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Pol3 const& bnom, TRange const& range) : TTraj(range), KInter(mom0.M(),charge), bnom_(bnom), needsrot_(false) {
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range) : TTraj(range), KInter(mom0.M(),charge), bnom_(bnom), needsrot_(false) {
     static double twopi = 2*M_PI; // FIXME
     // Transform into the system where Z is along the Bfield.
     Vec4 pos(pos0);
@@ -67,14 +67,14 @@ namespace KinKal {
     param(cy_) = pos.Y() - mom.X()*momToRad;
   }
 
-  LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Pol3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Pol3 const& bnom, TRange const& range) : 
+  LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
+  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
     LHelix(pdata.parameters(), pdata.covariance(),mass,charge, bnom, range)
     {}
 
   LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range) : 
-    LHelix(pvec,pcov,mass,charge,Pol3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Pol3 const& bnom, TRange const& range) : 
+    LHelix(pvec,pcov,mass,charge,Vec3(0.0,0.0,bnom),range) {}
+  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
     TTraj(range), KInter(mass,charge), pars_(pvec,pcov), bnom_(bnom) {
     if(bnom_.X() !=0 || bnom_.Y() != 0){
       Vec3 rotaxis(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0);
@@ -214,8 +214,18 @@ namespace KinKal {
   }
 
   void LHelix::rangeInTolerance(TRange& range, BField const& bfield, double tol) const {
-   //FIXME! 
-
+    // precompute some factors
+    double fact = 0.5*sqrt(rad()*tol*bnom().R())/CLHEP::c_light;
+    // compute the BField difference in the middle of the range
+    // this ignore changes in the field over this range, which should be controlled outside this call
+    // through the input range
+    Vec3 midpos,bvec;
+    position(range.mid(),midpos);
+    bfield.fieldVect(bvec,midpos);
+    auto db = bvec-bnom();
+    double dt = fact/sqrt(db.R());
+    // truncate the range if necessary
+    if(dt < range.range())range.high() = range.low() + dt;
   }
  
 

@@ -38,10 +38,10 @@ namespace KinKal {
 
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField
-      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Pol3 const& bnom, TRange const& range=TRange());
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       // construct from parameters
-      LHelix(PDATA const& pdata, double mass, int charge, Pol3 const& bnom, TRange const& range=TRange());
-      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Pol3 const& bnom, TRange const& range=TRange());
+      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       // versions of the above for B parallel to z
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
       // construct from parameters
@@ -96,7 +96,7 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       int charge() const { return charge_; }
-      Pol3 const& bnom() const { return bnom_; }
+      Vec3 const& bnom() const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
@@ -108,7 +108,7 @@ namespace KinKal {
     private :
       PDATA pars_; // parameters
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
-      Pol3 bnom_; // nominal BField
+      Vec3 bnom_; // nominal BField
       bool needsrot_; // logical flag if Bnom is parallel to global Z or not
       ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system (along B) to the global
       static std::vector<std::string> paramTitles_;

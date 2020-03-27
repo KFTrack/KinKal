@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     << delta << endl;
 
   // create a helix
-  Pol3 bnom(1.0,0.0,0.0);
+  Vec3 bnom(0.0,0.0,1.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);

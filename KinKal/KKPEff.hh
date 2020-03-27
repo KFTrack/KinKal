@@ -34,11 +34,18 @@ namespace KinKal {
   template<class KTRAJ> bool KKPEff<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     bool retval(false);
     if(this->isActive()){
-      // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
-      if(tdir == TDir::backwards)wdata_ += kkdata.wData();
-      kkdata.append(pdata_);
       // forwards, set the cache AFTER processing this effect
-      if(tdir == TDir::forwards)wdata_ += kkdata.wData();
+      if(tdir == TDir::forwards) {
+	kkdata.append(pdata_);
+	wdata_ += kkdata.wData();
+      } else {
+      // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
+	wdata_ += kkdata.wData();
+	// reverse the sign; this is clumsy FIXME
+	PData revpar(pdata_);
+	revpar.parameters() *= -1.0;
+	kkdata.append(revpar);
+      }
       retval = kkdata.pData().matrixOK();
     }
     KKEffBase::setStatus(tdir,KKEffBase::processed);
