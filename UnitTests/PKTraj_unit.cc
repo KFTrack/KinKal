@@ -5,7 +5,7 @@
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -28,7 +28,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -89,15 +88,15 @@ int main(int argc, char **argv) {
     << delta << endl;
 
   // create a helix
-  UniformBField BF(1.0); // 1 Tesla
-  Context context(BF);
+  Vec3 bnom(0.0,0.0,1.0);
+  UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   //initial piece
   double tend = tstart + tstep;
   TRange range(tstart,tend);
-  LHelix lhel(origin,momv,icharge,context,range);
+  LHelix lhel(origin,momv,icharge,bnom,range);
   // create initial piecewise helix from this
   PLHelix ptraj(lhel);
   // append pieces
@@ -110,7 +109,7 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),context,range);
+    LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),bnom,range);
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -146,7 +145,7 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),context,range);
+    LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),bnom,range);
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);

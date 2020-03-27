@@ -11,7 +11,7 @@ Import('build_helper')
 
 helper=build_helper(env);
 
-mainlib = helper.make_mainlib ( [ 
+mainlib = helper.make_mainlib ( ['GenVector' 
                                 ] )
 
 # This tells emacs to view this file in python mode.

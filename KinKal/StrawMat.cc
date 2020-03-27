@@ -61,17 +61,17 @@ namespace KinKal {
     return retval;
   }
 
-  void StrawMat::intersect(TPocaBase const& tpoca, std::vector<MIsect>& misects) const {
+  void StrawMat::findXings(TPocaBase const& tpoca, std::vector<MatXing>& mxings) const {
   // calculate the angle between traj0 and traj1
-    return intersect(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),misects);
+    return findXings(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),mxings);
   }
 
-  void StrawMat::intersect(float doca, float ddoca, float adot, std::vector<MIsect>& misects) const {
-    misects.clear();
-    misects.push_back(MIsect(wallmat_,wallPath(doca,ddoca,adot)));
-    misects.push_back(MIsect(gasmat_,gasPath(doca,ddoca,adot)));
+  void StrawMat::findXings(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const {
+    mxings.clear();
+    mxings.push_back(MatXing(wallmat_,wallPath(doca,ddoca,adot)));
+    mxings.push_back(MatXing(gasmat_,gasPath(doca,ddoca,adot)));
 // for now, take 0 path on the wire: this should be some probability based on doca and ddoca FIXME!
-    if(rwire_<0.0) misects.push_back(MIsect(wiremat_,0.0));
+    if(rwire_<0.0) mxings.push_back(MatXing(wiremat_,0.0));
   }
 
 }
