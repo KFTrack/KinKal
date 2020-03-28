@@ -6,6 +6,7 @@
 //
 #include <string>
 namespace KinKal {
+  class BField;
   class KInter {
     public:
       // define basis vectors WRT the local momentum direction.  theta2 is also perpendicular to z
@@ -13,7 +14,7 @@ namespace KinKal {
       static std::string directionName(MDir tdir) {
 	switch (tdir) {
 	  case momdir:
-	    return std::string("mom");
+	    return std::string("momdir");
 	  case theta1:
 	    return std::string("theta1");
 	  case theta2:
@@ -34,6 +35,8 @@ namespace KinKal {
       void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
       virtual double momentum(double time) const =0; // momentum and energy magnitude in MeV/
       virtual double energy(double time) const =0; 
+      // reduce the end of the given range so that the trajectory position stays within the given spatial tolerance (mm), given the BField
+      virtual void rangeInTolerance(TRange& range, BField const& bfield, double tol) const = 0;
       virtual ~KInter(){}
     protected:
       KInter(double mass, int charge) : mass_(mass), charge_(charge) {}

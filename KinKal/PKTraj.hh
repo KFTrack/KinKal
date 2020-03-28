@@ -20,7 +20,7 @@ namespace KinKal {
       virtual ~PKTraj(){}
       // override append and prepend to check mass and charge consistency
       virtual bool append(KTRAJ const& newpiece, bool allowremove=false) override {
-	if(newpiece.mass() != mass() || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+	if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
 	return PTTraj<KTRAJ>::append(newpiece,allowremove);
       }
       virtual bool prepend(KTRAJ const& newpiece, bool allowremove=false) override {
@@ -36,6 +36,8 @@ namespace KinKal {
       }
       double momentum(double time) const override { return PTTraj<KTRAJ>::nearestPiece(time).momentum(time); }
       double energy(double time) const override { return PTTraj<KTRAJ>::nearestPiece(time).energy(time); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override {
+	PTTraj<KTRAJ>::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
   };
 }
 #endif

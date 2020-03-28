@@ -4,7 +4,7 @@
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
-#include "KinKal/Context.hh"
+#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -27,7 +27,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -82,12 +81,12 @@ int main(int argc, char **argv) {
     }
   }
 // create helix
-  UniformBField BF(1.0); // 1 Tesla
-  Context context(BF);
+  Vec3 bnom(0.0,0.0,1.0);
+  UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,context);
+  LHelix lhel(origin,momv,icharge,bnom);
 // create tline perp to z axis at the specified time, separated by the specified gap
   Vec3 pos, dir;
   lhel.position(time,pos);
@@ -138,7 +137,7 @@ int main(int argc, char **argv) {
       auto dvec = lhel.params().parameters();
       double dpar = dstart + dstep*istep;
       dvec[ipar] += dpar; 
-      LHelix dlhel(dvec,lhel.params().covariance(),lhel.mass(),lhel.charge(),context);
+      LHelix dlhel(dvec,lhel.params().covariance(),lhel.mass(),lhel.charge(),bnom);
       TPoca<LHelix,TLine> dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives

@@ -11,8 +11,8 @@
 #include "KinKal/TTraj.hh"
 #include "KinKal/KInter.hh"
 #include "KinKal/PData.hh"
-#include "KinKal/Context.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
+#include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
 #include <ostream>
@@ -37,11 +37,16 @@ namespace KinKal {
       static std::string const& paramTitle(ParamIndex index);
 
       // construct from momentum, position, and particle properties.
-      // This also requires the BField, through Context
-      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Context const& context,TRange const& range=TRange());
+      // This also requires the nominal BField
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       // construct from parameters
-      LHelix(PDATA const& pdata, double mass, int charge, Context const& context,TRange const& range=TRange());
-      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Context const& context,TRange const& range=TRange());
+      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      // versions of the above for B parallel to z
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // construct from parameters
+      LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
+      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range=TRange());
       virtual ~LHelix() {} 
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
@@ -52,6 +57,9 @@ namespace KinKal {
       // scalar momentum and energy in MeV/c units
       double momentum(double time) const override { return  mass_*pbar()/mbar_; }
       double energy(double time) const override { return  mass_*ebar()/mbar_; }
+      // speed in mm/ns
+      double speed(double time) const override {  return CLHEP::c_light*beta(); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override;
 
       // local momentum direction basis
       virtual void dirVector(MDir dir,double time,Vec3& unit) const override;
@@ -73,7 +81,7 @@ namespace KinKal {
       double phi0() const { return param(phi0_); }
       double t0() const { return param(t0_); }
       
-      // simple functions 
+      // simple functions; these can be cached if they cause performance problems
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 
       double pbar() const { return  sqrt(pbar2()); } // momentum in mm
       double ebar2() const { return  rad()*rad() + lam()*lam() + mbar_*mbar_; }
@@ -88,6 +96,8 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       int charge() const { return charge_; }
+      Vec3 const& bnom() const { return bnom_; }
+      double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
 	mbar_ *= -1.0;
@@ -98,6 +108,9 @@ namespace KinKal {
     private :
       PDATA pars_; // parameters
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
+      Vec3 bnom_; // nominal BField
+      bool needsrot_; // logical flag if Bnom is parallel to global Z or not
+      ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system (along B) to the global
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;

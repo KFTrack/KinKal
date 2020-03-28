@@ -298,25 +298,27 @@ namespace MatEnv {
   //
   double
     DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
-      double beta = particleBeta(mom,mass);
-      double emax = eloss_emax(mom,mass);
-      double xi = eloss_xi(beta,fabs(pathlen));
-      double kappa = xi/emax;
-      double gam = sqrt(1.0-0.5*pow(beta,2));
-      // formula comes from GFLUCT.F in gphys dnb Jun 4 2004
-      //
-      // this formula seriously overestimates the rms when kappa<0.001
-      // This only really affects electrons
-      // as for heavier particles resolution effects already dominate when we get to
-      // this range.  I'll truncate
-      if(kappa < _minkappa)kappa = _minkappa;
-      double elossrms = xi*sqrt(gam/kappa);
-      //  cout << "beta = " << beta
-      //       << " emax = " << emax
-      //       << " xi = " << xi
-      //       << " kappa = " << kappa
-      //       << " elossrms = " << elossrms << endl;
-      return elossrms;
+//      double beta = particleBeta(mom,mass);
+//      double emax = eloss_emax(mom,mass);
+//      double xi = eloss_xi(beta,fabs(pathlen));
+//      double kappa = xi/emax;
+//      double gam = sqrt(1.0-0.5*pow(beta,2));
+//      // formula comes from GFLUCT.F in gphys dnb Jun 4 2004
+//      //
+//      // this formula seriously overestimates the rms when kappa<0.001
+//      // This only really affects electrons
+//      // as for heavier particles resolution effects already dominate when we get to
+//      // this range.  I'll truncate
+//      if(kappa < _minkappa)kappa = _minkappa;
+//      double elossrms = xi*sqrt(gam/kappa);
+//      //  cout << "beta = " << beta
+//      //       << " emax = " << emax
+//      //       << " xi = " << xi
+//      //       << " kappa = " << kappa
+//      //       << " elossrms = " << elossrms << endl;
+//      // this value is way too big: scale it down for now but this function needs a rewrite FIXME!
+//      return elossrms;
+      return 0.5*energyLoss(mom,pathlen,mass);
     }
 
   //

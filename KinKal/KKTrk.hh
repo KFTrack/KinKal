@@ -16,6 +16,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/THit.hh"
 #include "KinKal/FitStatus.hh"
+#include "KinKal/BField.hh"
 //#include "KinKal/DetElem.hh"
 #include <set>
 #include <vector>
@@ -30,8 +31,11 @@ namespace KinKal {
     double dwt_; // dweighting of initial seed covariance
     double mindchisq_; // minimum change in chisquared for convergence
     bool addmat_; // add material
-    double tbuff_; // time buffer for final fit
-    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), tbuff_(10.0) {} 
+    bool addfield_; // add field inhomogeneity effects
+    double tbuff_; // time buffer for final fit (ns)
+    double dtol_; // tolerance on direction change in BField integration (dimensionless)
+    double ptol_; // tolerance on position change in BField integration (mm)
+    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), addfield_(true), tbuff_(0.5), dtol_(0.1), ptol_(0.1) {} 
   };
 
   template<class KTRAJ> class KKTrk {
@@ -48,7 +52,7 @@ namespace KinKal {
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
       // construct from a set of hits (and materials FIXME!)
-      KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits, Config const& config ); 
+      KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<const THit*> hits, Config const& config ); 
       void fit(bool force=false); // process the effects.
       FitStatus const& status() const { return status_; }
       PKTRAJ const& refTraj() const { return reftraj_; }
@@ -58,16 +62,18 @@ namespace KinKal {
       // helper functions
       bool update();
       bool fitIteration();
+      void createFieldDomains();
       // payload
       Config config_; // configuration
       FitStatus status_; // current fit status
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is iterated
       KKCON effects_; // effects used in this fit, sorted by time
+      BField const& bfield_; // magnetic field map
   };
 
-  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, std::vector<const THit*> hits,Config const& config) : 
-    config_(config), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()){
+  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<const THit*> hits,Config const& config) : 
+    config_(config), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()), bfield_(bfield) {
       // loop over the hits
       for(auto hit : hits ) {
 	// create the hit effects and insert them in the set
@@ -80,7 +86,8 @@ namespace KinKal {
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	}
       }
-      //add pure material and BField inhomogeneity effects FIXME!
+      //add pure material effects FIXME	!
+
       // reset the range if necessary
       if( reftraj_.range().infinite()
 	  || reftraj_.range().low() > effects_.begin()->get()->time()
@@ -88,7 +95,11 @@ namespace KinKal {
 	reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_),
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_)));
       }
-      // create end effects
+      // add BField inhomogeneity effects
+      if(config_.addfield_){
+	createFieldDomains();
+      }
+      // create end effects; this should be last
       auto iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::backwards,config_.dwt_));
@@ -179,6 +190,37 @@ namespace KinKal {
       if(!retval)break;
     }
     return retval;
+  }
+
+  struct BFieldDomain {
+    TRange range_; // time range of this domain
+    Vec3 pdir_; // (average) momentum direction of this domain
+  };
+
+
+  template <class KTRAJ> void KKTrk<KTRAJ>::createFieldDomains() {
+    // use the reference trajectory to define the magnetic 'domains' where
+    // the trajectory direction isn't changing rapidly.
+    //
+    //// Maximum time step keeping momentum direction within tolerance
+    //  double tstep = reftraj_.timeStep(reftraj_.range().mid(),config_.dtol_);
+    //// re-align to a fixed set of covering steps
+    //  unsigned nsteps = ciel(reftraj_.range().range()/tstep);
+    //  tstep = reftraj_.range().range()/(nsteps-1);
+    //  // sample the BField at these points
+    //  std::vector<BFieldDomain> domains;
+    //  domains.reserve(nsteps);
+    //  for(unsigned istep=0;istep<nsteps;istep++){
+    //    BFieldDomain domain;
+    //    double tlow = reftraj_.range().low() + tstep*istep;
+    //    domain.range_ = TRange(tlow,tlow+tstep);
+    //    double time = domain.range_.mid();
+    //    Vec3 tpos,fvec;
+    //    reftraj_.position(time,tpos);
+    //    bfield_.fieldVect(fvec,tpos);
+    //
+    //    // integrate 
+    //  }
   }
 }
 #endif

@@ -4,7 +4,6 @@
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
-#include "KinKal/Context.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -26,7 +25,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
@@ -37,7 +35,7 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --ltime f \n");
+  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --ltime f --By f \n");
 }
 
 struct MomVec {
@@ -69,6 +67,7 @@ int main(int argc, char **argv) {
   double tmin(-5.0), tmax(5.0);
   double ltime(3.0), vprop(0.8), gap(2.0);
   double hlen(500.0); // half-length of the wire
+  double By(0.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -80,7 +79,8 @@ int main(int argc, char **argv) {
     {"torigin",     required_argument, 0, 't'  },
     {"tmin",     required_argument, 0, 's'  },
     {"tmax",     required_argument, 0, 'e'  },
-    {"ltime",     required_argument, 0, 'l'  }
+    {"ltime",     required_argument, 0, 'l'  },
+    {"By",     required_argument, 0, 'y'  },
   };
 
   int long_index =0;
@@ -107,6 +107,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'l' : ltime = atof(optarg);
 		 break;
+      case 'y' : By = atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
@@ -115,13 +117,12 @@ int main(int argc, char **argv) {
   pmass = masses[imass];
 
   printf("Testing LHelix with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
-// define the context
-  UniformBField BF(1.0); // 1 Tesla
-  Context context(BF);
+// define the BF (tesla)
+  Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,context);
+  LHelix lhel(origin,momv,icharge,bnom);
   Mom4 testmom;
   lhel.momentum(ot,testmom);
   cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
@@ -138,11 +139,11 @@ int main(int argc, char **argv) {
   lhel.momentum(tmax,tmom);
   tpos.SetE(tmax);
   lhel.position(tpos);
-  LHelix lhelmax(tpos,tmom,icharge,context);
+  LHelix lhelmax(tpos,tmom,icharge,bnom);
   lhel.momentum(tmin,tmom);
   tpos.SetE(tmin);
   lhel.position(tpos);
-  LHelix lhelmin(tpos,tmom,icharge,context);
+  LHelix lhelmin(tpos,tmom,icharge,bnom);
 
   cout << "LHelix at tmax has parameters : " << lhelmax << endl;
   cout << "LHelix at tmin has parameters : " << lhelmin << endl;

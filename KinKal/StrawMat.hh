@@ -21,16 +21,14 @@ namespace KinKal {
 	  ddmax_ = 0.05*rad_;
 	}
 	// DMat interface; first, for materials associated with a hit
-      virtual void intersect(TPocaBase const& poca,std::vector<MIsect>& misects) const override;
-      // then in general
-//      template <class KTRAJ> void intersect(KTRAJ const& ktraj, std::vector<MIsect>& misects) const override;
+      virtual void findXings(TPocaBase const& poca,std::vector<MatXing>& mxings) const override;
       // pathlength through gas, give DOCA to the axis, uncertainty on that,
       // and the dot product of the path direction WRT the axis.
       float gasPath(float doca, float ddoca, float adot) const;
       // same for wall material
       float wallPath(float doca, float ddoca, float adot) const; 
-      // add up the material effects for a given doca.
-      void intersect(float doca, float ddoca, float adot, std::vector<MIsect>& misects) const;
+      // find the material crossings given doca.
+      void findXings(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const;
       float strawRadius() const { return rad_; }
       float wallThickness() const { return thick_; }
       float wireRadius() const { return rwire_; }
