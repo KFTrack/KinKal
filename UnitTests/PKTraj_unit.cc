@@ -46,7 +46,8 @@ int main(int argc, char **argv) {
 
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
-  int icharge(-1), idir(0), nsteps(10);
+  int icharge(-1);
+  int idir(0), nsteps(10);
   double pmass(0.511), oz(100.0), ot(0.0);
   double tstart(0.0), tstep(1.0);
   double delta(0.01); // fractional change
@@ -109,7 +110,8 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    LHelix endhel(dvec,back.params().covariance(),back.mass(),back.charge(),bnom,range);
+      LHelix::PDATA pdata(dvec,back.params().covariance());
+    LHelix endhel(pdata,back.mass(),back.charge(),bnom,range);
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -119,6 +121,7 @@ int main(int argc, char **argv) {
     cout << "back position " << backpos << endl
     << " end position " << endpos << endl;
     // append this
+//    bool added(false);
     bool added = ptraj.append(endhel);
     // compare positions and momenta
     Vec3 pold, pnew;
@@ -145,7 +148,8 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    LHelix endhel(dvec,front.params().covariance(),front.mass(),front.charge(),bnom,range);
+    LHelix::PDATA pdata(dvec,front.params().covariance());
+    LHelix endhel(pdata,front.mass(),front.charge(),bnom,range);
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);

@@ -37,16 +37,12 @@ namespace KinKal {
       static std::string const& paramTitle(ParamIndex index);
 
       // construct from momentum, position, and particle properties.
-      // This also requires the nominal BField
+      // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      // construct from parameters
-      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      // versions of the above for B parallel to z
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
       // construct from parameters
+      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
-      LHelix(PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range=TRange());
       virtual ~LHelix() {} 
       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input 
