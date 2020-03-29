@@ -7,11 +7,6 @@
 namespace KinKal {
   class BField {
     public:
-      virtual void fieldVect(Pol3& field, Vec3 const& position=Vec3()) const {
-	Vec3 fv;
-	fieldVect(fv,position);
-	field = fv;
-      }
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; // nominal field defined at the origin
       virtual ~BField(){}
       // add interface for path integration FIXME!
@@ -21,7 +16,6 @@ namespace KinKal {
   class UniformBField : public BField {
     public:
       virtual void fieldVect(Vec3& fvec, Vec3 const& position=Vec3()) const override { fvec = fvec_; }
-      UniformBField(Pol3 const& bnom) : fvec_(bnom) {}
       UniformBField(Vec3 const& bnom) : fvec_(bnom) {}
       UniformBField(double BZ) : UniformBField(Vec3(0.0,0.0,BZ)) {}
       virtual ~UniformBField(){}
