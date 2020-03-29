@@ -26,12 +26,13 @@ namespace KinKal {
       virtual bool isActive() const override { return active_; }
       virtual unsigned nDOF() const override { return 0; } 
       virtual double chisq(PDATA const& pars) const override { return 0.0; }
-
       virtual bool update(PKTRAJ const& ref) override;
       bool process(KKDATA& kkdata,TDir tdir) override;
       bool append(PKTRAJ& fit) override;
       // update for materials associated with a hit
       bool update(TDPOCA const& tpoca);
+      PDATA const& effect() const { return pdata_; }
+      WDATA const& cache() const { return wdata_; }
       virtual ~KKMat(){}
     // create from material and POCA
       KKMat(DMat const& dmat, TDPOCA const& tdpoca, bool active = true);

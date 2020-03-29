@@ -1,27 +1,23 @@
-#ifndef KinKal_StrawMat_hh
-#define KinKal_StrawMat_hh
+#ifndef KinKal_DStraw_hh
+#define KinKal_DStraw_hh
 //
 //  description of a local segment of a straw, including a
 //  mixture for the straw, the gas, and the wire, allowing for
 //  offset between the wire and the straw
 //
-#include "KinKal/DMat.hh"
-#include "MatEnv/DetMaterial.hh"
-#include "KinKal/Vectors.hh"
+#include "KinKal/StrawMat.hh"
+#include "KinKal/DPiece.hh"
+#include "KinKal/TLine.hh"
 namespace KinKal {
-  class StrawMat : public DMat {
+  template <class TT> class DStraw : public DPiece<TT> {
     public:
     // explicit constructor from geometry and materials
-      StrawMat(float rad, float thick, float rwire,
-	  MatEnv::DetMaterial const& wallmat, MatEnv::DetMaterial const& gasmat, MatEnv::DetMaterial const& wiremat) :
-	rad_(rad), thick_(thick), rwire_(rwire), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
-	  rad2_ = rad_*rad_;
-	  rdmax_ = (rad_ - thick_)/rad_;
-	  wpmax_ = sqrt(8.0*rad_*thick_);
-	  ddmax_ = 0.05*rad_;
-	}
-	// DMat interface; first, for materials associated with a hit
+      DStraw(StrawMat const& smat, TLine const& tline) : smat_(smat), tline_(tline) {}
+      // DPiece interface; first, for pieces associated with a hit
       virtual void findXings(TPocaBase const& poca,std::vector<MatXing>& mxings) const override;
+      // also for materials unassociated with a hit
+      virtual void findXings(TT const& ttraj, MatXingCol& mxings) const =0;
+
       // pathlength through gas, give DOCA to the axis, uncertainty on that,
       // and the dot product of the path direction WRT the axis.
       float gasPath(float doca, float ddoca, float adot) const;

@@ -4,12 +4,14 @@
 //  Struct to describe a path crossing a piece of material
 //
 #include "MatEnv/DetMaterial.hh"
+#include <vector>
 namespace KinKal {
   struct MatXing {
     MatEnv::DetMaterial const& dmat_; // material
     double plen_; // path length through this material
     MatXing(MatEnv::DetMaterial const& dmat,double plen) : dmat_(dmat), plen_(plen) {}
   };
+  typedef std::vector<MatXing> MatXingCol;
 }
 #endif
 
