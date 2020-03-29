@@ -1,7 +1,7 @@
 #ifndef KinKal_DMat_hh
 #define KinKal_DMat_hh
 //
-//  Interface describing a piece of detector material
+//  Interface describing the material of a detector piece
 //
 #include "KinKal/MatXing.hh"
 #include "KinKal/TPocaBase.hh"

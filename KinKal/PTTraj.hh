@@ -148,14 +148,17 @@ namespace KinKal {
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
       // override the range
-      pieces_.front().setRange(range());
+//      pieces_.front().setRange(range());
+      range() = newpiece.range();
       retval = true;
     } else {
      retval = allowremove;// if we allow removal this function will always succeed
       // if the new piece completely contains the existing pieces, overwrite or fail
-      if(newpiece.range().contains(range())){
+      if(newpiece.range().low() < range().low()){
 	if(allowremove)
 	  *this = PTTraj(newpiece);
+	else
+	  throw std::invalid_argument("range overlap");
       } else {
 	// find the piece that needs to be modified
 	size_t ipiece = nearestIndex(newpiece.range().low());
@@ -167,11 +170,14 @@ namespace KinKal {
 	}
 	// if we're at the end, append
 	if(ipiece == pieces_.size()-1){
+	// check ranges
 	  // update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
 	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
 	  range().high() = std::max(range().high(),newpiece.range().high());
 	  pieces_.push_back(newpiece);
 	  retval = true;
+	} else {
+	  throw std::invalid_argument("range error");
 	}
       }
     }

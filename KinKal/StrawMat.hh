@@ -26,7 +26,7 @@ namespace KinKal {
       // and the dot product of the path direction WRT the axis.
       float gasPath(float doca, float ddoca, float adot) const;
       // same for wall material
-      float wallPath(float doca, float ddoca, float adot) const; 
+      float wallPath(float doca, float ddoca, float adot) const;  // should add doca to the wire for wire material effects FIXME!
       // find the material crossings given doca.
       void findXings(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const;
       float strawRadius() const { return rad_; }

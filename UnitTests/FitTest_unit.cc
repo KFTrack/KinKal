@@ -421,7 +421,8 @@ int main(int argc, char **argv) {
     }
     // now repeat this to gain statistics
     vector<TH1F*> dpgenh(LHelix::NParams());
-    vector<TH1F*> dpullgenh(LHelix::NParams());
+    vector<TH1F*> fdpullgenh(LHelix::NParams());
+    vector<TH1F*> bdpullgenh(LHelix::NParams());
     vector<TH1F*> fiterrh(LHelix::NParams());
     TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
     TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
@@ -442,7 +443,8 @@ int main(int argc, char **argv) {
       dpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("p") + LHelix::paramName(tpar);
       htitle = string("Pull ") + LHelix::paramTitle(tpar);
-      dpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      fdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      bdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
       hname = string("e") + LHelix::paramName(tpar);
       htitle = string("Error ") + LHelix::paramTitle(tpar);
       fiterrh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,0.0,pscale*sigmas[ipar]);
@@ -471,13 +473,17 @@ int main(int argc, char **argv) {
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
+      auto const& btpars = tplhel.back().params();
+      auto const& bfpars = kktrk.fitTraj().back().params();
      // momentum
       // accumulate parameter difference and pull
-      vector<double> cerr(6,0.0);
+      vector<double> cerr(6,0.0), bcerr(6,0.0);
       for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
 	cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
+	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
 	dpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
-	dpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
+	fdpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
+	bdpullgenh[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
 	fiterrh[ipar]->Fill(cerr[ipar]);
       }
       // accumulate average correlation matrix
@@ -518,6 +524,28 @@ int main(int argc, char **argv) {
       ndof_ = kktrk.status().ndof_;
       niter_ = kktrk.status().niter_;
 
+      // test
+      if(efmom_-etmom_ >1.0){
+	cout << "Poor End " << kktrk.fitTraj() << endl;
+	auto const& effs = kktrk.effects();
+	for(auto const& eff : effs) {
+	  cout << "Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
+	  auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
+	  auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
+	  auto end = dynamic_cast<const KKEnd<LHelix>*>(eff.get());
+	  if(end != 0) {
+	    cout << "End direction " << end->tDir() << " time " << end->time() << endl;
+	  }else if(ihit != 0){
+	    cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
+	  } else if(imhit != 0){
+	    cout << " Hit status " << imhit->hit().poca().status() << " doca " << imhit->hit().poca().doca() << imhit->hit().refResid() << endl;
+	    cout << " Mat forward status " << imhit->mat().status(TDir::forwards) 
+	      << " backwards status " << imhit->mat().status(TDir::backwards) <<  " effect " << imhit->mat().effect().parameters() << endl;
+	  } else
+	    cout << endl;
+	}
+      }
+
       if(ttree)ftree->Fill();
     }
     // fill canvases
@@ -528,13 +556,20 @@ int main(int argc, char **argv) {
       dpgenh[ipar]->Fit("gaus");
     }
     dpcan->Write();
-    TCanvas* pullcan = new TCanvas("pullcan","pullcan",800,600);
-    pullcan->Divide(3,2);
+    TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
+    fpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
-      pullcan->cd(ipar+1);
-      dpullgenh[ipar]->Fit("gaus");
+      fpullcan->cd(ipar+1);
+      fdpullgenh[ipar]->Fit("gaus");
     }
-    pullcan->Write();
+    fpullcan->Write();
+    TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
+    bpullcan->Divide(3,2);
+    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+      bpullcan->cd(ipar+1);
+      bdpullgenh[ipar]->Fit("gaus");
+    }
+    bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
     for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
