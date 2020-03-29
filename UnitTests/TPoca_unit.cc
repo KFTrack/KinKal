@@ -137,7 +137,8 @@ int main(int argc, char **argv) {
       auto dvec = lhel.params().parameters();
       double dpar = dstart + dstep*istep;
       dvec[ipar] += dpar; 
-      LHelix dlhel(dvec,lhel.params().covariance(),lhel.mass(),lhel.charge(),bnom);
+      LHelix::PDATA pdata(dvec,lhel.params().covariance());
+      LHelix dlhel(pdata,lhel.mass(),lhel.charge(),bnom);
       TPoca<LHelix,TLine> dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives

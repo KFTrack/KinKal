@@ -69,19 +69,7 @@ namespace KinKal {
 
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
-    LHelix(pdata.parameters(), pdata.covariance(),mass,charge, bnom, range)
-    {}
-
-  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, double bnom, TRange const& range) : 
-    LHelix(pvec,pcov,mass,charge,Vec3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( PDATA::DVEC const& pvec, PDATA::DMAT const& pcov, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
-    TTraj(range), KInter(mass,charge), pars_(pvec,pcov), bnom_(bnom) {
-    if(bnom_.X() !=0 || bnom_.Y() != 0){
-      Vec3 rotaxis(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0);
-    }
-    double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
-    mbar_ = -mass_*momToRad;
-  }
+    TTraj(range), KInter(mass,charge), pars_(pdata), bnom_(bnom) {}
 
   void LHelix::position(Vec4& pos) const {
     Vec3 temp;
