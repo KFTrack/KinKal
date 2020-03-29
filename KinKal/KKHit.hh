@@ -74,16 +74,15 @@ namespace KinKal {
     KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
     KKWEff<KTRAJ>::wdata_.setStatus(PDATA::valid);
     // reference weight vector from reference parameters
-    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*ref_;
+    KKWEff<KTRAJ>::wdata_.weightVec() = KKWEff<KTRAJ>::wData().weightMat()*ref_;
     // translate residual value into weight vector WRT the reference parameters
-    auto delta = drdp*rresid_.resid()/rresid_.residVar();
-    // add change WRT reference; sign convention reflects resid = measurement - prediction
-    KKWEff<KTRAJ>::wdata_.weightVec() = refvec + delta;
+    // and add change WRT reference; sign convention reflects resid = measurement - prediction
+    KKWEff<KTRAJ>::wdata_.weightVec() += drdp*rresid_.resid()/rresid_.residVar();
   }
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
     // compute the difference between these parameters and the reference parameters
-    typename PDATA::DVEC dpvec = pdata.parameters() - ref_; 
+    DVEC dpvec = pdata.parameters() - ref_; 
     // use the differnce to 'correct' the reference residual to be WRT these parameters
     double newres = refResid().resid() - ROOT::Math::Dot(dpvec,dRdP()); 
     // project the parameter covariance into a residual space variance (adding the intrinsic variance)

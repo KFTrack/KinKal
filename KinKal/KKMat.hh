@@ -124,7 +124,8 @@ namespace KinKal {
     newpiece.params() = PDATA(wdata_,true);
     // make sure there's enough range to append as a physical piece
     newpiece.range() = TRange(time,std::max(fit.range().high(),time+1.0));
-    fit.append(newpiece);
+    bool ok = fit.append(newpiece);
+    if(!ok)throw std::invalid_argument("append failed");
     return true;
   }
 }

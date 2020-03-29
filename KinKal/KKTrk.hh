@@ -35,7 +35,7 @@ namespace KinKal {
     double tbuff_; // time buffer for final fit (ns)
     double dtol_; // tolerance on direction change in BField integration (dimensionless)
     double ptol_; // tolerance on position change in BField integration (mm)
-    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), addfield_(true), tbuff_(0.5), dtol_(0.1), ptol_(0.1) {} 
+    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), addfield_(true), tbuff_(100.0), dtol_(0.1), ptol_(0.1) {} 
   };
 
   template<class KTRAJ> class KKTrk {
@@ -88,13 +88,9 @@ namespace KinKal {
       }
       //add pure material effects FIXME	!
 
-      // reset the range if necessary
-      if( reftraj_.range().infinite()
-	  || reftraj_.range().low() > effects_.begin()->get()->time()
-	  || reftraj_.range().high() < effects_.rbegin()->get()->time()){
-	reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_),
+      // reset the range 
+      reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config_.tbuff_),
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config_.tbuff_)));
-      }
       // add BField inhomogeneity effects
       if(config_.addfield_){
 	createFieldDomains();

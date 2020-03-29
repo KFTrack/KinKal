@@ -71,7 +71,8 @@ namespace KinKal {
     // start with the reference traj, and override the range and parameters
       end_.range() = fit.range();
       // append this to the (empty) fit
-      fit.append(end_);
+      bool ok = fit.append(end_);
+      if(!ok)throw std::invalid_argument("append failed");
     }
     return true;
   }
