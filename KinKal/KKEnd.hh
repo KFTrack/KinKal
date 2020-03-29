@@ -28,7 +28,7 @@ namespace KinKal {
       // accessors
       TDir const& tDir() const { return tdir_; }
       double dWeighting() const { return dwt_; }
-      PDATA const& endPData() const { return pdata_; }
+      KTRAJ const& end() const { return end_; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
       KKEnd(PKTRAJ const& pktraj,TDir tdir, double dweight=1e6); 
@@ -36,11 +36,11 @@ namespace KinKal {
     private:
       TDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       double dwt_; // deweighting factor
-      PDATA pdata_; // cache of parameters at the end of processing this direction, used in traj creation
+      KTRAJ end_; // cache of parameters at the end of processing this direction, used in traj creation
  };
 
-  template <class KTRAJ> KKEnd<KTRAJ>::KKEnd(PKTRAJ const& pktraj, TDir tdir, double dweight) : 
-    KKWEFF(tdir == TDir::forwards ? pktraj.front() : pktraj.back()), tdir_(tdir) , dwt_(dweight) {
+  template <class KTRAJ> KKEnd<KTRAJ>::KKEnd(PKTRAJ const& pktraj, TDir tdir, double dweight) :
+    tdir_(tdir) , dwt_(dweight), end_(tdir == TDir::forwards ? pktraj.front() : pktraj.back()){
       update(pktraj);
     }
 
@@ -50,18 +50,16 @@ namespace KinKal {
     // start the fit with the de-weighted info from the previous iteration or seed
       retval = KKWEFF::process(kkdata,tdir);
     else
-    // at the opposite end, cache the final weight
-      pdata_ = kkdata.pData();
+    // at the opposite end, cache the final parameters
+      end_.params() = kkdata.pData();
     return retval;
   }
 
   template<class KTRAJ> bool KKEnd<KTRAJ>::update(PKTRAJ const& ref) {
-    KKEFF::setRefTraj(ref);
-    // extract the parameter vector and deweight the covariance
-    auto endpars = KKEFF::refTraj().params();
-    endpars.covariance() *= dwt_;
+    auto refend = ref.nearestPiece(time()).params();
+    refend.covariance() *= dwt_;
     // convert this to a weight (inversion)
-    KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(endpars,true);
+    KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(refend,true);
     KKEffBase::updateStatus();
     return KKWEFF::wData().matrixOK();
   }
@@ -71,11 +69,9 @@ namespace KinKal {
     // seed the fit with it
     if(tdir_ == TDir::forwards && fit.pieces().size() == 0){
     // start with the reference traj, and override the range and parameters
-      KTRAJ endpiece(KKEFF::refTraj());
-      endpiece.params() = pdata_;
-      endpiece.range() = fit.range();
+      end_.range() = fit.range();
       // append this to the (empty) fit
-      fit.append(endpiece);
+      fit.append(end_);
     }
     return true;
   }

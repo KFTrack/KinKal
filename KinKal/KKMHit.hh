@@ -48,12 +48,15 @@ namespace KinKal {
       retval &= kkmat_.process(kkdata,tdir);
       retval &= kkhit_.process(kkdata,tdir);
     }
+    KKEffBase::setStatus(tdir,KKEffBase::processed);
     return retval;
   }
 
   template <class KTRAJ> bool KKMHit<KTRAJ>::update(PKTRAJ const& ref) {
+    if(ref.range().infinite())throw std::invalid_argument("Invalid range");
     // update the hit first, then use the POCA from that to update the material
     bool retval(true);
+    KKEffBase::updateStatus();
     retval &= kkhit_.update(ref);
     retval &= kkmat_.update(kkhit_.poca());
     return retval;

@@ -19,6 +19,7 @@ namespace KinKal {
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef TDPoca<PKTRAJ,TLine> TDPOCA;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
+      typedef typename KTRAJ::PDATA::DVEC DVEC; // forward derivative type
       typedef typename KTRAJ::PDER PDER; // forward derivative type
       virtual unsigned nDOF() const override { return thit_.isActive() ? thit_.nDOF() : 0; }
       THit const& hit() const { return thit_; }
@@ -38,13 +39,14 @@ namespace KinKal {
     // helpers
       void setWeight();
       THit const& thit_; // hit used for this constraint
+      DVEC ref_; // reference parameters
       TDPOCA tdpoca_; // POCA between the reference trajectory and the sensor trajectory
       Residual rresid_; // residual between the hit and reference
   };
 
   template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, PKTRAJ const& reftraj) : thit_(thit) ,
     tdpoca_(reftraj,thit_.sensorTraj()) {
-    KKEFF::setRefTraj(reftraj.nearestPiece(tdpoca_.poca0().T()));
+    ref_ = reftraj.nearestPiece(tdpoca_.t0()).params().parameters();
     thit_.resid(tdpoca_,rresid_);
     setWeight();
   }
@@ -53,7 +55,7 @@ namespace KinKal {
   // update the hit state to the previous TPOCA
     thit_.update(tdpoca_);
     tdpoca_ = TDPOCA(ref,thit_.sensorTraj());
-    KKEFF::setRefTraj(ref);
+    ref_ = ref.nearestPiece(tdpoca_.t0()).params().parameters();
     thit_.resid(tdpoca_,rresid_);
     setWeight();
     KKEffBase::updateStatus();
@@ -72,7 +74,7 @@ namespace KinKal {
     KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
     KKWEff<KTRAJ>::wdata_.setStatus(PDATA::valid);
     // reference weight vector from reference parameters
-    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*KKEFF::refTraj().params().parameters();
+    auto refvec = KKWEff<KTRAJ>::wData().weightMat()*ref_;
     // translate residual value into weight vector WRT the reference parameters
     auto delta = drdp*rresid_.resid()/rresid_.residVar();
     // add change WRT reference; sign convention reflects resid = measurement - prediction
@@ -81,7 +83,7 @@ namespace KinKal {
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
     // compute the difference between these parameters and the reference parameters
-    typename PDATA::DVEC dpvec = pdata.parameters() - KKEFF::refTraj().params().parameters();
+    typename PDATA::DVEC dpvec = pdata.parameters() - ref_; 
     // use the differnce to 'correct' the reference residual to be WRT these parameters
     double newres = refResid().resid() - ROOT::Math::Dot(dpvec,dRdP()); 
     // project the parameter covariance into a residual space variance (adding the intrinsic variance)
