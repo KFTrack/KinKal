@@ -43,15 +43,9 @@ namespace KinKal {
       virtual bool update(PKTRAJ const& ref) = 0;
       // append this effects trajectory change (if appropriate)
       virtual bool append(PKTRAJ& fit) = 0;
-      KTRAJ const& refTraj() const { return *reftraj_; }
       virtual ~KKEff(){} 
     protected:
-      KKEff() : reftraj_(0) {}
-      KKEff(KTRAJ const& reftraj) : reftraj_(&reftraj) {}
-      // allow subclasses to change the reference: this happens during updating
-      void setRefTraj(KTRAJ const& newref) { reftraj_ = &newref; }
-      void setRefTraj(PKTRAJ const& newref) { reftraj_ = &(newref.nearestPiece(time())); }
-      KTRAJ const* reftraj_; // reference trajectory for this effect
+      KKEff() {}
   };
 
 }

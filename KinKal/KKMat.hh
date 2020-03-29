@@ -41,13 +41,15 @@ namespace KinKal {
       // reset the cache. this must be done for each update cycle
       void resetCache() { wdata_ = WDATA(); pdata_ = PDATA();}
       DMat const& dmat_; // associated detector material
+      KTRAJ ref_; // reference to local trajectory
       PDATA pdata_; // parameter space description of this effect
       WDATA wdata_; // cache of weight processing in opposite directions, used to build the fit trajectory
       double time_;
       bool active_;
   };
 
-   template<class KTRAJ> KKMat<KTRAJ>::KKMat(DMat const& dmat, TDPOCA const& tdpoca, bool active) : dmat_(dmat), active_(active) {
+   template<class KTRAJ> KKMat<KTRAJ>::KKMat(DMat const& dmat, TDPOCA const& tdpoca, bool active) : dmat_(dmat),
+   ref_(tdpoca.ttraj0().nearestPiece(tdpoca.t0())) , active_(active) {
      update(tdpoca);
    }
    
@@ -57,10 +59,6 @@ namespace KinKal {
 
    template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref) {
      // not currently implemented FIXME!
-     time_ = ref.range().mid();
-     this->setRefTraj(ref);
-     KKEffBase::updateStatus();
-     resetCache();
      return false;
    }
 
@@ -86,14 +84,13 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool KKMat<KTRAJ>::update(TDPOCA const& tdpoca)  {
-    // update base class info
-    this->setRefTraj(tdpoca.ttraj0());
+    ref_ = tdpoca.ttraj0().nearestPiece(tdpoca.t0());
     KKEffBase::updateStatus();
     resetCache();
     // define the time of this effect using POCA.  Add a small offset, this should be a parameter, FIXME!
     static double epsilon_(1e-3);
     time_ = tdpoca.t0() + epsilon_;
-    // find and fill the individual material findXingsions given this poca
+    // find and fill the individual material crossings given this poca
     std::vector<MatXing> mxings;
     dmat_.findXings(tdpoca,mxings);
     // translate these to material effects
@@ -105,7 +102,7 @@ namespace KinKal {
       auto mdir = static_cast<KInter::MDir>(idir);
       // get the derivatives of the parameters WRT material effects
       PDER pder;
-      this->refTraj().momDeriv(mdir, time(), pder);
+      ref_.momDeriv(mdir, time(), pder);
       // convert derivative vector to a Nx1 matrix
       ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
       dPdm.Place_in_col(pder,0,0);
@@ -122,7 +119,7 @@ namespace KinKal {
   template<class KTRAJ> bool KKMat<KTRAJ>::append(PKTRAJ& fit) {
     // create a trajectory piece from the cached weight
     double time = this->time();
-    KTRAJ newpiece(KKEFF::refTraj());
+    KTRAJ newpiece(ref_);
     newpiece.params() = PDATA(wdata_,true);
     // make sure there's enough range to append as a physical piece
     newpiece.range() = TRange(time,std::max(fit.range().high(),time+1.0));
