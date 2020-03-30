@@ -122,10 +122,13 @@ namespace KinKal {
     double time = this->time();
     KTRAJ newpiece(ref_);
     newpiece.params() = PDATA(wdata_,true);
-    // make sure there's enough range to append as a physical piece
-    newpiece.range() = TRange(time,std::max(fit.range().high(),time+1.0));
-    bool ok = fit.append(newpiece);
-    if(!ok)throw std::invalid_argument("append failed");
+    newpiece.range() = TRange(time,fit.range().high());
+    // make sure the piece is appendable
+    if(time > fit.back().range().low()){
+      fit.append(newpiece);
+    } else {
+      return false;
+    }
     return true;
   }
 }

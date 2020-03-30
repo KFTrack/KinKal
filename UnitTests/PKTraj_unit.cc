@@ -122,7 +122,7 @@ int main(int argc, char **argv) {
     << " end position " << endpos << endl;
     // append this
 //    bool added(false);
-    bool added = ptraj.append(endhel);
+    ptraj.append(endhel);
     // compare positions and momenta
     Vec3 pold, pnew;
     Mom4 mold, mnew;
@@ -133,11 +133,6 @@ int main(int argc, char **argv) {
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
-
-    if(added)
-      cout << "succeded to append LHelix" << endl;
-    else
-      cout << "failed to append LHelix" << endl;
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
@@ -158,7 +153,7 @@ int main(int argc, char **argv) {
     endhel.position(endpos);
     cout << "front position " << frontpos << endl
     << " end position " << endpos << endl;
-    bool added = ptraj.prepend(endhel);
+    ptraj.prepend(endhel);
     // compare positions and momenta
     Vec3 pold, pnew;
     Mom4 mold, mnew;
@@ -169,11 +164,6 @@ int main(int argc, char **argv) {
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
-
-    if(added)
-      cout << "succeded to append LHelix" << endl;
-    else
-      cout << "failed to append LHelix" << endl;
   }
   double largest, average;
   size_t igap;

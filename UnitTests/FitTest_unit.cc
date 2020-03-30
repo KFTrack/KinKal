@@ -70,7 +70,7 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --addmat i --ttree i --By f --Bgrad f\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --condchisq f --addmat i --ttree i --By f --Bgrad f\n");
 }
 
 struct LHelixPars{
@@ -193,8 +193,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
       if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
       LHelix newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.t0(),plhel.range().high()));
-      if(!plhel.append(newend))
-	cout << "Error appending traj " << newend << endl;
+      plhel.append(newend);
     }
   }
 //  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
@@ -212,7 +211,7 @@ int main(int argc, char **argv) {
   double pmass;
   unsigned maxniter(10);
   unsigned ntries(1000);
-  double mindchisq(0.1);
+  double condchisq(0.1);
   bool addmat(true);
   bool ttree(true);
 
@@ -231,7 +230,7 @@ int main(int argc, char **argv) {
     {"addmat",     required_argument, 0, 'b'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
-    {"mindchisq",     required_argument, 0, 'i'  },
+    {"condchisq",     required_argument, 0, 'i'  },
     {"ttree",     required_argument, 0, 'r'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
@@ -271,7 +270,7 @@ int main(int argc, char **argv) {
 		 break;
       case 't' : ntries = atoi(optarg);
 		 break;
-      case 'i' : mindchisq= atof(optarg);
+      case 'i' : condchisq= atof(optarg);
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
@@ -330,7 +329,7 @@ int main(int argc, char **argv) {
   // Create the KKTrk from these hits
   Config config;
   config.dwt_ = 1.0e6;
-  config.mindchisq_ = mindchisq;
+  config.condchisq_ = condchisq;
   config.maxniter_ = maxniter;
   config.addmat_ = addmat;
   KKTRK kktrk(seedhel,*BF,thits,config);
@@ -354,7 +353,7 @@ int main(int argc, char **argv) {
   LHelixPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
   float chisq_, etmom_, ftmom_, ffmom_, efmom_, tde_, chiprob_;
   float fft_,eft_;
-  int ndof_, niter_;
+  int ndof_, niter_, status_;
   if(ntries <=0 ){
   // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
@@ -411,6 +410,7 @@ int main(int argc, char **argv) {
       ftree->Branch("ndof", &ndof_,"ndof/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
+      ftree->Branch("status", &status_,"status/I");
       ftree->Branch("ftmom", &ftmom_,"ftmom/F");
       ftree->Branch("etmom", &etmom_,"etmom/F");
       ftree->Branch("ffmom", &ffmom_,"ffmom/F");
@@ -523,6 +523,7 @@ int main(int argc, char **argv) {
       chisq_ = kktrk.status().chisq_;
       ndof_ = kktrk.status().ndof_;
       niter_ = kktrk.status().niter_;
+      status_ = kktrk.status().status_;
 
       // test
       if(efmom_-etmom_ >1.0){

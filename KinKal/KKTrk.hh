@@ -22,6 +22,7 @@
 #include <vector>
 #include <memory>
 #include <cmath>
+#include <limits>
 #include <stdexcept>
 
 namespace KinKal {
@@ -29,13 +30,15 @@ namespace KinKal {
   struct Config {
     unsigned maxniter_; // maximum number of iterations
     double dwt_; // dweighting of initial seed covariance
-    double mindchisq_; // minimum change in chisquared for convergence
+    double condchisq_; // maximum change in chisquared for convergence
+    double divdchisq_; // minimum change in chisquared for divergence
+    double oscdchisq_; // maximum change in chisquared for oscillation
     bool addmat_; // add material
     bool addfield_; // add field inhomogeneity effects
     double tbuff_; // time buffer for final fit (ns)
     double dtol_; // tolerance on direction change in BField integration (dimensionless)
     double ptol_; // tolerance on position change in BField integration (mm)
-    Config() : maxniter_(10), dwt_(1.0e6), mindchisq_(1.0e-3), addmat_(true), addfield_(true), tbuff_(100.0), dtol_(0.1), ptol_(0.1) {} 
+    Config() : maxniter_(10), dwt_(1.0e6), condchisq_(0.1), divdchisq_(10.0), oscdchisq_(1.0), addmat_(true), addfield_(true), tbuff_(0.5), dtol_(0.1), ptol_(0.1) {} 
   };
 
   template<class KTRAJ> class KKTrk {
@@ -109,16 +112,28 @@ namespace KinKal {
       // iterate to convergence
       status_.niter_ = 0;
       bool fitOK(true);
-      while(fitOK && status_.niter_ < config_.maxniter_ && status_.status_ != FitStatus::converged) {
+      std::vector<double>chisqhist;
+      chisqhist.push_back( std::numeric_limits<float>::max() );
+      while(fitOK && status_.niter_ < config_.maxniter_ && status_.iterate()) { 
 	if(status_.niter_>0) fitOK = update();
-	double oldchisq = status_.chisq_;
 	if(fitOK) fitOK = fitIteration(); // this call updates chisq
 	// test for convergence/divergence/failure
 	if(isnan(status_.chisq_)){
 	  status_.status_ = FitStatus::failed;
 	  fitOK = false;
-	} else if(fabs(oldchisq-status_.chisq_) < config_.mindchisq_)
+	} else if(fabs(chisqhist.back()-status_.chisq_) < config_.condchisq_) {
 	  status_.status_ = FitStatus::converged;
+	} else if (status_.chisq_-chisqhist.back() > config_.divdchisq_) {
+	  status_.status_ = FitStatus::diverged;
+// check for oscillation in the history; changing sign and similar values between iterations
+	} else if(chisqhist.size() > 4 &&
+	    status_.chisq_*chisqhist[status_.niter_] < 0 &&
+	    status_.chisq_*chisqhist[status_.niter_-1] > 0 &&
+	    chisqhist[status_.niter_-2]*chisqhist[status_.niter_]>0 &&
+	    fabs(status_.chisq_ -chisqhist[status_.niter_-1]) < config_.oscdchisq_){
+	  status_.status_ = FitStatus::oscillating;
+	}
+	chisqhist.push_back(status_.chisq_);
 	status_.niter_++;
       }
       if(!fitOK){
@@ -166,12 +181,17 @@ namespace KinKal {
 	}
       }
     }
-    // convert the fit result into a new trajectory
+    // convert the fit result into a new trajectory; start with an empty ptraj
     fittraj_ = PKTRAJ(reftraj_.range(),reftraj_.mass(),reftraj_.charge());
-    // process forwards by convention
+    // process forwards, adding pieces as necessary
     for(auto& ieff : effects_) {
-      ieff->append(fittraj_);
+      retval &= ieff->append(fittraj_);
     }
+    // trim the range to the physical elements (past the end sites
+    auto feff = effects_.begin(); feff++;
+    auto leff = effects_.rbegin(); leff++;
+    fittraj_.range().low() = (*feff)->time() - config_.tbuff_;
+    fittraj_.range().high() = (*leff)->time() + config_.tbuff_;
     return retval;
   }
 
