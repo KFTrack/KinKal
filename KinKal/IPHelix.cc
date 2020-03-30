@@ -1,4 +1,4 @@
-#include "KinKal/HHelix.hh"
+#include "KinKal/IPHelix.hh"
 #include <math.h>
 #include <stdexcept>
 
@@ -6,31 +6,31 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-  vector<string> HHelix::paramTitles_ = {
+  vector<string> IPHelix::paramTitles_ = {
     "Distance of closest approach",
     "Angle in the xy plane at closest approach",
     "xy plane curvature of the track",
     "Distance from the closest approach to the origin",
     "Tangent of the track dip angle in the rho-z projection",
     "Time at Z=0 Plane"};
-  vector<string> HHelix::paramNames_ = {
+  vector<string> IPHelix::paramNames_ = {
   "d0","phi0","omega","z0","tanDip","Time0"};
-  std::vector<std::string> const& HHelix::paramNames() { return paramNames_; }
-  std::vector<std::string> const& HHelix::paramTitles() { return paramTitles_; }
-  std::string const& HHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
-  std::string const& HHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
+  std::vector<std::string> const& IPHelix::paramNames() { return paramNames_; }
+  std::vector<std::string> const& IPHelix::paramTitles() { return paramTitles_; }
+  std::string const& IPHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& IPHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
-  HHelix::HHelix(Vec4 const &pos, Mom4 const &mom, int charge, Context const &context,
-                 TRange const &range) : TTraj(range), KInter(mom.M(), charge)
+  IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
+                 TRange const &range) : TTraj(range), KInter(mom.M(), charge), bnom_(bnom)
   {
-    double momToRad = 1000.0 / (charge * context.bNom() * CLHEP::c_light);
-    mbar_ = -mass_*momToRad;
+    double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
+    mbar_ = -mass_ * momToRad;
 
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
 
     double lambda = -mom.z()*momToRad;
-    float amsign = copysign(1.0, -charge * context.bNom());
+    float amsign = copysign(1.0, -charge * bnom_.R());
 
     Vec3 center = Vec3(pos.x() + mom.y()*momToRad, pos.y() - mom.x()*momToRad, 0.0);
     double rcent = sqrt(center.perp2());
@@ -57,7 +57,7 @@ namespace KinKal {
     vz_ = CLHEP::c_light * mom.z() / mom.E();
   }
 
-  double HHelix::deltaPhi(double &phi, double refphi) const
+  double IPHelix::deltaPhi(double &phi, double refphi) const
   {
     double dphi = phi - refphi;
     static const double twopi = 2 * M_PI;
@@ -74,14 +74,14 @@ namespace KinKal {
     return dphi;
   }
 
-  HHelix::HHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Context const &context,
-                 TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pvec, pcov)
+  IPHelix::IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom,
+                 TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pvec, pcov), bnom_(bnom)
   {
-    double momToRad = 1000.0/(charge_*context.bNom()*CLHEP::c_light);
-    mbar_ = -mass_*momToRad;
+    double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
+    mbar_ = -mass_ * momToRad;
   }
 
-  void HHelix::position(Vec4 &pos) const
+  void IPHelix::position(Vec4 &pos) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
@@ -97,7 +97,7 @@ namespace KinKal {
     pos.SetPz(z0() + l * tanDip());
   }
 
-  void HHelix::position(double t, Vec3 &pos) const
+  void IPHelix::position(double t, Vec3 &pos) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
@@ -113,7 +113,7 @@ namespace KinKal {
     pos.SetZ(z0() + l * tanDip());
   }
 
-  void HHelix::momentum(double tval, Mom4 &mom) const
+  void IPHelix::momentum(double tval, Mom4 &mom) const
   {
     double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
     mom.SetPx(Q() / omega() * cos(phi0() + omega() * l));
@@ -122,26 +122,43 @@ namespace KinKal {
     mom.SetM(mass_);
   }
 
-  double HHelix::angle(const double &f) const
+  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
+  {
+    // precompute some factors
+    double fact = 0.5 * sqrt(1./omega() * tol * bnom().R()) / CLHEP::c_light;
+    // Limit to this traj's range
+    brange.high() = std::min(brange.high(), range().high());
+    // compute the BField difference in the middle of the range
+    Vec3 midpos, bvec;
+    position(brange.mid(), midpos);
+    bfield.fieldVect(bvec, midpos);
+    auto db = bvec - bnom();
+    double dt = fact / sqrt(db.R());
+    // truncate the range if necessary
+    if (dt < brange.range())
+      brange.high() = brange.low() + dt;
+  }
+
+  double IPHelix::angle(const double &f) const
   {
     return phi0() + arc(f);
   }
 
-  void HHelix::velocity(double tval, Vec3 &vel) const
+  void IPHelix::velocity(double tval, Vec3 &vel) const
   {
     Mom4 mom;
     momentum(tval, mom);
     vel = mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
-  void HHelix::direction(double tval, Vec3 &dir) const
+  void IPHelix::direction(double tval, Vec3 &dir) const
   {
     Mom4 mom;
     momentum(tval, mom);
     dir = mom.Vect().Unit();
   }
 
-  void HHelix::dirVector(MDir dir, double tval, Vec3 &unit) const
+  void IPHelix::dirVector(MDir dir, double tval, Vec3 &unit) const
   {
     // FIXME: these formulas need to be verified
     double phival = phi(tval);                   // azimuth at this point
@@ -170,7 +187,7 @@ namespace KinKal {
     }
   }
 
-  void HHelix::momDeriv(MDir dir, double time, PDer& dermat) const {
+  void IPHelix::momDeriv(MDir dir, double time, PDER& dermat) const {
     // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
@@ -212,11 +229,11 @@ namespace KinKal {
     }
   }
 
-  std::ostream& operator <<(std::ostream& ost, HHelix const& hhel) {
-    ost << " HHelix parameters: ";
-    for(size_t ipar=0;ipar < HHelix::npars_;ipar++){
-      ost << HHelix::paramName(static_cast<HHelix::paramIndex>(ipar) ) << " : " << hhel.param(ipar);
-      if(ipar < HHelix::npars_-1) ost << " , ";
+  std::ostream& operator <<(std::ostream& ost, IPHelix const& hhel) {
+    ost << " IPHelix parameters: ";
+    for(size_t ipar=0;ipar < IPHelix::npars_;ipar++){
+      ost << IPHelix::paramName(static_cast<IPHelix::paramIndex>(ipar) ) << " : " << hhel.param(ipar);
+      if(ipar < IPHelix::npars_-1) ost << " , ";
     }
     return ost;
   }
