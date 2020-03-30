@@ -24,13 +24,15 @@ namespace KinKal {
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
-      enum paramIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
+      enum ParamIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       static std::vector<std::string> const &paramNames();
+      static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
-      static std::string const& paramName(paramIndex index);
-      static std::string const& paramTitle(paramIndex index);
+      static std::string const& paramName(ParamIndex index);
+      static std::string const& paramUnit(ParamIndex index);
+      static std::string const& paramTitle(ParamIndex index);
 
       // construct from momentum, position, and particle properties.
       // This also requires the BField
@@ -102,6 +104,7 @@ namespace KinKal {
       Vec3 bnom_;    // nominal BField
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
+      static std::vector<std::string> paramUnits_;
       double vt_; // transverse velocity
       double vz_; // z velocity
       // non-const accessors

@@ -15,10 +15,14 @@ namespace KinKal {
     "Time at Z=0 Plane"};
   vector<string> IPHelix::paramNames_ = {
   "d0","phi0","omega","z0","tanDip","Time0"};
+  vector<string> IPHelix::paramUnits_ = {
+      "mm", "rad", "rad", "mm", "", "ns"};
   std::vector<std::string> const& IPHelix::paramNames() { return paramNames_; }
+  std::vector<std::string> const& IPHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& IPHelix::paramTitles() { return paramTitles_; }
-  std::string const& IPHelix::paramName(paramIndex index) { return paramNames_[static_cast<size_t>(index)];}
-  std::string const& IPHelix::paramTitle(paramIndex index) { return paramTitles_[static_cast<size_t>(index)];}
+  std::string const& IPHelix::paramName(ParamIndex index) { return paramNames_[static_cast<size_t>(index)];}
+  std::string const& IPHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)]; }
+  std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
                  TRange const &range) : TTraj(range), KInter(mom.M(), charge), bnom_(bnom)
@@ -232,7 +236,7 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, IPHelix const& hhel) {
     ost << " IPHelix parameters: ";
     for(size_t ipar=0;ipar < IPHelix::npars_;ipar++){
-      ost << IPHelix::paramName(static_cast<IPHelix::paramIndex>(ipar) ) << " : " << hhel.param(ipar);
+      ost << IPHelix::paramName(static_cast<IPHelix::ParamIndex>(ipar) ) << " : " << hhel.param(ipar);
       if(ipar < IPHelix::npars_-1) ost << " , ";
     }
     return ost;
