@@ -11,8 +11,8 @@
 #include "KinKal/TTraj.hh"
 #include "KinKal/KInter.hh"
 #include "KinKal/PData.hh"
-#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
+#include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
 #include <ostream>
@@ -25,8 +25,10 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
+      constexpr static ParamIndex t0Index() { return t0_; }
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
+      typedef ROOT::Math::SVector<double, npars_> PDER; // derivative of parameters type in a particular direction
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -56,13 +58,12 @@ namespace KinKal {
       virtual void dirVector(MDir dir, double time, Vec3 &unit) const override;
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      typedef ROOT::Math::SMatrix<double, npars_, 1> PDER; // derivative of parameters type in a particular direction
-      void momDeriv(MDir dir, double time, PDER &der) const;
+      void momDeriv(MDir mdir, double time, PDER &der) const;
 
       // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
       PDATA const &params() const { return pars_; }
-
+      PDATA &params() { return pars_; }
       double d0() const { return param(d0_); }
       double phi0() const { return param(phi0_); }
       double omega() const { return param(omega_); }

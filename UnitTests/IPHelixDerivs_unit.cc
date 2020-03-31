@@ -171,7 +171,7 @@ int main(int argc, char **argv) {
 //      cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters();
       for (size_t ipar = 0; ipar < 6; ipar++)
-        dvec[ipar] += delta * pder[ipar][0];
+        dvec[ipar] += delta * pder[ipar];
       //dvec += pder;
       IPHelix dhel(dvec, refhel.params().covariance(), refhel.mass(), refhel.charge(), bnom);
       // test

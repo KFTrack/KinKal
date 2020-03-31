@@ -1,4 +1,6 @@
 #include "KinKal/IPHelix.hh"
+#include "KinKal/BField.hh"
+#include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
 
@@ -191,7 +193,8 @@ namespace KinKal {
     }
   }
 
-  void IPHelix::momDeriv(MDir dir, double time, PDER& dermat) const {
+  void IPHelix::momDeriv(MDir mdir, double time, PDER &pder) const
+  {
     // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
@@ -200,33 +203,33 @@ namespace KinKal {
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
     // cases
-    switch ( dir ) {
+    switch ( mdir ) {
       case theta1:
         // polar bending: only momentum and position are unchanged
-        dermat[d0_][0] = tanval*(1-cos(omval*l))/omval;
-        dermat[phi0_][0] = -tanval*sin(omval*l)/(1+omval*d0val);
-        dermat[omega_][0] = omval*tanval;
-        dermat[z0_][0] = -l-tanval*tanval*sin(omval*l)/(omval*(1+omval*d0val));
-        dermat[tanDip_][0] = 1/(cosval*cosval);
-        dermat[t0_][0] = dermat[z0_][0] / vz() + dermat[tanDip_][0] * (time - t0()) * cosval * cosval / tanval;
+        pder[d0_] = tanval*(1-cos(omval*l))/omval;
+        pder[phi0_] = -tanval * sin(omval * l) / (1 + omval * d0val);
+        pder[omega_] = omval * tanval;
+        pder[z0_] = -l - tanval * tanval * sin(omval * l) / (omval * (1 + omval * d0val));
+        pder[tanDip_] = 1 / (cosval * cosval);
+        pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
         break;
       case theta2:
         // Azimuthal bending: R, Lambda, t0 are unchanged
-        dermat[d0_][0] = -sin(omval*l)/(omval*cosval);
-        dermat[phi0_][0] = cos(omval*l)/(cosval*(1+omval*d0val));
-        dermat[omega_][0] = 0;
-        dermat[z0_][0] = -tanval/(omval*cosval)*(1-cos(omval*l)/(1+omval*d0val));
-        dermat[tanDip_][0] = 0;
-        dermat[t0_][0] = dermat[z0_][0]/vz();
+        pder[d0_] = -sin(omval * l) / (omval * cosval);
+        pder[phi0_] = cos(omval * l) / (cosval * (1 + omval * d0val));
+        pder[omega_] = 0;
+        pder[z0_] = -tanval / (omval * cosval) * (1 - cos(omval * l) / (1 + omval * d0val));
+        pder[tanDip_] = 0;
+        pder[t0_] = pder[z0_] / vz();
         break;
       case momdir:
         // fractional momentum change: position and direction are unchanged
-        dermat[d0_][0] = -(1-cos(omval*l))/omval;
-        dermat[phi0_][0] = sin(omval*l)/(1+omval*d0val);
-        dermat[omega_][0] = -omval;
-        dermat[z0_][0] = -tanval*(l-sin(omval*l)/(omval*(1+omval*d0val)));
-        dermat[tanDip_][0] = 0;
-        dermat[t0_][0] = dermat[z0_][0] / vz();
+        pder[d0_] = -(1 - cos(omval * l)) / omval;
+        pder[phi0_] = sin(omval * l) / (1 + omval * d0val);
+        pder[omega_] = -omval;
+        pder[z0_] = -tanval * (l - sin(omval * l) / (omval * (1 + omval * d0val)));
+        pder[tanDip_] = 0;
+        pder[t0_] = pder[z0_] / vz();
         break;
       default:
         throw std::invalid_argument("Invalid direction");
