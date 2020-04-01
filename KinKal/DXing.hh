@@ -1,40 +1,42 @@
-#ifndef KinKal_KKXing_hh
-#define KinKal_KKXing_hh
+#ifndef KinKal_DXing_hh
+#define KinKal_DXing_hh
 //
-//  Describe the a kinematic trajectory crossing a piece of physical detector (material)
+//  Describe the material effects of a kinematic trajectory crossing a piece of physical detector (material)
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/KInter.hh"
 #include "KinKal/MatXing.hh"
+#include "KinKal/TPocaBase.hh"
 #include "KinKal/TDir.hh"
 #include <vector>
 #include <stdexcept>
 #include <array>
+#include <limits>
+
 namespace KinKal {
-// struct to describe a particular trajectory crossing a particular detector piece, potentially mulitple materials
-  template <class KTRAJ> class KKXing {
+  template <class KTRAJ> class DXing {
     public:
-      // construct from a trajectory and a time:
-      KKXing(KTRAJ const& ktraj,double xtime, std::vector<MatXing> mxings) : ktraj_(ktraj), xtime_(xtime), mxings_(mxings) {}
-      // append an interaction
-      void addMatXing(MatXing const& mxing) { mxings_.push_back(mxing); }
+      typedef PKTraj<KTRAJ> PKTRAJ;
+      // construct from a trajectory 
+      DXing(PKTRAJ const& ktraj,double time=-std::numeric_limits<float>::max()) : xtime_(time) {}
+      // construct from POCA
+      DXing(TPocaBase const& tpoca) : xtime_(tpoca.particleToca()) {}
+      virtual void findXings(PKTRAJ const& pktraj) =0;
+      virtual void findXings(TPocaBase const& tpoca) =0;
       // accessors
-      KTRAJ const& kTraj() const { return ktraj_; }
       double crossingTime() const { return xtime_; }
-      std::vector<MatXing>const&  matXings() { return mxings_; }
+      std::vector<MatXing>const&  matXings() const { return mxings_; }
       // calculate the cumulative material effect from these crossings
-      void momEffects(TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
-    private:
-      KTRAJ const& ktraj_; // kinematic trajectory which crosses the material
-      double xtime_; // time of the crossing
+      void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
+    protected:
+      double xtime_;
       std::vector<MatXing> mxings_; // material crossings for this piece of matter
   };
 
-
-  template <class KTRAJ> void KKXing<KTRAJ>::momEffects(TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
+  template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
-    double mom = ktraj_.momentum(xtime_);
-    double mass = ktraj_.mass();
+    double mom = pktraj.momentum(xtime_);
+    double mass = pktraj.mass();
     double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     if(tdir == TDir::backwards)dmFdE *= -1.0;
     // loop over crossings for this detector piece

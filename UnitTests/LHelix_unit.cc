@@ -241,8 +241,8 @@ int main(int argc, char **argv) {
     line->SetLineColor(kOrange);
     line->Draw();
     TPolyLine3D* poca = new TPolyLine3D(2);
-    poca->SetPoint(0,tp.poca0().X() ,tp.poca0().Y() ,tp.poca0().Z());
-    poca->SetPoint(1,tp.poca1().X() ,tp.poca1().Y() ,tp.poca1().Z());
+    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
+    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
     poca->SetLineColor(kBlack);
     poca->Draw();
   }

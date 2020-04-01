@@ -109,15 +109,15 @@ int main(int argc, char **argv) {
   TPoca<LHelix,TLine> tp(lhel,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
-  tp.ttraj0().position(tp.poca0().T(),thpos);
-  tp.ttraj1().position(tp.poca1().T(),tlpos);
+  tp.particleTraj().position(tp.particlePoca().T(),thpos);
+  tp.sensorTraj().position(tp.sensorPoca().T(),tlpos);
   double refd = tp.doca();
   cout << " Helix Pos " << pos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
-  cout << " TPoca poca0 " << tp.poca0() << " TPoca poca1 " << tp.poca1()  << " DOCA " << refd << endl;
+  cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
 
   // now derivatives
-  TDPoca<LHelix,TLine> tdp(tp);
-  cout << "TDPoca dDdP " << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
+  TPoca<LHelix,TLine> tdp(tp);
+  cout << "TPoca dDdP " << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
   // test against numerical derivatives
   std::vector<TGraph*> dtpoca;
   // range to change specific parameters; most are a few mm

@@ -7,8 +7,7 @@
 #include "KinKal/KKWEff.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/THit.hh"
-#include "KinKal/TPoca.hh"
-#include "KinKal/TLine.hh"
+#include "KinKal/TPocaBase.hh"
 #include "KinKal/Residual.hh"
 
 namespace KinKal {
@@ -17,46 +16,40 @@ namespace KinKal {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef TDPoca<PKTRAJ,TLine> TDPOCA;
+      typedef THit<KTRAJ> THIT;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
       typedef typename KTRAJ::PDATA::DVEC DVEC; // forward derivative type
       typedef typename KTRAJ::PDER PDER; // forward derivative type
       virtual unsigned nDOF() const override { return thit_.isActive() ? thit_.nDOF() : 0; }
-      THit const& hit() const { return thit_; }
       virtual bool update(PKTRAJ const& ref)  override;
       virtual bool isActive() const override { return thit_.isActive(); }
-      virtual double time() const override { return tdpoca_.poca0().T(); } // time on the main trajectory
+      virtual double time() const override { return thit_.poca().particleToca(); } // time on the particle trajectory
       virtual double chisq(PDATA const& pars) const override;
       virtual ~KKHit(){}
       // construct from a hit and reference trajectory
-      KKHit(THit const& thit, KTRAJ const& reftraj);
-      KKHit(THit const& thit, PKTRAJ const& reftraj);
+      KKHit(THIT& thit, PKTRAJ const& reftraj);
       Residual const& refResid() const { return rresid_; }
-      TDPOCA const& poca() const { return tdpoca_; }
       // residual derivatives WRT local trajectory parameters
-      PDER dRdP() const { return rresid_.dRdD()*tdpoca_.dDdP() + rresid_.dRdT()*tdpoca_.dTdP(); }
+      PDER dRdP() const { return rresid_.dRdD()*thit_.dDdP() + rresid_.dRdT()*thit_.dTdP(); }
+      // accessors
+      THIT const& tHit() const { return thit_; }
+      TPocaBase const& poca() const { return thit_.poca(); }
     private:
     // helpers
       void setWeight();
-      THit const& thit_; // hit used for this constraint
+      THIT& thit_; // hit used for this constraint
       DVEC ref_; // reference parameters
-      TDPOCA tdpoca_; // POCA between the reference trajectory and the sensor trajectory
       Residual rresid_; // residual between the hit and reference
   };
 
-  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THit const& thit, PKTRAJ const& reftraj) : thit_(thit) ,
-    tdpoca_(reftraj,thit_.sensorTraj()) {
-    ref_ = reftraj.nearestPiece(tdpoca_.t0()).params().parameters();
-    thit_.resid(tdpoca_,rresid_);
-    setWeight();
+  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THIT& thit, PKTRAJ const& reftraj) : thit_(thit) {
+    update(reftraj);
   }
   
   template<class KTRAJ> bool KKHit<KTRAJ>::update(PKTRAJ const& ref) {
-  // update the hit state to the previous TPOCA
-    thit_.update(tdpoca_);
-    tdpoca_ = TDPOCA(ref,thit_.sensorTraj());
-    ref_ = ref.nearestPiece(tdpoca_.t0()).params().parameters();
-    thit_.resid(tdpoca_,rresid_);
+    thit_.update(ref);
+    ref_ = ref.nearestPiece(thit_.poca().particleToca()).params().parameters();
+    thit_.resid(rresid_);
     setWeight();
     KKEffBase::updateStatus();
     return true;

@@ -237,11 +237,11 @@ int main(int argc, char **argv) {
   TPoca<PLHelix,TLine> tp(ptraj,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
-  tp.ttraj0().position(tp.poca0().T(),thpos);
-  tp.ttraj1().position(tp.poca1().T(),tlpos);
+  tp.particleTraj().position(tp.particleToca(),thpos);
+  tp.sensorTraj().position(tp.sensorToca(),tlpos);
   double refd = tp.doca();
   cout << " Helix Pos " << midpos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
-  cout << " TPoca poca0 " << tp.poca0() << " TPoca poca1 " << tp.poca1()  << " DOCA " << refd << endl;
+  cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
   if(tp.status() == TPocaBase::converged) {
     // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
@@ -253,15 +253,15 @@ int main(int argc, char **argv) {
     line->SetLineColor(kOrange);
     line->Draw();
     TPolyLine3D* poca = new TPolyLine3D(2);
-    poca->SetPoint(0,tp.poca0().X() ,tp.poca0().Y() ,tp.poca0().Z());
-    poca->SetPoint(1,tp.poca1().X() ,tp.poca1().Y() ,tp.poca1().Z());
+    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
+    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
     poca->SetLineColor(kBlack);
     poca->Draw();
   }
 
   // now derivatives
-  TDPoca<PLHelix,TLine> tdp(tp);
-  cout << "TDPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
+  TPoca<PLHelix,TLine> tdp(tp);
+  cout << "TPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
   pttcan->Write();
 

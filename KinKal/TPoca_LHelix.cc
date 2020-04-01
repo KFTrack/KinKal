@@ -6,7 +6,7 @@
 using namespace std;
 namespace KinKal {
   // specialization between a looping helix and a line
-  template<> TPoca<LHelix,TLine>::TPoca(LHelix const& lhelix, TLine const& tline, double precision) : TPocaBase(lhelix,tline,precision)  { 
+  template<> TPoca<LHelix,TLine>::TPoca(LHelix const& lhelix, TLine const& tline, double precision) : TPocaBase(precision),ktraj_(&lhelix), straj_(&tline) {
     // reset status
     reset();
     double htime,ltime;
@@ -33,7 +33,7 @@ namespace KinKal {
       double denom = 1.0 - ddot*ddot;
       // check for parallel)
       if(denom<1.0e-5){
-	status_ = TPoca::pocafailed;
+	status_ = pocafailed;
 	break;
       }
       double hdd = dpos.Dot(hdir);
@@ -49,46 +49,39 @@ namespace KinKal {
       tline.position(ltime,lpos);
       double dd2 = (hpos-lpos).Mag2();
       if(dd2 < 0.0 ){
-	status_ = TPoca::pocafailed;
+	status_ = pocafailed;
 	break;
       }
       ddoca = doca;
       doca = sqrt(dd2);
       ddoca -= doca;
       if(isnan(ddoca)){
-	status_ = TPoca::pocafailed;
+	status_ = pocafailed;
 	break;
       }
     }
-    // finalize TPoca
-    if(status_ != TPoca::pocafailed){
+    // if successfull, finalize TPoca
+    if(status_ != pocafailed){
       if(niter < maxiter)
 	status_ = TPoca::converged;
       else
 	status_ = TPoca::unconverged;
         // set the positions
-      poca_[0].SetE(htime);
-      lhelix.position(poca_[0]);
-      poca_[1].SetE(ltime);
-      tline.position(poca_[1]);
+      partPoca_.SetE(htime);
+      lhelix.position(partPoca_);
+      sensPoca_.SetE(ltime);
+      tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector
-      double lsign = tline.dir().Cross(hdir).Dot(poca_[1].Vect()-poca_[0].Vect());
+      double lsign = tline.dir().Cross(hdir).Dot(sensPoca_.Vect()-partPoca_.Vect());
       doca_ = copysign(doca,lsign);
-    }
-  }
 
-  template<> TDPoca<LHelix,TLine>::TDPoca(TPoca<LHelix,TLine> const& tpoca) : TPoca<LHelix,TLine>(tpoca) {
-  // check status of POCA calculation from base class
-    if(usable()){
-      auto const& lhelix = ttraj0();
-      auto const& tline = ttraj1();
-      // pre-compute some values.
+      // pre-compute some values needed for the derivative calculations
       Vec3 vdoca, ddir, hdir;
       delta(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
-      lhelix.direction(poca0().T(),hdir);
+      lhelix.direction(particlePoca().T(),hdir);
 
-      double hphi = lhelix.phi(poca0().T()); // local azimuth of helix
+      double hphi = lhelix.phi(particlePoca().T()); // local azimuth of helix
       double lphi = tline.dir().Phi(); // line azimuth
       double sineta = sin(lphi);
       double coseta = cos(lphi);
@@ -101,8 +94,8 @@ namespace KinKal {
       double denom =  l2 + s2*r2;
       double Factor = fabs(lhelix.lam())/sqrt(denom);
 
-      double dx = lhelix.cx() - poca1().X();
-      double dy = lhelix.cy() - poca1().Y();
+      double dx = lhelix.cx() - sensorPoca().X();
+      double dy = lhelix.cy() - sensorPoca().Y();
       double ddot = -sineta*dx + coseta*dy;
 
       // no t0 dependence, DOCA is purely geometric
@@ -112,53 +105,47 @@ namespace KinKal {
       dDdP_[LHelix::phi0_] = Factor*lhelix.rad()*sindphi;
       dDdP_[LHelix::rad_] = -Factor*(l2*cosdphi + lhelix.rad()*s2*ddot)/denom;
       // this becomes inaccurate when z=0, but should have no effect on the fit
-      dDdP_[LHelix::lam_] = -Factor*lhelix.rad()*sindphi*poca0().Z()/l2; 
+      dDdP_[LHelix::lam_] = -Factor*lhelix.rad()*sindphi*particlePoca().Z()/l2; 
 
       // no spatial dependence, DT is purely temporal
       dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
       // propagate T0 errors to the error on doca
       ddoca_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
+      // dot product between directions at POCA
+      Vec3 pdir, sdir;
+      lhelix.direction(particleToca(),pdir);
+      tline.direction(sensorToca(),sdir);
+      ddot_ = pdir.Dot(sdir);
     }
   }
 
-  template<> TDPoca<LHelix,TLine>::TDPoca(LHelix const& lhelix, TLine const& tline, double precision) : TDPoca<LHelix,TLine>(TPoca<LHelix,TLine>(lhelix,tline,precision)){}
-
   // specialization between a piecewise LHelix and a line
-  typedef PKTraj<LHelix> PLHelix;
-  template<> TPoca<PLHelix,TLine>::TPoca(PLHelix const& phelix, TLine const& tline, double precision) : TPocaBase(phelix,tline,precision)  {
-// iteratively find the nearest piece, and POCA for that piece.  Start in the middle
+  typedef PKTraj<LHelix> PLHELIX;
+  template<> TPoca<PLHELIX,TLine>::TPoca(PLHELIX const& phelix, TLine const& tline, double precision) : TPocaBase(precision), ktraj_(&phelix), straj_(&tline)  {
+    // iteratively find the nearest piece, and POCA for that piece.  Start in the middle
+    static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
+    unsigned niter=0;
     size_t oldindex= phelix.pieces().size();
     size_t index = size_t(rint(oldindex/2.0));
-    static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
     status_ = converged; 
-    unsigned niter=0;
     while(status_ == converged && niter++ < maxiter && index != oldindex){
-    // call down to LHelix TPoca
+      // call down to LHelix TPoca
+      // prepare for the next iteration
       LHelix const& piece = phelix.pieces()[index];
       TPoca<LHelix,TLine> tpoca(piece,tline,precision);
-    // copy over state
       status_ = tpoca.status();
-      poca_[0] = tpoca.poca0();
-      poca_[1] = tpoca.poca1();
-      doca_ = tpoca.doca();
-      // prepare for the next iteration
+      if(tpoca.usable()){
+	// copy over the rest of the state
+	partPoca_ = tpoca.particlePoca();
+	sensPoca_ = tpoca.sensorPoca();
+	doca_ = tpoca.doca();
+	dDdP_ = tpoca.dDdP();
+	dTdP_ = tpoca.dTdP();
+	ddoca_ = tpoca.dDoca();
+      }
       oldindex = index;
-      index = phelix.nearestIndex(tpoca.poca0().T());
+      index = phelix.nearestIndex(tpoca.particlePoca().T());
     }
     if(status_ == converged && niter >= maxiter) status_ = unconverged;
   }
-
-  // same for TDPoca
-  template<> TDPoca<PLHelix,TLine>::TDPoca(TPoca<PLHelix,TLine> const& tpoca) : TPoca<PLHelix,TLine>(tpoca) {
-    if(usable()){
-      // call down to piece TDPoca.  Unfortunately this re-computes TPoca FIXME
-      TDPoca<LHelix,TLine> tdpoca(ttraj0().nearestPiece(poca0().T()),ttraj1(),precision());
-      // copy over state
-      dDdP_ = tdpoca.dDdP();
-      dTdP_ = tdpoca.dTdP();
-      ddoca_ = tdpoca.dDoca();
-    }
-  }
-  template<> TDPoca<PLHelix,TLine>::TDPoca(PLHelix const& phelix, TLine const& tline, double precision) :
-    TDPoca<PLHelix,TLine>(TPoca<PLHelix,TLine>(phelix,tline,precision)) { }
 }

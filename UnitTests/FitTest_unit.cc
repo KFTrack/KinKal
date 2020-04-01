@@ -12,7 +12,7 @@
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
-#include "KinKal/KKXing.hh"
+#include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
@@ -50,7 +50,7 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
-typedef KinKal::PKTraj<LHelix> PLHelix;
+typedef KinKal::PKTraj<LHelix> PLHELIX;
 typedef KinKal::KKTrk<LHelix> KKTRK;
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
@@ -68,6 +68,9 @@ double Bgrad(0.0), By(0.0);
 BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
+typedef THit<LHelix> THIT;
+typedef StrawHit<LHelix> STRAWHIT;
+typedef StrawXing<LHelix> STRAWXING;
 
 void print_usage() {
   printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --condchisq f --addmat i --ttree i --By f --Bgrad f\n");
@@ -81,7 +84,7 @@ struct LHelixPars{
 };
 
 // helper function
-KinKal::TLine GenerateStraw(PLHelix const& traj, double htime) {
+KinKal::TLine GenerateStraw(PLHELIX const& traj, double htime) {
   // start with the true helix position at this time
   Vec4 hpos; hpos.SetE(htime);
   traj.position(hpos);
@@ -127,7 +130,7 @@ void createSeed(LHelix& seed){
   }
 }
 
-double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& shits,bool addmat) {
+double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& shits,bool addmat) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
@@ -136,26 +139,24 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = tbuff + plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime);
-    TDPoca<PLHelix,TLine> tp(plhel,tline);
-    WireHit::LRAmbig ambig(WireHit::null);
-    if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
+    TPoca<PLHELIX,TLine> tp(plhel,tline);
+    LRAmbig ambig(LRAmbig::null);
+    if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
     // construct the hit from this trajectory
-    StrawHit sh(tline,*BF,d2t,smat,ambigdoca,ambig);
+    STRAWXING sxing(tp,smat);
+    STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
     shits.push_back(sh);
     // compute material effects and change trajectory accordingly
     bool simmat(true);
     if(addmat && simmat){
-      std::vector<MatXing> mxings;
-      smat.findXings(tp,mxings);
-      auto const& endpiece = plhel.nearestPiece(tp.t0());
-      KKXing<LHelix> ktmi(endpiece,tp.t0(),mxings);
-      double mom = endpiece.momentum(tp.t0());
+      auto const& endpiece = plhel.nearestPiece(tp.particleToca());
+      double mom = endpiece.momentum(tp.particleToca());
       Mom4 endmom;
-      endpiece.momentum(tp.t0(),endmom);
-      Vec4 endpos; endpos.SetE(tp.t0());
+      endpiece.momentum(tp.particleToca(),endmom);
+      Vec4 endpos; endpos.SetE(tp.particleToca());
       endpiece.position(endpos);
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-      ktmi.momEffects(TDir::forwards, dmom, momvar);
+      sxing.momEffects(plhel,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
 	double momsig = sqrt(momvar[idir]);
@@ -184,7 +185,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
 //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
 
 	Vec3 dmvec;
-	endpiece.dirVector(mdir,tp.t0(),dmvec);
+	endpiece.dirVector(mdir,tp.particleToca(),dmvec);
 	dmvec *= dm*mom;
 //	dmvec *= 0.0;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
@@ -192,7 +193,7 @@ double createHits(PLHelix& plhel,StrawMat const& smat, std::vector<StrawHit>& sh
 	// terminate if there is catastrophic energy loss
       if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
-      LHelix newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.t0(),plhel.range().high()));
+      LHelix newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.particleToca(),plhel.range().high()));
       plhel.append(newend);
     }
   }
@@ -304,13 +305,13 @@ int main(int argc, char **argv) {
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,bnom);
   cout << "True initial " << lhel << endl;
-  PLHelix plhel(lhel);
+  PLHELIX plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
   plhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
   // generate hits
-  std::vector<StrawHit> shits; // this owns the hits
-  std::vector<const THit*> thits; // this references them as THits
+  std::vector<STRAWHIT> shits; // this program owns the straw hits
+  std::vector<THIT*> thits; // this references them as THits
   createHits(plhel,smat, shits,addmat);
   for(auto& shit : shits) thits.push_back(&shit);
 //  cout << "vector of hit points " << thits.size() << endl;
@@ -459,7 +460,7 @@ int main(int argc, char **argv) {
       double tsint = sqrt(1.0-tcost*tcost);
       Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
       LHelix tlhel(torigin,tmomv,icharge,bnom);
-      PLHelix tplhel(tlhel);
+      PLHELIX tplhel(tlhel);
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
       shits.clear();

@@ -216,7 +216,9 @@ int main(int argc, char **argv) {
   TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;DOCA (mm);Scattering (radians)");
 
   // generate hits
-  std::vector<StrawHit> hits;
+  typedef StrawXing<LHelix> STRAWXING;
+  typedef StrawHit<LHelix> STRAWHIT;
+  std::vector<STRAWHIT> hits;
   std::vector<TPolyLine3D*> tpl;
   cout << "ambigdoca = " << ambigdoca << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
@@ -224,18 +226,19 @@ int main(int argc, char **argv) {
     auto tline = GenerateStraw(plhel,htime,TR);
 //    cout << "TLine " << tline << endl;
 // try to create TPoca for a hit
-    TDPoca<PLHelix,TLine> tp(plhel,tline);
+    TPoca<PLHelix,TLine> tp(plhel,tline);
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
 // only set ambiguity if DOCA is above this value
-    WireHit::LRAmbig ambig(WireHit::null);
+    LRAmbig ambig(LRAmbig::null);
     if(fabs(tp.doca())> ambigdoca)
-      ambig = tp.doca() < 0 ? WireHit::left : WireHit::right;
+      ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
+    STRAWXING sxing(tp,smat);
     // construct the hit from this trajectory
-    StrawHit sh(tline,*BF,d2t,smat,ambigdoca,ambig);
+    STRAWHIT sh(*BF,plhel, tline, d2t,sxing,ambigdoca,ambig);
     hits.push_back(sh);
    // compute residual
     Residual res;
-    sh.resid(tp,res);
+    sh.resid(res);
     cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;

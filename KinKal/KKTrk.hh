@@ -45,6 +45,7 @@ namespace KinKal {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef THit<KTRAJ> THIT;
       struct KKEFFComp { // comparator, used in sorting
 	bool operator()(std::unique_ptr<KKEFF> const& a, std::unique_ptr<KKEFF> const&  b) const {
 	  if(a.get() != b.get())
@@ -55,7 +56,7 @@ namespace KinKal {
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
       // construct from a set of hits (and materials FIXME!)
-      KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<const THit*> hits, Config const& config ); 
+      KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<THIT*> hits, Config const& config ); 
       void fit(bool force=false); // process the effects.
       FitStatus const& status() const { return status_; }
       PKTRAJ const& refTraj() const { return reftraj_; }
@@ -75,13 +76,13 @@ namespace KinKal {
       BField const& bfield_; // magnetic field map
   };
 
-  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<const THit*> hits,Config const& config) : 
+  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, BField const& bfield, std::vector<THIT*> hits,Config const& config) : 
     config_(config), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()), bfield_(bfield) {
       // loop over the hits
-      for(auto hit : hits ) {
+      for(auto& hit : hits ) {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
-	if(config_.addmat_ && hit->material() != 0){
+	if(config_.addmat_ && hit->detCrossing() != 0){
 	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(*hit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	} else{ 
