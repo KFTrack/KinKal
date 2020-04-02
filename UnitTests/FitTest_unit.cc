@@ -62,6 +62,7 @@ int iseed(124223);
 unsigned nhits(40);
 double escale(5.0);
 vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
+bool simmat(false), fitmat(false);
 // define the BF
 Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
@@ -73,7 +74,7 @@ typedef StrawHit<LHelix> STRAWHIT;
 typedef StrawXing<LHelix> STRAWXING;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --condchisq f --addmat i --ttree i --By f --Bgrad f\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --condchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f\n");
 }
 
 struct LHelixPars{
@@ -130,7 +131,7 @@ void createSeed(LHelix& seed){
   }
 }
 
-double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& shits,bool addmat) {
+double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& shits) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
@@ -147,8 +148,7 @@ double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& sh
     STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
     shits.push_back(sh);
     // compute material effects and change trajectory accordingly
-    bool simmat(true);
-    if(addmat && simmat){
+    if(simmat){
       auto const& endpiece = plhel.nearestPiece(tp.particleToca());
       double mom = endpiece.momentum(tp.particleToca());
       Mom4 endmom;
@@ -213,7 +213,6 @@ int main(int argc, char **argv) {
   unsigned maxniter(10);
   unsigned ntries(1000);
   double condchisq(0.1);
-  bool addmat(true);
   bool ttree(true);
 
   static struct option long_options[] = {
@@ -228,7 +227,8 @@ int main(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
-    {"addmat",     required_argument, 0, 'b'  },
+    {"simmat",     required_argument, 0, 'b'  },
+    {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"condchisq",     required_argument, 0, 'i'  },
@@ -263,7 +263,9 @@ int main(int argc, char **argv) {
 		 break;
       case 'x' : maxniter = atoi(optarg);
 		 break;
-      case 'b' : addmat = atoi(optarg);
+      case 'b' : simmat = atoi(optarg);
+		 break;
+      case 'f' : fitmat = atoi(optarg);
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
@@ -312,7 +314,7 @@ int main(int argc, char **argv) {
   // generate hits
   std::vector<STRAWHIT> shits; // this program owns the straw hits
   std::vector<THIT*> thits; // this references them as THits
-  createHits(plhel,smat, shits,addmat);
+  createHits(plhel,smat, shits);
   for(auto& shit : shits) thits.push_back(&shit);
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << plhel << endl;
@@ -332,7 +334,7 @@ int main(int argc, char **argv) {
   config.dwt_ = 1.0e6;
   config.condchisq_ = condchisq;
   config.maxniter_ = maxniter;
-  config.addmat_ = addmat;
+  config.addmat_ = fitmat;
   KKTRK kktrk(seedhel,*BF,thits,config);
   // fit the track
   kktrk.fit();
@@ -464,7 +466,7 @@ int main(int argc, char **argv) {
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
       shits.clear();
-      tde_ = createHits(tplhel,smat, shits,addmat);
+      tde_ = createHits(tplhel,smat, shits);
       auto seedhel = tplhel.nearestPiece(0.0);
       createSeed(seedhel);
       thits.clear();

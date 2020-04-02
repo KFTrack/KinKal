@@ -7,6 +7,8 @@ namespace KinKal {
   float StrawMat::gasPath(float doca, float ddoca, float adot) const {
     doca = fabs(doca);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
+    if(!isfinite(afac))throw std::runtime_error("Invalid angle");
+
     float retval;
   // if the uncertainty is large, just take the average over all possible impact parameters
     if(ddoca > srad_) {

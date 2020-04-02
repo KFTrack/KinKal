@@ -142,6 +142,7 @@ namespace KinKal {
 	dDdP_ = tpoca.dDdP();
 	dTdP_ = tpoca.dTdP();
 	ddoca_ = tpoca.dDoca();
+	ddot_ = tpoca.dirDot();
       }
       oldindex = index;
       index = phelix.nearestIndex(tpoca.particlePoca().T());
