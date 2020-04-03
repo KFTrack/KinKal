@@ -105,7 +105,7 @@ namespace KinKal {
  void LHelix::velocity(double tval,Vec3& vel) const{
     Mom4 mom;
     momentum(tval,mom);
-    vel = mom.Vect()*(CLHEP::c_light*fabs(Q()/ebar()));
+    vel = mom.Vect()*CLHEP::c_light/fabs(Q()*ebar());
     if(needsrot_)vel = brot_(vel);
   }
 

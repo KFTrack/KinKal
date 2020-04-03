@@ -1,5 +1,6 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/LHelix.hh"
+#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/PKTraj.hh"
 // specializations for TPoca
@@ -63,9 +64,9 @@ namespace KinKal {
     // if successfull, finalize TPoca
     if(status_ != pocafailed){
       if(niter < maxiter)
-	status_ = TPoca::converged;
+        status_ = TPoca::converged;
       else
-	status_ = TPoca::unconverged;
+        status_ = TPoca::unconverged;
         // set the positions
       partPoca_.SetE(htime);
       lhelix.position(partPoca_);
@@ -76,7 +77,7 @@ namespace KinKal {
       doca_ = copysign(doca,lsign);
 
       // pre-compute some values needed for the derivative calculations
-      Vec3 vdoca, ddir, hdir;
+     Vec3 vdoca, ddir, hdir;
       delta(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       lhelix.direction(particlePoca().T(),hdir);
@@ -149,4 +150,5 @@ namespace KinKal {
     }
     if(status_ == converged && niter >= maxiter) status_ = unconverged;
   }
+
 }
