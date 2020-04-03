@@ -1,7 +1,7 @@
 # Kinematic Kalman fit code package
 
-To build, you must have root (see https://root.cern.ch/) installed, and ROOTSYS defined to the base of that.
-You must also have the python-basee SCONS build tool installed (https://scons.org/).
+To build, you must have ROOT (see https://root.cern.ch/) installed, and ROOTSYS defined to the base of that.
+You must also have the python-based SCONS build tool installed (https://scons.org/).
 
 There are 2 build choices: debug or profile.  To build 
 
@@ -17,4 +17,11 @@ There are 2 build choices: debug or profile.  To build
 5. run scons:
 `> scons`
 
-Test programs will be built in the bin directory under build_prof.  run them with --help to get a list of run parameters
+Test programs will be built in the bin directory under `build_prof`. Run them with `--help` in the `build_prof` directory to get a list of run parameters.
+
+### Brew-specific instructions
+The `setup.sh` script will export the `ROOT_INC` environment variable which points to the ROOT includes needed for the compilation. If ROOT was installed with `brew` (https://brew.sh) on macOS, this line must be changed to:
+
+```
+export ROOT_INC=${ROOTSYS}/root/include
+```
