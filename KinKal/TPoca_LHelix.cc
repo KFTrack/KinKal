@@ -33,8 +33,8 @@ namespace KinKal {
       double denom = 1.0 - ddot*ddot;
       // check for parallel)
       if(denom<1.0e-5){
-	status_ = pocafailed;
-	break;
+        status_ = pocafailed;
+        break;
       }
       double hdd = dpos.Dot(hdir);
       double ldd = dpos.Dot(tline.dir());
@@ -49,15 +49,15 @@ namespace KinKal {
       tline.position(ltime,lpos);
       double dd2 = (hpos-lpos).Mag2();
       if(dd2 < 0.0 ){
-	status_ = pocafailed;
-	break;
+        status_ = pocafailed;
+        break;
       }
       ddoca = doca;
       doca = sqrt(dd2);
       ddoca -= doca;
       if(isnan(ddoca)){
-	status_ = pocafailed;
-	break;
+        status_ = pocafailed;
+        break;
       }
     }
     // if successfull, finalize TPoca
@@ -76,7 +76,7 @@ namespace KinKal {
       doca_ = copysign(doca,lsign);
 
       // pre-compute some values needed for the derivative calculations
-     Vec3 vdoca, ddir, hdir;
+      Vec3 vdoca, ddir, hdir;
       delta(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       lhelix.direction(particlePoca().T(),hdir);
@@ -135,14 +135,14 @@ namespace KinKal {
       TPoca<LHelix,TLine> tpoca(piece,tline,precision);
       status_ = tpoca.status();
       if(tpoca.usable()){
-	// copy over the rest of the state
-	partPoca_ = tpoca.particlePoca();
-	sensPoca_ = tpoca.sensorPoca();
-	doca_ = tpoca.doca();
-	dDdP_ = tpoca.dDdP();
-	dTdP_ = tpoca.dTdP();
-	ddoca_ = tpoca.dDoca();
-	ddot_ = tpoca.dirDot();
+        // copy over the rest of the state
+        partPoca_ = tpoca.particlePoca();
+        sensPoca_ = tpoca.sensorPoca();
+        doca_ = tpoca.doca();
+        dDdP_ = tpoca.dDdP();
+        dTdP_ = tpoca.dTdP();
+        ddoca_ = tpoca.dDoca();
+        ddot_ = tpoca.dirDot();
       }
       oldindex = index;
       index = phelix.nearestIndex(tpoca.particlePoca().T());

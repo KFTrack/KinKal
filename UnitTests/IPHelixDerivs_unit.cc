@@ -125,13 +125,14 @@ int main(int argc, char **argv) {
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
+  TFile iphderiv("IPHelixDerivs.root", "RECREATE");
 
   // loop over derivative directions
   for(int idir=0;idir<3;++idir){
     KInter::MDir tdir = static_cast<KInter::MDir>(idir);
     Vec3 dmomdir;
     refhel.dirVector(tdir,ttest,dmomdir);
-//    cout << "testing direction " << KInter::directionName(tdir) << endl;
+    // cout << "testing direction " << KInter::directionName(tdir) << endl;
     // parameter change
 
     d0graph[idir] = new TGraph(ndel);
@@ -159,7 +160,7 @@ int main(int argc, char **argv) {
     double del = (dmax-dmin)/(ndel-1);
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
-//      cout << "Delta = " << delta << endl;
+      // cout << "Delta = " << delta << endl;
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
@@ -167,7 +168,7 @@ int main(int argc, char **argv) {
       // now, compute 1st order change in parameters
       IPHelix::PDER pder;
       refhel.momDeriv(tdir,ttest,pder);
-//      cout << "derivative vector" << pder << endl;
+      // cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters();
       for (size_t ipar = 0; ipar < 6; ipar++)
         dvec[ipar] += delta * pder[ipar];
@@ -179,12 +180,12 @@ int main(int argc, char **argv) {
       dpos.SetE(ttest);
       xhel.position(xpos);
       dhel.position(dpos);
-//      cout << " exa pos " << xpos << endl
-//      << " del pos " << dpos << endl;
+      // cout << " exa pos " << xpos << endl
+      // << " del pos " << dpos << endl;
       Mom4 dmom;
       dhel.momentum(ttest,dmom);
-//      cout << "Exact change" << xhel << endl;
-//      cout << "Derivative  " << dhel << endl;
+      // cout << "Exact change" << xhel << endl;
+      // cout << "Derivative  " << dhel << endl;
       Vec4 gap = dpos - refpos;
       gapgraph[idir]->SetPoint(id,delta,sqrt(gap.Vect().Mag2()));
       // parameter diff
@@ -245,12 +246,14 @@ int main(int argc, char **argv) {
   
     char fname[100];
     snprintf(fname,100,"IPHelixDerivs_dh_%s.root",KInter::directionName(tdir).c_str());
-    dhcan[idir]->SaveAs(fname);
+    dhcan[idir]->Write();
     snprintf(fname,100,"IPHelixDerivs_dmom_%s.root",KInter::directionName(tdir).c_str());
-    dmomcan[idir]->SaveAs(fname);
-
+    dmomcan[idir]->Write();
   }
 
- return 0;
+  iphderiv.Write();
+  iphderiv.Close();
+
+  return 0;
 }
 
