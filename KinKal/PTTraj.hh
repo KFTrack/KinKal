@@ -33,9 +33,9 @@ namespace KinKal {
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
 // If appending requires truncation and allowremove=false, the piece is not appended and the return code is false
-      virtual bool append(TTRAJ const& newpiece, bool allowremove=false);
-      virtual bool prepend(TTRAJ const& newpiece, bool allowremove=false);
-      bool add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
+      virtual void append(TTRAJ const& newpiece, bool allowremove=false);
+      virtual void prepend(TTRAJ const& newpiece, bool allowremove=false);
+      void add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
       TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
       TTRAJ const& front() const { return pieces_.front(); }
@@ -86,37 +86,33 @@ namespace KinKal {
   template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : TTraj(piece.range()),pieces_(1,piece)
   {}
 
-  template <class TTRAJ> bool PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
-    bool retval(false);
+  template <class TTRAJ> void PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
     switch (tdir) {
       case TDir::forwards:
-	retval = append(newpiece,allowremove);
+	append(newpiece,allowremove);
 	break;
       case TDir::backwards:
-	retval = prepend(newpiece,allowremove);
+	prepend(newpiece,allowremove);
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");
     }
-    return  retval;
   }
 
-  template <class TTRAJ> bool PTTraj<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
+  template <class TTRAJ> void PTTraj<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
   // new piece can't have infinite range
     if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
-
-    bool retval(false);
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
       // override the range
-      pieces_.front().setRange(range());
-      retval = true;
+      range() = newpiece.range();
     } else {
-      retval = allowremove;// if we allow removal this function will always succeed
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().contains(range())){
 	if(allowremove)
 	  *this = PTTraj(newpiece);
+	else
+	  throw std::invalid_argument("range overlap");
       } else {
 	// find the piece that needs to be modified
 	size_t ipiece = nearestIndex(newpiece.range().high());
@@ -134,25 +130,21 @@ namespace KinKal {
 	  pieces_.push_front(newpiece);
 	  // subtract a small buffer to prevent overlaps
 	  pieces_.front().range().high() -= TRange::tbuff_;
-	  retval = true;
+	} else {
+	  throw std::invalid_argument("range error");
 	}
       }
     }
-    return retval;
   }
 
-  template <class TTRAJ> bool PTTraj<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
+  template <class TTRAJ> void PTTraj<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
   // new piece can't have infinite range
     if(newpiece.range().infinite())throw std::invalid_argument("Can't append infinite range traj");
-    bool retval(false);
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
       // override the range
-//      pieces_.front().setRange(range());
       range() = newpiece.range();
-      retval = true;
     } else {
-     retval = allowremove;// if we allow removal this function will always succeed
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().low() < range().low()){
 	if(allowremove)
@@ -175,13 +167,11 @@ namespace KinKal {
 	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
 	  range().high() = std::max(range().high(),newpiece.range().high());
 	  pieces_.push_back(newpiece);
-	  retval = true;
 	} else {
 	  throw std::invalid_argument("range error");
 	}
       }
     }
-    return retval;
   }
 
   template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {

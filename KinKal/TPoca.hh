@@ -6,38 +6,27 @@
 //  each trajectory type pair.
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/TTraj.hh"
 #include "KinKal/TPocaBase.hh"
-#include "Math/SMatrix.h"
-#include <typeinfo>
-#include <stdexcept>
-#include <array>
 
 namespace KinKal {
-
-  // Class to calculate POCA using time parameterized trajectories.
+  // Class to calculate DOCA and TOCA using time parameterized trajectories.
   // Templated on the types of trajectories. The actual implementations must be specializations for particular trajectory classes.
-  template<class T0, class T1> class TPoca : public TPocaBase {
+  template<class KTRAJ, class STRAJ> class TPoca : public TPocaBase {
     public:
-      // construct from a pair of trajs; POCA is computed on construction
-      TPoca(T0 const& t0, T1 const& t1, double precision=0.01);
-      TPoca() {} 
-      // accessors
-      T0 const& ttraj0() const override { return static_cast<T0 const&>(TPocaBase::ttraj0()); }
-      T1 const& ttraj1() const override { return static_cast<T1 const&>(TPocaBase::ttraj1()); }
-  };
-
-  // Compute POCA and the derivatives of DOCA WRT the parameters of T0
-  template<class T0, class T1> class TDPoca : public TPoca<T0,T1> {
-    public:
-      typedef typename T0::PDER PDER; // forward derivative type from the 0th traj parameters
-      TDPoca(T0 const& t0, T1 const& t1, double precision=0.01);
-      TDPoca(TPoca<T0,T1> const& tpoca); // 'upgrade' a regular POCA.  This avoids re-computing POCA
-      TDPoca() {} 
+    // forward the base interface.
+      typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
+      // derviatives of TOCA and DOCA WRT particle trajectory parameters
       PDER const& dDdP() const { return dDdP_; }
       PDER const& dTdP() const { return dTdP_; }
-      // compute the T0 parameter covariance into an error on DOCA
+       // construct from the particle and sensor trajectories; POCA is computed on construction.  Should allow 'hints' to the toca values FIXME!
+      TPoca(KTRAJ const& ktraj, STRAJ const& straj, double precision=0.01);
+      // accessors
+      KTRAJ const& particleTraj() const { return *ktraj_; }
+      STRAJ const& sensorTraj() const { return *straj_; }
+      bool inRange() const { return particleTraj().inRange(particleToca()) && sensorTraj().inRange(sensorToca()); }
     private:
+      const KTRAJ* ktraj_; // kinematic particle trajectory
+      const STRAJ* straj_; // sensor trajectory
       PDER dDdP_; // derivative of DOCA WRT Parameters
       PDER dTdP_; // derivative of Dt WRT Parameters
   };

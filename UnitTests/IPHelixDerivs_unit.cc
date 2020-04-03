@@ -25,7 +25,6 @@
 #include "TGraph.h"
 #include "TRandom3.h"
 #include "TH2F.h"
-#include "TF1.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"

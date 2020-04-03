@@ -2,44 +2,41 @@
 #define KinKal_StrawMat_hh
 //
 //  description of a local segment of a straw, including a
-//  mixture for the straw, the gas, and the wire, allowing for
-//  offset between the wire and the straw
+//  mixture for the straw, the gas, and the wire,
 //
-#include "KinKal/DMat.hh"
 #include "MatEnv/DetMaterial.hh"
-#include "KinKal/Vectors.hh"
+#include "KinKal/MatXing.hh"
 namespace KinKal {
-  class StrawMat : public DMat {
+  class StrawMat {
     public:
     // explicit constructor from geometry and materials
-      StrawMat(float rad, float thick, float rwire,
+      StrawMat(float srad, float thick, float wrad,
 	  MatEnv::DetMaterial const& wallmat, MatEnv::DetMaterial const& gasmat, MatEnv::DetMaterial const& wiremat) :
-	rad_(rad), thick_(thick), rwire_(rwire), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
-	  rad2_ = rad_*rad_;
-	  rdmax_ = (rad_ - thick_)/rad_;
-	  wpmax_ = sqrt(8.0*rad_*thick_);
-	  ddmax_ = 0.05*rad_;
+	srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
+	  srad2_ = srad_*srad_;
+	  rdmax_ = (srad_ - thick_)/srad_;
+	  wpmax_ = sqrt(8.0*srad_*thick_);
+	  ddmax_ = 0.05*srad_;
 	}
-	// DMat interface; first, for materials associated with a hit
-      virtual void findXings(TPocaBase const& poca,std::vector<MatXing>& mxings) const override;
       // pathlength through gas, give DOCA to the axis, uncertainty on that,
       // and the dot product of the path direction WRT the axis.
       float gasPath(float doca, float ddoca, float adot) const;
       // same for wall material
-      float wallPath(float doca, float ddoca, float adot) const;  // should add doca to the wire for wire material effects FIXME!
-      // find the material crossings given doca.
+      float wallPath(float doca, float ddoca, float adot) const; 
+      // should add function to compute wire effect (probabilstically) FIXME!
+      // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes FIXME!
       void findXings(float doca, float ddoca, float adot, std::vector<MatXing>& mxings) const;
-      float strawRadius() const { return rad_; }
+      float strawRadius() const { return srad_; }
       float wallThickness() const { return thick_; }
-      float wireRadius() const { return rwire_; }
+      float wireRadius() const { return wrad_; }
     private:
-      float rad_; // outer transverse radius of the straw
-      float rad2_; // outer transverse radius of the straw squared
+      float srad_; // outer transverse radius of the straw
+      float srad2_; // outer transverse radius of the straw squared
       float rdmax_; // maximum relative DOCA
       float wpmax_; // maximum wall path
       float ddmax_; // max ddoca to integrate
-      float thick_; // wall thickness
-      float rwire_; // transverse radius of the wire
+      float thick_; // straw wall thickness
+      float wrad_; // transverse radius of the wire
       MatEnv::DetMaterial const& wallmat_; // material of the straw wall
       MatEnv::DetMaterial const& gasmat_; // material of the straw gas
       MatEnv::DetMaterial const& wiremat_; // material of the wire

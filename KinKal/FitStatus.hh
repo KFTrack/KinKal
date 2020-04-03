@@ -3,18 +3,18 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <limits>
+
 namespace KinKal {
 // struct to define fit status
   struct FitStatus {
-    enum status {needsfit=0,converged,unconverged,failed}; // fit status
-    unsigned niter_; // number of iterations executed;
+    enum status {needsfit=-1,converged,unconverged,oscillating,diverged,lowNDOF,failed}; // fit status
+    int iter_; // iteration number;
     status status_; // current status
-    double chisq_; // current chisquared
-    int ndof_; // number of degrees of freedom
-    FitStatus() : niter_(0), status_(needsfit), chisq_(0.0), ndof_(0) {}
-
-    static std::string statusName(status stat) { return statnames[stat]; }
-    static std::vector<std::string> statnames;
+    float chisq_; // current chisquared
+    int ndof_; // current number of degrees of freedom
+    FitStatus() : iter_(-1), status_(needsfit), chisq_(std::numeric_limits<float>::max()), ndof_(0) {}
+    static std::string statusName(status stat);
   };
   std::ostream& operator <<(std::ostream& os, FitStatus fitstatus );
 }

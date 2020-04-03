@@ -15,7 +15,7 @@ namespace KinKal {
 // base class for KKEff, for untemplated functions and content
   class KKEffBase {
     public:
-      enum Status{unprocessed=0,processed,updated,failed};
+      enum Status{unprocessed=-1,processed,updated,failed};
       // time of this effect 
       virtual double time() const = 0;
       virtual unsigned nDOF() const = 0;

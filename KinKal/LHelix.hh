@@ -80,7 +80,7 @@ namespace KinKal {
       // simple functions; these can be cached if they cause performance problems
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 
       double pbar() const { return  sqrt(pbar2()); } // momentum in mm
-      double ebar2() const { return  rad()*rad() + lam()*lam() + mbar_*mbar_; }
+      double ebar2() const { return  pbar2() + mbar_*mbar_; }
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge

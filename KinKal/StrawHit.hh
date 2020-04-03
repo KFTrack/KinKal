@@ -6,18 +6,20 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/WireHit.hh"
-#include "KinKal/StrawMat.hh"
+#include "KinKal/StrawXing.hh"
 namespace KinKal {
-  class StrawHit : public WireHit {
+  template <class KTRAJ> class StrawHit : public WireHit<KTRAJ> {
     public:
-      StrawHit(TLine const& straj, BField const& bfield, D2T const& d2t,StrawMat const& smat,float nulldoca, LRAmbig ambig=null,bool active=true) : 
-	WireHit(straj,bfield,d2t,std::min(nulldoca,smat.strawRadius())*std::min(nulldoca,smat.strawRadius())/3.0,ambig,active), smat_(smat) {}
-      virtual float inRange(TPocaBase const& tpoca) const override;
-      virtual void update(TPocaBase const& tpoca) const override;
+      typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef WireHit<KTRAJ> WHIT;
+      typedef StrawXing<KTRAJ> STRAWXING;
+      StrawHit(BField const& bfield, PKTRAJ const& pktraj, TLine const& straj, D2T const& d2t, STRAWXING const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
+	WireHit<KTRAJ>(bfield,pktraj,straj,d2t,std::min(nulldoca,sxing.strawMat().strawRadius())*std::min(nulldoca,sxing.strawMat().strawRadius())/3.0,ambig,active), sxing_(sxing) {}
+      virtual float tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!
+      virtual STRAWXING* detCrossing() override { return &sxing_; }
       virtual ~StrawHit(){}
-      virtual const StrawMat* material() const override { return &smat_; }
     private:
-      StrawMat const& smat_; // straw material information
+      STRAWXING sxing_; // straw material crossing information
       // add state for longitudinal resolution, transverse resolution FIXME!
   };
 }

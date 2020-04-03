@@ -19,7 +19,7 @@ namespace KinKal {
 
       // provide interface
       virtual bool update(PKTRAJ const& ref) override;
-      virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
+      virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<float>::max() : std::numeric_limits<float>::max(); } // make sure this is always at the end
       virtual unsigned nDOF() const override { return 0; }
       virtual bool isActive() const override { return true; }
       virtual double chisq(PDATA const& pars) const override { return 0.0; }
@@ -67,12 +67,14 @@ namespace KinKal {
   template<class KTRAJ> bool KKEnd<KTRAJ>::append(PKTRAJ& fit) {
     // if the fit is empty and we're going in the right direction, take the end cache and
     // seed the fit with it
-    if(tdir_ == TDir::forwards && fit.pieces().size() == 0){
-    // start with the reference traj, and override the range and parameters
-      end_.range() = fit.range();
-      // append this to the (empty) fit
-      bool ok = fit.append(end_);
-      if(!ok)throw std::invalid_argument("append failed");
+    if(tdir_ == TDir::forwards) {
+      if(fit.pieces().size() == 0){
+	// start with a very large range 
+	end_.range() = TRange(-std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
+	// append this to the (empty) fit
+	fit.append(end_);
+      } else
+	return false;	
     }
     return true;
   }

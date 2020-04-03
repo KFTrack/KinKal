@@ -13,10 +13,11 @@ namespace KinKal {
       typedef KKHit<KTRAJ> KKHIT;
       typedef KKMat<KTRAJ> KKMAT;
       typedef PKTraj<KTRAJ> PKTRAJ;
+      typedef THit<KTRAJ> THIT;
       typedef typename KTRAJ::PDATA PDATA;
       typedef KKData<PDATA::PDim()> KKDATA;
-      KKMHit(KKHIT const& kkhit, KKMAT const& kkmat) : kkhit_(kkhit), kkmat_(kkmat) {}
-      KKMHit(THit const& thit, PKTRAJ const& reftraj);
+      KKMHit(KKHIT& kkhit, KKMAT& kkmat) : kkhit_(kkhit), kkmat_(kkmat) {}
+      KKMHit(THIT& thit, PKTRAJ const& reftraj);
       // override the interface
       virtual double time() const override { return kkhit_.time(); }
       virtual unsigned nDOF() const override { return kkhit_.nDOF(); }
@@ -33,8 +34,8 @@ namespace KinKal {
       KKMAT kkmat_; // associated material
   };
 
-  template <class KTRAJ> KKMHit<KTRAJ>::KKMHit(THit const& thit, PKTRAJ const& reftraj) : kkhit_(thit,reftraj),
-    kkmat_(*thit.material(),kkhit_.poca(),thit.isActive()) {}
+  template <class KTRAJ> KKMHit<KTRAJ>::KKMHit(THIT& thit, PKTRAJ const& reftraj) : kkhit_(thit,reftraj),
+    kkmat_(*thit.detCrossing(), reftraj, kkhit_.poca(), thit.isActive()) {}
 
   template <class KTRAJ> bool KKMHit<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     // process in a fixed order to make material caching work
@@ -58,7 +59,7 @@ namespace KinKal {
     bool retval(true);
     KKEffBase::updateStatus();
     retval &= kkhit_.update(ref);
-    retval &= kkmat_.update(kkhit_.poca());
+    retval &= kkmat_.update(ref,kkhit_.poca());
     return retval;
   }
 }

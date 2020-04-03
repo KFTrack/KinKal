@@ -19,13 +19,13 @@ namespace KinKal {
       PKTraj(TRange const& range, double mass, int charge) : PTTraj<KTRAJ>(range), KInter(mass,charge) {}
       virtual ~PKTraj(){}
       // override append and prepend to check mass and charge consistency
-      virtual bool append(KTRAJ const& newpiece, bool allowremove=false) override {
+      virtual void append(KTRAJ const& newpiece, bool allowremove=false) override {
 	if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
-	return PTTraj<KTRAJ>::append(newpiece,allowremove);
+	PTTraj<KTRAJ>::append(newpiece,allowremove);
       }
-      virtual bool prepend(KTRAJ const& newpiece, bool allowremove=false) override {
+      virtual void prepend(KTRAJ const& newpiece, bool allowremove=false) override {
 	if(newpiece.mass() != mass() || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
-	return PTTraj<KTRAJ>::prepend(newpiece,allowremove);
+	PTTraj<KTRAJ>::prepend(newpiece,allowremove);
       }
       // base class overrides; these just rely on the PKTraj to find the appropriate piece
       virtual void dirVector(MDir mdir,double time,Vec3& unit) const override {
