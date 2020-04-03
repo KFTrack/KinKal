@@ -5,29 +5,14 @@
 // This is a base class for specific subclasses representing measurements, material interactions, etc.
 // Templated on the trajectory class representing the particle in this fit
 //
-#include "KinKal/TDir.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/KKData.hh"
+#include "KinKal/KKEffBase.hh"
 #include <array>
 #include <memory>
+#include <ostream>
 
 namespace KinKal {
-// base class for KKEff, for untemplated functions and content
-  class KKEffBase {
-    public:
-      enum Status{unprocessed=-1,processed,updated,failed};
-      // time of this effect 
-      virtual double time() const = 0;
-      virtual unsigned nDOF() const = 0;
-      virtual bool isActive() const = 0;
-      void updateStatus() { status_[0] = status_[1] = updated; }
-      Status status(TDir tdir) const { return status_[static_cast<std::underlying_type<TDir>::type>(tdir)]; }
-      KKEffBase() : status_{{unprocessed,unprocessed}} {}
-      virtual ~KKEffBase(){}
-    protected:
-      void setStatus(TDir tdir, Status status) { status_[static_cast<std::underlying_type<TDir>::type>(tdir)] = status; }
-      std::array<Status,2> status_; // status of processing in each direction
-  };
 
   template<class KTRAJ> class KKEff : public KKEffBase {
     public:
@@ -47,6 +32,13 @@ namespace KinKal {
     protected:
       KKEff() {}
   };
+  
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKEff<KTRAJ> const& eff) {
+    ost << (eff.isActive() ? "Active " : "Inactive ") << "time " << eff.time() << " status " <<
+    TDir::forwards << " " << KKEffBase::statusName(eff.status(TDir::forwards))  << " : " <<
+    TDir::backwards << " " << KKEffBase::statusName(eff.status(TDir::backwards));
+    return ost;
+  }
 
 }
 

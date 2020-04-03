@@ -355,40 +355,7 @@ int main(int argc, char **argv) {
   config.maxniter_ = maxniter;
   config.addmat_ = fitmat;
   KKTRK kktrk(seedhel,*BF,thits,dxings,config);
-  cout << "KKTrk History" << endl;
-  for(auto const& stat : kktrk.statusHistory()){
-    cout << stat << endl;
-  }
-  auto const& effs = kktrk.effects();
-  for(auto const& eff : effs) {
-    auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
-    auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
-    auto imat = dynamic_cast<const KKMat<LHelix>*>(eff.get());
-    auto iend = dynamic_cast<const KKEnd<LHelix>*>(eff.get());
-    string name("Eff");
-    if(ihit)
-      name = "Hit";
-    else if(imhit)
-      name = "MHit";
-    else if(imat)
-      name = "Mat";
-    else if(iend)
-      name = "End";
-
-
-    cout << (eff->isActive() ? " Active " : " Inactive ") << name << " time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
-    if(iend != 0) {
-      cout << " direction " << iend->tDir() << endl;
-    }else if(ihit != 0){
-      cout << " doca " << ihit->poca().doca() << " resid " << ihit->refResid() << endl;
-    } else if(imhit != 0){
-      cout <<  " doca " << imhit->hit().poca().doca() << "resid " << imhit->hit().refResid() 
-	<< " HMat forward status " << imhit->mat().status(TDir::forwards) 
-	<< " backwards status " << imhit->mat().status(TDir::backwards) <<  " effect " << imhit->mat().effect().parameters() << endl;
-    } else if(imat != 0){
-      cout << " effect " << imat->effect().parameters() << endl;
-    }
-  }
+  kktrk.print(cout);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   LHelixPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
@@ -543,7 +510,7 @@ int main(int argc, char **argv) {
       }
       // accumulate chisquared info
       auto const& fstat = kktrk.fitStatus();
-      chiprob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
+      chiprob_ = fstat.prob_; 
       niter->Fill(fstat.iter_);
       ndof->Fill(fstat.ndof_);
       chisq->Fill(fstat.chisq_);
@@ -572,34 +539,13 @@ int main(int argc, char **argv) {
       status_ = fstat.status_;
 
       // test
-      if(printbad && chisq_ > 100.0){
-	cout << "Poor chisq history try " << itry << endl;
-	for(auto const& stat : kktrk.statusHistory()){
-	  cout << stat << endl;
-	}
+      if(printbad && !kktrk.fitStatus().usable()){
+	cout << "Bad Fit try " << itry << endl;
 	cout << "True Traj " << tlhel << endl;
 	cout << "Seed Traj " << seedhel << endl;
-	cout << "Ref Traj " << kktrk.refTraj() << endl;
-	cout << "Fit Traj " << kktrk.fitTraj() << endl;
-	auto const& effs = kktrk.effects();
-	for(auto const& eff : effs) {
-	  cout << (eff->isActive() ? " Active " : " Inactive ") << " Eff at time " << eff->time() << " status " << eff->status(TDir::forwards)  << " " << eff->status(TDir::backwards);
-	  auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
-	  auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
-	  auto end = dynamic_cast<const KKEnd<LHelix>*>(eff.get());
-	  if(end != 0) {
-	    cout << " End direction " << end->tDir() << " time " << end->time() << endl;
-	  }else if(ihit != 0){
-	    cout << " Hit status " << ihit->poca().status() << " doca " << ihit->poca().doca() << ihit->refResid() << endl;
-	  } else if(imhit != 0){
-	    cout << " Hit status " << imhit->hit().poca().status() << " doca " << imhit->hit().poca().doca() << imhit->hit().refResid() << endl;
-	    cout << " Mat forward status " << imhit->mat().status(TDir::forwards) 
-	      << " backwards status " << imhit->mat().status(TDir::backwards) <<  " effect " << imhit->mat().effect().parameters() << endl;
-	  } else
-	    cout << endl;
-	}
+//	cout << "Ref Traj " << kktrk.refTraj() << endl;
+	kktrk.print(cout);
       }
-
       if(ttree)ftree->Fill();
     }
     // fill canvases

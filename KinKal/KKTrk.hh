@@ -17,13 +17,14 @@
 #include "KinKal/THit.hh"
 #include "KinKal/FitStatus.hh"
 #include "KinKal/BField.hh"
-//#include "KinKal/DetElem.hh"
+#include "TMath.h"
 #include <set>
 #include <vector>
 #include <memory>
 #include <cmath>
 #include <limits>
 #include <stdexcept>
+#include <ostream>
 
 namespace KinKal {
   // struct to define iteration configuration
@@ -59,15 +60,18 @@ namespace KinKal {
 	}
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
-      // construct from a set of hits (and materials FIXME!)
+      // construct from a set of hits and passive material crossings
       KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITS& thits, DXINGS& dxings, Config const& config ); 
       void fit(); // process the effects.  This creates the fit
       void reset() { history_.push_back(FitStatus()); } // reset to allow renewed fitting
+      // accessors
       std::vector<FitStatus> const& statusHistory() const { return history_; }
       FitStatus const& fitStatus() const { return history_.back(); } // most recent status
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKCON const& effects() const { return effects_; }
+      void print(std::ostream& ost=std::cout,bool detail=false) const;
+
     private:
       // helper functions
       bool update();
@@ -203,6 +207,7 @@ namespace KinKal {
     } else if(oscillating(fstat)){
       fstat.status_ = FitStatus::oscillating;
     }
+    fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
     return fitOK;
   }
 
@@ -262,6 +267,36 @@ namespace KinKal {
     //
     //    // integrate 
     //  }
+  }
+
+  template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, bool detail) const {
+    using std::endl;
+    if(detail) {
+      ost <<  "Fit History:" << endl;
+      for(auto const& stat : statusHistory()) ost << stat << endl;
+      ost << "Fit Result:" << endl;
+      ost << fitTraj() << endl;
+      ost << "Effects:" << endl;
+      for(auto const& eff : effects()) {
+	auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
+	auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
+	auto imat = dynamic_cast<const KKMat<LHelix>*>(eff.get());
+	auto iend = dynamic_cast<const KKEnd<LHelix>*>(eff.get());
+	std::string name("Eff");
+	if(ihit)
+	  ost << *ihit << endl;
+	else if(imhit)
+	  ost << *imhit << endl;
+	else if(imat)
+	  ost << *imat << endl;
+	else if(iend)
+	  ost << *iend << endl;
+      }
+    } else {
+      ost <<  "Fit Status:" << fitStatus() << endl;
+      ost << "Forwards Fit " << fitTraj().front() << " momentum " << fitTraj().momentum(fitTraj().range().low()) << " +- " << sqrt(fitTraj().momentumVar(fitTraj().range().low())) << endl;
+      ost << "Backwards Fit " << fitTraj().back() << " momentum " << fitTraj().momentum(fitTraj().range().high()) << " +- " << sqrt(fitTraj().momentumVar(fitTraj().range().high())) << endl;
+    }
   }
 }
 #endif

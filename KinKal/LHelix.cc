@@ -74,6 +74,12 @@ namespace KinKal {
       // reduced mass; note sign convention!
       mbar_ = -mass_*momToRad;
     }
+  
+  double LHelix::momentumVar(double time) const {
+    PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
+    dMomdP *= mass()/(pbar()*mbar());
+    return ROOT::Math::Similarity(dMomdP,params().covariance());
+  }
 
   void LHelix::position(Vec4& pos) const {
     Vec3 temp;

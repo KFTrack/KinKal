@@ -50,6 +50,7 @@ namespace KinKal {
       void direction(double tval,Vec3& dir) const override;
       // scalar momentum and energy in MeV/c units
       double momentum(double time) const override { return mass_ * pbar() / mbar_; }
+      double momentumVar(double time) const override { return -1.0; }//FIXME! 
       double energy(double time) const override { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
       double speed(double time) const override { return CLHEP::c_light * beta(); }

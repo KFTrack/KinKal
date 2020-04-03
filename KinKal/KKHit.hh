@@ -9,6 +9,7 @@
 #include "KinKal/THit.hh"
 #include "KinKal/TPocaBase.hh"
 #include "KinKal/Residual.hh"
+#include <ostream>
 
 namespace KinKal {
   class TTraj;
@@ -62,6 +63,7 @@ namespace KinKal {
     dRdPM.Place_in_col(drdp,0,0);
     // convert the variance into a 1X1 matrix
     ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > RVarM;
+    // add annealing temperature to weight FIXME!
     RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
     KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
@@ -83,6 +85,12 @@ namespace KinKal {
     // chisquared is the residual squared divided by the variance
     double chisq = newres*newres/rvar;
     return chisq;
+  }
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKHit<KTRAJ> const& kkhit) {
+    ost << "KKHit " << static_cast<KKEff<KTRAJ> const&>(kkhit) << 
+      " doca " << kkhit.poca().doca() << " resid " << kkhit.refResid();
+    return ost;
   }
 
 }

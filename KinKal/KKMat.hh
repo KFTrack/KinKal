@@ -11,6 +11,8 @@
 #include <iostream>
 #include <stdexcept>
 #include <array>
+#include <ostream>
+
 namespace KinKal {
   template<class KTRAJ> class KKMat : public KKEff<KTRAJ> {
     public:
@@ -138,5 +140,11 @@ namespace KinKal {
     }
     return true;
   }
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKMat<KTRAJ> const& kkmat) {
+    ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(kkmat) << " effect " << kkmat.effect().parameters();
+    return ost;
+  }
+
 }
 #endif
