@@ -1,6 +1,5 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/LHelix.hh"
-#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/PKTraj.hh"
 // specializations for TPoca

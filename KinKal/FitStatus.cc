@@ -24,7 +24,8 @@ namespace KinKal {
     os << "Fit Status " << FitStatus::statusName(fitstatus.status_)
       << " iteration " << fitstatus.iter_
       << " chisq " << fitstatus.chisq_ 
-      << " NDOF " << fitstatus.ndof_;
+      << " NDOF " << fitstatus.ndof_
+      << " prob " << fitstatus.prob_;
     return os;
   }
 }

@@ -72,7 +72,7 @@ namespace KinKal {
 	resid = Residual(-tpoca_.doca(),nullvar_,1.0,0.0);
       }
     } else
-      std::runtime_error("POCA failure");
+      throw std::runtime_error("POCA failure");
   }
 
 }

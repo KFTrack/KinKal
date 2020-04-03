@@ -13,7 +13,9 @@ namespace KinKal {
     status status_; // current status
     float chisq_; // current chisquared
     int ndof_; // current number of degrees of freedom
-    FitStatus() : iter_(-1), status_(needsfit), chisq_(std::numeric_limits<float>::max()), ndof_(0) {}
+    float prob_; // chisquared probability
+    bool usable() const { return status_ == converged || status_ == unconverged; }
+    FitStatus() : iter_(-1), status_(needsfit), chisq_(std::numeric_limits<float>::max()), ndof_(0), prob_(-1.0){}
     static std::string statusName(status stat);
   };
   std::ostream& operator <<(std::ostream& os, FitStatus fitstatus );

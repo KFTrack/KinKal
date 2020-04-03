@@ -35,6 +35,7 @@ namespace KinKal {
 	PTTraj<KTRAJ>::nearestPiece(time).momentum(time,mom);
       }
       double momentum(double time) const override { return PTTraj<KTRAJ>::nearestPiece(time).momentum(time); }
+      double momentumVar(double time) const override { return PTTraj<KTRAJ>::nearestPiece(time).momentumVar(time); }
       double energy(double time) const override { return PTTraj<KTRAJ>::nearestPiece(time).energy(time); }
       void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override {
 	PTTraj<KTRAJ>::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }

@@ -6,6 +6,7 @@
 #include "KinKal/KKWEff.hh"
 #include <stdexcept>
 #include <limits>
+#include <ostream>
 
 namespace KinKal {
   template<class KTRAJ> class KKEnd : public KKWEff<KTRAJ> {
@@ -49,9 +50,11 @@ namespace KinKal {
     if(tdir == tdir_) 
     // start the fit with the de-weighted info from the previous iteration or seed
       retval = KKWEFF::process(kkdata,tdir);
-    else
+    else {
     // at the opposite end, cache the final parameters
       end_.params() = kkdata.pData();
+      KKEffBase::setStatus(tdir,KKEffBase::processed);
+    }
     return retval;
   }
 
@@ -78,6 +81,12 @@ namespace KinKal {
     }
     return true;
   }
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKEnd<KTRAJ> const& kkend) {
+    ost << "KKEnd " << static_cast<KKEff<KTRAJ>const&>(kkend) << " direction " << kkend.tDir();
+    return ost;
+  }
+
 
 }
 #endif

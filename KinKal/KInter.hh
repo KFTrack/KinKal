@@ -34,6 +34,7 @@ namespace KinKal {
       virtual void momentum(double t,Mom4& mom) const =0; // momentum in MeV/c, mass in MeV/c^2 as a function of time
       void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
       virtual double momentum(double time) const =0; // momentum and energy magnitude in MeV/
+      virtual double momentumVar(double time) const =0; // variance on momentum value
       virtual double energy(double time) const =0; 
       // reduce the end of the given range so that the trajectory position stays within the given spatial tolerance (mm), given the BField
       virtual void rangeInTolerance(TRange& range, BField const& bfield, double tol) const = 0;

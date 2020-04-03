@@ -52,6 +52,7 @@ namespace KinKal {
       void momentum(double t,Mom4& mom) const override;
       // scalar momentum and energy in MeV/c units
       double momentum(double time) const override { return  mass_*pbar()/mbar_; }
+      double momentumVar(double time) const override;
       double energy(double time) const override { return  mass_*ebar()/mbar_; }
       // speed in mm/ns
       double speed(double time) const override {  return CLHEP::c_light*beta(); }

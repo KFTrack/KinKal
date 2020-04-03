@@ -7,6 +7,8 @@
 #include "KinKal/KKMat.hh"
 #include "KinKal/KKEff.hh"
 #include <stdexcept>
+#include <ostream>
+
 namespace KinKal {
   template <class KTRAJ> class KKMHit : public KKEff<KTRAJ> {
     public:
@@ -61,6 +63,13 @@ namespace KinKal {
     retval &= kkhit_.update(ref);
     retval &= kkmat_.update(ref,kkhit_.poca());
     return retval;
+  }
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKMHit<KTRAJ> const& kkmhit) {
+    ost << "KKMHit " << static_cast<KKEff<KTRAJ> const&>(kkmhit) << std::endl
+      << "  " << kkmhit.hit() << std::endl
+      << "  " << kkmhit.mat();
+    return ost;
   }
 }
 #endif
