@@ -82,14 +82,14 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref) {
-    dxing_.findXings(ref);
+    dxing_.update(ref);
     ref_ = ref.nearestPiece(dxing_.crossingTime()); 
     updateCache();
     return true;
   }
 
   template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref, TPocaBase const& tdpoca)  {
-    dxing_.findXings(tdpoca);
+    dxing_.update(tdpoca);
     ref_ = ref.nearestPiece(dxing_.crossingTime()); 
     updateCache();
     return true;

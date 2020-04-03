@@ -21,8 +21,9 @@ namespace KinKal {
       DXing(PKTRAJ const& ktraj,double time=-std::numeric_limits<float>::max()) : xtime_(time) {}
       // construct from POCA
       DXing(TPocaBase const& tpoca) : xtime_(tpoca.particleToca()) {}
-      virtual void findXings(PKTRAJ const& pktraj) =0;
-      virtual void findXings(TPocaBase const& tpoca) =0;
+      virtual ~DXing() {}
+      virtual void update(PKTRAJ const& pktraj) =0;
+      virtual void update(TPocaBase const& tpoca) =0;
       // accessors
       double crossingTime() const { return xtime_; }
       std::vector<MatXing>const&  matXings() const { return mxings_; }

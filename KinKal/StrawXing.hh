@@ -17,30 +17,31 @@ namespace KinKal {
 
       // construct from a trajectory and a time:
       StrawXing(PKTRAJ const& pktraj,double xtime, StrawMat const& smat, TLine const& axis) : DXING(pktraj,xtime), smat_(smat), axis_(axis) {
-	findXings(pktraj); } 
+	update(pktraj); } 
       // construct from TPOCA (for use with hits)
       StrawXing(TPOCA const& tpoca, StrawMat const& smat) : DXING(tpoca) , smat_(smat), axis_(tpoca.sensorTraj()) {
-	findXings(tpoca); }
+	update(tpoca); }
+      virtual ~StrawXing() {}
       // DXing interface
-      virtual void findXings(PKTRAJ const& pktraj) override;
-      virtual void findXings(TPocaBase const& tpoca) override;
+      virtual void update(PKTRAJ const& pktraj) override;
+      virtual void update(TPocaBase const& tpoca) override;
       // accessors
       StrawMat const& strawMat() const { return smat_; }
+
     private:
       StrawMat const& smat_;
       TLine axis_; // straw axis, expressed as a timeline
   };
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::findXings(TPocaBase const& tpoca) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(TPocaBase const& tpoca) {
     DXING::mxings_.clear();
     smat_.findXings(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),DXING::mxings_);
+    DXING::xtime_ = tpoca.particleToca();
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::findXings(PKTRAJ const& pktraj) {
-    DXING::mxings_.clear();
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj) {
     TPOCA tpoca(pktraj,axis_);
-    findXings(tpoca);
-    DXING::xtime_ = tpoca.particleToca();
+    update(tpoca);
   }
 }
 #endif

@@ -69,7 +69,11 @@ namespace KinKal {
 
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
-    TTraj(range), KInter(mass,charge), pars_(pdata), bnom_(bnom) {}
+    TTraj(range), KInter(mass,charge), pars_(pdata), bnom_(bnom) {
+      double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
+      // reduced mass; note sign convention!
+      mbar_ = -mass_*momToRad;
+    }
 
   void LHelix::position(Vec4& pos) const {
     Vec3 temp;
