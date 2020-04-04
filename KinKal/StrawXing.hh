@@ -25,6 +25,7 @@ namespace KinKal {
       // DXing interface
       virtual void update(PKTRAJ const& pktraj) override;
       virtual void update(TPocaBase const& tpoca) override;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
       StrawMat const& strawMat() const { return smat_; }
 
@@ -35,7 +36,7 @@ namespace KinKal {
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(TPocaBase const& tpoca) {
     DXING::mxings_.clear();
-    smat_.findXings(tpoca.doca(),tpoca.dDoca(),tpoca.dirDot(),DXING::mxings_);
+    smat_.findXings(tpoca.doca(),sqrt(tpoca.docaVar()),tpoca.dirDot(),DXING::mxings_);
     DXING::xtime_ = tpoca.particleToca();
   }
 
@@ -43,5 +44,19 @@ namespace KinKal {
     TPOCA tpoca(pktraj,axis_);
     update(tpoca);
   }
+
+  template <class KTRAJ> void StrawXing<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost <<"Straw Xing time " << this->crossingTime() << std::endl;
+    if(detail > 0){
+      for(auto const& mxing : this->matXings()){
+	ost << mxing.dmat_.name() << " pathLen" << mxing.plen_ << std::endl;
+      }
+    }
+    if(detail > 1){
+      ost << "Axis ";
+      axis_.print(ost,0);
+    }
+  }
+
 }
 #endif

@@ -28,6 +28,7 @@ namespace KinKal {
       virtual bool update(PKTRAJ const& ref) = 0;
       // append this effects trajectory change (if appropriate)
       virtual bool append(PKTRAJ& fit) = 0;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       virtual ~KKEff(){} 
     protected:
       KKEff() {}

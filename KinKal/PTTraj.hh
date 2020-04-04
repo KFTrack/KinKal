@@ -44,18 +44,11 @@ namespace KinKal {
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
       void gaps(double& largest, size_t& ilargest, double& average) const;
+      virtual void print(std::ostream& ost, int detail) const override;
     private:
       PTTraj() = delete; // no default/null constructor
       DTTRAJ pieces_; // constituent pieces
   };
-
-  template <class TTRAJ> std::ostream& operator <<(std::ostream& os, PTTraj<TTRAJ> const& pttraj) {
-    os << "Piecewise trajectory with " << pttraj.pieces().size() << " pieces of " << typeid(TTRAJ).name() << pttraj.range() << std::endl;
-    for(auto const& piece : pttraj.pieces()) os << piece << std::endl;
-//    << "Front " << pttraj.front() << std::endl
-//    << "Back " << pttraj.back();
-    return os;
-  }
 
   // implementation: just return the values from the piece
   template <class TTRAJ> void PTTraj<TTRAJ>::position(Vec4& pos) const {
@@ -211,6 +204,31 @@ namespace KinKal {
     if(pieces_.size() > 1)
       average /= (pieces_.size()-1);
   }
+
+  template <class TTRAJ> void PTTraj<TTRAJ>::print(std::ostream& ost, int detail) const {
+    double maxgap, avggap;
+    size_t igap;
+    gaps(maxgap,igap,avggap);
+    ost << "PTTraj with " << range()  << " pieces " << pieces().size() << " gaps max "<< maxgap << " avg " << avggap << std::endl;
+    if(detail ==1){
+      ost << "Front ";
+      front().print(ost,detail);
+      ost << "Back ";
+      back().print(ost,detail);
+    } else if (detail >1){
+      unsigned ipiece(0);
+      for (auto const& piece : pieces_) {
+	ost << "Piece " << ipiece++ << " ";
+	piece.print(ost,detail);
+      }
+    }
+  }
+  
+  template <class TTRAJ> std::ostream& operator <<(std::ostream& ost, PTTraj<TTRAJ> const& pttraj) {
+    pttraj.print(ost,0);
+    return ost;
+  }
+
 }
 
 #endif

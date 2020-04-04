@@ -70,7 +70,7 @@ namespace KinKal {
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKCON const& effects() const { return effects_; }
-      void print(std::ostream& ost=std::cout,bool detail=false) const;
+      void print(std::ostream& ost=std::cout,int detail=0) const;
 
     private:
       // helper functions
@@ -146,12 +146,11 @@ namespace KinKal {
   // single fit iteration 
   template <class KTRAJ> bool KKTrk<KTRAJ>::fitIteration(FitStatus& fstat) {
     bool fitOK(true);
-    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
-    KKData<KTRAJ::NParams()> fitdata;
     // fit forwards then backwards
-    TDir tdir = TDir::forwards;
     auto ieff = effects_.begin();
+    KKData<KTRAJ::NParams()> fitdata;
     while(ieff != effects_.end()){
+    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
       // update chisq, NDOF only forwards to save time
       if(ieff->get()->nDOF() > 0){
 	fstat.ndof_ += ieff->get()->nDOF();
@@ -162,17 +161,17 @@ namespace KinKal {
 	  break;
 	}
       }
-      if(!ieff->get()->process(fitdata,tdir)){
+      if(!ieff->get()->process(fitdata,TDir::forwards)){
 	fitOK = false;
 	break;
       }
       ieff++;
     }
     if(fitOK){
-      tdir = TDir::backwards;
+      fitdata = KKData<KTRAJ::NParams()>();
       auto ieff = effects_.rbegin();
       while(ieff != effects_.rend()){
-	if(!ieff->get()->process(fitdata,tdir)){
+	if(!ieff->get()->process(fitdata,TDir::backwards)){
 	  fitOK = false;
 	  break;
 	}
@@ -269,33 +268,20 @@ namespace KinKal {
     //  }
   }
 
-  template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, bool detail) const {
+  template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, int detail) const {
     using std::endl;
-    if(detail) {
+    ost <<  "Fit Status:" << fitStatus() << endl;
+    ost << "Fit Result";
+    fitTraj().print(ost,detail);
+    if(detail > 0){
       ost <<  "Fit History:" << endl;
       for(auto const& stat : statusHistory()) ost << stat << endl;
-      ost << "Fit Result:" << endl;
-      ost << fitTraj() << endl;
+    }
+    if(detail > 1) {
+      ost << "Reference ";
+      refTraj().print(ost,detail);
       ost << "Effects:" << endl;
-      for(auto const& eff : effects()) {
-	auto ihit = dynamic_cast<const KKHit<LHelix>*>(eff.get());
-	auto imhit = dynamic_cast<const KKMHit<LHelix>*>(eff.get());
-	auto imat = dynamic_cast<const KKMat<LHelix>*>(eff.get());
-	auto iend = dynamic_cast<const KKEnd<LHelix>*>(eff.get());
-	std::string name("Eff");
-	if(ihit)
-	  ost << *ihit << endl;
-	else if(imhit)
-	  ost << *imhit << endl;
-	else if(imat)
-	  ost << *imat << endl;
-	else if(iend)
-	  ost << *iend << endl;
-      }
-    } else {
-      ost <<  "Fit Status:" << fitStatus() << endl;
-      ost << "Forwards Fit " << fitTraj().front() << " momentum " << fitTraj().momentum(fitTraj().range().low()) << " +- " << sqrt(fitTraj().momentumVar(fitTraj().range().low())) << endl;
-      ost << "Backwards Fit " << fitTraj().back() << " momentum " << fitTraj().momentum(fitTraj().range().high()) << " +- " << sqrt(fitTraj().momentumVar(fitTraj().range().high())) << endl;
+      for(auto const& eff : effects()) eff.get()->print(ost,detail);
     }
   }
 }

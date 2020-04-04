@@ -226,14 +226,18 @@ namespace KinKal {
     if(dt < brange.range())brange.high() = brange.low() + dt;
   }
  
-
-  std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
-    ost << " LHelix parameters: ";
+  void LHelix::print(std::ostream& ost, int detail) const {
+    auto perr = params().diagonal(); 
+    ost << " LHelix " << range() << " parameters: ";
     for(size_t ipar=0;ipar < LHelix::npars_;ipar++){
-      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << lhel.param(ipar);
+      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << param(ipar) << " +- " << perr(ipar);
       if(ipar < LHelix::npars_-1) ost << " ";
     }
-    ost << lhel.range();
+    ost << std::endl;
+  }
+
+  std::ostream& operator <<(std::ostream& ost, LHelix const& lhel) {
+    lhel.print(ost,0);
     return ost;
   }
 

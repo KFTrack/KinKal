@@ -7,6 +7,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include <vector>
+#include <ostream>
 namespace KinKal {
   class BField;
   class TTraj {
@@ -17,6 +18,7 @@ namespace KinKal {
       virtual void velocity(double time, Vec3& vel) const =0; // velocity vector
       virtual double speed(double time) const =0;
       virtual void direction(double time, Vec3& dir) const =0; // unit vector in the direction of positive time
+      virtual void print(std::ostream& ost, int detail) const =0;
       // sample a range.
       void position(std::vector<double>const& times, std::vector<Vec3> positions) const {
 	positions.clear();

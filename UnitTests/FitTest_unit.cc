@@ -76,7 +76,7 @@ typedef DXing<LHelix> DXING;
 typedef StrawXing<LHelix> STRAWXING;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i\n");
 }
 
 struct LHelixPars{
@@ -147,7 +147,8 @@ double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& sh
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
     // construct the hit from this trajectory
     STRAWXING sxing(tp,smat);
-    if(TR->Uniform(0.0,1.0) > ineff){
+//    if(TR->Uniform(0.0,1.0) > ineff){
+    if(true){ // test
       STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
       shits.push_back(sh);
     } else {
@@ -221,6 +222,7 @@ int main(int argc, char **argv) {
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
+  int detail;
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -245,6 +247,7 @@ int main(int argc, char **argv) {
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
+    {"PrintDetail",     required_argument, 0, 'D'  },
   };
 
   int long_index =0;
@@ -291,7 +294,9 @@ int main(int argc, char **argv) {
 		 break;
       case 'g' : Bgrad = atof(optarg);
 		 break;
-      case 'P' : printbad = atof(optarg);
+      case 'P' : printbad = atoi(optarg);
+		 break;
+      case 'D' : detail = atoi(optarg);
 		 break;
       case 'T' : tfname = optarg;
 		 break;
@@ -355,7 +360,7 @@ int main(int argc, char **argv) {
   config.maxniter_ = maxniter;
   config.addmat_ = fitmat;
   KKTRK kktrk(seedhel,*BF,thits,dxings,config);
-  kktrk.print(cout);
+  kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   LHelixPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
@@ -428,7 +433,8 @@ int main(int argc, char **argv) {
       ftree->Branch("tde", &tde_,"tde/F");
     }
     // now repeat this to gain statistics
-    vector<TH1F*> dpgenh(LHelix::NParams());
+    vector<TH1F*> fdpgenh(LHelix::NParams());
+    vector<TH1F*> bdpgenh(LHelix::NParams());
     vector<TH1F*> fdpullgenh(LHelix::NParams());
     vector<TH1F*> bdpullgenh(LHelix::NParams());
     vector<TH1F*> fiterrh(LHelix::NParams());
@@ -446,9 +452,12 @@ int main(int argc, char **argv) {
     double pscale = nsig/sqrt(nhits);
     for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
       auto tpar = static_cast<LHelix::ParamIndex>(ipar);
-      hname = string("d") + LHelix::paramName(tpar);
-      htitle = string("#Delta ") + LHelix::paramTitle(tpar);
-      dpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      hname = string("fd") + LHelix::paramName(tpar);
+      htitle = string("Front #Delta ") + LHelix::paramTitle(tpar);
+      fdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      hname = string("bd") + LHelix::paramName(tpar);
+      htitle = string("Back #Delta ") + LHelix::paramTitle(tpar);
+      bdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("fp") + LHelix::paramName(tpar);
       htitle = string("Front Pull ") + LHelix::paramTitle(tpar);
       fdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
@@ -493,7 +502,8 @@ int main(int argc, char **argv) {
       for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
 	cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
 	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
-	dpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
+	fdpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
+	bdpgenh[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
 	fdpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
 	bdpullgenh[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
 	fiterrh[ipar]->Fill(cerr[ipar]);
@@ -543,19 +553,25 @@ int main(int argc, char **argv) {
 	cout << "Bad Fit try " << itry << endl;
 	cout << "True Traj " << tlhel << endl;
 	cout << "Seed Traj " << seedhel << endl;
-//	cout << "Ref Traj " << kktrk.refTraj() << endl;
-	kktrk.print(cout);
+	kktrk.print(cout,detail);
       }
       if(ttree)ftree->Fill();
     }
     // fill canvases
-    TCanvas* dpcan = new TCanvas("dpcan","dpcan",800,600);
-    dpcan->Divide(3,2);
+    TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
+    fdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
-      dpcan->cd(ipar+1);
-      dpgenh[ipar]->Fit("gaus");
+      fdpcan->cd(ipar+1);
+      fdpgenh[ipar]->Fit("gaus");
     }
-    dpcan->Write();
+    fdpcan->Write();
+    TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
+    bdpcan->Divide(3,2);
+    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+      bdpcan->cd(ipar+1);
+      bdpgenh[ipar]->Fit("gaus");
+    }
+    bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<LHelix::NParams();++ipar){

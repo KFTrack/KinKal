@@ -57,6 +57,7 @@ namespace KinKal {
       void rangeInTolerance(TRange &range, BField const &bfield, double tol) const override;
       // local momentum direction basis
       virtual void dirVector(MDir dir, double time, Vec3 &unit) const override;
+      virtual void print(std::ostream& ost, int detail) const override {} // FIXME!
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       void momDeriv(MDir mdir, double time, PDER &der) const;

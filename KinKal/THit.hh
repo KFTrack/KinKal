@@ -10,6 +10,8 @@
 #include "KinKal/Residual.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/PKTraj.hh"
+#include <ostream>
+
 namespace KinKal {
   template <class KTRAJ> class THit {
     public:
@@ -35,7 +37,8 @@ namespace KinKal {
       BField const& bfield() const { return bfield_; }
       bool isActive() const { return active_; }
       // associated material information
-      virtual DXING* detCrossing() = 0; 
+      virtual DXING* detCrossing() = 0;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
     private:
       THit() = delete;
       BField const& bfield_; // BField for ExB effects

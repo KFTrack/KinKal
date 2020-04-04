@@ -16,6 +16,7 @@ namespace KinKal {
   template <class KTRAJ> class KKHit : public KKWEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
+      typedef KKWEff<KTRAJ> KKWEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef THit<KTRAJ> THIT;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
@@ -26,6 +27,7 @@ namespace KinKal {
       virtual bool isActive() const override { return thit_.isActive(); }
       virtual double time() const override { return thit_.poca().particleToca(); } // time on the particle trajectory
       virtual double chisq(PDATA const& pars) const override;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~KKHit(){}
       // construct from a hit and reference trajectory
       KKHit(THIT& thit, PKTRAJ const& reftraj);
@@ -66,13 +68,13 @@ namespace KinKal {
     // add annealing temperature to weight FIXME!
     RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
-    KKWEff<KTRAJ>::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
-    KKWEff<KTRAJ>::wdata_.setStatus(PDATA::valid);
+    KKWEFF::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
+    KKWEFF::wdata_.setStatus(PDATA::valid);
     // reference weight vector from reference parameters
-    KKWEff<KTRAJ>::wdata_.weightVec() = KKWEff<KTRAJ>::wData().weightMat()*ref_;
+    KKWEFF::wdata_.weightVec() = KKWEFF::wData().weightMat()*ref_;
     // translate residual value into weight vector WRT the reference parameters
     // and add change WRT reference; sign convention reflects resid = measurement - prediction
-    KKWEff<KTRAJ>::wdata_.weightVec() += drdp*rresid_.resid()/rresid_.residVar();
+    KKWEFF::wdata_.weightVec() += drdp*rresid_.resid()/rresid_.residVar();
   }
 
   template<class KTRAJ> double KKHit<KTRAJ>::chisq(PDATA const& pdata) const {
@@ -87,9 +89,18 @@ namespace KinKal {
     return chisq;
   }
 
+  template <class KTRAJ> void KKHit<KTRAJ>::print(std::ostream& ost, int detail) const {
+    ost << "KKHit " << static_cast<KKEff<KTRAJ> const&>(*this) << 
+      " doca " << poca().doca() << " resid " << refResid() << std::endl;
+    if(detail > 0){
+      tHit().print(ost,detail);    
+      ost << "Reference " << ref_ << std::endl;
+
+    }
+  }
+
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKHit<KTRAJ> const& kkhit) {
-    ost << "KKHit " << static_cast<KKEff<KTRAJ> const&>(kkhit) << 
-      " doca " << kkhit.poca().doca() << " resid " << kkhit.refResid();
+    kkhit.print(ost,0);
     return ost;
   }
 

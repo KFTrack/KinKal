@@ -19,7 +19,8 @@ namespace KinKal {
       TPStat status() const { return status_; }
       std::string const& statusName() const { return statusName(status_); }
       double doca() const { return doca_; } // DOCA signed by angular momentum
-      double dDoca() const { return ddoca_; } // uncertainty on doca due to particle trajectory parameter uncertainties (NOT sensory uncertainties)
+      double docaVar() const { return docavar_; } // uncertainty on doca due to particle trajectory parameter uncertainties (NOT sensory uncertainties)
+      double tocaVar() const { return tocavar_; } // uncertainty on toca due to particle trajectory parameter uncertainties (NOT sensory uncertainties)
       double dirDot() const { return ddot_; } // cosine of angle between traj directions at POCA
       double precision() const { return precision_; }
       // utility functions
@@ -29,13 +30,12 @@ namespace KinKal {
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
     protected:
       TPStat status_; // status of computation
-      double doca_;
-      double ddoca_;
+      double doca_, docavar_, tocavar_;
       double ddot_;
       double precision_; // precision used to define convergence
       Vec4 partPoca_, sensPoca_; //POCA for particle and sensor
       // default precision = 10 um on DOCA
-      TPocaBase(double precision=0.01) : status_(invalid), doca_(-1.0), ddoca_(-1.0), ddot_(-1.0), precision_(precision)  {}
+      TPocaBase(double precision=0.01) : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0), ddot_(-1.0), precision_(precision)  {}
       void reset() {status_ = unknown;}
     private:
       static std::vector<std::string> statusNames_;

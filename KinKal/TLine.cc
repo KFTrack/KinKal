@@ -77,13 +77,17 @@ namespace KinKal {
     return s/speed_ - t0();
   }
 
-  std::ostream& operator <<(std::ostream& ost, TLine const& tline) {
-    ost << " TLine parameters: ";
+  void TLine::print(std::ostream& ost, int detail) const {
+    ost << " TLine " <<  range() << " parameters: ";
     for(size_t ipar=0;ipar < TLine::npars_;ipar++){
-      ost << TLine::paramName(static_cast<TLine::ParamIndex>(ipar) ) << " : " << tline.param(ipar);
+      ost << TLine::paramName(static_cast<TLine::ParamIndex>(ipar) ) << " : " << param(ipar);
       if(ipar < TLine::npars_-1) ost << " , ";
     }
-    ost <<  tline.range();
+    ost << endl;
+  }
+
+  std::ostream& operator <<(std::ostream& ost, TLine const& tline) {
+    tline.print(ost,0);
     return ost;
   }
 

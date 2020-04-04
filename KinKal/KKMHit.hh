@@ -28,6 +28,7 @@ namespace KinKal {
       virtual double chisq(PDATA const& pars) const override { return kkhit_.chisq(pars); }
       virtual bool update(PKTRAJ const& ref) override;
       virtual bool append(PKTRAJ& fit) override { return kkmat_.append(fit); }
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
       KKHIT const& hit() const { return kkhit_; }
       KKMAT const& mat() const { return kkmat_; }
@@ -65,10 +66,14 @@ namespace KinKal {
     return retval;
   }
 
+  template <class KTRAJ> void KKMHit<KTRAJ>::print(std::ostream& ost, int detail) const {
+    ost << "KKMHit " << static_cast<KKEff<KTRAJ> const&>(*this) << std::endl;
+    hit().print(ost,detail);
+    mat().print(ost,detail);
+  }
+  
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKMHit<KTRAJ> const& kkmhit) {
-    ost << "KKMHit " << static_cast<KKEff<KTRAJ> const&>(kkmhit) << std::endl
-      << "  " << kkmhit.hit() << std::endl
-      << "  " << kkmhit.mat();
+    kkmhit.print(ost,0);
     return ost;
   }
 }

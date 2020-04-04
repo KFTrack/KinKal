@@ -109,8 +109,9 @@ namespace KinKal {
 
       // no spatial dependence, DT is purely temporal
       dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
-      // propagate T0 errors to the error on doca
-      ddoca_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
+      // propagate parameter covariance to variance on doca and toca
+      docavar_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
+      tocavar_ = ROOT::Math::Similarity(dTdP(),lhelix.params().covariance());
       // dot product between directions at POCA
       Vec3 pdir, sdir;
       lhelix.direction(particleToca(),pdir);
@@ -141,7 +142,8 @@ namespace KinKal {
 	doca_ = tpoca.doca();
 	dDdP_ = tpoca.dDdP();
 	dTdP_ = tpoca.dTdP();
-	ddoca_ = tpoca.dDoca();
+	docavar_ = tpoca.docaVar();
+	tocavar_ = tpoca.tocaVar();
 	ddot_ = tpoca.dirDot();
       }
       oldindex = index;

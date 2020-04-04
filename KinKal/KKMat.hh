@@ -28,6 +28,7 @@ namespace KinKal {
       virtual unsigned nDOF() const override { return 0; } 
       virtual double chisq(PDATA const& pars) const override { return 0.0; }
       virtual bool update(PKTRAJ const& ref) override;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       bool process(KKDATA& kkdata,TDir tdir) override;
       bool append(PKTRAJ& fit) override;
       // update for materials associated with a hit
@@ -39,6 +40,7 @@ namespace KinKal {
       KKMat(DXING& dxing, PKTRAJ const& pktraj, TPocaBase const& tdpoca, bool active = true);
       // create from just the material and a trajectory 
       KKMat(DXING& dxing, PKTRAJ const& pktraj, bool active = true); 
+      DXING const& detXing() const { return dxing_; }
     private:
       // update the local cache
       void updateCache();
@@ -141,8 +143,19 @@ namespace KinKal {
     return true;
   }
 
+  template<class KTRAJ> void KKMat<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(*this) << " effect ";
+    effect().print(ost,detail);
+    dxing_.print(ost,detail);
+    if(detail >0){
+      ost << " cache ";
+      cache().print(ost,detail);
+      ost << "Reference " << ref_ << std::endl;
+    }
+  }
+
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKMat<KTRAJ> const& kkmat) {
-    ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(kkmat) << " effect " << kkmat.effect().parameters();
+    kkmat.print(ost,0);
     return ost;
   }
 

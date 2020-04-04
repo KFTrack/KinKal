@@ -9,6 +9,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
+#include "KinKal/KKMHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -251,14 +252,14 @@ int main(int argc, char **argv) {
     tpl.push_back(line);
     // compute material effects
 //    double adot = tp.dirDot();
-    double adot =0.0; // transverse
+//    double adot =0.0; // transverse
+    double adot = tp.dirDot();
     double gpath = smat.gasPath(tp.doca(),ddoca,adot);
     double wpath = smat.wallPath(tp.doca(),ddoca,adot);
     ggplen->SetPoint(ihit,fabs(tp.doca()),gpath );
     gwplen->SetPoint(ihit,fabs(tp.doca()),wpath);
     cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),ddoca,adot)
     << " wall path " << smat.wallPath(tp.doca(),ddoca,adot) << endl;
-
     // compute material effects
     double geloss = gasmat->energyLoss(mom,gpath,pmass);
     double weloss = wallmat->energyLoss(mom,wpath,pmass);
@@ -268,6 +269,14 @@ int main(int argc, char **argv) {
     gweloss->SetPoint(ihit,fabs(tp.doca()),weloss);
     ggscat->SetPoint(ihit,fabs(tp.doca()),gscat);
     gwscat->SetPoint(ihit,fabs(tp.doca()),wscat);
+
+    KKMHit<LHelix> kmh(sh,plhel);
+    auto const& km = kmh.mat();
+    cout << "KKMat effect" << km.effect().parameters() << endl << km.effect().diagonal()  << endl;
+    for(auto const& mx : km.detXing().matXings() ) {
+      cout << "Mat Xing material " << mx.dmat_.name() << " pathlen " << mx.plen_ << endl;
+    }
+
   }
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();

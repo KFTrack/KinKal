@@ -5,7 +5,7 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-#include <iostream>
+#include <ostream>
 namespace KinKal {
   template <size_t DDIM> class WData : public TData<DDIM> {
     public:
@@ -27,6 +27,15 @@ namespace KinKal {
 	TData<DDIM>::operator +=(other);
 	return *this;
       }
+      void print(std::ostream& ost=std::cout,int detail=0) const {
+	ost << "WData wVec " << weightVec() << std::endl;
+	if(detail > 0)
+	  ost << "weight " << weightMat() << std::endl;
+      }
   };
+  template<size_t DDIM> std::ostream& operator << (std::ostream& ost, WData<DDIM> const& wdata) {
+    wdata.print(ost,0);
+    return ost;
+  }
 }
 #endif

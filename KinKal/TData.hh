@@ -14,14 +14,22 @@ namespace KinKal {
     public:
       enum Status {unknown=-1, valid=0, invalid}; // not clear if this is the right place for this FIXME!
       constexpr static size_t PDim() { return DDIM; }
+      // define the parameter types
+      typedef ROOT::Math::SVector<double,DDIM> DVEC; // data vector
+      typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMAT;  // associated matrix
       Status status() const { return status_; }
       bool matrixOK() const { return status_ == valid; }
       // set status
       void setStatus(Status status) { status_ = status; }
+      // diagnostic access to diagonal vector
+      DVEC diagonal() const { 
+	DVEC retval;
+	for(size_t idim=0;idim < DDIM; idim++){
+	  retval(idim) = sqrt(mat_(idim,idim));
+	}
+	return retval;
+      }
     protected:
-      // define the parameter types
-      typedef ROOT::Math::SVector<double,DDIM> DVEC; // data vector
-      typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMAT;  // associated matrix
       // construct from vector and matrix
       TData(DVEC const& vec, DMAT const& mat = ROOT::Math::SVector<double,DDIM>::SMatrixIdentity()) : vec_(vec), mat_(mat), status_(valid) {}// assume valid?  FIXME!
       TData() : status_(invalid) {}
@@ -32,6 +40,8 @@ namespace KinKal {
       DMAT const& mat() const { return mat_; }
       DVEC& vec() { return vec_; }
       DMAT& mat() { return mat_; }
+
+
       // scale the matrix
       void scale(double sfac) { mat_ *= sfac; }
 
