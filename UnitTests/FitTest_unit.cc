@@ -231,7 +231,7 @@ int main(int argc, char **argv) {
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
-  int detail;
+  int detail(0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
