@@ -5,26 +5,47 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
+#include "KinKal/WData.hh"
 #include <ostream>
 namespace KinKal {
-  template <size_t DDIM> class PData : public TData<DDIM> {
+  template <size_t DDIM> class WData;
+  template <size_t DDIM> class PData {
     public:
+      constexpr static size_t PDim() { return DDIM; }
     // forward the typedefs
-      typedef typename TData<DDIM>::DVEC DVEC;
-      typedef typename TData<DDIM>::DMAT DMAT;
+      typedef TData<DDIM> TDATA;
+      typedef WData<DDIM> WDATA;
+      typedef typename TDATA::Status Status;
+      typedef typename TDATA::DVEC DVEC;
+      typedef typename TDATA::DMAT DMAT;
       // construct from vector and matrix
-      PData(DVEC const& pars, DMAT const& pcov) : TData<DDIM>(pars,pcov) {}
-      PData(DVEC const& pars) : TData<DDIM>(pars) {}
-      PData(TData<DDIM> const& tdata,bool inv=false) : TData<DDIM>(tdata,inv) {}
-      PData() : TData<DDIM>() {}
+      PData(DVEC const& pars, DMAT const& pcov) : tdata_(pars,pcov) {}
+      PData(DVEC const& pars) : tdata_(pars) {}
+      PData(WDATA const& wdata) : tdata_(wdata.tData(),true) {}
+      PData() {}
       // accessors; just re-interpret the base class accessors
-      DVEC const& parameters() const { return TData<DDIM>::vec(); }
-      DMAT const& covariance() const { return TData<DDIM>::mat(); }
-      DVEC& parameters() { return TData<DDIM>::vec(); }
-      DMAT& covariance() { return TData<DDIM>::mat(); }
-      // addition: only works for other parameters
+      DVEC const& parameters() const { return tdata_.vec(); }
+      DMAT const& covariance() const { return tdata_.mat(); }
+      DVEC& parameters() { return tdata_.vec(); }
+      DMAT& covariance() { return tdata_.mat(); }
+      TDATA const& tData() const { return tdata_; }
+      TDATA& tData() { return tdata_; }
+      Status status() const { return tdata_.status(); }
+      bool matrixOK() const { return tdata_.matrixOK(); }
+      void setStatus(Status status) { tdata_.setStatus(status); }
+      // scale the matrix
+      void scale(double sfac) { tdata_.scale(sfac); }
+      // diagnostic access to diagonal vector
+      DVEC diagonal() const { 
+	DVEC retval;
+	for(size_t idim=0;idim < DDIM; idim++){
+	  retval(idim) = sqrt(tdata_.mat()(idim,idim));
+	}
+	return retval;
+      }
+// addition: only works for other parameters
       PData & operator +=(PData const& other) {
-	TData<DDIM>::operator +=(other);
+	tdata_ += other.tdata_;
 	return *this;
       }
       void print(std::ostream& ost=std::cout,int detail=0) const {
@@ -32,7 +53,8 @@ namespace KinKal {
 	if(detail > 0)
 	  ost << "covariance " << covariance() << std::endl;
       }
-
+    private:
+      TDATA tdata_; // data payload
   };
 
   template<size_t DDIM> std::ostream& operator << (std::ostream& ost, PData<DDIM> const& pdata) {

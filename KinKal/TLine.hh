@@ -4,10 +4,11 @@
 //  Linear time-based trajectory with a constant velocity.
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/TTraj.hh"
+#include "KinKal/Vectors.hh"
+#include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
 namespace KinKal {
-  class TLine : public TTraj {
+  class TLine {
     public:
       enum ParamIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
       constexpr static size_t NParams() { return npars_; }
@@ -21,7 +22,6 @@ namespace KinKal {
       // by default, the line has infinite unforced range
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
       TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
-      virtual ~TLine(){}  
       PDATA const& params() const { return pars_; }
     // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
@@ -45,14 +45,19 @@ namespace KinKal {
       double TOCA(Vec3 point) const;
 
       // geometric accessors
-      virtual void position(Vec4& pos) const override;
-      virtual void position(double time, Vec3& pos) const override;
-      virtual void velocity(double time, Vec3& vel) const override;
-      virtual void direction(double time, Vec3& dir) const override;
-      virtual double speed(double time) const override;
-      virtual void print(std::ostream& ost, int detail) const override;
+      void position(Vec4& pos) const ;
+      void position(double time, Vec3& pos) const ;
+      void velocity(double time, Vec3& vel) const ;
+      void direction(double time, Vec3& dir) const ;
+      double speed(double time) const ;
+      void print(std::ostream& ost, int detail) const ;
+      TRange const& range() const { return trange_; }
+      TRange& range() { return trange_; }
+      virtual void setRange(TRange const& trange) { trange_ = trange; }
+      bool inRange(double t) const { return trange_.inRange(t); }
 
     private:
+      TRange trange_;
       PData<npars_> pars_; // parameters
       double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       Vec3 pos0_, dir_; // caches

@@ -4,13 +4,14 @@
 // class desribing the looping helix basis for the kinematic Kalman fit
 // It provides geometric, kinematic, and algebraic representation of
 // a particule executing a multi-loop helix in a constant magnetic field.
-// Original Author David Brown (LBNL) 1/2020
+// Original Author Roberto Soleti (LBNL) 1/2020
 //
 
 #include "KinKal/Vectors.hh"
-#include "KinKal/TTraj.hh"
-#include "KinKal/KInter.hh"
+#include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
+#include "KinKal/KInter.hh"
+#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
 #include <vector>
@@ -19,7 +20,7 @@
 
 namespace KinKal {
 
-  class IPHelix : public TTraj, public KInter {
+  class IPHelix : public KInter {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
@@ -43,21 +44,25 @@ namespace KinKal {
       IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
       IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
       // particle position and momentum as a function of time
-      void position(Vec4& pos) const override; // time is input
-      void position(double t,Vec3& pos) const override; // time is input
-      void momentum(double t,Mom4& mom) const override;
-      void velocity(double time, Vec3& vel) const override;
-      void direction(double tval,Vec3& dir) const override;
+      void position(Vec4& pos) const ; // time is input
+      void position(double t,Vec3& pos) const ; // time is input
+      void momentum(double t,Mom4& mom) const ;
+      void velocity(double time, Vec3& vel) const ;
+      void direction(double tval,Vec3& dir) const ;
       // scalar momentum and energy in MeV/c units
-      double momentum(double time) const override { return mass_ * pbar() / mbar_; }
-      double momentumVar(double time) const override { return -1.0; }//FIXME! 
-      double energy(double time) const override { return mass_ * ebar() / mbar_; }
+      double momentum(double time) const  { return mass_ * pbar() / mbar_; }
+      double momentumVar(double time) const  { return -1.0; }//FIXME! 
+      double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
-      double speed(double time) const override { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const override;
+      double speed(double time) const  { return CLHEP::c_light * beta(); }
+      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
       // local momentum direction basis
-      virtual void dirVector(MDir dir, double time, Vec3 &unit) const override;
-      virtual void print(std::ostream& ost, int detail) const override {} // FIXME!
+      void dirVector(MDir dir, double time, Vec3 &unit) const ;
+      void print(std::ostream& ost, int detail) const  {} // FIXME!
+      TRange const& range() const { return trange_; }
+      TRange& range() { return trange_; }
+      void setRange(TRange const& trange) { trange_ = trange; }
+      bool inRange(double t) const { return trange_.inRange(t); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       void momDeriv(MDir mdir, double time, PDER &der) const;
@@ -102,6 +107,7 @@ namespace KinKal {
       }
       //
     private :
+      TRange trange_;
       PDATA pars_; // parameters
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_;    // nominal BField

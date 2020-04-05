@@ -5,36 +5,38 @@
 //  simple TTraj.
 //  used as part of the kinematic kalman fit
 //
-#include "KinKal/TTraj.hh"
 #include "KinKal/TDir.hh"
+#include "KinKal/Vectors.hh"
+#include "KinKal/TRange.hh"
 #include <deque>
 #include <ostream>
 #include <stdexcept>
 #include <typeinfo>
 
 namespace KinKal {
-  template <class TTRAJ> class PTTraj : public TTraj {
+  template <class TTRAJ> class PTTraj {
     public:
       constexpr static size_t NParams() { return TTRAJ::NParams(); }
       typedef typename std::deque<TTRAJ> DTTRAJ;
       // base class implementation
-      virtual void position(Vec4& pos) const override;
-      virtual void position(double time, Vec3& pos) const override;
-      virtual void velocity(double time, Vec3& vel) const override;
-      virtual double speed(double time) const override;
-      virtual void direction(double time, Vec3& dir) const override;
-      virtual void setRange(TRange const& trange) override;
+      void position(Vec4& pos) const ;
+      void position(double time, Vec3& pos) const ;
+      void velocity(double time, Vec3& vel) const ;
+      double speed(double time) const ;
+      void direction(double time, Vec3& dir) const ;
+      TRange const& range() const { return trange_; }
+      TRange& range() { return trange_; }
+      void setRange(TRange const& trange) ;
 // construct without any pieces, but specify the range
-      PTTraj(TRange const& range) : TTraj(range) {}
+      PTTraj(TRange const& range) : trange_(range) {}
 // one initial piece
       PTTraj(TTRAJ const& piece);
-      virtual ~PTTraj(){} 
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
 // If appending requires truncation and allowremove=false, the piece is not appended and the return code is false
-      virtual void append(TTRAJ const& newpiece, bool allowremove=false);
-      virtual void prepend(TTRAJ const& newpiece, bool allowremove=false);
+      void append(TTRAJ const& newpiece, bool allowremove=false);
+      void prepend(TTRAJ const& newpiece, bool allowremove=false);
       void add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
       TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
@@ -44,9 +46,10 @@ namespace KinKal {
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
       void gaps(double& largest, size_t& ilargest, double& average) const;
-      virtual void print(std::ostream& ost, int detail) const override;
+      void print(std::ostream& ost, int detail) const ;
     private:
       PTTraj() = delete; // no default/null constructor
+      TRange trange_;
       DTTRAJ pieces_; // constituent pieces
   };
 
@@ -67,7 +70,7 @@ namespace KinKal {
     nearestPiece(time).direction(time,dir);
   }
   template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange) {
-    TTraj::setRange(trange);
+    trange_ = trange;
 // trim pieces as necessary
     while(pieces_.size() > 0 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
     while(pieces_.size() > 0 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
@@ -76,7 +79,7 @@ namespace KinKal {
     pieces_.back().setRange(TRange(pieces_.front().range().low(),trange.high()));
   }
 
-  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : TTraj(piece.range()),pieces_(1,piece)
+  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : trange_(piece.range()),pieces_(1,piece)
   {}
 
   template <class TTRAJ> void PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
@@ -97,7 +100,7 @@ namespace KinKal {
     if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
-      // override the range
+      //  the range
       range() = newpiece.range();
     } else {
       // if the new piece completely contains the existing pieces, overwrite or fail

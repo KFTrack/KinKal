@@ -63,7 +63,7 @@ namespace KinKal {
     auto refend = ref.nearestPiece(time()).params();
     refend.covariance() *= dwt_;
     // convert this to a weight (inversion)
-    KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(refend,true);
+    KKWEFF::wdata_ = WData<PKTRAJ::NParams()>(refend);
     KKEffBase::updateStatus();
     return KKWEFF::wData().matrixOK();
   }
