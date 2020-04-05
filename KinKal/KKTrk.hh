@@ -61,7 +61,7 @@ namespace KinKal {
 	    return false;
 	}
       };
-      typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
+      typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKEFFCON; // container type for effects
       // construct from a set of hits and passive material crossings
       KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITCOL& thits, DXINGCOL& dxings, Config const& config ); 
       void fit(); // process the effects.  This creates the fit
@@ -71,7 +71,7 @@ namespace KinKal {
       FitStatus const& fitStatus() const { return history_.back(); } // most recent status
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
-      KKCON const& effects() const { return effects_; }
+      KKEFFCON const& effects() const { return effects_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
 
     private:
@@ -81,13 +81,12 @@ namespace KinKal {
       bool canIterate() const;
       bool oscillating(FitStatus const& status) const;
       void createFieldDomains();
-      bool fitOK();
       // payload
       Config config_; // configuration
       std::vector<FitStatus> history_; // fit status history
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is iterated
-      KKCON effects_; // effects used in this fit, sorted by time
+      KKEFFCON effects_; // effects used in this fit, sorted by time
       BField const& bfield_; // magnetic field map
   };
 
@@ -117,7 +116,7 @@ namespace KinKal {
       if(config_.addfield_){
 	createFieldDomains();
       }
-      // create end effects; this should be last
+      // create end effects; this should be last to avoid confusing the BField correction
       auto iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::forwards,config_.dwt_));
       if(!iemp.second)throw std::runtime_error("Insertion failure");
       iemp = effects_.emplace(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::backwards,config_.dwt_));
@@ -150,9 +149,9 @@ namespace KinKal {
     bool fitOK(true);
     // fit forwards then backwards
     auto ieff = effects_.begin();
+    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
     KKData<KTRAJ::NParams()> fitdata;
     while(ieff != effects_.end()){
-    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
       // update chisq, NDOF only forwards to save time
       if(ieff->get()->nDOF() > 0){
 	fstat.ndof_ += ieff->get()->nDOF();
@@ -170,6 +169,7 @@ namespace KinKal {
       ieff++;
     }
     if(fitOK){
+    // reset the fit information and process backwards
       fitdata = KKData<KTRAJ::NParams()>();
       auto ieff = effects_.rbegin();
       while(ieff != effects_.rend()){
