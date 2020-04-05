@@ -22,6 +22,7 @@ namespace KinKal {
       typedef THit<KTRAJ> THIT;
       typedef std::shared_ptr<THIT> THITPTR;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
+      typedef TData<PDATA::PDim()> TDATA;
       typedef typename KTRAJ::PDATA::DVEC DVEC; // forward derivative type
       typedef typename KTRAJ::PDER PDER; // forward derivative type
       virtual unsigned nDOF() const override { return thit_->isActive() ? thit_->nDOF() : 0; }
@@ -71,7 +72,7 @@ namespace KinKal {
     RVarM(0,0) = 1.0/rresid_.residVar();
     // expand these into the weight matrix
     KKWEFF::wdata_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
-    KKWEFF::wdata_.setStatus(PDATA::valid);
+    KKWEFF::wdata_.setStatus(TDATA::valid);
     // reference weight vector from reference parameters
     KKWEFF::wdata_.weightVec() = KKWEFF::wData().weightMat()*ref_;
     // translate residual value into weight vector WRT the reference parameters
