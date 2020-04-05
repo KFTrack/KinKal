@@ -1,5 +1,5 @@
 //
-// ToyMC test of fitting an LHelix-based KKTrk
+// ToyMC test of fitting an KTRAJ-based KKTrk
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
@@ -22,6 +22,7 @@
 #include <vector>
 #include <cmath>
 #include <cfenv>
+#include <memory>
 
 #include "TH1F.h"
 #include "TTree.h"
@@ -50,8 +51,21 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
-typedef KinKal::PKTraj<LHelix> PLHELIX;
-typedef KinKal::KKTrk<LHelix> KKTRK;
+// define the typedefs: to change to a different trajectory implementation, just change this line
+typedef LHelix KTRAJ;
+typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
+typedef KinKal::KKTrk<KTRAJ> KKTRK;
+typedef THit<KTRAJ> THIT;
+typedef std::shared_ptr<THIT> THITPTR;
+typedef DXing<KTRAJ> DXING;
+typedef std::shared_ptr<DXING> DXINGPTR;
+typedef StrawHit<KTRAJ> STRAWHIT;
+typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+typedef StrawXing<KTRAJ> STRAWXING;
+typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
+typedef std::vector<THITPTR> THITCOL;
+typedef std::vector<DXINGPTR> DXINGCOL;
+
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
 double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
@@ -70,16 +84,12 @@ double Bgrad(0.0), By(0.0);
 BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt);
-typedef THit<LHelix> THIT;
-typedef StrawHit<LHelix> STRAWHIT;
-typedef DXing<LHelix> DXING;
-typedef StrawXing<LHelix> STRAWXING;
 
 void print_usage() {
   printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i\n");
 }
 
-struct LHelixPars{
+struct KTRAJPars{
   Float_t pars_[6];
   static std::string leafnames() {
     return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f");
@@ -87,7 +97,7 @@ struct LHelixPars{
 };
 
 // helper function
-KinKal::TLine GenerateStraw(PLHELIX const& traj, double htime) {
+KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
   // start with the true helix position at this time
   Vec4 hpos; hpos.SetE(htime);
   traj.position(hpos);
@@ -123,7 +133,7 @@ KinKal::TLine GenerateStraw(PLHELIX const& traj, double htime) {
   return TLine(mpos,vprop,tmeas,trange);
 }
 
-void createSeed(LHelix& seed){
+void createSeed(KTRAJ& seed){
   auto& seedpar = seed.params();
   seedpar.covariance() = ROOT::Math::SMatrixIdentity();
   for(unsigned ipar=0;ipar < 6; ipar++){
@@ -133,7 +143,7 @@ void createSeed(LHelix& seed){
   }
 }
 
-double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& shits, std::vector<STRAWXING>& sxings) {
+double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& dxings) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
@@ -142,17 +152,16 @@ double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& sh
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = tbuff + plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime);
-    TPoca<PLHELIX,TLine> tp(plhel,tline);
+    TPoca<PKTRAJ,TLine> tp(plhel,tline);
     LRAmbig ambig(LRAmbig::null);
     if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
     // construct the hit from this trajectory
-    STRAWXING sxing(tp,smat);
-//    if(TR->Uniform(0.0,1.0) > ineff){
-    if(true){ // test
+    auto sxing = std::make_shared<STRAWXING>(tp,smat);
+    if(TR->Uniform(0.0,1.0) > ineff){
       STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
-      shits.push_back(sh);
+      thits.push_back(std::make_shared<STRAWHIT>(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig));
     } else {
-      sxings.push_back(sxing);
+      dxings.push_back(sxing);
     }
     // compute material effects and change trajectory accordingly
     if(simmat){
@@ -163,7 +172,7 @@ double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& sh
       Vec4 endpos; endpos.SetE(tp.particleToca());
       endpiece.position(endpos);
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-      sxing.momEffects(plhel,TDir::forwards, dmom, momvar);
+      sxing->momEffects(plhel,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
 	double momsig = sqrt(momvar[idir]);
@@ -200,7 +209,7 @@ double createHits(PLHELIX& plhel,StrawMat const& smat, std::vector<STRAWHIT>& sh
 	// terminate if there is catastrophic energy loss
       if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
-      LHelix newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.particleToca(),plhel.range().high()));
+      KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.particleToca(),plhel.range().high()));
       plhel.append(newend);
     }
   }
@@ -326,20 +335,16 @@ int main(int argc, char **argv) {
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,bnom);
+  KTRAJ lhel(origin,momv,icharge,bnom);
   cout << "True initial " << lhel << endl;
-  PLHELIX plhel(lhel);
+  PKTRAJ plhel(lhel);
   // truncate the range according to the Z range
   Vec3 vel; plhel.velocity(0.0,vel);
   plhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
   // generate hits
-  std::vector<STRAWHIT> shits; // this program owns the straw hits
-  std::vector<THIT*> thits; // this references them as THits
-  std::vector<STRAWXING> sxings; // this program owns the straw crossings
-  std::vector<DXING*> dxings; // this references them as THits
-  createHits(plhel,smat, shits, sxings);
-  for(auto& shit : shits) thits.push_back(&shit);
-  for(auto& sxing : sxings) dxings.push_back(&sxing);
+  THITCOL thits; // this program shares hit ownership with KKTrk
+  DXINGCOL dxings; // this program shares det xing ownership with KKTrk
+  createHits(plhel,smat, thits, dxings);
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << plhel << endl;
   double startmom = plhel.momentum(plhel.range().low());
@@ -363,13 +368,13 @@ int main(int argc, char **argv) {
   kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
-  LHelixPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
+  KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
   float chisq_, etmom_, ftmom_, ffmom_, efmom_, tde_, chiprob_;
   float fft_,eft_;
   int ndof_, niter_, status_;
   if(ntries <=0 ){
     // draw the fit result
-    TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
+    TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
     auto const& fithel = kktrk.fitTraj();
     unsigned np = fithel.range().range()*fithel.speed(fithel.range().mid());
     TPolyLine3D* fitpl = new TPolyLine3D(np);
@@ -412,13 +417,13 @@ int main(int argc, char **argv) {
     TTree* ftree(0);
     if(ttree){
       ftree = new TTree("fit","fit");
-      ftree->Branch("ftpars.", &ftpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("etpars.", &etpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("spars.", &spars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("ffpars.", &ffitpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("fferrs.", &ffiterrs_,LHelixPars::leafnames().c_str());
-      ftree->Branch("efpars.", &efitpars_,LHelixPars::leafnames().c_str());
-      ftree->Branch("eferrs.", &efiterrs_,LHelixPars::leafnames().c_str());
+      ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("etpars.", &etpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("spars.", &spars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("ffpars.", &ffitpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("fferrs.", &ffiterrs_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("efpars.", &efitpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("eferrs.", &efiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
@@ -433,11 +438,11 @@ int main(int argc, char **argv) {
       ftree->Branch("tde", &tde_,"tde/F");
     }
     // now repeat this to gain statistics
-    vector<TH1F*> fdpgenh(LHelix::NParams());
-    vector<TH1F*> bdpgenh(LHelix::NParams());
-    vector<TH1F*> fdpullgenh(LHelix::NParams());
-    vector<TH1F*> bdpullgenh(LHelix::NParams());
-    vector<TH1F*> fiterrh(LHelix::NParams());
+    vector<TH1F*> fdpgenh(KTRAJ::NParams());
+    vector<TH1F*> bdpgenh(KTRAJ::NParams());
+    vector<TH1F*> fdpullgenh(KTRAJ::NParams());
+    vector<TH1F*> bdpullgenh(KTRAJ::NParams());
+    vector<TH1F*> fiterrh(KTRAJ::NParams());
     TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
     TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
     TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
@@ -445,30 +450,30 @@ int main(int argc, char **argv) {
     TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
     TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
     string htitle, hname;
-    TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",LHelix::NParams(),-0.5,LHelix::NParams()-0.5,LHelix::NParams(), -0.5,LHelix::NParams()-0.5);
+    TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",KTRAJ::NParams(),-0.5,KTRAJ::NParams()-0.5,KTRAJ::NParams(), -0.5,KTRAJ::NParams()-0.5);
     TAxis* xax = corravg->GetXaxis();
     TAxis* yax = corravg->GetYaxis();
     double nsig(10.0);
     double pscale = nsig/sqrt(nhits);
-    for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
-      auto tpar = static_cast<LHelix::ParamIndex>(ipar);
-      hname = string("fd") + LHelix::paramName(tpar);
-      htitle = string("Front #Delta ") + LHelix::paramTitle(tpar);
+    for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
+      auto tpar = static_cast<KTRAJ::ParamIndex>(ipar);
+      hname = string("fd") + KTRAJ::paramName(tpar);
+      htitle = string("Front #Delta ") + KTRAJ::paramTitle(tpar);
       fdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
-      hname = string("bd") + LHelix::paramName(tpar);
-      htitle = string("Back #Delta ") + LHelix::paramTitle(tpar);
+      hname = string("bd") + KTRAJ::paramName(tpar);
+      htitle = string("Back #Delta ") + KTRAJ::paramTitle(tpar);
       bdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
-      hname = string("fp") + LHelix::paramName(tpar);
-      htitle = string("Front Pull ") + LHelix::paramTitle(tpar);
+      hname = string("fp") + KTRAJ::paramName(tpar);
+      htitle = string("Front Pull ") + KTRAJ::paramTitle(tpar);
       fdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
-      hname = string("bp") + LHelix::paramName(tpar);
-      htitle = string("Back Pull ") + LHelix::paramTitle(tpar);
+      hname = string("bp") + KTRAJ::paramName(tpar);
+      htitle = string("Back Pull ") + KTRAJ::paramTitle(tpar);
       bdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
-      hname = string("e") + LHelix::paramName(tpar);
-      htitle = string("Error ") + LHelix::paramTitle(tpar);
+      hname = string("e") + KTRAJ::paramName(tpar);
+      htitle = string("Error ") + KTRAJ::paramTitle(tpar);
       fiterrh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,0.0,pscale*sigmas[ipar]);
-      xax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
-      yax->SetBinLabel(ipar+1,LHelix::paramName(tpar).c_str());
+      xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
+      yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
     for(unsigned itry=0;itry<ntries;itry++){
       // randomize the helix
@@ -477,19 +482,15 @@ int main(int argc, char **argv) {
       double tcost = TR->Uniform(0.5,0.8);
       double tsint = sqrt(1.0-tcost*tcost);
       Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
-      LHelix tlhel(torigin,tmomv,icharge,bnom);
-      PLHELIX tplhel(tlhel);
+      KTRAJ tlhel(torigin,tmomv,icharge,bnom);
+      PKTRAJ tplhel(tlhel);
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
-      shits.clear();
-      sxings.clear();
-      tde_ = createHits(tplhel,smat, shits,sxings);
-      auto seedhel = tplhel.nearestPiece(0.0);
-      createSeed(seedhel);
       thits.clear();
       dxings.clear();
-      for(auto& shit : shits) thits.push_back(&shit);
-      for(auto& sxing : sxings) dxings.push_back(&sxing);
+      tde_ = createHits(tplhel,smat, thits,dxings);
+      auto seedhel = tplhel.nearestPiece(0.0);
+      createSeed(seedhel);
       KKTRK kktrk(seedhel,*BF,thits,dxings,config);
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
@@ -499,7 +500,7 @@ int main(int argc, char **argv) {
      // momentum
       // accumulate parameter difference and pull
       vector<double> cerr(6,0.0), bcerr(6,0.0);
-      for(size_t ipar=0;ipar< LHelix::NParams(); ipar++){
+      for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
 	cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
 	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
 	fdpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
@@ -511,8 +512,8 @@ int main(int argc, char **argv) {
       // accumulate average correlation matrix
       auto const& cov = fpars.covariance();
       //    auto cormat = cov;
-      for(unsigned ipar=0; ipar <LHelix::NParams();ipar++){
-	for(unsigned jpar=ipar;jpar < LHelix::NParams(); jpar++){
+      for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
+	for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
 	  double corr = cov[ipar][jpar]/(cerr[ipar]*cerr[jpar]);
 	  //	cormat[ipar][jpar] = corr;
 	  corravg->Fill(ipar,jpar,fabs(corr));
@@ -560,35 +561,35 @@ int main(int argc, char **argv) {
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);
-    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fdpcan->cd(ipar+1);
       fdpgenh[ipar]->Fit("gaus");
     }
     fdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
-    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bdpcan->cd(ipar+1);
       bdpgenh[ipar]->Fit("gaus");
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,2);
-    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
       fdpullgenh[ipar]->Fit("gaus");
     }
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,2);
-    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
       bdpullgenh[ipar]->Fit("gaus");
     }
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
-    for(size_t ipar=0;ipar<LHelix::NParams();++ipar){
+    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       perrcan->cd(ipar+1);
       fiterrh[ipar]->Draw();
     }

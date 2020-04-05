@@ -48,9 +48,11 @@ namespace KinKal {
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef THit<KTRAJ> THIT;
-      typedef std::vector<THIT*> THITS;
       typedef DXing<KTRAJ> DXING;
-      typedef std::vector<DXING*> DXINGS;
+      typedef std::shared_ptr<THIT> THITPTR;
+      typedef std::shared_ptr<DXING> DXINGPTR;
+      typedef std::vector<THITPTR> THITCOL;
+      typedef std::vector<DXINGPTR> DXINGCOL;
       struct KKEFFComp { // comparator, used in sorting
 	bool operator()(std::unique_ptr<KKEFF> const& a, std::unique_ptr<KKEFF> const&  b) const {
 	  if(a.get() != b.get())
@@ -61,7 +63,7 @@ namespace KinKal {
       };
       typedef std::set<std::unique_ptr<KKEFF>,KKEFFComp > KKCON; // container type for effects
       // construct from a set of hits and passive material crossings
-      KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITS& thits, DXINGS& dxings, Config const& config ); 
+      KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITCOL& thits, DXINGCOL& dxings, Config const& config ); 
       void fit(); // process the effects.  This creates the fit
       void reset() { history_.push_back(FitStatus()); } // reset to allow renewed fitting
       // accessors
@@ -89,23 +91,23 @@ namespace KinKal {
       BField const& bfield_; // magnetic field map
   };
 
-  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITS& thits, DXINGS& dxings, Config const& config) : 
+  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(PKTRAJ const& reftraj, BField const& bfield, THITCOL& thits, DXINGCOL& dxings, Config const& config) : 
     config_(config), history_(1,FitStatus()), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()), bfield_(bfield) {
       // loop over the hits
       for(auto& thit : thits ) {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
 	if(config_.addmat_ && thit->detCrossing() != 0){
-	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(*thit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(thit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	} else{ 
-	  auto iemp = effects_.emplace(std::make_unique<KKHit<KTRAJ> >(*thit,reftraj));
+	  auto iemp = effects_.emplace(std::make_unique<KKHit<KTRAJ> >(thit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	}
       }
       //add pure material effects
       for(auto& dxing : dxings) {
-	auto iemp = effects_.emplace(std::make_unique<KKMat<KTRAJ> >(*dxing,reftraj));
+	auto iemp = effects_.emplace(std::make_unique<KKMat<KTRAJ> >(dxing,reftraj));
 	if(!iemp.second)throw std::runtime_error("Insertion failure");
       }
       // reset the range 

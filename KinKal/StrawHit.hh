@@ -7,20 +7,22 @@
 //
 #include "KinKal/WireHit.hh"
 #include "KinKal/StrawXing.hh"
+#include <memory>
 namespace KinKal {
   template <class KTRAJ> class StrawHit : public WireHit<KTRAJ> {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef WireHit<KTRAJ> WHIT;
+      typedef THit<KTRAJ> THIT;
       typedef StrawXing<KTRAJ> STRAWXING;
-      StrawHit(BField const& bfield, PKTRAJ const& pktraj, TLine const& straj, D2T const& d2t, STRAWXING const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
-	WireHit<KTRAJ>(bfield,pktraj,straj,d2t,std::min(nulldoca,sxing.strawMat().strawRadius())*std::min(nulldoca,sxing.strawMat().strawRadius())/3.0,ambig,active), sxing_(sxing) {}
+      StrawHit(BField const& bfield, PKTRAJ const& pktraj, TLine const& straj, D2T const& d2t, std::shared_ptr<STRAWXING> const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
+	WireHit<KTRAJ>(bfield,pktraj,straj,d2t,std::min(nulldoca,sxing->strawMat().strawRadius())*std::min(nulldoca,sxing->strawMat().strawRadius())/3.0,ambig,active) { // clumsy FIXME!
+	  THIT::dxing_ = sxing; }
       virtual float tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!
-      virtual STRAWXING* detCrossing() override { return &sxing_; }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~StrawHit(){}
     private:
-      STRAWXING sxing_; // straw material crossing information
+//      std::shared_ptr<STRAWXING> sxing_; // straw material crossing information.  Not sure if this is needed FIXME!
       // add state for longitudinal resolution, transverse resolution FIXME!
   };
 
