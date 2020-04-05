@@ -39,7 +39,7 @@ namespace KinKal {
     double tbuff_; // time buffer for final fit (ns)
     double dtol_; // tolerance on direction change in BField integration (dimensionless)
     double ptol_; // tolerance on position change in BField integration (mm)
-    unsigned minndof_; // minimum number of DOFs to continue fit
+    int minndof_; // minimum number of DOFs to continue fit
     Config() : maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), addmat_(true), addfield_(true), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5) {} 
   };
 

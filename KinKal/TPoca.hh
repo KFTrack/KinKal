@@ -40,11 +40,12 @@ namespace KinKal {
       ost << "Particle Poca " << particlePoca() << " Sensor Poca " << sensorPoca() << std::endl;
     if(detail > 1)
       ost << "dDdP " << dDdP() << " dTdP " << dTdP() << std::endl;
-    if(detail > 2)
+    if(detail > 2){
       ost << "Particle ";
       particleTraj().print(ost,0);
       ost << "Sensor ";
       sensorTraj().print(ost,0);
+    }
   }
 
 }
