@@ -1,9 +1,9 @@
 #ifndef KinKal_TPoca_hh
 #define KinKal_TPoca_hh
 ///
-//  This functor class finds the (spacetime) points of closest approach between two TTrajs.
-//  Concrete instances are specializations and must be implemented explicity for
-//  each trajectory type pair.
+//  This functor class finds the (spacetime) points of closest approach between a particle and sensor trajectory
+//  Both trajectories must satisfy the 'TTraj' interface
+//  Concrete instances are specializations and must be implemented explicity for each trajectory pair
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/TPocaBase.hh"

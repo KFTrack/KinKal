@@ -2,11 +2,27 @@
 #define KinKal_KKTrk_hh
 //
 // Primary class of the Kinematic Kalman fit.  This class owns the state describing
-// the fit (hits, material interactions, BField corrections) and coordinates the
-// fit processing.  It uses
-// This is a base class for specific subclasses representing measurements, material interactions, etc.
-// Templated on the kinematic trajectory used in this fit
+// the fit (hits, material interactions, BField corrections) and the methods for computing it
+//  It is templated on the kinematic trajectory class representing the 1-dimensional, directional
+//  path in space of a particle, satisfying the following interface:
+//      void position(Vec4& pos) const;
+//      void position(double time, Vec3& pos) const;
+//      void velocity(double time, Vec3& vel) const;
+//      double speed(double time) const;
+//      void direction(double time, Vec3& dir) const;
+//      void print(std::ostream& ost, int detail) const;
+//      void momentum(double t,Mom4& mom) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
+//      void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
+//      double momentum(double time) const; // momentum and energy magnitude in MeV/
+//      double momentumVar(double time) const; // variance on momentum value
+//      double energy(double time) const; 
+//      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
 //
+//  KKTrk is constructed from a configuration object which can be shared between many instances, and a unique set of hit and
+//  material interactions.
+//  The fit is performed on construction.
+//
+
 #include "KinKal/PKTraj.hh"
 #include "KinKal/KKEff.hh"
 #include "KinKal/KKEnd.hh"

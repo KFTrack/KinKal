@@ -27,7 +27,7 @@ namespace KinKal {
   std::string const& LHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range) : TTraj(range), KInter(mom0.M(),charge), bnom_(bnom), needsrot_(false) {
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& trange) : KInter(mom0.M(),charge), trange_(trange), bnom_(bnom), needsrot_(false) {
     static double twopi = 2*M_PI; // FIXME
     // Transform into the system where Z is along the Bfield.
     Vec4 pos(pos0);
@@ -68,8 +68,8 @@ namespace KinKal {
   }
 
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range) : 
-    TTraj(range), KInter(mass,charge), pars_(pdata), bnom_(bnom) {
+  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& trange) : 
+     KInter(mass,charge), trange_(trange), pars_(pdata), bnom_(bnom) {
       double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
       // reduced mass; note sign convention!
       mbar_ = -mass_*momToRad;

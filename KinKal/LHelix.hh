@@ -8,9 +8,9 @@
 //
 
 #include "KinKal/Vectors.hh"
-#include "KinKal/TTraj.hh"
-#include "KinKal/KInter.hh"
+#include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
+#include "KinKal/KInter.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
 #include <vector>
@@ -19,7 +19,7 @@
 
 namespace KinKal {
 
-  class LHelix : public TTraj, public KInter {
+  class LHelix : public KInter {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
@@ -43,21 +43,24 @@ namespace KinKal {
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
-      virtual ~LHelix() {} 
       // TTraj interface 
-      virtual void position(Vec4& pos) const override; // time is input 
-      virtual void position(double t,Vec3& pos) const override; // time is input 
-      virtual void velocity(double time, Vec3& vel) const override;
-      virtual void direction(double tval,Vec3& dir) const override;
-      virtual double speed(double time) const override {  return CLHEP::c_light*beta(); }
-      virtual void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override;
-      virtual void dirVector(MDir dir,double time,Vec3& unit) const override;
-      virtual void print(std::ostream& ost, int detail) const override;
+      void position(Vec4& pos) const ; // time is input 
+      void position(double t,Vec3& pos) const ; // time is input 
+      void velocity(double time, Vec3& vel) const ;
+      void direction(double tval,Vec3& dir) const ;
+      double speed(double time) const  {  return CLHEP::c_light*beta(); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const ;
+      void dirVector(MDir dir,double time,Vec3& unit) const ;
+      void print(std::ostream& ost, int detail) const ;
+      TRange const& range() const { return trange_; }
+      TRange& range() { return trange_; }
+      void setRange(TRange const& trange) { trange_ = trange; }
+      bool inRange(double t) const { return trange_.inRange(t); }
       // KInter interface
-      virtual void momentum(double t,Mom4& mom) const override;
-      virtual double momentum(double time) const override { return  mass_*pbar()/mbar_; }
-      virtual double momentumVar(double time) const override;
-      virtual double energy(double time) const override { return  mass_*ebar()/mbar_; }
+      void momentum(double t,Mom4& mom) const ;
+      double momentum(double time) const  { return  mass_*pbar()/mbar_; }
+      double momentumVar(double time) const ;
+      double energy(double time) const  { return  mass_*ebar()/mbar_; }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
       void momDeriv(MDir mdir, double time, PDER& der) const;
@@ -101,6 +104,7 @@ namespace KinKal {
       }
       //
     private :
+      TRange trange_;
       PDATA pars_; // parameters
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_; // nominal BField

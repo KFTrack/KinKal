@@ -27,7 +27,7 @@ namespace KinKal {
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
-                 TRange const &range) : TTraj(range), KInter(mom.M(), charge), bnom_(bnom)
+                 TRange const &trange) :  KInter(mom.M(),charge), trange_(trange), bnom_(bnom)
   {
     double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
     mbar_ = -mass_ * momToRad;
@@ -81,7 +81,7 @@ namespace KinKal {
   }
 
   IPHelix::IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom,
-                 TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pvec, pcov), bnom_(bnom)
+                 TRange const &trange) :  KInter(mass, charge), trange_(trange), pars_(pvec, pcov), bnom_(bnom)
   {
     double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
     mbar_ = -mass_ * momToRad;

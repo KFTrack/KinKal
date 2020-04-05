@@ -13,7 +13,6 @@
 #include <memory>
 
 namespace KinKal {
-  class TTraj;
   template <class KTRAJ> class KKHit : public KKWEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
