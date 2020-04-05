@@ -50,6 +50,7 @@ namespace KinKal {
       virtual void velocity(double time, Vec3& vel) const override;
       virtual void direction(double time, Vec3& dir) const override;
       virtual double speed(double time) const override;
+      virtual void print(std::ostream& ost, int detail) const override;
 
     private:
       PData<npars_> pars_; // parameters

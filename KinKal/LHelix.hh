@@ -44,22 +44,20 @@ namespace KinKal {
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
       virtual ~LHelix() {} 
-      // particle position and momentum as a function of time
-      void position(Vec4& pos) const override; // time is input 
-      void position(double t,Vec3& pos) const override; // time is input 
-      void velocity(double time, Vec3& vel) const override;
-      void direction(double tval,Vec3& dir) const override;
-      void momentum(double t,Mom4& mom) const override;
-      // scalar momentum and energy in MeV/c units
-      double momentum(double time) const override { return  mass_*pbar()/mbar_; }
-      double momentumVar(double time) const override;
-      double energy(double time) const override { return  mass_*ebar()/mbar_; }
-      // speed in mm/ns
-      double speed(double time) const override {  return CLHEP::c_light*beta(); }
-      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override;
-
-      // local momentum direction basis
+      // TTraj interface 
+      virtual void position(Vec4& pos) const override; // time is input 
+      virtual void position(double t,Vec3& pos) const override; // time is input 
+      virtual void velocity(double time, Vec3& vel) const override;
+      virtual void direction(double tval,Vec3& dir) const override;
+      virtual double speed(double time) const override {  return CLHEP::c_light*beta(); }
+      virtual void rangeInTolerance(TRange& range, BField const& bfield, double tol) const override;
       virtual void dirVector(MDir dir,double time,Vec3& unit) const override;
+      virtual void print(std::ostream& ost, int detail) const override;
+      // KInter interface
+      virtual void momentum(double t,Mom4& mom) const override;
+      virtual double momentum(double time) const override { return  mass_*pbar()/mbar_; }
+      virtual double momentumVar(double time) const override;
+      virtual double energy(double time) const override { return  mass_*ebar()/mbar_; }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
       void momDeriv(MDir mdir, double time, PDER& der) const;

@@ -22,7 +22,7 @@ namespace KinKal {
       virtual void resid(Residual& resid) const override;
       virtual unsigned nDOF() const override { return 1; }
       virtual void update(PKTRAJ const& pktraj) override;
-      virtual TPocaBase const& poca() const override { return tpoca_; }
+      virtual TPOCA const& poca() const override { return tpoca_; }
       virtual PDER const& dDdP() const override { return tpoca_.dDdP(); }
       virtual PDER const& dTdP() const override { return tpoca_.dTdP(); }
 // construct from a D2T relationship

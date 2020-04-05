@@ -12,6 +12,7 @@
 #include <stdexcept>
 #include <array>
 #include <limits>
+#include <ostream>
 
 namespace KinKal {
   template <class KTRAJ> class DXing {
@@ -24,6 +25,7 @@ namespace KinKal {
       virtual ~DXing() {}
       virtual void update(PKTRAJ const& pktraj) =0;
       virtual void update(TPocaBase const& tpoca) =0;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // accessors
       double crossingTime() const { return xtime_; }
       std::vector<MatXing>const&  matXings() const { return mxings_; }

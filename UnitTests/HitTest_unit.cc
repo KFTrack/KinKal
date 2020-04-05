@@ -9,6 +9,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
+#include "KinKal/KKMHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -44,6 +45,18 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 typedef KinKal::PKTraj<LHelix> PLHelix;
+// define the typedefs: to change to a different trajectory implementation, just change this line
+typedef LHelix KTRAJ;
+typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
+typedef THit<KTRAJ> THIT;
+typedef std::shared_ptr<THIT> THITPTR;
+typedef DXing<KTRAJ> DXING;
+typedef std::shared_ptr<DXING> DXINGPTR;
+typedef StrawHit<KTRAJ> STRAWHIT;
+typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+typedef StrawXing<KTRAJ> STRAWXING;
+typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
+typedef std::vector<THITPTR> THITCOL;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
@@ -216,9 +229,7 @@ int main(int argc, char **argv) {
   TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;DOCA (mm);Scattering (radians)");
 
   // generate hits
-  typedef StrawXing<LHelix> STRAWXING;
-  typedef StrawHit<LHelix> STRAWHIT;
-  std::vector<STRAWHIT> hits;
+  THITCOL thits;
   std::vector<TPolyLine3D*> tpl;
   cout << "ambigdoca = " << ambigdoca << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
@@ -232,13 +243,12 @@ int main(int argc, char **argv) {
     LRAmbig ambig(LRAmbig::null);
     if(fabs(tp.doca())> ambigdoca)
       ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
-    STRAWXING sxing(tp,smat);
+    auto sxing = std::make_shared<STRAWXING>(tp,smat);
     // construct the hit from this trajectory
-    STRAWHIT sh(*BF,plhel, tline, d2t,sxing,ambigdoca,ambig);
-    hits.push_back(sh);
+    thits.push_back(std::make_shared<STRAWHIT>(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig));
    // compute residual
     Residual res;
-    sh.resid(res);
+    thits.back()->resid(res);
     cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
@@ -251,14 +261,14 @@ int main(int argc, char **argv) {
     tpl.push_back(line);
     // compute material effects
 //    double adot = tp.dirDot();
-    double adot =0.0; // transverse
+//    double adot =0.0; // transverse
+    double adot = tp.dirDot();
     double gpath = smat.gasPath(tp.doca(),ddoca,adot);
     double wpath = smat.wallPath(tp.doca(),ddoca,adot);
     ggplen->SetPoint(ihit,fabs(tp.doca()),gpath );
     gwplen->SetPoint(ihit,fabs(tp.doca()),wpath);
     cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),ddoca,adot)
     << " wall path " << smat.wallPath(tp.doca(),ddoca,adot) << endl;
-
     // compute material effects
     double geloss = gasmat->energyLoss(mom,gpath,pmass);
     double weloss = wallmat->energyLoss(mom,wpath,pmass);
@@ -268,6 +278,14 @@ int main(int argc, char **argv) {
     gweloss->SetPoint(ihit,fabs(tp.doca()),weloss);
     ggscat->SetPoint(ihit,fabs(tp.doca()),gscat);
     gwscat->SetPoint(ihit,fabs(tp.doca()),wscat);
+
+    KKMHit<LHelix> kmh(thits.back(),plhel);
+    auto const& km = kmh.mat();
+    cout << "KKMat effect" << km.effect().parameters() << endl << km.effect().diagonal()  << endl;
+    for(auto const& mx : km.detXing()->matXings() ) {
+      cout << "Mat Xing material " << mx.dmat_.name() << " pathlen " << mx.plen_ << endl;
+    }
+
   }
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
@@ -285,7 +303,7 @@ int main(int argc, char **argv) {
   vector<TGraph*> hderivg(LHelix::NParams());
   for(size_t ipar=0;ipar < LHelix::NParams();ipar++){
     auto tpar = static_cast<LHelix::ParamIndex>(ipar);
-    hderivg[ipar] = new TGraph(hits.size()*nsteps);
+    hderivg[ipar] = new TGraph(thits.size()*nsteps);
     std::string title = LHelix::paramTitle(tpar) + " Residual Derivative Test;"
     + LHelix::paramName(tpar) + " Exact #Delta (mm);"
     + LHelix::paramName(tpar) + " Algebraic #Delta (mm)";
@@ -302,8 +320,8 @@ int main(int argc, char **argv) {
       ROOT::Math::SVector<double,6> dpvec;
       dpvec[ipar] += dpar;
       // update the hits
-      for(auto& hit : hits) {
-	KKHit kkhit(hit,plhel);
+      for(auto& thit : thits) {
+	KKHit kkhit(thit,plhel);
 	Residual ores = kkhit.refResid(); // original residual
 	kkhit.update(modplhel);// refer to moded helix
 	Residual mres = kkhit.refResid();

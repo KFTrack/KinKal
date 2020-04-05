@@ -26,14 +26,15 @@ namespace KinKal {
       virtual double chisq(PDATA const& pars) const override { return 0.0; }
       virtual bool process(KKDATA& kkdata,TDir tdir) override;
       virtual bool append(PKTRAJ& fit) override;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      virtual ~KKEnd(){}
       // accessors
       TDir const& tDir() const { return tdir_; }
-      double dWeighting() const { return dwt_; }
+      double deWeighting() const { return dwt_; }
       KTRAJ const& end() const { return end_; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
       KKEnd(PKTRAJ const& pktraj,TDir tdir, double dweight=1e6); 
-      virtual ~KKEnd(){}
     private:
       TDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       double dwt_; // deweighting factor
@@ -82,8 +83,19 @@ namespace KinKal {
     return true;
   }
 
+  template<class KTRAJ> void KKEnd<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "KKEnd " << static_cast<KKEff<KTRAJ>const&>(*this) << " direction " << tDir() << " deweight " << deWeighting() << std::endl;
+    end().print(ost,detail);
+    if(detail > 0){
+      ost << "End ";
+      end().print(ost,detail);
+      ost << "Weight " << this->wData() << std::endl;
+    }
+
+
+  }
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKEnd<KTRAJ> const& kkend) {
-    ost << "KKEnd " << static_cast<KKEff<KTRAJ>const&>(kkend) << " direction " << kkend.tDir();
+    kkend.print(ost,0);
     return ost;
   }
 

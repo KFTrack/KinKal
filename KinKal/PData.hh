@@ -5,7 +5,7 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-#include <iostream>
+#include <ostream>
 namespace KinKal {
   template <size_t DDIM> class PData : public TData<DDIM> {
     public:
@@ -27,6 +27,17 @@ namespace KinKal {
 	TData<DDIM>::operator +=(other);
 	return *this;
       }
+      void print(std::ostream& ost=std::cout,int detail=0) const {
+	ost << "PData params " << parameters() << std::endl;
+	if(detail > 0)
+	  ost << "covariance " << covariance() << std::endl;
+      }
+
   };
+
+  template<size_t DDIM> std::ostream& operator << (std::ostream& ost, PData<DDIM> const& pdata) {
+    pdata.print(ost,0);
+    return ost;
+  }
 }
 #endif

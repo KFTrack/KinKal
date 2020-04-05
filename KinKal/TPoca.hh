@@ -7,6 +7,7 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/TPocaBase.hh"
+#include <ostream>
 
 namespace KinKal {
   // Class to calculate DOCA and TOCA using time parameterized trajectories.
@@ -24,12 +25,28 @@ namespace KinKal {
       KTRAJ const& particleTraj() const { return *ktraj_; }
       STRAJ const& sensorTraj() const { return *straj_; }
       bool inRange() const { return particleTraj().inRange(particleToca()) && sensorTraj().inRange(sensorToca()); }
+      void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       const KTRAJ* ktraj_; // kinematic particle trajectory
       const STRAJ* straj_; // sensor trajectory
       PDER dDdP_; // derivative of DOCA WRT Parameters
       PDER dTdP_; // derivative of Dt WRT Parameters
   };
+
+  template<class KTRAJ, class STRAJ> void TPoca<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "TPoca " << TPocaBase::statusName(status()) << " Doca " << doca() << " +- " << sqrt(docaVar())
+      << " dToca " << deltaT() << " +- " << sqrt(tocaVar()) << " cos(theta) " << dirDot() << " Precision " << precision() << std::endl;
+    if(detail > 0)
+      ost << "Particle Poca " << particlePoca() << " Sensor Poca " << sensorPoca() << std::endl;
+    if(detail > 1)
+      ost << "dDdP " << dDdP() << " dTdP " << dTdP() << std::endl;
+    if(detail > 2){
+      ost << "Particle ";
+      particleTraj().print(ost,0);
+      ost << "Sensor ";
+      sensorTraj().print(ost,0);
+    }
+  }
 
 }
 #endif
