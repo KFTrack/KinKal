@@ -39,10 +39,11 @@ namespace KinKal {
       // construct from momentum, position, and particle properties.
       // This also requires the BField
       IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom, TRange const &range = TRange());
+      IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, double bnom, TRange const &range = TRange());
       // construct from parameters
       IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      // particle position and momentum as a function of time
+      IPHelix(PDATA const &pdata, double mass, int charge, double bnom, TRange const &range = TRange());
+       // particle position and momentum as a function of time
       void position(Vec4& pos) const override; // time is input
       void position(double t,Vec3& pos) const override; // time is input
       void momentum(double t,Mom4& mom) const override;
@@ -90,6 +91,7 @@ namespace KinKal {
       double translen(const double &f) const { return cosDip() * f; }
       double arc(const double &f) const { return translen(f) * omega(); }
       double ztime(double zpos) const { return t0() + zpos / vz(); }
+
       Vec3 const &bnom() const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
