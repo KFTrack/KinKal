@@ -45,27 +45,27 @@ namespace KinKal {
       IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
       // particle position and momentum as a function of time
       void position(Vec4& pos) const ; // time is input
-      void position(double t,Vec3& pos) const ; // time is input
-      void momentum(double t,Mom4& mom) const ;
-      void velocity(double time, Vec3& vel) const ;
-      void direction(double tval,Vec3& dir) const ;
+      void position(float time,Vec3& pos) const ; // time is input
+      void momentum(float time,Mom4& mom) const ;
+      void velocity(float time, Vec3& vel) const ;
+      void direction(float time,Vec3& dir) const ;
       // scalar momentum and energy in MeV/c units
-      double momentum(double time) const  { return mass_ * pbar() / mbar_; }
-      double momentumVar(double time) const  { return -1.0; }//FIXME! 
-      double energy(double time) const  { return mass_ * ebar() / mbar_; }
+      double momentum(float time) const  { return mass_ * pbar() / mbar_; }
+      double momentumVar(float time) const  { return -1.0; }//FIXME! 
+      double energy(float time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
-      double speed(double time) const  { return CLHEP::c_light * beta(); }
+      double speed(float time) const  { return CLHEP::c_light * beta(); }
       void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
       // local momentum direction basis
-      void dirVector(MDir dir, double time, Vec3 &unit) const ;
+      void dirVector(MDir dir, float time, Vec3 &unit) const ;
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(double t) const { return trange_.inRange(t); }
+      bool inRange(float time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(MDir mdir, double time, PDER &der) const;
+      void momDeriv(MDir mdir, float time, PDER &der) const;
 
       // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }

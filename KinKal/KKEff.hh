@@ -21,9 +21,12 @@ namespace KinKal {
       typedef WData<KTRAJ::PDATA::PDim()> WDATA;
       typedef typename KTRAJ::PDATA PDATA;
       typedef PKTraj<KTRAJ> PKTRAJ;
-      // Add this effect to the ongoing fit in a give direction.  Return value indicates success
+      virtual float time() const = 0; // time of this effect
+      virtual unsigned nDOF() const = 0; // how/if this effect contributes to the measurement NDOF
+      virtual bool isActive() const = 0; // whether this effect is/was used in the fit
+       // Add this effect to the ongoing fit in a give direction.  Return value indicates success
       virtual bool process(KKDATA& kkdata,TDir tdir) = 0;
-      virtual double chisq(PDATA const& pars) const = 0; // compute chisquared WRT some parameters
+      virtual float chisq(PDATA const& pars) const = 0; // compute chisquared WRT some parameters
       // update this effect for a new refernce trajectory.  This must be overriden, but the base class implementation is still useful
       virtual bool update(PKTRAJ const& ref) = 0;
       // append this effects trajectory change (if appropriate)

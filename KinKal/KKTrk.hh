@@ -6,16 +6,16 @@
 //  It is templated on the kinematic trajectory class representing the 1-dimensional, directional
 //  path in space of a particle, satisfying the following interface:
 //      void position(Vec4& pos) const;
-//      void position(double time, Vec3& pos) const;
-//      void velocity(double time, Vec3& vel) const;
-//      double speed(double time) const;
-//      void direction(double time, Vec3& dir) const;
+//      void position(float time, Vec3& pos) const;
+//      void velocity(float time, Vec3& vel) const;
+//      double speed(float time) const;
+//      void direction(float time, Vec3& dir) const;
 //      void print(std::ostream& ost, int detail) const;
 //      void momentum(double t,Mom4& mom) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
 //      void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
-//      double momentum(double time) const; // momentum and energy magnitude in MeV/
-//      double momentumVar(double time) const; // variance on momentum value
-//      double energy(double time) const; 
+//      double momentum(float time) const; // momentum and energy magnitude in MeV/
+//      double momentumVar(float time) const; // variance on momentum value
+//      double energy(float time) const; 
 //      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
 //
 //  KKTrk is constructed from a configuration object which can be shared between many instances, and a unique set of hit and
@@ -46,15 +46,15 @@ namespace KinKal {
   // struct to define iteration configuration
   struct Config {
     int maxniter_; // maximum number of iterations for this configurations
-    double dwt_; // dweighting of initial seed covariance
-    double convdchisq_; // maximum change in chisquared for convergence
-    double divdchisq_; // minimum change in chisquared for divergence
-    double oscdchisq_; // maximum change in chisquared for oscillation
+    float dwt_; // dweighting of initial seed covariance
+    float convdchisq_; // maximum change in chisquared for convergence
+    float divdchisq_; // minimum change in chisquared for divergence
+    float oscdchisq_; // maximum change in chisquared for oscillation
     bool addmat_; // add material
     bool addfield_; // add field inhomogeneity effects
-    double tbuff_; // time buffer for final fit (ns)
-    double dtol_; // tolerance on direction change in BField integration (dimensionless)
-    double ptol_; // tolerance on position change in BField integration (mm)
+    float tbuff_; // time buffer for final fit (ns)
+    float dtol_; // tolerance on direction change in BField integration (dimensionless)
+    float ptol_; // tolerance on position change in BField integration (mm)
     int minndof_; // minimum number of DOFs to continue fit
     Config() : maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), addmat_(true), addfield_(true), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5) {} 
   };
@@ -112,7 +112,7 @@ namespace KinKal {
       for(auto& thit : thits ) {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
-	if(config_.addmat_ && thit->detCrossing() != 0){
+	if(config_.addmat_ && thit->hasMaterial()){
 	  auto iemp = effects_.emplace(std::make_unique<KKMHit<KTRAJ> >(thit,reftraj));
 	  if(!iemp.second)throw std::runtime_error("Insertion failure");
 	} else{ 
@@ -277,7 +277,7 @@ namespace KinKal {
     //    BFieldDomain domain;
     //    double tlow = reftraj_.range().low() + tstep*istep;
     //    domain.range_ = TRange(tlow,tlow+tstep);
-    //    double time = domain.range_.mid();
+    //    float time = domain.range_.mid();
     //    Vec3 tpos,fvec;
     //    reftraj_.position(time,tpos);
     //    bfield_.fieldVect(fvec,tpos);

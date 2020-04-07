@@ -9,6 +9,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
+#include "KinKal/LightHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -61,32 +62,36 @@ typedef DXing<KTRAJ> DXING;
 typedef std::shared_ptr<DXING> DXINGPTR;
 typedef StrawHit<KTRAJ> STRAWHIT;
 typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+typedef LightHit<KTRAJ> LIGHTHIT;
+typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
 typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef std::vector<THITPTR> THITCOL;
 typedef std::vector<DXINGPTR> DXINGCOL;
 
 // ugly global variables
-double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
-double ambigdoca(0.5);// minimum doca to set ambiguity
-double sigt(3); // drift time resolution in ns
-double ineff(0.0); // hit inefficiency
-double tbuff(0.1);
+float zrange(3000.0), rmax(800.0); // tracker dimension
+float sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
+float ambigdoca(-1.0);// minimum doca to set ambiguity
+float sigt(3); // drift time resolution in ns
+float ineff(0.1); // hit inefficiency
+float tbuff(0.1);
 int iseed(124223);
 unsigned nhits(40);
-double escale(5.0);
-vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(false), fitmat(false);
+float escale(5.0);
+vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
+bool simmat(true), fitmat(true), lighthit(false);
+  // time hit parameters
+float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light);
 // define the BF
 Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
 BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
-CVD2T d2t(sdrift,sigt*sigt);
+CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i\n");
 }
 
 struct KTRAJPars{
@@ -158,8 +163,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
     // construct the hit from this trajectory
     auto sxing = std::make_shared<STRAWXING>(tp,smat);
     if(TR->Uniform(0.0,1.0) > ineff){
-      STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
-      thits.push_back(std::make_shared<STRAWHIT>(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig));
+      thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambigdoca,ambig));
     } else {
       dxings.push_back(sxing);
     }
@@ -171,7 +175,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
       endpiece.momentum(tp.particleToca(),endmom);
       Vec4 endpos; endpos.SetE(tp.particleToca());
       endpiece.position(endpos);
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
       sxing->momEffects(plhel,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
@@ -213,6 +217,27 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
       plhel.append(newend);
     }
   }
+  if(lighthit && TR->Uniform(0.0,1.0) > ineff){
+    // create a LightHit at the end, axis parallel to z
+    // first, find the position at showermax.
+    Vec3 lpos, hend, lmeas;
+    plhel.position(plhel.range().high(),hend);
+    double ltime = plhel.range().high()+shmax/plhel.speed(plhel.range().high());
+    plhel.position(ltime,lpos);
+    // smear the x-y position by the transverse variance.
+    lmeas.SetX(TR->Gaus(lpos.X(),sqrt(twvar)));
+    lmeas.SetY(TR->Gaus(lpos.Y(),sqrt(twvar)));
+    // set the z position to the sensor plane (at the end of the traj)
+    lmeas.SetZ(TR->Gaus(hend.Z(),sqrt(ttvar)*vlight));
+    // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
+    double tmeas = TR->Gaus(ltime+(lpos.Z()-hend.Z())/vlight,sqrt(ttvar));
+    // create the ttraj for this:velocity is BACKWARDS along z
+    Vec3 lvel(0.0,0.0,-vlight);
+    TLine lline(lmeas,lvel,tmeas);
+    // then create the hit and add it; the hit has no material
+    thits.push_back(std::make_shared<LIGHTHIT>(lline, ttvar, twvar));
+  }
+
 //  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
   return desum;
 }
@@ -257,6 +282,7 @@ int main(int argc, char **argv) {
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
+    {"LightHit",     required_argument, 0, 'L'  },
   };
 
   int long_index =0;
@@ -290,6 +316,8 @@ int main(int argc, char **argv) {
       case 'b' : simmat = atoi(optarg);
 		 break;
       case 'f' : fitmat = atoi(optarg);
+		 break;
+      case 'L' : lighthit = atoi(optarg);
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;

@@ -24,22 +24,19 @@ namespace KinKal {
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
       typedef typename KTRAJ::PDER PDER; // forward the typedef
-      virtual double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
-      virtual bool isActive() const override { return active_ && dxing_.use_count() > 0; }
+      virtual float time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
+      virtual bool isActive() const override { return active_; }
       virtual unsigned nDOF() const override { return 0; } 
-      virtual double chisq(PDATA const& pars) const override { return 0.0; }
+      virtual float chisq(PDATA const& pars) const override { return 0.0; }
       virtual bool update(PKTRAJ const& ref) override;
+      bool update(PKTRAJ const& ref, float xtime); // used for material assocated with hits
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       bool process(KKDATA& kkdata,TDir tdir) override;
       bool append(PKTRAJ& fit) override;
-      // update for materials associated with a hit
-      bool update(PKTRAJ const& ref, TPocaBase const& tpoca);
       PDATA const& effect() const { return pdata_; }
       WDATA const& cache() const { return wdata_; }
       virtual ~KKMat(){}
-    // create from material and POCA
-      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, TPocaBase const& tdpoca, bool active = true);
-      // create from just the material and a trajectory 
+      // create from the material and a trajectory 
       KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true); 
       DXINGPTR const& detXing() const { return dxing_; }
     private:
@@ -54,16 +51,10 @@ namespace KinKal {
       bool active_;
   };
 
-   template<class KTRAJ> KKMat<KTRAJ>::KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, TPocaBase const& tdpoca, bool active) : dxing_(dxing),
-   ref_(pktraj.nearestPiece(dxing->crossingTime())) , active_(active) {
-     update(pktraj,tdpoca);
-   }
-   
    template<class KTRAJ> KKMat<KTRAJ>::KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active) : dxing_(dxing), 
    ref_(pktraj.nearestPiece(dxing->crossingTime())), active_(active) {
      update(pktraj);
    }
-
 
   template<class KTRAJ> bool KKMat<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     bool retval(false);
@@ -87,20 +78,16 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref) {
-    if(dxing_.use_count() > 0){
-      dxing_->update(ref);
-      ref_ = ref.nearestPiece(dxing_->crossingTime()); 
-      updateCache();
-    }
+    dxing_->update(ref);
+    ref_ = ref.nearestPiece(dxing_->crossingTime()); 
+    updateCache();
     return true;
   }
 
-  template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref, TPocaBase const& tdpoca)  {
-    if(dxing_.use_count() > 0){
-      dxing_->update(tdpoca);
-      ref_ = ref.nearestPiece(dxing_->crossingTime()); 
-      updateCache();
-    }
+  template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref,float xtime) {
+    dxing_->update(ref,xtime);
+    ref_ = ref.nearestPiece(dxing_->crossingTime()); 
+    updateCache();
     return true;
   }
 
@@ -110,7 +97,7 @@ namespace KinKal {
     resetCache();
     if(dxing_->matXings().size() > 0){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
@@ -135,7 +122,7 @@ namespace KinKal {
 
   template<class KTRAJ> bool KKMat<KTRAJ>::append(PKTRAJ& fit) {
     // create a trajectory piece from the cached weight
-    double time = this->time();
+    float time = this->time();
     KTRAJ newpiece(ref_);
     newpiece.params() = PDATA(wdata_);
     newpiece.range() = TRange(time,fit.range().high());
@@ -150,15 +137,14 @@ namespace KinKal {
 
   template<class KTRAJ> void KKMat<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(*this);
-    if(dxing_.use_count() > 0){
-      ost << " effect ";
-      effect().print(ost,detail);
-      dxing_->print(ost,detail);
-      if(detail >0){
-	ost << " cache ";
-	cache().print(ost,detail);
-	ost << "Reference " << ref_ << std::endl;
-      }
+    ost << " effect ";
+    effect().print(ost,detail);
+    ost << " DXing ";
+    dxing_->print(ost,detail);
+    if(detail >0){
+      ost << " cache ";
+      cache().print(ost,detail);
+      ost << "Reference " << ref_ << std::endl;
     }
   }
 

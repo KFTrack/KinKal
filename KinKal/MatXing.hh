@@ -8,8 +8,8 @@
 namespace KinKal {
   struct MatXing {
     MatEnv::DetMaterial const& dmat_; // material
-    double plen_; // path length through this material
-    MatXing(MatEnv::DetMaterial const& dmat,double plen) : dmat_(dmat), plen_(plen) {}
+    float plen_; // path length through this material
+    MatXing(MatEnv::DetMaterial const& dmat,float plen) : dmat_(dmat), plen_(plen) {}
   };
   typedef std::vector<MatXing> MatXingCol;
 }

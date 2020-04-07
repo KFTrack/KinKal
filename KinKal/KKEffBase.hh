@@ -11,10 +11,7 @@ namespace KinKal {
       enum Status{unprocessed=-1,processed,updated,failed};
       static std::string const& statusName(Status status);
       // common properties of all effects 
-      virtual double time() const = 0;
-      virtual unsigned nDOF() const = 0;
-      virtual bool isActive() const = 0;
-      Status status(TDir tdir) const { return status_[static_cast<std::underlying_type<TDir>::type>(tdir)]; }
+     Status status(TDir tdir) const { return status_[static_cast<std::underlying_type<TDir>::type>(tdir)]; }
       KKEffBase() : status_{{unprocessed,unprocessed}} {}
       virtual ~KKEffBase(){}
     protected:

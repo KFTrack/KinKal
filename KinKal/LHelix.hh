@@ -45,28 +45,28 @@ namespace KinKal {
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
       // TTraj interface 
       void position(Vec4& pos) const ; // time is input 
-      void position(double t,Vec3& pos) const ; // time is input 
-      void velocity(double time, Vec3& vel) const ;
-      void direction(double tval,Vec3& dir) const ;
-      double speed(double time) const  {  return CLHEP::c_light*beta(); }
+      void position(float time,Vec3& pos) const ; // time is input 
+      void velocity(float time, Vec3& vel) const ;
+      void direction(float time,Vec3& dir) const ;
+      double speed(float time) const  {  return CLHEP::c_light*beta(); }
       void rangeInTolerance(TRange& range, BField const& bfield, double tol) const ;
-      void dirVector(MDir dir,double time,Vec3& unit) const ;
+      void dirVector(MDir dir,float time,Vec3& unit) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(double t) const { return trange_.inRange(t); }
+      bool inRange(float time) const { return trange_.inRange(time); }
       // KInter interface
-      void momentum(double t,Mom4& mom) const ;
-      double momentum(double time) const  { return  mass_*pbar()/mbar_; }
-      double momentumVar(double time) const ;
-      double energy(double time) const  { return  mass_*ebar()/mbar_; }
+      void momentum(float time,Mom4& mom) const ;
+      double momentum(float time) const  { return  mass_*pbar()/mbar_; }
+      double momentumVar(float time) const ;
+      double energy(float time) const  { return  mass_*ebar()/mbar_; }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
-      void momDeriv(MDir mdir, double time, PDER& der) const;
+      void momDeriv(MDir mdir, float time, PDER& der) const;
       // position change derivatives; this is required to instantiate a KalTrk using this KInter
       // we only care about this along the momentum direction
-      void posDeriv(double time, PDER& der) const;
+      void posDeriv(float time, PDER& der) const;
 
      // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }

@@ -7,9 +7,9 @@
 //
 //      void momentum(double t,Mom4& mom) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
 //      void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
-//      double momentum(double time) const; // momentum and energy magnitude in MeV/
-//      double momentumVar(double time) const; // variance on momentum value
-//      double energy(double time) const; 
+//      double momentum(float time) const; // momentum and energy magnitude in MeV/
+//      double momentumVar(float time) const; // variance on momentum value
+//      double energy(float time) const; 
 //      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
 //
 //  Used as part of the kinematic Kalman fit

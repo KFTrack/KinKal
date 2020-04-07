@@ -2,7 +2,7 @@
 #define KinKal_StrawHit_hh
 //
 //  class representing a straw sensor measurement.  It assumes a (possibly displaced)
-//  circular outer cathode locally parallel to the wire.
+//  circular outer cathode locally parallel to the wire.  All the work is done in the WireHit parent.
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/WireHit.hh"
@@ -15,15 +15,14 @@ namespace KinKal {
       typedef WireHit<KTRAJ> WHIT;
       typedef THit<KTRAJ> THIT;
       typedef StrawXing<KTRAJ> STRAWXING;
-      StrawHit(BField const& bfield, PKTRAJ const& pktraj, TLine const& straj, D2T const& d2t, std::shared_ptr<STRAWXING> const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
-	WireHit<KTRAJ>(bfield,pktraj,straj,d2t,std::min(nulldoca,sxing->strawMat().strawRadius())*std::min(nulldoca,sxing->strawMat().strawRadius())/3.0,ambig,active) { // clumsy FIXME!
-	  THIT::dxing_ = sxing; }
+      typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
+      StrawHit(BField const& bfield, TLine const& straj, D2T const& d2t, STRAWXINGPTR const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
+	WireHit<KTRAJ>(sxing, bfield,straj,d2t,std::min(nulldoca,sxing->strawMat().strawRadius())*std::min(nulldoca,sxing->strawMat().strawRadius())/3.0,ambig,active) {}
       virtual float tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~StrawHit(){}
     private:
-//      std::shared_ptr<STRAWXING> sxing_; // straw material crossing information.  Not sure if this is needed FIXME!
-      // add state for longitudinal resolution, transverse resolution FIXME!
+      // add state for longitudinal resolution, transverse resolution, to use in tension measurement FIXME!
   };
 
   template<class KTRAJ> void StrawHit<KTRAJ>::print(std::ostream& ost, int detail) const {
@@ -31,8 +30,7 @@ namespace KinKal {
       ost<<"Active ";
     else
       ost<<"Inactive ";
-    ost << " StrawHit LRAmbig " << this-> ambig() << " ";
-    WireHit<KTRAJ>::poca().print(ost,detail);
+    ost << " StrawHit LRAmbig " << this-> ambig() << " " << std::endl;
   }
 }
 #endif

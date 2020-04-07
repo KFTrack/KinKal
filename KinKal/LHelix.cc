@@ -75,7 +75,7 @@ namespace KinKal {
       mbar_ = -mass_*momToRad;
     }
   
-  double LHelix::momentumVar(double time) const {
+  double LHelix::momentumVar(float time) const {
     PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());
@@ -87,9 +87,9 @@ namespace KinKal {
     pos.SetXYZT(temp.X(),temp.Y(),temp.Z(),pos.T());
   }
   
-  void LHelix::position(double t, Vec3& pos) const {
+  void LHelix::position(float time, Vec3& pos) const {
     // compute azimuthal angle
-    double df = dphi(t);
+    double df = dphi(time);
     double phival = df + phi0();
     // now compute position
     pos.SetX(cx() + rad()*sin(phival));
@@ -98,8 +98,8 @@ namespace KinKal {
     if(needsrot_) pos = brot_(pos);
  } 
 
-  void LHelix::momentum(double tval,Mom4& mom) const{
-    double phival = phi(tval);
+  void LHelix::momentum(float time,Mom4& mom) const{
+    double phival = phi(time);
     double factor = mass_/mbar_;
     mom.SetPx(factor * rad() * cos(phival));
     mom.SetPy(factor * rad() * sin(phival));
@@ -108,22 +108,22 @@ namespace KinKal {
     if(needsrot_) mom = brot_(mom);
   }
 
- void LHelix::velocity(double tval,Vec3& vel) const{
+ void LHelix::velocity(float time,Vec3& vel) const{
     Mom4 mom;
-    momentum(tval,mom);
+    momentum(time,mom);
     vel = mom.Vect()*CLHEP::c_light/fabs(Q()*ebar());
     if(needsrot_)vel = brot_(vel);
   }
 
-  void LHelix::direction(double tval,Vec3& dir) const{
+  void LHelix::direction(float time,Vec3& dir) const{
     Mom4 mom;
-    momentum(tval,mom);
+    momentum(time,mom);
     dir = mom.Vect().Unit();
     if(needsrot_)dir = brot_(dir);
   }
 
-  void LHelix::dirVector(MDir mdir,double tval,Vec3& unit) const {
-    double phival = phi(tval); // azimuth at this point
+  void LHelix::dirVector(MDir mdir,float time,Vec3& unit) const {
+    double phival = phi(time); // azimuth at this point
     double norm = 1.0/copysign(pbar(),mbar_); // sign matters!
     switch ( mdir ) {
       case theta1:
@@ -138,7 +138,7 @@ namespace KinKal {
 	unit.SetZ(0.0);
 	break;
       case momdir: // along momentum: sign matters!
-	direction(tval,unit);
+	direction(time,unit);
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");
@@ -147,7 +147,7 @@ namespace KinKal {
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters
-  void LHelix::momDeriv(MDir mdir, double time, PDER& pder) const {
+  void LHelix::momDeriv(MDir mdir, float time, PDER& pder) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
@@ -190,7 +190,7 @@ namespace KinKal {
 
   // derivatives of position.Dot(direction) WRT the 6 parameters
   // these are used to apply the continuity constraint at lossy effects
-  void LHelix::posDeriv(double time, PDER& pder) const {
+  void LHelix::posDeriv(float time, PDER& pder) const {
   // precompute some values
     double df = dphi(time);
     double phival = phi0() + df;

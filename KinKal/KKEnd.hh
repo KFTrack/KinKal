@@ -20,10 +20,10 @@ namespace KinKal {
 
       // provide interface
       virtual bool update(PKTRAJ const& ref) override;
-      virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<float>::max() : std::numeric_limits<float>::max(); } // make sure this is always at the end
+      virtual float time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<float>::max() : std::numeric_limits<float>::max(); } // make sure this is always at the end
       virtual unsigned nDOF() const override { return 0; }
       virtual bool isActive() const override { return true; }
-      virtual double chisq(PDATA const& pars) const override { return 0.0; }
+      virtual float chisq(PDATA const& pars) const override { return 0.0; }
       virtual bool process(KKDATA& kkdata,TDir tdir) override;
       virtual bool append(PKTRAJ& fit) override;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;

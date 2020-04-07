@@ -20,7 +20,7 @@ namespace KinKal {
   std::string const& TLine::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
   TLine::TLine(Vec4 const& pos0, Vec3 const& svel, TRange const& range,bool forcerange) : TLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {}
-  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range), 
+  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, float tmeas, TRange const& range, bool forcerange)  : trange_(range), 
   speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
     static const Vec3 zdir(0.0,0.0,1.0);
     double zddot = zdir.Dot(dir_);
@@ -55,20 +55,20 @@ namespace KinKal {
     pos.SetXYZT(pos3.X(),pos3.Y(),pos3.Z(),pos.T());
   }
 
-  void TLine::position(double time, Vec3& pos) const {
+  void TLine::position(float time, Vec3& pos) const {
     if(forceRange()) range().forceRange(time);
     pos = pos0() + ((time-t0())*speed())*dir();
   }
 
-  void TLine::velocity(double time, Vec3& vel) const {
+  void TLine::velocity(float time, Vec3& vel) const {
     vel = dir()*speed();
   }
 
-  void TLine::direction(double time, Vec3& dirvec) const {
+  void TLine::direction(float time, Vec3& dirvec) const {
     dirvec = dir();
   }
 
-  double TLine::speed(double time) const {
+  double TLine::speed(float time) const {
     return speed();
   }
 

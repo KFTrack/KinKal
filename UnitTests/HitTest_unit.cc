@@ -8,8 +8,10 @@
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
+#include "KinKal/LightHit.hh"
 #include "KinKal/StrawMat.hh"
 #include "KinKal/KKMHit.hh"
+#include "KinKal/Residual.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKHit.hh"
@@ -54,9 +56,12 @@ typedef DXing<KTRAJ> DXING;
 typedef std::shared_ptr<DXING> DXINGPTR;
 typedef StrawHit<KTRAJ> STRAWHIT;
 typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+typedef LightHit<KTRAJ> LIGHTHIT;
+typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
 typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef std::vector<THITPTR> THITCOL;
+typedef Residual<KTRAJ> RESIDUAL;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
@@ -118,6 +123,8 @@ int main(int argc, char **argv) {
   float ddoca(0.1);
   float scatfrac(0.995);
   double Bgrad(0.0), By(0.0);
+  // time hit parameters
+  float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -183,7 +190,7 @@ int main(int argc, char **argv) {
   } else {
     BF = new UniformBField(bnom);
   }
-  CVD2T d2t(sdrift,sigt*sigt);
+  CVD2T d2t(sdrift,sigt*sigt,rstraw);
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -245,10 +252,10 @@ int main(int argc, char **argv) {
       ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
     auto sxing = std::make_shared<STRAWXING>(tp,smat);
     // construct the hit from this trajectory
-    thits.push_back(std::make_shared<STRAWHIT>(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig));
+    thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambigdoca,ambig));
    // compute residual
-    Residual res;
-    thits.back()->resid(res);
+    RESIDUAL  res;
+    thits.back()->resid(plhel,res);
     cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
@@ -280,13 +287,28 @@ int main(int argc, char **argv) {
     gwscat->SetPoint(ihit,fabs(tp.doca()),wscat);
 
     KKMHit<LHelix> kmh(thits.back(),plhel);
-    auto const& km = kmh.mat();
-    cout << "KKMat effect" << km.effect().parameters() << endl << km.effect().diagonal()  << endl;
-    for(auto const& mx : km.detXing()->matXings() ) {
-      cout << "Mat Xing material " << mx.dmat_.name() << " pathlen " << mx.plen_ << endl;
-    }
-
+    kmh.print(cout,1);
   }
+  // create a LightHit at the end, axis parallel to z
+  // first, find the position at showermax.
+  Vec3 lpos, hend, lmeas;
+  plhel.position(plhel.range().high(),hend);
+  double ltime = plhel.range().high()+shmax/plhel.speed(plhel.range().high());
+  plhel.position(ltime,lpos);
+  // smear the x-y position by the transverse variance.
+  lmeas.SetX(TR->Gaus(lpos.X(),sqrt(twvar)));
+  lmeas.SetY(TR->Gaus(lpos.Y(),sqrt(twvar)));
+  // set the z position to the sensor plane (at the end of the traj)
+  lmeas.SetZ(TR->Gaus(hend.Z(),sqrt(ttvar)*vlight));
+  // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
+  double tmeas = TR->Gaus(ltime+(lpos.Z()-hend.Z())/vlight,sqrt(ttvar));
+  // create the ttraj for this:velocity is BACKWARDS along z
+  Vec3 lvel(0.0,0.0,-vlight);
+  TLine lline(lmeas,lvel,tmeas);
+  // then create the hit and add it; the hit has no material
+  LIGHTHIT lhit(lline, ttvar, twvar);
+  lhit.print();
+
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();
   rulers->GetXaxis()->SetAxisColor(kBlue);
@@ -322,15 +344,15 @@ int main(int argc, char **argv) {
       // update the hits
       for(auto& thit : thits) {
 	KKHit kkhit(thit,plhel);
-	Residual ores = kkhit.refResid(); // original residual
+	RESIDUAL ores = kkhit.refResid(); // original residual
 	kkhit.update(modplhel);// refer to moded helix
-	Residual mres = kkhit.refResid();
+	RESIDUAL mres = kkhit.refResid();
 	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement
 	// compare the change with the expected from the derivatives
 	kkhit.update(plhel);// refer back to original
-	auto pder = kkhit.dRdP();
+	auto pder = ores.dRdP();
 	double ddr = ROOT::Math::Dot(pder,dpvec);
 	hderivg[ipar]->SetPoint(ipt++,dr,ddr);
       }
