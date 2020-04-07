@@ -68,6 +68,8 @@ typedef StrawXing<KTRAJ> STRAWXING;
 typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef std::vector<THITPTR> THITCOL;
 typedef std::vector<DXINGPTR> DXINGCOL;
+typedef Residual<KTRAJ> RESIDUAL;
+typedef TPoca<PKTRAJ,TLine> TPOCA;
 
 // ugly global variables
 float zrange(3000.0), rmax(800.0); // tracker dimension
@@ -80,9 +82,9 @@ int iseed(124223);
 unsigned nhits(40);
 float escale(5.0);
 vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), fitmat(true), lighthit(false);
+bool simmat(true), fitmat(true), lighthit(true);
   // time hit parameters
-float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light);
+float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
 Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
@@ -115,25 +117,15 @@ KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
   Vec3 drift = (sdir.Cross(hdir)).Unit();
   Vec3 dpos = hpos.Vect() + rdrift*drift;
 //  cout << "Generating hit at position " << dpos << endl;
-  // find the ends where this reaches the cylinder
-  double drho = dpos.Rho();
-  double ddot = dpos.Dot(sdir);
-  double shlen = sqrt(rmax*rmax + ddot*ddot - drho*drho); // straw half-length
-  // choose the closest end to be the measurement end
-  double rprop = (fabs(-ddot-shlen) < fabs(-ddot+shlen)) ?  -ddot-shlen : -ddot+shlen;
-  // sign propagation velocity away from the measurement
-  if(rprop>0){
-    sdir *= -1.0;
-    rprop *= -1.0;
-  }
-  Vec3 mpos = dpos - sdir*rprop;
+  double dprop = TR->Uniform(0.0,rmax);
+  Vec3 mpos = dpos + sdir*dprop;
   Vec3 vprop = sdir*sprop;
   // measured time is after propagation and drift
-  double tmeas = hpos.T() + fabs(rprop)/sprop + fabs(rdrift)/sdrift;
+  double tmeas = htime + dprop/sprop + fabs(rdrift)/sdrift;
   // smear measurement time
   tmeas = TR->Gaus(tmeas,sigt);
-  // measurement time is the longest time
-  TRange trange(tmeas-2.0*shlen/sprop,tmeas);
+  // range doesn't really matter
+  TRange trange(tmeas-dprop/sprop,tmeas+dprop/sprop);
   // construct the trajectory for this hit
   return TLine(mpos,vprop,tmeas,trange);
 }
@@ -181,7 +173,6 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	auto mdir = static_cast<KInter::MDir>(idir);
 	double momsig = sqrt(momvar[idir]);
 	double dm;
-//	double land;
 	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
 	switch( mdir ) {
 	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
@@ -189,14 +180,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	    dscatsum += dm;
 	    break;
 	  case KinKal::KInter::momdir :
-	    // truncated Landau for the energy loss
-//	    land = 1e5;
-//	    while(land > fabs(momsig/dmom))
-//	      land = TR->Landau(1.0,0.1); // can't use variance
-//	    dm = std::min(0.0,dmom*land/1.25);
-//	    dm = std::min(0.0,TR->Gaus(dmom,momsig));
 	    dm = std::min(0.0,TR->Gaus(dmom[idir],momsig));
-//	    dm = dmom;
 	    desum += dm*mom;
 	    break;
 	  default:
@@ -207,7 +191,6 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.particleToca(),dmvec);
 	dmvec *= dm*mom;
-//	dmvec *= 0.0;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }
 	// terminate if there is catastrophic energy loss
@@ -220,22 +203,35 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
   if(lighthit && TR->Uniform(0.0,1.0) > ineff){
     // create a LightHit at the end, axis parallel to z
     // first, find the position at showermax.
-    Vec3 lpos, hend, lmeas;
-    plhel.position(plhel.range().high(),hend);
-    double ltime = plhel.range().high()+shmax/plhel.speed(plhel.range().high());
-    plhel.position(ltime,lpos);
+    Vec3 shmpos, hend, lmeas;
+    float cstart = plhel.range().high() + 0.5;
+    plhel.position(cstart,hend);
+    float ltime = cstart + shmax/plhel.speed(cstart);
+    plhel.position(ltime,shmpos); // true position at shower-max
     // smear the x-y position by the transverse variance.
-    lmeas.SetX(TR->Gaus(lpos.X(),sqrt(twvar)));
-    lmeas.SetY(TR->Gaus(lpos.Y(),sqrt(twvar)));
-    // set the z position to the sensor plane (at the end of the traj)
-    lmeas.SetZ(TR->Gaus(hend.Z(),sqrt(ttvar)*vlight));
+    lmeas.SetX(TR->Gaus(shmpos.X(),sqrt(twvar)));
+    lmeas.SetY(TR->Gaus(shmpos.Y(),sqrt(twvar)));
+    // set the z position to the sensor plane (end of the crystal)
+    lmeas.SetZ(hend.Z()+clen);
     // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
-    double tmeas = TR->Gaus(ltime+(lpos.Z()-hend.Z())/vlight,sqrt(ttvar));
-    // create the ttraj for this:velocity is BACKWARDS along z
-    Vec3 lvel(0.0,0.0,-vlight);
+    float tmeas = TR->Gaus(ltime+(lmeas.Z()-shmpos.Z())/vlight,sqrt(ttvar));
+    // create the ttraj for the light propagation
+    Vec3 lvel(0.0,0.0,vlight);
     TLine lline(lmeas,lvel,tmeas);
     // then create the hit and add it; the hit has no material
     thits.push_back(std::make_shared<LIGHTHIT>(lline, ttvar, twvar));
+ // test
+//    cout << "cstart " << cstart << " pos " << hend << endl;
+//    cout << "shmax " << ltime << " pos " << shmpos  << endl;
+//    Vec3 lhpos;
+//    lline.position(tmeas,lhpos);
+//    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
+//    RESIDUAL lres;
+//    thits.back()->resid(plhel,lres);
+//    cout << "LightHit " << lres << endl;
+//    TPOCA tpl(plhel,lline);
+//    cout <<"Light TPOCA ";
+//    tpl.print(cout,2);
   }
 
 //  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
@@ -591,28 +587,28 @@ int main(int argc, char **argv) {
     fdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fdpcan->cd(ipar+1);
-      fdpgenh[ipar]->Fit("gaus");
+      fdpgenh[ipar]->Fit("gaus","q");
     }
     fdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bdpcan->cd(ipar+1);
-      bdpgenh[ipar]->Fit("gaus");
+      bdpgenh[ipar]->Fit("gaus","q");
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
-      fdpullgenh[ipar]->Fit("gaus");
+      fdpullgenh[ipar]->Fit("gaus","q");
     }
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
-      bdpullgenh[ipar]->Fit("gaus");
+      bdpullgenh[ipar]->Fit("gaus","q");
     }
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);

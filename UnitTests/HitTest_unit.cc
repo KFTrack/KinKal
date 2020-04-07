@@ -298,16 +298,24 @@ int main(int argc, char **argv) {
   // smear the x-y position by the transverse variance.
   lmeas.SetX(TR->Gaus(lpos.X(),sqrt(twvar)));
   lmeas.SetY(TR->Gaus(lpos.Y(),sqrt(twvar)));
-  // set the z position to the sensor plane (at the end of the traj)
-  lmeas.SetZ(TR->Gaus(hend.Z(),sqrt(ttvar)*vlight));
+  // set the z position to the sensor plane (end of the crystal)
+  lmeas.SetZ(hend.Z()+200.0);
   // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
-  double tmeas = TR->Gaus(ltime+(lpos.Z()-hend.Z())/vlight,sqrt(ttvar));
-  // create the ttraj for this:velocity is BACKWARDS along z
-  Vec3 lvel(0.0,0.0,-vlight);
+  double tmeas = TR->Gaus(ltime+(lmeas.Z()-lpos.Z())/vlight,sqrt(ttvar));
+  // create the ttraj for light propagation
+  Vec3 lvel(0.0,0.0,vlight);
   TLine lline(lmeas,lvel,tmeas);
   // then create the hit and add it; the hit has no material
   LIGHTHIT lhit(lline, ttvar, twvar);
   lhit.print();
+  Vec3 lhpos;
+  lline.position(ltime,lhpos);
+  // test
+  cout << "plhel pos " << lpos << endl;
+  cout << "lhit pos " << lhpos << endl;
+  RESIDUAL lres;
+  lhit.resid(plhel,lres);
+  cout << lres << endl;
 
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();

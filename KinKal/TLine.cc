@@ -23,30 +23,12 @@ namespace KinKal {
   TLine::TLine(Vec3 const& pos0, Vec3 const& svel, float tmeas, TRange const& range, bool forcerange)  : trange_(range), 
   speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
     static const Vec3 zdir(0.0,0.0,1.0);
-    double zddot = zdir.Dot(dir_);
-    double stheta2 = (1.0 -zddot*zddot);
+    float zddot = zdir.Dot(dir_);
     param(cost_) = zddot;
-    // separate into cases: parallel to z axis is special
-    if(zddot > 1.0e-5){
-      // find the POCA with the z axis; this defines the reference point
-      double pddot = pos0_.Dot(dir_);
-      double slen = (pos0_.Z()*zddot - pddot)/stheta2;
-      auto poca = pos0_ + dir_*slen;
-      param(d0_) = poca.Rho();
-      param(phi0_) = atan2(poca.Y(),poca.X());
-      param(z0_) = poca.Z();
-      // check
-      if(fabs(poca.Z()+(pddot*zddot - pos0_.Z())/stheta2) > 1e-5)
-	throw std::range_error("POCA calculation failed!");
-      // move the time to POCA
-      param(t0_) = tmeas - slen/speed_;
-    } else {
-      // define parameters using the reference point
-      param(d0_) = pos0_.Rho();
-      param(phi0_) = atan2(pos0_.Y(),pos0_.X());
-      param(z0_) = pos0_.Z();
-      param(t0_) = tmeas;
-    }
+    param(d0_) = pos0_.Rho();
+    param(phi0_) = atan2(pos0_.Y(),pos0_.X());
+    param(z0_) = pos0_.Z();
+    param(t0_) = tmeas;
   }
 
   void TLine::position(Vec4& pos) const {
