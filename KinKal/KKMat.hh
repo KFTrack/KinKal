@@ -24,93 +24,75 @@ namespace KinKal {
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
       typedef typename KTRAJ::PDER PDER; // forward the typedef
-      virtual double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
-      virtual bool isActive() const override { return active_ && dxing_.use_count() > 0; }
-      virtual unsigned nDOF() const override { return 0; } 
-      virtual double chisq(PDATA const& pars) const override { return 0.0; }
-      virtual bool update(PKTRAJ const& ref) override;
+      virtual float time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
+      virtual bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
+      virtual void update(PKTRAJ const& ref) override;
+      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
-      bool process(KKDATA& kkdata,TDir tdir) override;
-      bool append(PKTRAJ& fit) override;
-      // update for materials associated with a hit
-      bool update(PKTRAJ const& ref, TPocaBase const& tpoca);
-      PDATA const& effect() const { return pdata_; }
-      WDATA const& cache() const { return wdata_; }
+      virtual void process(KKDATA& kkdata,TDir tdir) override;
+      virtual void append(PKTRAJ& fit) override;
+      PDATA const& effect() const { return mateff_; }
+      WDATA const& cache() const { return cache_; }
+      void setTime(float time) { dxing_->crossingTime() = time; }
       virtual ~KKMat(){}
-    // create from material and POCA
-      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, TPocaBase const& tdpoca, bool active = true);
-      // create from just the material and a trajectory 
+      // create from the material and a trajectory 
       KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true); 
       DXINGPTR const& detXing() const { return dxing_; }
     private:
       // update the local cache
       void updateCache();
-      // reset the cache. this must be done for each update cycle
-      void resetCache() { wdata_ = WDATA(); pdata_ = PDATA();}
       DXINGPTR dxing_; // detector piece crossing for this effect
       KTRAJ ref_; // reference to local trajectory
-      PDATA pdata_; // parameter space description of this effect
-      WDATA wdata_; // cache of weight processing in opposite directions, used to build the fit trajectory
+      PDATA mateff_; // parameter space description of this effect
+      WDATA cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
       bool active_;
   };
 
-   template<class KTRAJ> KKMat<KTRAJ>::KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, TPocaBase const& tdpoca, bool active) : dxing_(dxing),
-   ref_(pktraj.nearestPiece(dxing->crossingTime())) , active_(active) {
-     update(pktraj,tdpoca);
-   }
-   
    template<class KTRAJ> KKMat<KTRAJ>::KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active) : dxing_(dxing), 
    ref_(pktraj.nearestPiece(dxing->crossingTime())), active_(active) {
      update(pktraj);
    }
 
-
-  template<class KTRAJ> bool KKMat<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
-    bool retval(false);
+  template<class KTRAJ> void KKMat<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     if(this->isActive()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards) {
-	kkdata.append(pdata_);
-	wdata_ += kkdata.wData();
+	kkdata.append(mateff_);
+	cache_ += kkdata.wData();
       } else {
       // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
-	wdata_ += kkdata.wData();
+	cache_ += kkdata.wData();
 	// SUBTRACT the effect going backwards: covariance change is sign-independent
-	PDATA reverse(pdata_);
+	PDATA reverse(mateff_);
 	reverse.parameters() *= -1.0;
       	kkdata.append(reverse);
       }
-      retval = kkdata.pData().matrixOK();
     }
     KKEffBase::setStatus(tdir,KKEffBase::processed);
-    return retval;
   }
 
-  template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref) {
-    if(dxing_.use_count() > 0){
+  template<class KTRAJ> void KKMat<KTRAJ>::update(PKTRAJ const& ref) {
+    cache_ = WDATA();
+    ref_ = ref.nearestPiece(dxing_->crossingTime()); 
+    updateCache();
+    KKEffBase::updateStatus();
+  }
+
+  template<class KTRAJ> void KKMat<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) { 
+// update activity
+    active_ = mconfig.processmat_;
+    if(active_){
+    // update the detector Xings for this effect
       dxing_->update(ref);
-      ref_ = ref.nearestPiece(dxing_->crossingTime()); 
-      updateCache();
+      update(ref);
     }
-    return true;
-  }
-
-  template<class KTRAJ> bool KKMat<KTRAJ>::update(PKTRAJ const& ref, TPocaBase const& tdpoca)  {
-    if(dxing_.use_count() > 0){
-      dxing_->update(tdpoca);
-      ref_ = ref.nearestPiece(dxing_->crossingTime()); 
-      updateCache();
-    }
-    return true;
   }
 
   template<class KTRAJ> void KKMat<KTRAJ>::updateCache() {
-    // update the reference trajectory
-    KKEffBase::updateStatus();
-    resetCache();
+    mateff_ = PDATA();
     if(dxing_->matXings().size() > 0){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
@@ -121,44 +103,41 @@ namespace KinKal {
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
 	dPdm.Place_in_col(pder,0,0);
 	// update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
-	this->pdata_.parameters() += pder*dmom[idir];
+	mateff_.parameters() += pder*dmom[idir];
 	// now the variance: this doesn't depend on time direction
 	ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
 	MVar(0,0) = momvar[idir];
-	this->pdata_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
+	mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
       }
-    } else {
-      // no material crossings: deactive this effect
-      active_ = false;
     }
   }
 
-  template<class KTRAJ> bool KKMat<KTRAJ>::append(PKTRAJ& fit) {
-    // create a trajectory piece from the cached weight
-    double time = this->time();
-    KTRAJ newpiece(ref_);
-    newpiece.params() = PDATA(wdata_);
-    newpiece.range() = TRange(time,fit.range().high());
-    // make sure the piece is appendable
-    if(time > fit.back().range().low()){
-      fit.append(newpiece);
-    } else {
-      return false;
+  template<class KTRAJ> void KKMat<KTRAJ>::append(PKTRAJ& fit) {
+    if(isActive()){
+      // create a trajectory piece from the cached weight
+      float time = this->time();
+      KTRAJ newpiece(ref_);
+      newpiece.params() = PDATA(cache_);
+      newpiece.range() = TRange(time,fit.range().high());
+      // make sure the piece is appendable
+      if(time > fit.back().range().low()){
+	fit.append(newpiece);
+      } else {
+	throw std::invalid_argument("Can't append piece");
+      }
     }
-    return true;
   }
 
   template<class KTRAJ> void KKMat<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(*this);
-    if(dxing_.use_count() > 0){
-      ost << " effect ";
-      effect().print(ost,detail);
-      dxing_->print(ost,detail);
-      if(detail >0){
-	ost << " cache ";
-	cache().print(ost,detail);
-	ost << "Reference " << ref_ << std::endl;
-      }
+    ost << " effect ";
+    effect().print(ost,detail);
+    ost << " DXing ";
+    dxing_->print(ost,detail);
+    if(detail >0){
+      ost << " cache ";
+      cache().print(ost,detail);
+      ost << "Reference " << ref_ << std::endl;
     }
   }
 

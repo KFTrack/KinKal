@@ -19,8 +19,9 @@ namespace KinKal {
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       PDER const& dDdP() const { return dDdP_; }
       PDER const& dTdP() const { return dTdP_; }
-       // construct from the particle and sensor trajectories; POCA is computed on construction.  Should allow 'hints' to the toca values FIXME!
-      TPoca(KTRAJ const& ktraj, STRAJ const& straj, double precision=0.01);
+      // construct from the particle and sensor trajectories; POCA is computed on construction, using possible hints
+      // default precision = 1 Ps (~300 um) along the trajectories
+      TPoca(KTRAJ const& ktraj, STRAJ const& straj, TPocaHint const& hint=TPocaHint(), float precision=0.001);
       // accessors
       KTRAJ const& particleTraj() const { return *ktraj_; }
       STRAJ const& sensorTraj() const { return *straj_; }

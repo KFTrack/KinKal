@@ -103,7 +103,7 @@ namespace KinKal {
     pos.SetPz(z0() + l * tanDip());
   }
 
-  void IPHelix::position(double t, Vec3 &pos) const
+  void IPHelix::position(float t, Vec3 &pos) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
@@ -119,7 +119,7 @@ namespace KinKal {
     pos.SetZ(z0() + l * tanDip());
   }
 
-  void IPHelix::momentum(double tval, Mom4 &mom) const
+  void IPHelix::momentum(float tval, Mom4 &mom) const
   {
     double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
     mom.SetPx(Q() / omega() * cos(phi0() + omega() * l));
@@ -150,24 +150,24 @@ namespace KinKal {
     return phi0() + arc(f);
   }
 
-  void IPHelix::velocity(double tval, Vec3 &vel) const
+  void IPHelix::velocity(float time, Vec3 &vel) const
   {
     Mom4 mom;
-    momentum(tval, mom);
+    momentum(time, mom);
     vel = mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
-  void IPHelix::direction(double tval, Vec3 &dir) const
+  void IPHelix::direction(float time, Vec3 &dir) const
   {
     Mom4 mom;
-    momentum(tval, mom);
+    momentum(time, mom);
     dir = mom.Vect().Unit();
   }
 
-  void IPHelix::dirVector(MDir dir, double tval, Vec3 &unit) const
+  void IPHelix::dirVector(MDir dir, float time, Vec3 &unit) const
   {
     // FIXME: these formulas need to be verified
-    double phival = phi(tval);                   // azimuth at this point
+    double phival = phi(time);                   // azimuth at this point
     // double norm = 1.0 / copysign(pbar(), mbar_); // sign matters!
     double sinval = sinDip();
     double cosval = cosDip();
@@ -186,14 +186,14 @@ namespace KinKal {
       unit.SetZ(0.0);
       break;
     case momdir: // along momentum: sign matters!
-      direction(tval, unit);
+      direction(time, unit);
       break;
     default:
       throw std::invalid_argument("Invalid direction");
     }
   }
 
-  void IPHelix::momDeriv(MDir mdir, double time, PDER &pder) const
+  void IPHelix::momDeriv(MDir mdir, float time, PDER &pder) const
   {
     // FIXME: these formulas need to be verified
     // compute some useful quantities

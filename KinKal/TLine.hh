@@ -21,7 +21,7 @@ namespace KinKal {
       // construct from a spacepoint and propagation velocity (mm/ns)
       // by default, the line has infinite unforced range
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
-      TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
+      TLine(Vec3 const& p0, Vec3 const& svel, float tmeas, TRange const& range=TRange(),bool forcerange=false);
       PDATA const& params() const { return pars_; }
     // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
@@ -46,15 +46,15 @@ namespace KinKal {
 
       // geometric accessors
       void position(Vec4& pos) const ;
-      void position(double time, Vec3& pos) const ;
-      void velocity(double time, Vec3& vel) const ;
-      void direction(double time, Vec3& dir) const ;
-      double speed(double time) const ;
+      void position(float time, Vec3& pos) const ;
+      void velocity(float time, Vec3& vel) const ;
+      void direction(float time, Vec3& dir) const ;
+      double speed(float time) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       virtual void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(double t) const { return trange_.inRange(t); }
+      bool inRange(float time) const { return trange_.inRange(time); }
 
     private:
       TRange trange_;

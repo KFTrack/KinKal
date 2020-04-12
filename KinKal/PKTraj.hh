@@ -28,15 +28,15 @@ namespace KinKal {
 	PTTRAJ::prepend(newpiece,allowremove);
       }
       // base class s; these just rely on the PKTraj to find the appropriate piece
-      void dirVector(MDir mdir,double time,Vec3& unit) const  {
+      void dirVector(MDir mdir,float time,Vec3& unit) const  {
 	PTTRAJ::nearestPiece(time).dirVector(mdir,time,unit);
       }
-      void momentum(double time,Mom4& mom) const  {
+      void momentum(float time,Mom4& mom) const  {
 	PTTRAJ::nearestPiece(time).momentum(time,mom);
       }
-      double momentum(double time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
-      double momentumVar(double time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
-      double energy(double time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
+      double momentum(float time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
+      double momentumVar(float time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
+      double energy(float time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
       void rangeInTolerance(TRange& range, BField const& bfield, double tol) const  {
 	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
   };

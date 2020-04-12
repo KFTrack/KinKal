@@ -102,7 +102,7 @@ def defineMergeFlags( debug_level):
        extraFlags = [ '-O3', '-fno-omit-frame-pointer', '-DNDEBUG' ]
        pass
    if debug_level == 'debug':
-       extraFlags = [ '-O0' ]
+       extraFlags = [ '-O0', '-ferror-limit=0'  ]
        pass
    return [ commonFlags, extraFlags ]
 

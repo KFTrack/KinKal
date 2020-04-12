@@ -50,7 +50,7 @@ namespace KinKal {
       }
       void print(std::ostream& ost=std::cout,int detail=0) const {
 	ost << "PData params " << parameters() << std::endl;
-	if(detail > 0)
+	if(detail > 1)
 	  ost << "covariance " << covariance() << std::endl;
       }
     private:

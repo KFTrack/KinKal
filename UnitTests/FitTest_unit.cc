@@ -9,8 +9,10 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
+#include "KinKal/LightHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
+#include "KinKal/KKConfig.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
@@ -53,48 +55,66 @@ using namespace std;
 using KinKal::TLine;
 // define the typedefs: to change to a different trajectory implementation, just change this line
 typedef LHelix KTRAJ;
-typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
-typedef KinKal::KKTrk<KTRAJ> KKTRK;
+typedef PKTraj<KTRAJ> PKTRAJ;
+typedef KKTrk<KTRAJ> KKTRK;
+typedef shared_ptr<KKConfig> KKCONFIGPTR;
 typedef THit<KTRAJ> THIT;
 typedef std::shared_ptr<THIT> THITPTR;
 typedef DXing<KTRAJ> DXING;
 typedef std::shared_ptr<DXING> DXINGPTR;
 typedef StrawHit<KTRAJ> STRAWHIT;
 typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+typedef LightHit<KTRAJ> LIGHTHIT;
+typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
-typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-typedef std::vector<THITPTR> THITCOL;
-typedef std::vector<DXINGPTR> DXINGCOL;
+typedef shared_ptr<STRAWXING> STRAWXINGPTR;
+typedef vector<THITPTR> THITCOL;
+typedef vector<DXINGPTR> DXINGCOL;
+typedef Residual<KTRAJ> RESIDUAL;
+typedef TPoca<PKTRAJ,TLine> TPOCA;
 
 // ugly global variables
-double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
-double ambigdoca(0.5);// minimum doca to set ambiguity
-double sigt(3); // drift time resolution in ns
-double ineff(0.0); // hit inefficiency
-double tbuff(0.1);
+float zrange(3000.0), rmax(800.0); // tracker dimension
+float sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
+float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
+float sigt(3); // drift time resolution in ns
+float ineff(0.1); // hit inefficiency
+float tbuff(0.1);
 int iseed(124223);
 unsigned nhits(40);
-double escale(5.0);
-vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(false), fitmat(false);
+float escale(5.0);
+vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
+bool simmat(true), lighthit(true), updatehits(false);
+  // time hit parameters
+float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
 Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
 BField* BF(0);
 TRandom* TR = new TRandom3(iseed);
-CVD2T d2t(sdrift,sigt*sigt);
+CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i\n");
 }
 
 struct KTRAJPars{
-  Float_t pars_[6];
+  Float_t pars_[KTRAJ::NParams()];
   static std::string leafnames() {
-    return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f");
+    std::string names;
+    for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
+      names +=KTRAJ::paramName(static_cast<KTRAJ::ParamIndex>(ipar)) + string("/f");
+      if(ipar < KTRAJ::NParams()-1)names += ":";
+    }
+    return names;
   }
 };
+
+struct KKHitInfo {
+  Float_t resid_, residvar_, chiref_, chifit_;
+  static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
+};
+
 
 // helper function
 KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
@@ -110,25 +130,15 @@ KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
   Vec3 drift = (sdir.Cross(hdir)).Unit();
   Vec3 dpos = hpos.Vect() + rdrift*drift;
 //  cout << "Generating hit at position " << dpos << endl;
-  // find the ends where this reaches the cylinder
-  double drho = dpos.Rho();
-  double ddot = dpos.Dot(sdir);
-  double shlen = sqrt(rmax*rmax + ddot*ddot - drho*drho); // straw half-length
-  // choose the closest end to be the measurement end
-  double rprop = (fabs(-ddot-shlen) < fabs(-ddot+shlen)) ?  -ddot-shlen : -ddot+shlen;
-  // sign propagation velocity away from the measurement
-  if(rprop>0){
-    sdir *= -1.0;
-    rprop *= -1.0;
-  }
-  Vec3 mpos = dpos - sdir*rprop;
+  double dprop = TR->Uniform(0.0,rmax);
+  Vec3 mpos = dpos + sdir*dprop;
   Vec3 vprop = sdir*sprop;
   // measured time is after propagation and drift
-  double tmeas = hpos.T() + fabs(rprop)/sprop + fabs(rdrift)/sdrift;
+  double tmeas = htime + dprop/sprop + fabs(rdrift)/sdrift;
   // smear measurement time
   tmeas = TR->Gaus(tmeas,sigt);
-  // measurement time is the longest time
-  TRange trange(tmeas-2.0*shlen/sprop,tmeas);
+  // range doesn't really matter
+  TRange trange(tmeas-dprop/sprop,tmeas+dprop/sprop);
   // construct the trajectory for this hit
   return TLine(mpos,vprop,tmeas,trange);
 }
@@ -158,8 +168,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
     // construct the hit from this trajectory
     auto sxing = std::make_shared<STRAWXING>(tp,smat);
     if(TR->Uniform(0.0,1.0) > ineff){
-      STRAWHIT sh(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig);
-      thits.push_back(std::make_shared<STRAWHIT>(*BF, plhel, tline, d2t,sxing,ambigdoca,ambig));
+      thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambig));
     } else {
       dxings.push_back(sxing);
     }
@@ -171,13 +180,12 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
       endpiece.momentum(tp.particleToca(),endmom);
       Vec4 endpos; endpos.SetE(tp.particleToca());
       endpiece.position(endpos);
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
       sxing->momEffects(plhel,TDir::forwards, dmom, momvar);
       for(int idir=0;idir<=KInter::theta2; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
 	double momsig = sqrt(momvar[idir]);
 	double dm;
-//	double land;
 	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
 	switch( mdir ) {
 	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
@@ -185,14 +193,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	    dscatsum += dm;
 	    break;
 	  case KinKal::KInter::momdir :
-	    // truncated Landau for the energy loss
-//	    land = 1e5;
-//	    while(land > fabs(momsig/dmom))
-//	      land = TR->Landau(1.0,0.1); // can't use variance
-//	    dm = std::min(0.0,dmom*land/1.25);
-//	    dm = std::min(0.0,TR->Gaus(dmom,momsig));
 	    dm = std::min(0.0,TR->Gaus(dmom[idir],momsig));
-//	    dm = dmom;
 	    desum += dm*mom;
 	    break;
 	  default:
@@ -203,7 +204,6 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.particleToca(),dmvec);
 	dmvec *= dm*mom;
-//	dmvec *= 0.0;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }
 	// terminate if there is catastrophic energy loss
@@ -213,6 +213,40 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
       plhel.append(newend);
     }
   }
+  if(lighthit && TR->Uniform(0.0,1.0) > ineff){
+    // create a LightHit at the end, axis parallel to z
+    // first, find the position at showermax.
+    Vec3 shmpos, hend, lmeas;
+    float cstart = plhel.range().high() + 0.5;
+    plhel.position(cstart,hend);
+    float ltime = cstart + shmax/plhel.speed(cstart);
+    plhel.position(ltime,shmpos); // true position at shower-max
+    // smear the x-y position by the transverse variance.
+    lmeas.SetX(TR->Gaus(shmpos.X(),sqrt(twvar)));
+    lmeas.SetY(TR->Gaus(shmpos.Y(),sqrt(twvar)));
+    // set the z position to the sensor plane (end of the crystal)
+    lmeas.SetZ(hend.Z()+clen);
+    // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
+    float tmeas = TR->Gaus(ltime+(lmeas.Z()-shmpos.Z())/vlight,sqrt(ttvar));
+    // create the ttraj for the light propagation
+    Vec3 lvel(0.0,0.0,vlight);
+    TLine lline(lmeas,lvel,tmeas);
+    // then create the hit and add it; the hit has no material
+    thits.push_back(std::make_shared<LIGHTHIT>(lline, ttvar, twvar));
+ // test
+//    cout << "cstart " << cstart << " pos " << hend << endl;
+//    cout << "shmax " << ltime << " pos " << shmpos  << endl;
+//    Vec3 lhpos;
+//    lline.position(tmeas,lhpos);
+//    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
+//    RESIDUAL lres;
+//    thits.back()->resid(plhel,lres);
+//    cout << "LightHit " << lres << endl;
+//    TPOCA tpl(plhel,lline);
+//    cout <<"Light TPOCA ";
+//    tpl.print(cout,2);
+  }
+
 //  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
   return desum;
 }
@@ -227,6 +261,8 @@ int main(int argc, char **argv) {
   int imass(0), icharge(-1);
   double pmass;
   unsigned maxniter(10);
+  unsigned nmeta(2);
+  float maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
@@ -246,8 +282,9 @@ int main(int argc, char **argv) {
     {"ineff",     required_argument, 0, 'i'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
+    {"nmeta",     required_argument, 0, 'M'  },
+    {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
-    {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"convdchisq",     required_argument, 0, 'C'  },
@@ -257,6 +294,8 @@ int main(int argc, char **argv) {
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
+    {"LightHit",     required_argument, 0, 'L'  },
+    {"UpdateHits",     required_argument, 0, 'U'  },
   };
 
   int long_index =0;
@@ -285,11 +324,17 @@ int main(int argc, char **argv) {
 		 break;
       case 'e' : escale = atof(optarg);
 		 break;
+      case 'M' : nmeta = atoi(optarg);
+		 break;
       case 'x' : maxniter = atoi(optarg);
+		 break;
+      case 'X' : maxtemp = atof(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
-      case 'f' : fitmat = atoi(optarg);
+      case 'L' : lighthit = atoi(optarg);
+		 break;
+      case 'U' : updatehits = atoi(optarg);
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
@@ -359,12 +404,25 @@ int main(int argc, char **argv) {
   createSeed(seedhel);
   cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
-  Config config;
-  config.dwt_ = 1.0e6;
-  config.convdchisq_ = convdchisq;
-  config.maxniter_ = maxniter;
-  config.addmat_ = fitmat;
-  KKTRK kktrk(seedhel,*BF,thits,dxings,config);
+  KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
+  configptr->dwt_ = 1.0e6;
+  configptr->convdchisq_ = convdchisq;
+  configptr->maxniter_ = maxniter;
+  // add schedule; MC-truth based ambiguity
+  MConfig mconfig;
+  mconfig.processmat_ = mconfig.processbfield_ =  true;
+  mconfig.updatehits_ = updatehits;
+  mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
+  float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
+  float temp = maxtemp;
+  for(unsigned imeta = 0; imeta< nmeta+1; imeta++){
+    mconfig.temp_ = temp;
+    temp -= tstep;
+    configptr->schedule_.push_back(mconfig);
+  }
+   // cout << *configptr << endl;
+// create and fit the track
+  KKTRK kktrk(configptr,seedhel,thits,dxings);
   kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
@@ -380,7 +438,6 @@ int main(int argc, char **argv) {
     TPolyLine3D* fitpl = new TPolyLine3D(np);
     fitpl->SetLineColor(kBlack);
     fitpl->SetLineStyle(kSolid);
-    cout << "Fit Result " << fithel << endl;
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fithel.range().low() + ip*ts;
@@ -415,6 +472,7 @@ int main(int argc, char **argv) {
 
   } else {
     TTree* ftree(0);
+    vector<KKHitInfo> hinfo;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -436,6 +494,7 @@ int main(int argc, char **argv) {
       ftree->Branch("fft", &fft_,"fft/F");
       ftree->Branch("eft", &eft_,"eft/F");
       ftree->Branch("tde", &tde_,"tde/F");
+      ftree->Branch("hinfo",&hinfo);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdpgenh(KTRAJ::NParams());
@@ -491,7 +550,7 @@ int main(int argc, char **argv) {
       tde_ = createHits(tplhel,smat, thits,dxings);
       auto seedhel = tplhel.nearestPiece(0.0);
       createSeed(seedhel);
-      KKTRK kktrk(seedhel,*BF,thits,dxings,config);
+      KKTRK kktrk(configptr,seedhel,thits,dxings);
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
@@ -563,28 +622,28 @@ int main(int argc, char **argv) {
     fdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fdpcan->cd(ipar+1);
-      fdpgenh[ipar]->Fit("gaus");
+      fdpgenh[ipar]->Fit("gaus","q");
     }
     fdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bdpcan->cd(ipar+1);
-      bdpgenh[ipar]->Fit("gaus");
+      bdpgenh[ipar]->Fit("gaus","q");
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
-      fdpullgenh[ipar]->Fit("gaus");
+      fdpullgenh[ipar]->Fit("gaus","q");
     }
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
-      bdpullgenh[ipar]->Fit("gaus");
+      bdpullgenh[ipar]->Fit("gaus","q");
     }
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);

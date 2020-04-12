@@ -20,10 +20,10 @@ namespace KinKal {
       typedef typename std::deque<TTRAJ> DTTRAJ;
       // base class implementation
       void position(Vec4& pos) const ;
-      void position(double time, Vec3& pos) const ;
-      void velocity(double time, Vec3& vel) const ;
-      double speed(double time) const ;
-      void direction(double time, Vec3& dir) const ;
+      void position(float time, Vec3& pos) const ;
+      void velocity(float time, Vec3& vel) const ;
+      double speed(float time) const ;
+      void direction(float time, Vec3& dir) const ;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) ;
@@ -39,10 +39,10 @@ namespace KinKal {
       void prepend(TTRAJ const& newpiece, bool allowremove=false);
       void add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
-      TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& nearestPiece(float time) const { return pieces_[nearestIndex(time)]; }
       TTRAJ const& front() const { return pieces_.front(); }
       TTRAJ const& back() const { return pieces_.back(); }
-      size_t nearestIndex(double time) const;
+      size_t nearestIndex(float time) const;
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
       void gaps(double& largest, size_t& ilargest, double& average) const;
@@ -57,16 +57,16 @@ namespace KinKal {
   template <class TTRAJ> void PTTraj<TTRAJ>::position(Vec4& pos) const {
     nearestPiece(pos.T()).position(pos);
   }
-  template <class TTRAJ> void PTTraj<TTRAJ>::position(double time, Vec3& pos) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::position(float time, Vec3& pos) const {
     nearestPiece(time).position(time,pos);
   }
-  template <class TTRAJ> void PTTraj<TTRAJ>::velocity(double time, Vec3& vel) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::velocity(float time, Vec3& vel) const {
     nearestPiece(time).velocity(time,vel);
   }
-  template <class TTRAJ> double PTTraj<TTRAJ>::speed(double time) const {
+  template <class TTRAJ> double PTTraj<TTRAJ>::speed(float time) const {
     return nearestPiece(time).speed(time);
   }
-  template <class TTRAJ> void PTTraj<TTRAJ>::direction(double time, Vec3& dir) const {
+  template <class TTRAJ> void PTTraj<TTRAJ>::direction(float time, Vec3& dir) const {
     nearestPiece(time).direction(time,dir);
   }
   template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange) {
@@ -170,7 +170,7 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {
+  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(float time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
     if(time <= range().low()){
@@ -213,11 +213,13 @@ namespace KinKal {
     size_t igap;
     gaps(maxgap,igap,avggap);
     ost << "PTTraj with " << range()  << " pieces " << pieces().size() << " gaps max "<< maxgap << " avg " << avggap << std::endl;
-    if(detail ==1){
+    if(detail ==1 && pieces().size() > 0){
       ost << "Front ";
       front().print(ost,detail);
-      ost << "Back ";
-      back().print(ost,detail);
+      if(pieces().size() > 1){
+	ost << "Back ";
+	back().print(ost,detail);
+      }
     } else if (detail >1){
       unsigned ipiece(0);
       for (auto const& piece : pieces_) {

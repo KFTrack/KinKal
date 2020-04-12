@@ -13,6 +13,7 @@
 namespace KinKal {
   template <class KTRAJ> class KKMHit : public KKEff<KTRAJ> {
     public:
+      typedef KKEff<KTRAJ> KKEFF;
       typedef KKHit<KTRAJ> KKHIT;
       typedef KKMat<KTRAJ> KKMAT;
       typedef PKTraj<KTRAJ> PKTRAJ;
@@ -23,13 +24,15 @@ namespace KinKal {
       KKMHit(KKHIT& kkhit, KKMAT& kkmat) : kkhit_(kkhit), kkmat_(kkmat) {}
       KKMHit(THITPTR const& thit, PKTRAJ const& reftraj);
       // override the interface
-      virtual double time() const override { return kkhit_.time(); }
+      virtual float time() const override { return kkhit_.time(); }
       virtual unsigned nDOF() const override { return kkhit_.nDOF(); }
       virtual bool isActive() const override { return kkhit_.isActive(); }
-      virtual bool process(KKDATA& kkdata,TDir tdir) override;
-      virtual double chisq(PDATA const& pars) const override { return kkhit_.chisq(pars); }
-      virtual bool update(PKTRAJ const& ref) override;
-      virtual bool append(PKTRAJ& fit) override { return kkmat_.append(fit); }
+      virtual void process(KKDATA& kkdata,TDir tdir) override;
+      virtual float fitChi() const override { return kkhit_.fitChi(); }
+      virtual float chisq(PDATA const& pdata) const override { return kkhit_.chisq(pdata); }
+      virtual void update(PKTRAJ const& ref) override;
+      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
+      virtual void append(PKTRAJ& fit) override { return kkmat_.append(fit); }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
       KKHIT const& hit() const { return kkhit_; }
@@ -39,39 +42,43 @@ namespace KinKal {
       KKMAT kkmat_; // associated material
   };
 
-  template <class KTRAJ> KKMHit<KTRAJ>::KKMHit(THITPTR const& thit, PKTRAJ const& reftraj) : kkhit_(thit,reftraj),
-    kkmat_(thit->detCrossing(), reftraj, kkhit_.poca(), thit->isActive()) {}
+  template <class KTRAJ> KKMHit<KTRAJ>::KKMHit(THITPTR const& thit, PKTRAJ const& pktraj) : kkhit_(thit,pktraj),
+    kkmat_(thit->detCrossing(), pktraj, thit->isActive()) { update(pktraj); }
 
-  template <class KTRAJ> bool KKMHit<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
+  template <class KTRAJ> void KKMHit<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     // process in a fixed order to make material caching work
-    bool retval(true);
     bool hitfirst = (tdir == TDir::forwards && kkhit_.time() < kkmat_.time()) ||
       (tdir == TDir::backwards && kkhit_.time() > kkmat_.time());
     if(hitfirst) {
-      retval &= kkhit_.process(kkdata,tdir);
-      if(kkmat_.detXing().use_count() > 0) retval &= kkmat_.process(kkdata,tdir);
+      kkhit_.process(kkdata,tdir);
+      kkmat_.process(kkdata,tdir);
     } else { 
-      if(kkmat_.detXing().use_count() > 0) retval &= kkmat_.process(kkdata,tdir);
-      retval &= kkhit_.process(kkdata,tdir);
+      kkmat_.process(kkdata,tdir);
+      kkhit_.process(kkdata,tdir);
     }
     KKEffBase::setStatus(tdir,KKEffBase::processed);
-    return retval;
   }
 
-  template <class KTRAJ> bool KKMHit<KTRAJ>::update(PKTRAJ const& ref) {
-    if(ref.range().infinite())throw std::invalid_argument("Invalid range");
-    // update the hit first, then use the POCA from that to update the material
-    bool retval(true);
+  template <class KTRAJ> void KKMHit<KTRAJ>::update(PKTRAJ const& pktraj) {
+    if(pktraj.range().infinite())throw std::invalid_argument("Invalid range");
+    // update the hit first, then use that to update the material 
     KKEffBase::updateStatus();
-    retval &= kkhit_.update(ref);
-    if(kkmat_.detXing().use_count() > 0) retval &= kkmat_.update(ref,kkhit_.poca());
-    return retval;
+    kkhit_.update(pktraj);
+    kkmat_.setTime(kkhit_.time());
+    kkmat_.update(pktraj);
+  }
+  
+  template <class KTRAJ> void KKMHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig) {
+    KKEffBase::updateStatus();
+    kkhit_.update(pktraj,mconfig);
+    kkmat_.setTime(kkhit_.time());
+    kkmat_.update(pktraj,mconfig);
   }
 
   template <class KTRAJ> void KKMHit<KTRAJ>::print(std::ostream& ost, int detail) const {
     ost << "KKMHit " << static_cast<KKEff<KTRAJ> const&>(*this) << std::endl;
     hit().print(ost,detail);
-    if(kkmat_.detXing().use_count() > 0) mat().print(ost,detail);
+    mat().print(ost,detail);
   }
   
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKMHit<KTRAJ> const& kkmhit) {

@@ -20,12 +20,14 @@ namespace KinKal {
     }
   }
 
-  std::ostream& operator <<(std::ostream& os, FitStatus fitstatus ) {
-    os << "Fit Status " << FitStatus::statusName(fitstatus.status_)
+  std::ostream& operator <<(std::ostream& ost, FitStatus fitstatus ) {
+    ost << "Fit Status " << FitStatus::statusName(fitstatus.status_)
+      << fitstatus.comment_
+      << " Meta-iteration " << fitstatus.miter_
       << " iteration " << fitstatus.iter_
       << " chisq " << fitstatus.chisq_ 
       << " NDOF " << fitstatus.ndof_
       << " prob " << fitstatus.prob_;
-    return os;
+    return ost;
   }
 }

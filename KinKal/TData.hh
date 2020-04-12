@@ -47,6 +47,13 @@ namespace KinKal {
 	if(isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
       }
      // append
+      TData & operator -= (TData const& other) {
+	vec_ -= other.vec();
+	mat_ -= other.mat();
+	//  assume if one is OK they both are (??) FIXME! 
+	if(status() == valid || other.status() == valid)status_=valid;
+	return *this;
+      }
       TData & operator += (TData const& other) {
 	vec_ += other.vec();
 	mat_ += other.mat();
