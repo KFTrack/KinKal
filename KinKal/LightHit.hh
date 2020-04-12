@@ -21,6 +21,7 @@ namespace KinKal {
       typedef typename KTRAJ::PDER PDER; 
       // THit interface overrrides
       virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const override;
+      virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) override;
       virtual unsigned nDOF() const override { return 1; }
 //      virtual float tension() const override { return tpoca_.doca()/sqrt(wvar_); } 
       virtual float tension() const override { return 0.0; }  // FIXME!
@@ -53,6 +54,11 @@ namespace KinKal {
 	resid = RESIDUAL(tpoca.particleToca(),tpoca.deltaT(),totvar,tpoca.dTdP());
     } else
       throw std::runtime_error("POCA failure");
+  }
+
+  template <class KTRAJ> void LightHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig, RESIDUAL& residual) {
+  // for now, no updates are needed.  Eventually could be tests for consistency, tension etc FIXME!
+    resid(pktraj,residual);
   }
 
   template<class KTRAJ> void LightHit<KTRAJ>::print(std::ostream& ost, int detail) const {

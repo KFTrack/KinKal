@@ -13,21 +13,21 @@ namespace KinKal {
     public:
       typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
       // accessors
-      float residTime() const { return tresid_; } 
-      float resid() const { return resid_; }
-      float residVar() const  { return rvar_; }
+      float time() const { return time_; } 
+      float value() const { return value_; }
+      float variance() const  { return var_; }
       PDER const& dRdP() const { return dRdP_; }
-      Residual(float tresid, float rvec, float rvar, PDER const& dRdP) : tresid_(tresid), resid_(rvec), rvar_(rvar), dRdP_(dRdP) {}
-      Residual() : tresid_(0.0), resid_(0.0), rvar_(-1.0) {}
+      Residual(float time, float value, float var, PDER const& dRdP) : time_(time), value_(value), var_(var), dRdP_(dRdP) {}
+      Residual() : time_(0.0), value_(0.0), var_(-1.0) {}
     private:
-      float tresid_; // particle time at which this residual was calculated
-      float resid_; // residual value
-      float rvar_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
+      float time_; // particle time associated with this residual
+      float value_; // residual value
+      float var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
       PDER dRdP_; // derivative of residual WRT the reference parameters
   };
 
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Residual<KTRAJ> const& res) {
-    ost << " residual " << res.resid() << " variance " << res.residVar() << " time " << res.residTime() << " dRdP " << res.dRdP();
+    ost << " residual " << res.value() << " variance " << res.variance() << " time " << res.time() << " dRdP " << res.dRdP();
     return ost;
   }
 }

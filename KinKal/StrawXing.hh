@@ -60,16 +60,17 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost <<"Straw Xing time " << this->crossingTime() << std::endl;
+    ost <<"Straw Xing time " << this->crossingTime();
     if(detail > 0){
       for(auto const& mxing : this->matXings()){
-	ost << mxing.dmat_.name() << " pathLen" << mxing.plen_ << std::endl;
+	ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;
       }
     }
     if(detail > 1){
-      ost << "Axis ";
+      ost << " Axis ";
       axis_.print(ost,0);
     }
+    ost << std::endl;
   }
 
 }

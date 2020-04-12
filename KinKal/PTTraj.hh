@@ -213,11 +213,13 @@ namespace KinKal {
     size_t igap;
     gaps(maxgap,igap,avggap);
     ost << "PTTraj with " << range()  << " pieces " << pieces().size() << " gaps max "<< maxgap << " avg " << avggap << std::endl;
-    if(detail ==1){
+    if(detail ==1 && pieces().size() > 0){
       ost << "Front ";
       front().print(ost,detail);
-      ost << "Back ";
-      back().print(ost,detail);
+      if(pieces().size() > 1){
+	ost << "Back ";
+	back().print(ost,detail);
+      }
     } else if (detail >1){
       unsigned ipiece(0);
       for (auto const& piece : pieces_) {

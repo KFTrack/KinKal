@@ -26,6 +26,7 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // accessors
       float crossingTime() const { return xtime_; }
+      float& crossingTime() { return xtime_; }
       std::vector<MatXing>const&  matXings() const { return mxings_; }
       // calculate the cumulative material effect from these crossings
       void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<float,3>& dmom, std::array<float,3>& momvar) const;

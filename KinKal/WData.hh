@@ -37,9 +37,13 @@ namespace KinKal {
 	tdata_ += other.tdata_;
 	return *this;
       }
+      WData & operator -=(WData const& other) {
+	tdata_ -= other.tdata_;
+	return *this;
+      }
       void print(std::ostream& ost=std::cout,int detail=0) const {
 	ost << "WData wVec " << weightVec() << std::endl;
-	if(detail > 0)
+	if(detail > 1)
 	  ost << "weight " << weightMat() << std::endl;
       }
     private:

@@ -12,6 +12,7 @@
 #include "KinKal/LightHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
+#include "KinKal/KKConfig.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
@@ -54,8 +55,9 @@ using namespace std;
 using KinKal::TLine;
 // define the typedefs: to change to a different trajectory implementation, just change this line
 typedef LHelix KTRAJ;
-typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
-typedef KinKal::KKTrk<KTRAJ> KKTRK;
+typedef PKTraj<KTRAJ> PKTRAJ;
+typedef KKTrk<KTRAJ> KKTRK;
+typedef shared_ptr<KKConfig> KKCONFIGPTR;
 typedef THit<KTRAJ> THIT;
 typedef std::shared_ptr<THIT> THITPTR;
 typedef DXing<KTRAJ> DXING;
@@ -65,16 +67,16 @@ typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
 typedef LightHit<KTRAJ> LIGHTHIT;
 typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
-typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-typedef std::vector<THITPTR> THITCOL;
-typedef std::vector<DXINGPTR> DXINGCOL;
+typedef shared_ptr<STRAWXING> STRAWXINGPTR;
+typedef vector<THITPTR> THITCOL;
+typedef vector<DXINGPTR> DXINGCOL;
 typedef Residual<KTRAJ> RESIDUAL;
 typedef TPoca<PKTRAJ,TLine> TPOCA;
 
 // ugly global variables
 float zrange(3000.0), rmax(800.0); // tracker dimension
 float sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
-float ambigdoca(-1.0);// minimum doca to set ambiguity
+float ambigdoca(0.5);// minimum doca to set ambiguity
 float sigt(3); // drift time resolution in ns
 float ineff(0.1); // hit inefficiency
 float tbuff(0.1);
@@ -82,7 +84,7 @@ int iseed(124223);
 unsigned nhits(40);
 float escale(5.0);
 vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), fitmat(true), lighthit(true);
+bool simmat(true), lighthit(true);
   // time hit parameters
 float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
@@ -93,15 +95,26 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i\n");
 }
 
 struct KTRAJPars{
-  Float_t pars_[6];
+  Float_t pars_[KTRAJ::NParams()];
   static std::string leafnames() {
-    return std::string("radius/f:lambda/f:cx/f:cy/f:phi0/f:t0/f");
+    std::string names;
+    for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
+      names +=KTRAJ::paramName(static_cast<KTRAJ::ParamIndex>(ipar)) + string("/f");
+      if(ipar < KTRAJ::NParams()-1)names += ":";
+    }
+    return names;
   }
 };
+
+struct KKHitInfo {
+  Float_t resid_, residvar_, chiref_, chifit_;
+  static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
+};
+
 
 // helper function
 KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
@@ -155,7 +168,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
     // construct the hit from this trajectory
     auto sxing = std::make_shared<STRAWXING>(tp,smat);
     if(TR->Uniform(0.0,1.0) > ineff){
-      thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambigdoca,ambig));
+      thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambig));
     } else {
       dxings.push_back(sxing);
     }
@@ -268,7 +281,6 @@ int main(int argc, char **argv) {
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
     {"simmat",     required_argument, 0, 'b'  },
-    {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"convdchisq",     required_argument, 0, 'C'  },
@@ -310,8 +322,6 @@ int main(int argc, char **argv) {
       case 'x' : maxniter = atoi(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
-		 break;
-      case 'f' : fitmat = atoi(optarg);
 		 break;
       case 'L' : lighthit = atoi(optarg);
 		 break;
@@ -383,12 +393,56 @@ int main(int argc, char **argv) {
   createSeed(seedhel);
   cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
-  Config config;
-  config.dwt_ = 1.0e6;
-  config.convdchisq_ = convdchisq;
-  config.maxniter_ = maxniter;
-  config.addmat_ = fitmat;
-  KKTRK kktrk(seedhel,*BF,thits,dxings,config);
+  KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
+  configptr->dwt_ = 1.0e6;
+  configptr->convdchisq_ = convdchisq;
+  configptr->maxniter_ = maxniter;
+  // add schedule; MC-truth based ambiguity
+  MConfig mconfig;
+  mconfig.processmat_ = mconfig.processbfield_ =  true;
+  mconfig.updatehits_ = false;
+  mconfig.temp_ = 0.0; // deweight hit sigma
+  configptr->schedule_.push_back(mconfig);
+  configptr->schedule_.push_back(mconfig);
+  configptr->schedule_.push_back(mconfig);// must repeat to iterate material updates
+// // add schedule; first, a meta-iteration with no material , field, or drift, and a high temperature.  Process the hits to set the ambig to null
+ // MConfig mconfig;
+ // mconfig.processmat_ = mconfig.processbfield_ =false;
+ // mconfig.updatehits_ = true;
+ // mconfig.temp_ = 3.0; // deweight hit sigma
+ // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(100.0,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
+ // configptr->schedule_.push_back(mconfig);
+ // // 2nd iteration: turn on material and field, allow drift, but keep temperature high
+ // mconfig.processmat_ = mconfig.processbfield_ =true;
+ // mconfig.hitupdateparams_.clear();
+ // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(2.0,100.0)); //
+ // configptr->schedule_.push_back(mconfig);
+ // mconfig.temp_ = 2.0; //
+ // mconfig.hitupdateparams_.clear();
+ // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(1.5,100.0)); //
+ // configptr->schedule_.push_back(mconfig);
+ // mconfig.temp_ = 1.5; //
+ // mconfig.hitupdateparams_.clear();
+ // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(1.0,100.0)); //
+ // configptr->schedule_.push_back(mconfig);
+ // // 3rd iteration: lower temperature 
+ // mconfig.temp_ = 1; 
+ // configptr->schedule_.push_back(mconfig);
+ // // 4th iteration: decrease DOCA cut to minimum
+ // mconfig.hitupdateparams_.clear();
+ // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); //
+ // configptr->schedule_.push_back(mconfig);
+ // mconfig.temp_ = 0.5; 
+ // configptr->schedule_.push_back(mconfig);
+ // // 5th iteration: lower temperature to 0, using actual hit weights
+ // // repeat a few times: this iterates on hit ambiguity
+ // mconfig.temp_ = 0; 
+ // configptr->schedule_.push_back(mconfig);
+ // configptr->schedule_.push_back(mconfig);
+ // configptr->schedule_.push_back(mconfig);
+ // cout << *configptr << endl;
+// create and fit the track
+  KKTRK kktrk(configptr,seedhel,thits,dxings);
   kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
@@ -404,7 +458,6 @@ int main(int argc, char **argv) {
     TPolyLine3D* fitpl = new TPolyLine3D(np);
     fitpl->SetLineColor(kBlack);
     fitpl->SetLineStyle(kSolid);
-    cout << "Fit Result " << fithel << endl;
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fithel.range().low() + ip*ts;
@@ -439,6 +492,7 @@ int main(int argc, char **argv) {
 
   } else {
     TTree* ftree(0);
+    vector<KKHitInfo> hinfo;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -460,6 +514,7 @@ int main(int argc, char **argv) {
       ftree->Branch("fft", &fft_,"fft/F");
       ftree->Branch("eft", &eft_,"eft/F");
       ftree->Branch("tde", &tde_,"tde/F");
+      ftree->Branch("hinfo",&hinfo);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdpgenh(KTRAJ::NParams());
@@ -515,7 +570,7 @@ int main(int argc, char **argv) {
       tde_ = createHits(tplhel,smat, thits,dxings);
       auto seedhel = tplhel.nearestPiece(0.0);
       createSeed(seedhel);
-      KKTRK kktrk(seedhel,*BF,thits,dxings,config);
+      KKTRK kktrk(configptr,seedhel,thits,dxings);
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();

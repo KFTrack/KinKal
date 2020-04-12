@@ -9,6 +9,7 @@
 #include "KinKal/Residual.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/PKTraj.hh"
+#include "KinKal/KKConfig.hh"
 #include <memory>
 #include <ostream>
 
@@ -25,11 +26,13 @@ namespace KinKal {
       // optionally create with an associated detector material crossing
       THit(DXINGPTR const& dxing,bool active=true) : dxing_(dxing), active_(active) {}
       virtual ~THit(){}
-      // compute a residual and its derivatives WRT the from this measurement given a prediction
+      // compute residual and errors WRT a predicted trajectory
       virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const =0;
       // count number of degrees of freedom constrained by this measurement (typically 1)
       virtual unsigned nDOF() const = 0;
-      // check the consistency of ancillary information of this measurement not used in the residual computation with the prediction
+      // update, and compute residual
+      virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) = 0;
+      // consistency of ancillary information not used in the residual computation
       // return value is the dimensionless number of sigma outside range, 0.0 = perfecty consistent, 1.0 is '1 sigma' tension
       virtual float tension() const = 0;
       // hits may get deactivated during the fit

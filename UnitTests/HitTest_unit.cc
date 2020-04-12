@@ -252,7 +252,7 @@ int main(int argc, char **argv) {
       ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
     auto sxing = std::make_shared<STRAWXING>(tp,smat);
     // construct the hit from this trajectory
-    thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambigdoca,ambig));
+    thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambig));
    // compute residual
     RESIDUAL  res;
     thits.back()->resid(plhel,res);
@@ -355,7 +355,7 @@ int main(int argc, char **argv) {
 	RESIDUAL ores = kkhit.refResid(); // original residual
 	kkhit.update(modplhel);// refer to moded helix
 	RESIDUAL mres = kkhit.refResid();
-	double dr = ores.resid()-mres.resid(); // this sign is confusing.  I think
+	double dr = ores.value()-mres.value(); // this sign is confusing.  I think
 	// it means the fit needs to know how much to change the ref parameters, which is
 	// opposite from how much the ref parameters are different from the measurement
 	// compare the change with the expected from the derivatives

@@ -16,8 +16,8 @@ namespace KinKal {
       typedef THit<KTRAJ> THIT;
       typedef StrawXing<KTRAJ> STRAWXING;
       typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-      StrawHit(BField const& bfield, TLine const& straj, D2T const& d2t, STRAWXINGPTR const& sxing,float nulldoca, LRAmbig ambig=LRAmbig::null,bool active=true) :
-	WireHit<KTRAJ>(sxing, bfield,straj,d2t,std::min(nulldoca,sxing->strawMat().strawRadius())*std::min(nulldoca,sxing->strawMat().strawRadius())/3.0,ambig,active) {}
+      StrawHit(BField const& bfield, TLine const& straj, D2T const& d2t, STRAWXINGPTR const& sxing,LRAmbig ambig=LRAmbig::null) :
+	WHIT(sxing, bfield,straj,d2t,sxing->strawMat().strawRadius(),ambig) {}
       virtual float tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~StrawHit(){}
