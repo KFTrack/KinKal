@@ -95,7 +95,7 @@ namespace KinKal {
     // reset the processing cache
     wcache_ = WDATA();
     // scale resid variance by temp normalization
-    float tvar = rresid_.variance()*rvscale_;
+    float tvar = rresid_.variance()*rvscale_; 
     ref_ = pktraj.nearestPiece(rresid_.time()).params();
     // convert derivatives to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dRdPM;
@@ -129,7 +129,7 @@ namespace KinKal {
       // compute the difference between these parameters and the reference parameters
       DVEC dpvec = pdata.parameters() - ref_.parameters(); 
       // use the differnce to 'correct' the reference residual to be WRT these parameters
-      float uresid = rresid_.value() + ROOT::Math::Dot(dpvec,rresid_.dRdP());
+      float uresid = rresid_.value() - ROOT::Math::Dot(dpvec,rresid_.dRdP());
       // project the parameter covariance into a residual space variance
       float rvar = ROOT::Math::Similarity(rresid_.dRdP(),pdata.covariance());
       // add the measurement variance, scaled by the current temperature normalization

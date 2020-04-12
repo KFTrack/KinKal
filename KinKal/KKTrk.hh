@@ -178,6 +178,10 @@ namespace KinKal {
       KKData<KTRAJ::NParams()> ffitdata;
       while(feff != effects_.end()){
 	auto ieff = feff->get();
+//test
+//	if(ieff->nDOF() > 0)std::cout << "chisq " <<ieff->chisq(ffitdata.pData()) << ffitdata.pData() << std::endl;
+
+
 	// update chisquared; only needed forwards
 	fstat.ndof_ += ieff->nDOF();
 	fstat.chisq_ += ieff->chisq(ffitdata.pData());

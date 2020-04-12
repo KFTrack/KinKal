@@ -84,7 +84,7 @@ int iseed(124223);
 unsigned nhits(40);
 float escale(5.0);
 vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), lighthit(true);
+bool simmat(true), lighthit(true), updatehits(false);
   // time hit parameters
 float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
@@ -95,7 +95,7 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --maxniter f --ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i\n");
 }
 
 struct KTRAJPars{
@@ -261,6 +261,8 @@ int main(int argc, char **argv) {
   int imass(0), icharge(-1);
   double pmass;
   unsigned maxniter(10);
+  unsigned nmeta(0);
+  float maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
@@ -280,6 +282,8 @@ int main(int argc, char **argv) {
     {"ineff",     required_argument, 0, 'i'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
+    {"nmeta",     required_argument, 0, 'M'  },
+    {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
@@ -291,6 +295,7 @@ int main(int argc, char **argv) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"LightHit",     required_argument, 0, 'L'  },
+    {"UpdateHits",     required_argument, 0, 'U'  },
   };
 
   int long_index =0;
@@ -319,11 +324,17 @@ int main(int argc, char **argv) {
 		 break;
       case 'e' : escale = atof(optarg);
 		 break;
+      case 'M' : nmeta = atoi(optarg);
+		 break;
       case 'x' : maxniter = atoi(optarg);
+		 break;
+      case 'X' : maxtemp = atof(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
       case 'L' : lighthit = atoi(optarg);
+		 break;
+      case 'U' : updatehits = atoi(optarg);
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
@@ -400,47 +411,16 @@ int main(int argc, char **argv) {
   // add schedule; MC-truth based ambiguity
   MConfig mconfig;
   mconfig.processmat_ = mconfig.processbfield_ =  true;
-  mconfig.updatehits_ = false;
-  mconfig.temp_ = 0.0; // deweight hit sigma
-  configptr->schedule_.push_back(mconfig);
-  configptr->schedule_.push_back(mconfig);
-  configptr->schedule_.push_back(mconfig);// must repeat to iterate material updates
-// // add schedule; first, a meta-iteration with no material , field, or drift, and a high temperature.  Process the hits to set the ambig to null
- // MConfig mconfig;
- // mconfig.processmat_ = mconfig.processbfield_ =false;
- // mconfig.updatehits_ = true;
- // mconfig.temp_ = 3.0; // deweight hit sigma
- // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(100.0,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
- // configptr->schedule_.push_back(mconfig);
- // // 2nd iteration: turn on material and field, allow drift, but keep temperature high
- // mconfig.processmat_ = mconfig.processbfield_ =true;
- // mconfig.hitupdateparams_.clear();
- // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(2.0,100.0)); //
- // configptr->schedule_.push_back(mconfig);
- // mconfig.temp_ = 2.0; //
- // mconfig.hitupdateparams_.clear();
- // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(1.5,100.0)); //
- // configptr->schedule_.push_back(mconfig);
- // mconfig.temp_ = 1.5; //
- // mconfig.hitupdateparams_.clear();
- // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(1.0,100.0)); //
- // configptr->schedule_.push_back(mconfig);
- // // 3rd iteration: lower temperature 
- // mconfig.temp_ = 1; 
- // configptr->schedule_.push_back(mconfig);
- // // 4th iteration: decrease DOCA cut to minimum
- // mconfig.hitupdateparams_.clear();
- // mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); //
- // configptr->schedule_.push_back(mconfig);
- // mconfig.temp_ = 0.5; 
- // configptr->schedule_.push_back(mconfig);
- // // 5th iteration: lower temperature to 0, using actual hit weights
- // // repeat a few times: this iterates on hit ambiguity
- // mconfig.temp_ = 0; 
- // configptr->schedule_.push_back(mconfig);
- // configptr->schedule_.push_back(mconfig);
- // configptr->schedule_.push_back(mconfig);
- // cout << *configptr << endl;
+  mconfig.updatehits_ = updatehits;
+  mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
+  float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
+  float temp = maxtemp;
+  for(unsigned imeta = 0; imeta< nmeta+1; imeta++){
+    mconfig.temp_ = temp;
+    temp -= tstep;
+    configptr->schedule_.push_back(mconfig);
+  }
+   // cout << *configptr << endl;
 // create and fit the track
   KKTRK kktrk(configptr,seedhel,thits,dxings);
   kktrk.print(cout,detail);
