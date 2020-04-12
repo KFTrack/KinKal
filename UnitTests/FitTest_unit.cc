@@ -76,7 +76,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 // ugly global variables
 float zrange(3000.0), rmax(800.0); // tracker dimension
 float sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
-float ambigdoca(0.5);// minimum doca to set ambiguity
+float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
 float sigt(3); // drift time resolution in ns
 float ineff(0.1); // hit inefficiency
 float tbuff(0.1);
@@ -261,7 +261,7 @@ int main(int argc, char **argv) {
   int imass(0), icharge(-1);
   double pmass;
   unsigned maxniter(10);
-  unsigned nmeta(0);
+  unsigned nmeta(2);
   float maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
