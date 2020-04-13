@@ -44,7 +44,7 @@ namespace KinKal {
     float tbuff_; // time buffer for final fit (ns)
     float dtol_; // tolerance on direction change in BField integration (dimensionless)
     float ptol_; // tolerance on position change in BField integration (mm)
-    int minndof_; // minimum number of DOFs to continue fit
+    unsigned minndof_; // minimum number of DOFs to continue fit
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
     MCONFIGCOL schedule_; 
   };
