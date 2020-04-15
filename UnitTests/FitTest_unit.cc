@@ -423,11 +423,13 @@ int main(int argc, char **argv) {
   mconfig.updatemat_ = mconfig.updatebfcorr_ = false ;
   mconfig.updatehits_ = updatehits;
   mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
+  mconfig.temp_ = 10.0; // first
+  configptr->schedule_.push_back(mconfig);
   float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
   float temp = maxtemp;
   for(unsigned imeta = 0; imeta< nmeta+1; imeta++){
     mconfig.temp_ = temp;
-    if(imeta > 0)mconfig.updatemat_ = true;
+    mconfig.updatemat_ = true;
     if(imeta > 1)mconfig.updatebfcorr_ = true;
     temp -= tstep;
     configptr->schedule_.push_back(mconfig);

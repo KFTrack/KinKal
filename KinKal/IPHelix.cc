@@ -128,10 +128,10 @@ namespace KinKal {
     mom.SetM(mass_);
   }
 
-  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
+  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, float dtol, float ptol) const
   {
     // precompute some factors
-    double fact = 0.5 * sqrt(1./omega() * tol * bnom().R()) / CLHEP::c_light;
+    double fact = 0.5 * sqrt(1./omega() * ptol * bnom().R()) / CLHEP::c_light;
     // Limit to this traj's range
     brange.high() = std::min(brange.high(), range().high());
     // compute the BField difference in the middle of the range

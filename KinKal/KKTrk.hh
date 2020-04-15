@@ -267,12 +267,12 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat) const {
-    if(history_.size()>4){
+    if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
       float d1 = fstat.chisq_ - history_.back().chisq_;
       float d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
       float d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
       if(d1*d2 < 0.0 && d1*d3 > 0.0 ){
-	if(fabs(d1) - fabs(d2) < config().convdchisq_ && fabs(d2) - fabs(d3) < config().convdchisq_)
+	if(fabs(d1) - fabs(d2) < config().oscdchisq_ && fabs(d2) - fabs(d3) < config().oscdchisq_)
 	  return true;
 	}
     }
@@ -280,46 +280,19 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::createBFCorr() {
-    // Should allow local field tracking eventually FIXME!
-    // define the nominal BField to be the field at the origin.
-    Vec3 bnom = reftraj_.front().bnom();
-    float bnommag = bnom.R();
-    // compute some scaling factors; these are approximately constant over most trajetories.  This assumes they
-    // are constant, that might not be true for highly-ionizing particles, this should be tested FIXME!
-    float tmid = reftraj_.range().mid();
-    auto const& ktraj = reftraj_.nearestPiece(tmid);
-    float speed  = ktraj.speed(tmid);
-    float pbar = ktraj.pbar();
-    float sfac = speed*speed/(bnommag*pbar);
-    // loop over the trajectory in fixed steps to compute integrals and domains. Adjust the step size to give a whole number of steps in the exact range
-    unsigned nstep = size_t(ceil(reftraj_.range().range()/kkconfig_->bftstep_));
-    unsigned istep(0);
-    float tstep = reftraj_.range().range()/(nstep-1);
+    // Should allow local field tracking option eventually FIXME!
+    // start at the low end of the range
     TRange drange(reftraj_.range().low(),reftraj_.range().low());
-    while(istep < nstep){
-      float dx(0.0);
-      unsigned ndstep(0);
-      while(fabs(dx) < kkconfig_->dtol_ && istep < nstep) {
-	// find the local piece: this avoids search every call
-	auto const& ktraj = reftraj_.nearestPiece(drange.high());
-	Vec3 tpos, bvec;
-	ktraj.position(drange.high(),tpos);
-	kkconfig_->bfield_.fieldVect(bvec,tpos);
-	// project the BField diff in these directions
-	auto dbvec = bvec - bnom;
-	// estimate the spatial distortion accumulated up to now
-	dx += sfac*drange.range()*tstep*dbvec.R();
-	drange.high() += tstep;
-	istep++;
-	ndstep++;
-      }
+    // advance until the range is exhausted
+    while(drange.high() < reftraj_.range().high()){
+      // find how far we can advance within tolerance
+      reftraj_.rangeInTolerance(drange,kkconfig_->bfield_,kkconfig_->dtol_, kkconfig_->ptol_);
+      // truncate if necessary
+      drange.high() = std::min(drange.high(),reftraj_.range().high());
       // create the BField effect for this drange
-      effects_.emplace_back(std::make_unique<KKBFCORR>(kkconfig_->bfield_,ndstep,reftraj_,drange));
-      // reset
+      effects_.emplace_back(std::make_unique<KKBFCORR>(kkconfig_->bfield_,10,reftraj_,drange)); //# of steps should be a config parameter FIXME
       drange.low() = drange.high();
     }
-    // test
-    if(fabs(drange.high() -tstep - reftraj_.range().high()) > tstep) throw std::runtime_error("Integration range error");
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, int detail) const {

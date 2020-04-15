@@ -49,7 +49,7 @@ namespace KinKal {
       void velocity(float time, Vec3& vel) const ;
       void direction(float time,Vec3& dir) const ;
       double speed(float time) const  {  return CLHEP::c_light*beta(); }
-      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const ;
+      void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const ;
       void dirVector(MDir dir,float time,Vec3& unit) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }
