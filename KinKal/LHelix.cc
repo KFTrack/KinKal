@@ -46,7 +46,7 @@ namespace KinKal {
     // compute some simple useful parameters
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
-    // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
+    // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
     double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
@@ -211,19 +211,26 @@ namespace KinKal {
 
   }
 
-  void LHelix::rangeInTolerance(TRange& brange, BField const& bfield, double tol) const {
-    // precompute some factors
-    double fact = 0.5*sqrt(rad()*tol*bnom().R())/CLHEP::c_light;
-    // Limit to this traj's range
-    brange.high() = std::min(brange.high(),range().high());
-    // compute the BField difference in the middle of the range
-    Vec3 midpos,bvec;
-    position(brange.mid(),midpos);
-    bfield.fieldVect(bvec,midpos);
-    auto db = bvec-bnom();
-    double dt = fact/sqrt(db.R());
-    // truncate the range if necessary
-    if(dt < brange.range())brange.high() = brange.low() + dt;
+  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float dtol, float ptol) const {
+    // compute scaling factor
+    float spd = speed(drange.low());
+    float sfac = spd*spd/(bnom_.R()*pbar());
+    // loop over the trajectory in fixed steps to compute integrals and domains.
+    // step size is defined by momentum direction tolerance or field change (last part not implemented needs gradient calc FIXME!)
+    float tstep = dtol*ebar()/CLHEP::c_light;
+    float dx(0.0);
+    // advance till spatial distortion exceeds position tolerance or we reach the range limit
+    while(fabs(dx) < ptol && drange.high() < range().high()) {
+      Vec3 tpos, bvec;
+      position(drange.high(),tpos);
+      bfield.fieldVect(bvec,tpos);
+      // BField diff with nominal
+      auto dbvec = bvec - bnom_;
+      // spatial distortion accumulation
+      dx += sfac*drange.range()*tstep*dbvec.R();
+      // increment the range
+      drange.high() += tstep;
+    }
   }
  
   void LHelix::print(std::ostream& ost, int detail) const {
@@ -233,6 +240,7 @@ namespace KinKal {
       ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << param(ipar) << " +- " << perr(ipar);
       if(ipar < LHelix::npars_-1) ost << " ";
     }
+    if(needsrot_) ost << " with rotation around Bnom " << bnom_;
     ost << std::endl;
   }
 

@@ -19,19 +19,19 @@
 namespace KinKal {
   struct MConfig {
     float temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
-    bool processmat_; // model material effect
-    bool processbfield_; // model magnetic field inhomogeneity effects
+    bool updatemat_; // update material effects
+    bool updatebfcorr_; // update magnetic field inhomogeneity effects
     bool updatehits_; // update the internal state of the hits (activity, LR ambiguity) 
     int miter_; // count of meta-iteration
     // payload for hit updating; specific hit classes should find their particular payload inside the vector
     std::vector<std::any> hitupdateparams_;
-    MConfig() : temp_(0.0), processmat_(false), processbfield_(false), updatehits_(false), miter_(-1) {}
+    MConfig() : temp_(0.0), updatemat_(false), updatebfcorr_(false), updatehits_(false), miter_(-1) {}
   };
 
   struct KKConfig {
     typedef std::vector<MConfig> MCONFIGCOL;
-    KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5), schedule_(schedule) {} 
-    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5){} 
+    KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
+    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5), addmat_(true), addbf_(true) {} 
     BField const& bfield() const { return bfield_; }
     MCONFIGCOL const& schedule() const { return schedule_; }
     BField const& bfield_;
@@ -47,6 +47,9 @@ namespace KinKal {
     unsigned minndof_; // minimum number of DOFs to continue fit
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
     MCONFIGCOL schedule_; 
+    bool addmat_; // add material effects in the fit
+    bool addbf_; // add BField effects in the fit
+    Vec3 origin_; // nominal origin for defining BNom
   };
   std::ostream& operator <<(std::ostream& os, KKConfig kkconfig );
 }

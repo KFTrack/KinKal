@@ -4,19 +4,19 @@ namespace KinKal {
   std::string FitStatus::statusName(FitStatus::status stat) {
     switch(stat) {
       case FitStatus::needsfit: default :
-	return "NeedsFit";
+	return "NeedsFit ";
       case FitStatus::unconverged: 
-	return "Unconverged";
+	return "Unconverged ";
       case FitStatus::converged: 
-	return "Converged";
+	return "Converged ";
       case FitStatus::oscillating: 
-	return "Oscillating";
+	return "Oscillating ";
       case FitStatus::diverged: 
-	return "Diverged";
+	return "Diverged ";
       case FitStatus::lowNDOF: 
-	return "LowNDOF";
+	return "LowNDOF ";
       case FitStatus::failed: 
-	return "Failed";
+	return "Failed ";
     }
   }
 

@@ -106,7 +106,6 @@ namespace KinKal {
     RVarM(0,0) = 1.0/tvar;
     // expand these into the weight matrix
     hiteff_.weightMat() = ROOT::Math::Similarity(dRdPM,RVarM);
-    hiteff_.setStatus(TDATA::valid);
     // translate residual value into weight vector WRT the reference parameters
     // sign convention reflects resid = measurement - prediction
     hiteff_.weightVec() = hiteff_.weightMat()*ref_.parameters() + rresid_.dRdP()*rresid_.value()/tvar;

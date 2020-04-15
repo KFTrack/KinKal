@@ -42,14 +42,17 @@
 //  annealing and interactions with the external environment such as the material model and the magnetic field map.
 //  The fit is performed on construction.
 //
-//  The KinKal package is licensed under Adobe v2, and is hosted at 
+//  The KinKal package is licensed under Adobe v2, and is hosted at https://github.com/KFTrack/KinKal.git
+//  David N. Brown, Lawrence Berkeley National Lab
 //
 #include "KinKal/PKTraj.hh"
+#include "KinKal/KKData.hh"
 #include "KinKal/KKEff.hh"
 #include "KinKal/KKEnd.hh"
 #include "KinKal/KKMHit.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/KKMat.hh"
+#include "KinKal/KKBFCorr.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/THit.hh"
 #include "KinKal/KKConfig.hh"
@@ -69,6 +72,11 @@ namespace KinKal {
   template<class KTRAJ> class KKTrk {
     public:
       typedef KKEff<KTRAJ> KKEFF;
+      typedef KKEnd<KTRAJ> KKEND;
+      typedef KKHit<KTRAJ> KKHIT;
+      typedef KKMHit<KTRAJ> KKMHIT;
+      typedef KKMat<KTRAJ> KKMAT;
+      typedef KKBFCorr<KTRAJ> KKBFCORR;
       typedef std::shared_ptr<KKConfig> KKCONFIGPTR;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef THit<KTRAJ> THIT;
@@ -77,6 +85,8 @@ namespace KinKal {
       typedef std::shared_ptr<DXING> DXINGPTR;
       typedef std::vector<THITPTR> THITCOL;
       typedef std::vector<DXINGPTR> DXINGCOL;
+      typedef typename KTRAJ::PDATA PDATA;
+      typedef typename PDATA::DVEC DVEC;
       struct KKEFFComp { // comparator to sort effects by time
 	bool operator()(std::unique_ptr<KKEFF> const& a, std::unique_ptr<KKEFF> const&  b) const {
 	  if(a.get() != b.get())
@@ -105,7 +115,7 @@ namespace KinKal {
       void fitIteration(FitStatus& status);
       bool canIterate() const;
       bool oscillating(FitStatus const& status) const;
-      void createFieldDomains();
+      void createBFCorr();
       // payload
       KKCONFIGPTR kkconfig_; // shared configuration
       std::vector<FitStatus> history_; // fit status history; records the current iteration
@@ -125,25 +135,31 @@ namespace KinKal {
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
-	if(thit->hasMaterial()){
+	if(kkconfig_->addmat_ && thit->hasMaterial()){
 	  dxings_.push_back(thit->detCrossing());
-	  effects_.emplace_back(std::make_unique<KKMHit<KTRAJ> >(thit,reftraj));
+	  effects_.emplace_back(std::make_unique<KKMHIT>(thit,reftraj_));
 	} else{ 
-	  effects_.emplace_back(std::make_unique<KKHit<KTRAJ> >(thit,reftraj));
+	  effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
 	}
       }
       //add pure material effects
-      for(auto& dxing : dxings) {
-	effects_.emplace_back(std::make_unique<KKMat<KTRAJ> >(dxing,reftraj));
+      if(kkconfig_->addmat_){
+	for(auto& dxing : dxings) {
+	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
+	}
       }
+      // preliminary sort
+      std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
       // reset the range 
       reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config().tbuff_),
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config().tbuff_)));
-      // add BField inhomogeneity effects; not yet implemented FIXME!
-      // createFieldDomains();
+      // add BField inhomogeneity effects
+      if(kkconfig_->addbf_) {
+	createBFCorr();
+      }
       // create end effects; this should be last to avoid confusing the BField correction
-      effects_.emplace_back(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::forwards,config().dwt_));
-      effects_.emplace_back(std::make_unique<KKEnd<KTRAJ>>(reftraj,TDir::backwards,config().dwt_));
+      effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::forwards,config().dwt_));
+      effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::backwards,config().dwt_));
       // now fit the track
       fit();
     }
@@ -251,56 +267,50 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat) const {
-    // check for oscillation in the history; changing sign and similar values between iterations
-    return false; // FIXME!
+    if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
+      float d1 = fstat.chisq_ - history_.back().chisq_;
+      float d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
+      float d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
+      if(d1*d2 < 0.0 && d1*d3 > 0.0 ){
+	if(fabs(d1) - fabs(d2) < config().oscdchisq_ && fabs(d2) - fabs(d3) < config().oscdchisq_)
+	  return true;
+	}
+    }
+    return false;
   }
 
-  struct BFieldDomain {
-    TRange range_; // time range of this domain
-    Vec3 pdir_; // (average) momentum direction of this domain
-  };
-
-  template <class KTRAJ> void KKTrk<KTRAJ>::createFieldDomains() {
-    // use the reference trajectory to define the magnetic 'domains' where
-    // the trajectory direction isn't changing rapidly.
-    //
-    //// Maximum time step keeping momentum direction within tolerance
-    //  double tstep = reftraj_.timeStep(reftraj_.range().mid(),config().dtol_);
-    //// re-align to a fixed set of covering steps
-    //  unsigned nsteps = ciel(reftraj_.range().range()/tstep);
-    //  tstep = reftraj_.range().range()/(nsteps-1);
-    //  // sample the BField at these points
-    //  std::vector<BFieldDomain> domains;
-    //  domains.reserve(nsteps);
-    //  for(unsigned istep=0;istep<nsteps;istep++){
-    //    BFieldDomain domain;
-    //    double tlow = reftraj_.range().low() + tstep*istep;
-    //    domain.range_ = TRange(tlow,tlow+tstep);
-    //    float time = domain.range_.mid();
-    //    Vec3 tpos,fvec;
-    //    reftraj_.position(time,tpos);
-    //    bfield_.fieldVect(fvec,tpos);
-    //
-    //    // integrate 
-    //  }
+  template <class KTRAJ> void KKTrk<KTRAJ>::createBFCorr() {
+    // Should allow local field tracking option eventually FIXME!
+    // start at the low end of the range
+    TRange drange(reftraj_.range().low(),reftraj_.range().low());
+    // advance until the range is exhausted
+    while(drange.high() < reftraj_.range().high()){
+      // find how far we can advance within tolerance
+      reftraj_.rangeInTolerance(drange,kkconfig_->bfield_,kkconfig_->dtol_, kkconfig_->ptol_);
+      // truncate if necessary
+      drange.high() = std::min(drange.high(),reftraj_.range().high());
+      // create the BField effect for this drange
+      effects_.emplace_back(std::make_unique<KKBFCORR>(kkconfig_->bfield_,10,reftraj_,drange)); //# of steps should be a config parameter FIXME
+      drange.low() = drange.high();
+    }
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, int detail) const {
     using std::endl;
     if(detail == 0) 
-      ost <<  "Fit Status " << fitStatus();
+      ost <<  fitStatus();
     else {
       ost <<  "Fit History " << endl;
       for(auto const& stat : statusHistory()) ost << stat << endl;
     }
-    ost << "Fit Result ";
+    ost << " Fit Result ";
     fitTraj().print(ost,detail);
     if(detail > 1) {
-      ost << "Reference ";
+      ost << " Reference ";
       refTraj().print(ost,detail);
     }
     if(detail > 2) {
-      ost << "Effects " << endl;
+      ost << " Effects " << endl;
       for(auto const& eff : effects()) eff.get()->print(ost,detail);
     }
   }

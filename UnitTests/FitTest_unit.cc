@@ -84,18 +84,18 @@ int iseed(124223);
 unsigned nhits(40);
 float escale(5.0);
 vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), lighthit(true), updatehits(false);
+bool simmat(true), lighthit(true), updatehits(false), addbf(false);
   // time hit parameters
 float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
 Vec3 bnom(0.0,0.0,1.0);
 double Bgrad(0.0), By(0.0);
-BField* BF(0);
+BField *BF(0);
 TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i\n");
 }
 
 struct KTRAJPars{
@@ -159,6 +159,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
   double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
   double desum(0.0);
   double dscatsum(0.0);
+  Vec3 bsim;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = tbuff + plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime);
@@ -209,7 +210,8 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	// terminate if there is catastrophic energy loss
       if(fabs(desum)/mom > 0.1)break;
       // generate a new piece and append
-      KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TRange(tp.particleToca(),plhel.range().high()));
+      BF->fieldVect(bsim,endpos.Vect());
+      KTRAJ newend(endpos,endmom,endpiece.charge(),bsim,TRange(tp.particleToca(),plhel.range().high()));
       plhel.append(newend);
     }
   }
@@ -296,6 +298,7 @@ int main(int argc, char **argv) {
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"LightHit",     required_argument, 0, 'L'  },
     {"UpdateHits",     required_argument, 0, 'U'  },
+    {"addbf",     required_argument, 0, 'B'  },
   };
 
   int long_index =0;
@@ -336,6 +339,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'U' : updatehits = atoi(optarg);
 		 break;
+      case 'B' : addbf = atoi(optarg);
+		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
@@ -361,12 +366,12 @@ int main(int argc, char **argv) {
   // construct BField
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
-    Vec3 bn;
-    BF->fieldVect(bn,Vec3(0.0,0.0,0.0));
-    bnom = bn;
+    BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
+    bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
-    bnom = Vec3(0.0,By,1.0);
-    BF = new UniformBField(bnom);
+    Vec3 bsim(0.0,By,1.0);
+    BF = new UniformBField(bsim);
+    bnom = Vec3(0.0,0.0,1.0);
   }
 
   MatDBInfo matdbinfo;
@@ -380,7 +385,9 @@ int main(int argc, char **argv) {
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom);
+  Vec3 bsim;
+  BF->fieldVect(bsim,origin.Vect());
+  KTRAJ lhel(origin,momv,icharge,bsim);
   cout << "True initial " << lhel << endl;
   PKTRAJ plhel(lhel);
   // truncate the range according to the Z range
@@ -399,24 +406,31 @@ int main(int argc, char **argv) {
   plhel.back().direction(plhel.range().high(),end);
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
   cout << "total momentum change = " << startmom-endmom << " total angle change = " << angle << endl;
-  // create the fit seed by randomizing the parameters at the middle
-  auto seedhel = plhel.nearestPiece(0.0);
+  // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
+  auto const& midhel = plhel.nearestPiece(0.0);
+  KTRAJ seedhel(midhel.params(),midhel.mass(),midhel.charge(),bnom,midhel.range());
   createSeed(seedhel);
   cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
+  //
   KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
   configptr->dwt_ = 1.0e6;
   configptr->convdchisq_ = convdchisq;
   configptr->maxniter_ = maxniter;
+  configptr->addbf_ = addbf;
   // add schedule; MC-truth based ambiguity
   MConfig mconfig;
-  mconfig.processmat_ = mconfig.processbfield_ =  true;
+  mconfig.updatemat_ = mconfig.updatebfcorr_ = false ;
   mconfig.updatehits_ = updatehits;
   mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
+  mconfig.temp_ = 10.0; // first
+  configptr->schedule_.push_back(mconfig);
   float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
   float temp = maxtemp;
   for(unsigned imeta = 0; imeta< nmeta+1; imeta++){
     mconfig.temp_ = temp;
+    mconfig.updatemat_ = true;
+    if(imeta > 1)mconfig.updatebfcorr_ = true;
     temp -= tstep;
     configptr->schedule_.push_back(mconfig);
   }

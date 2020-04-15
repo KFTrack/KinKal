@@ -12,7 +12,7 @@ namespace KinKal {
   template <class KTRAJ> class PKTraj : public PTTraj<KTRAJ>, public KInter {
     public:
       typedef PTTraj<KTRAJ> PTTRAJ;
-      typedef typename KTRAJ::PDER PDER; // forward derivative type from the 0th traj parameters
+      typedef typename KTRAJ::PDER PDER; // forward derivative type from the ktraj parameters
       constexpr static size_t NParams() { return KTRAJ::NParams(); } // forward the parameter space dimension
       // base class implementation
       // construct from an initial piece, which also provides kinematic information
@@ -37,8 +37,9 @@ namespace KinKal {
       double momentum(float time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
       double momentumVar(float time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
       double energy(float time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
-      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const  {
-	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
+      void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const  {
+      // this could have a smarter implementation FIXME!
+	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,dtol,ptol); }
   };
 }
 #endif
