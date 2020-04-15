@@ -325,19 +325,19 @@ namespace KinKal {
   template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, int detail) const {
     using std::endl;
     if(detail == 0) 
-      ost <<  "Fit Status " << fitStatus();
+      ost <<  fitStatus();
     else {
       ost <<  "Fit History " << endl;
       for(auto const& stat : statusHistory()) ost << stat << endl;
     }
-    ost << "Fit Result ";
+    ost << " Fit Result ";
     fitTraj().print(ost,detail);
     if(detail > 1) {
-      ost << "Reference ";
+      ost << " Reference ";
       refTraj().print(ost,detail);
     }
     if(detail > 2) {
-      ost << "Effects " << endl;
+      ost << " Effects " << endl;
       for(auto const& eff : effects()) eff.get()->print(ost,detail);
     }
   }

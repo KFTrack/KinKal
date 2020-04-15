@@ -46,7 +46,7 @@ namespace KinKal {
     float dtol_; // tolerance on direction change in BField integration (dimensionless)
     float ptol_; // tolerance on position change in BField integration (mm)
     float bftstep_; // step size to sample BField integral
-    int minndof_; // minimum number of DOFs to continue fit
+    unsigned minndof_; // minimum number of DOFs to continue fit
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
     MCONFIGCOL schedule_; 
     bool addmat_; // add material effects in the fit

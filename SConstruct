@@ -65,9 +65,8 @@ env.MergeFlags( defineMergeFlags(debugLevel) )
 # sources are classes.h, classes_def.xml, 
 # targets are dict.cpp, .rootmap and .pcm
 # LIBTEXT is the library for the dict - not a target, only text for names
-genreflex = Builder(action=Action("export HOME="+os.environ["HOME"]+"; "+"genreflex ${SOURCES[0]} -s ${SOURCES[1]} $_CPPINCFLAGS -l $LIBTEXT -o ${TARGETS[0]} --fail_on_warnings --rootmap-lib=$LIBTEXT  --rootmap=${TARGETS[1]} $DEBUG_FLAG",genreflexcomstr))
-env.Append(BUILDERS = {'DictionarySource' : genreflex})
-
+#genreflex = Builder(action=Action("export HOME="+os.environ["HOME"]+"; "+"genreflex ${SOURCES[0]} -s ${SOURCES[1]} $_CPPINCFLAGS -l $LIBTEXT -o ${TARGETS[0]} --fail_on_warnings --rootmap-lib=$LIBTEXT  --rootmap=${TARGETS[1]} $DEBUG_FLAG",genreflexcomstr))
+#env.Append(BUILDERS = {'DictionarySource' : genreflex})
 
 # Make the environment visible to all SConscript files.
 Export('env')
