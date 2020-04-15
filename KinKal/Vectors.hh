@@ -7,7 +7,6 @@
 #include "Math/Vector2D.h"
 #include <stdexcept>
 namespace KinKal {
-//  typedef ROOT::Math::Cartesian3D<double> Vec3; // spatial only vector
   typedef ROOT::Math::XYZVector Vec3; // spatial only vector
   typedef ROOT::Math::Cylindrical3D<float> Cyl3; // Cylindrical vector.  Context-dependent z axis definition
   typedef ROOT::Math::Polar3D<float> Pol3; // 3D polar vector

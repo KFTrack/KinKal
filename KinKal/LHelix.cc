@@ -46,7 +46,7 @@ namespace KinKal {
     // compute some simple useful parameters
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
-    // translation factor from MeV/c to curvature radius in mm; signed by the charge!!!
+    // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
     double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
@@ -233,6 +233,7 @@ namespace KinKal {
       ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << param(ipar) << " +- " << perr(ipar);
       if(ipar < LHelix::npars_-1) ost << " ";
     }
+    if(needsrot_) ost << " with rotation around Bnom " << bnom_;
     ost << std::endl;
   }
 

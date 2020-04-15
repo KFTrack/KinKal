@@ -36,7 +36,7 @@ namespace KinKal {
 	if(!hasPData_ && hasWData_ ){
 	  // invert the weight
 	  pdata_ = PDATA(wdata_);
-	  hasPData_ = pdata_.matrixOK();
+	  hasPData_ = true;
 	}
 	return pdata_;
       }
@@ -44,7 +44,7 @@ namespace KinKal {
 	if(!hasWData_ && hasPData_ ){
 	  // invert the parameters
 	  wdata_ = WDATA(pdata_);
-	  hasWData_ = wdata_.matrixOK();
+	  hasWData_ = true;
 	}
 	return wdata_;
       }

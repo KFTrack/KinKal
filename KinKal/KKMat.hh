@@ -78,12 +78,11 @@ namespace KinKal {
     KKEffBase::updateStatus();
   }
 
-  template<class KTRAJ> void KKMat<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) { 
-// update activity
-    active_ = mconfig.processmat_;
-    if(active_){
-    // update the detector Xings for this effect
+  template<class KTRAJ> void KKMat<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) {
+    if(mconfig.updatemat_){
+      // update the detector Xings for this effect
       dxing_->update(ref);
+      // should check to see if this material is still active FIXME!
       update(ref);
     }
   }

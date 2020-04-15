@@ -14,7 +14,6 @@ namespace KinKal {
     // forward the typedefs
       typedef TData<DDIM> TDATA;
       typedef PData<DDIM> PDATA;
-      typedef typename TDATA::Status Status;
       typedef typename TDATA::DVEC DVEC;
       typedef typename TDATA::DMAT DMAT;
       // construct from vector and matrix
@@ -29,9 +28,6 @@ namespace KinKal {
       DMAT& weightMat() { return tdata_.mat(); }
       TDATA const& tData() const { return tdata_; }
       TDATA& tData() { return tdata_; }
-      Status status() const { return tdata_.status(); }
-      bool matrixOK() const { return tdata_.matrixOK(); }
-      void setStatus(Status status) { tdata_.setStatus(status); }
       // addition: only works for other weights
       WData & operator +=(WData const& other) {
 	tdata_ += other.tdata_;

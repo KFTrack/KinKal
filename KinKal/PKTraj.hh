@@ -12,7 +12,7 @@ namespace KinKal {
   template <class KTRAJ> class PKTraj : public PTTraj<KTRAJ>, public KInter {
     public:
       typedef PTTraj<KTRAJ> PTTRAJ;
-      typedef typename KTRAJ::PDER PDER; // forward derivative type from the 0th traj parameters
+      typedef typename KTRAJ::PDER PDER; // forward derivative type from the ktraj parameters
       constexpr static size_t NParams() { return KTRAJ::NParams(); } // forward the parameter space dimension
       // base class implementation
       // construct from an initial piece, which also provides kinematic information
