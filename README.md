@@ -1,4 +1,4 @@
-# Kinematic Kalman fit code package
+# Kinematic Kalman filter track fit code package
 
   KinKal implements a kinematic Kalman filter track fit (future ref to CTD/pub).
   The primary class of KinKal is KKTrk, which shares the state describing
@@ -40,14 +40,14 @@
   by re-evaluating the extended Kalman filter derivatives, holding the physical paramters of the fit fixed.
   The fit is performed on construction.
 
-  KKTrk uses the root SVector and SMatrix classes for algebraic manipulation, and GenVector classes to represent geometric and
-  kinematic vectors, both part of the root Math package.  These are described on the [root website] ( https://root.cern.ch/root/html608/namespaceROOT_1_1Math.html)
+  KinKal uses the root SVector and SMatrix classes for algebraic manipulation, and GenVector classes to represent geometric and
+  kinematic vectors, both part of the root Math package.  These are described on the [root website](https://root.cern.ch/root/html608/namespaceROOT_1_1Math.html)
 
   The KinKal package includes a number of unit test programs to verify the individual components of the fit (simple kinematic
   trajectory class, hits, etc), as well as test program with an embedded toy Monte Carlo simulation which exercises the fit,
   and verifies its performance.
 
-  The KinKal package is licensed under Adobe v2, and is hosted at [github] (https://github.com/KFTrack/KinKal.git)
+  The KinKal package is licensed under Adobe v2, and is hosted at [GitHub](https://github.com/KFTrack/KinKal.git)
 
   David N. Brown, Lawrence Berkeley National Lab
 
