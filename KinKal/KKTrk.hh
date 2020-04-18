@@ -112,9 +112,9 @@ namespace KinKal {
     private:
       // helper functions
       void update(FitStatus const& fstat, MConfig const& mconfig);
-      void fitIteration(FitStatus& status);
+      void fitIteration(FitStatus& status, MConfig const& mconfig);
       bool canIterate() const;
-      bool oscillating(FitStatus const& status) const;
+      bool oscillating(FitStatus const& status, MConfig const& mconfig) const;
       void createBFCorr();
       // payload
       KKCONFIGPTR kkconfig_; // shared configuration
@@ -175,13 +175,13 @@ namespace KinKal {
       history_.push_back(fstat);
       while(canIterate()) {
 	update(fstat,mconfig);
-	fitIteration(fstat);
+	fitIteration(fstat,mconfig);
       }
     }
   }
 
   // single algebraic iteration 
-  template <class KTRAJ> void KKTrk<KTRAJ>::fitIteration(FitStatus& fstat) {
+  template <class KTRAJ> void KKTrk<KTRAJ>::fitIteration(FitStatus& fstat, MConfig const& mconfig) {
   // catch exceptions and record them in the status
     try {
     // reset counters
@@ -221,14 +221,14 @@ namespace KinKal {
       beff = effects_.rbegin(); beff++;
       fittraj_.range().low() = (*feff)->time() - config().tbuff_;
       fittraj_.range().high() = (*beff)->time() + config().tbuff_;
-      // update status
-      if(fabs(fstat.chisq_ -fitStatus().chisq_) < config().convdchisq_) {
+      // update status.  Convergence criteria is iteration-dependent
+      if(fabs(fstat.chisq_ -fitStatus().chisq_) < mconfig.convdchisq_) {
 	fstat.status_ = FitStatus::converged;
-      } else if (fstat.chisq_-fitStatus().chisq_ > config().divdchisq_) {
+      } else if (fstat.chisq_-fitStatus().chisq_ > mconfig.divdchisq_) {
 	fstat.status_ = FitStatus::diverged;
       } else if (fstat.ndof_ < config().minndof_){
 	fstat.status_ = FitStatus::lowNDOF;
-      } else if(oscillating(fstat)){
+      } else if(oscillating(fstat,mconfig)){
 	fstat.status_ = FitStatus::oscillating;
       } else
 	fstat.status_ = FitStatus::unconverged;
@@ -266,15 +266,12 @@ namespace KinKal {
       return false;
   }
 
-  template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat) const {
+  template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat, MConfig const& mconfig) const {
     if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
       float d1 = fstat.chisq_ - history_.back().chisq_;
       float d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
       float d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
-      if(d1*d2 < 0.0 && d1*d3 > 0.0 ){
-	if(fabs(d1) - fabs(d2) < config().oscdchisq_ && fabs(d2) - fabs(d3) < config().oscdchisq_)
-	  return true;
-	}
+      if(d1*d2 < 0.0 && d1*d3 > 0.0 && fabs(d1) - fabs(d2) < mconfig.oscdchisq_ && fabs(fabs(d2) - fabs(d3)) < mconfig.oscdchisq_) return true;
     }
     return false;
   }

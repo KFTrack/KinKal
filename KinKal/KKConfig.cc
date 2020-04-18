@@ -2,7 +2,7 @@
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, KKConfig kkconfig ) {
     ost << "KKConfig maxniter " << kkconfig.maxniter_ << " dweight " << kkconfig.dwt_
-      << " conv. dchisq " << kkconfig.convdchisq_ << " min NDOF " << kkconfig.minndof_ 
+      << " min NDOF " << kkconfig.minndof_ 
       << " with " << kkconfig.schedule().size() << " Meta-iterations:" << std::endl;
     unsigned imeta(0);
     for(auto const& mconfig : kkconfig.schedule() ) {
@@ -15,6 +15,9 @@ namespace KinKal {
 	ost << " Update Hit Internals with ";
 	ost << mconfig.hitupdateparams_.size() << " Hit update parameters" << std::endl;
       }
+      ost << " converge, diverge, oscillating dchisq " << mconfig.convdchisq_ 
+      << " "<< mconfig.divdchisq_  
+      << " "<< mconfig.oscdchisq_  << std::endl;
     }
     return ost;
   }

@@ -23,6 +23,8 @@
 #include <typeinfo>
 #include <vector>
 #include <cmath>
+#include <ctime>
+#include <chrono>
 #include <cfenv>
 #include <memory>
 
@@ -72,6 +74,7 @@ typedef vector<THITPTR> THITCOL;
 typedef vector<DXINGPTR> DXINGCOL;
 typedef Residual<KTRAJ> RESIDUAL;
 typedef TPoca<PKTRAJ,TLine> TPOCA;
+typedef std::chrono::high_resolution_clock Clock;
 
 // ugly global variables
 float zrange(3000.0), rmax(800.0); // tracker dimension
@@ -415,7 +418,6 @@ int main(int argc, char **argv) {
   //
   KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
   configptr->dwt_ = 1.0e6;
-  configptr->convdchisq_ = convdchisq;
   configptr->maxniter_ = maxniter;
   configptr->addbf_ = addbf;
   // add schedule; MC-truth based ambiguity
@@ -424,6 +426,9 @@ int main(int argc, char **argv) {
   mconfig.updatehits_ = updatehits;
   mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
   mconfig.temp_ = 10.0; // first
+  mconfig.convdchisq_ = 1.0; // initially crude 
+  mconfig.divdchisq_ = 100*mconfig.convdchisq_;
+  mconfig.oscdchisq_ = 5*mconfig.convdchisq_;
   configptr->schedule_.push_back(mconfig);
   float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
   float temp = maxtemp;
@@ -431,6 +436,11 @@ int main(int argc, char **argv) {
     mconfig.temp_ = temp;
     mconfig.updatemat_ = true;
     if(imeta > 1)mconfig.updatebfcorr_ = true;
+    if(imeta > nmeta-2){
+      mconfig.convdchisq_ = convdchisq;
+      mconfig.divdchisq_ = 100*mconfig.convdchisq_;
+      mconfig.oscdchisq_ = 5*mconfig.convdchisq_;
+    }
     temp -= tstep;
     configptr->schedule_.push_back(mconfig);
   }
@@ -548,6 +558,7 @@ int main(int argc, char **argv) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
+    double duration (0.0);
     for(unsigned itry=0;itry<ntries;itry++){
       // randomize the helix
       Vec4 torigin(TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0),TR->Gaus(0.0,3.0));
@@ -564,7 +575,10 @@ int main(int argc, char **argv) {
       tde_ = createHits(tplhel,smat, thits,dxings);
       auto seedhel = tplhel.nearestPiece(0.0);
       createSeed(seedhel);
+      auto start = Clock::now();
       KKTRK kktrk(configptr,seedhel,thits,dxings);
+      auto stop = Clock::now();
+      duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       // compare parameters at the first traj of both true and fit
       auto const& tpars = tplhel.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
@@ -631,6 +645,7 @@ int main(int argc, char **argv) {
       }
       if(ttree)ftree->Fill();
     }
+    cout <<"Time/fit = " << duration/float(ntries) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);

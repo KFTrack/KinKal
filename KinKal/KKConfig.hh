@@ -22,25 +22,25 @@ namespace KinKal {
     bool updatemat_; // update material effects
     bool updatebfcorr_; // update magnetic field inhomogeneity effects
     bool updatehits_; // update the internal state of the hits (activity, LR ambiguity) 
+    float convdchisq_; // maximum change in chisquared for convergence
+    float divdchisq_; // minimum change in chisquared for divergence
+    float oscdchisq_; // maximum change in chisquared for oscillation
     int miter_; // count of meta-iteration
     // payload for hit updating; specific hit classes should find their particular payload inside the vector
     std::vector<std::any> hitupdateparams_;
-    MConfig() : temp_(0.0), updatemat_(false), updatebfcorr_(false), updatehits_(false), miter_(-1) {}
+    MConfig() : temp_(0.0), updatemat_(false), updatebfcorr_(false), updatehits_(false), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), miter_(-1) {}
   };
 
   struct KKConfig {
     typedef std::vector<MConfig> MCONFIGCOL;
     KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
-    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6), convdchisq_(0.1), divdchisq_(100.0), oscdchisq_(1.0), tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5), addmat_(true), addbf_(true) {} 
+    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5), addmat_(true), addbf_(true) {} 
     BField const& bfield() const { return bfield_; }
     MCONFIGCOL const& schedule() const { return schedule_; }
     BField const& bfield_;
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
     float dwt_; // dweighting of initial seed covariance
-    float convdchisq_; // maximum change in chisquared for convergence
-    float divdchisq_; // minimum change in chisquared for divergence
-    float oscdchisq_; // maximum change in chisquared for oscillation
     float tbuff_; // time buffer for final fit (ns)
     float dtol_; // tolerance on direction change in BField integration (dimensionless)
     float ptol_; // tolerance on position change in BField integration (mm)
