@@ -188,29 +188,6 @@ namespace KinKal {
     }
   }
 
-  // derivatives of position.Dot(direction) WRT the 6 parameters
-  // these are used to apply the continuity constraint at lossy effects
-  void LHelix::posDeriv(float time, PDER& pder) const {
-  // precompute some values
-    double df = dphi(time);
-    double phival = phi0() + df;
-    double sphi = sin(phival);
-    double cphi = cos(phival);
-    double pb = pbar();
-    double inveb2 = 1.0/ebar2();
-    double invpb = 1.0/pb;
-    double om = omega();
-    double rad2 = rad()*rad();
-
-    pder[rad_] = -pb*inveb2*rad()*df;
-    pder[lam_] = invpb*mbar()*mbar()*lam()*df*inveb2;
-    pder[cx_] = invpb*rad()*cphi;
-    pder[cy_] = invpb*rad()*sphi;
-    pder[phi0_] = invpb*rad2;
-    pder[t0_] = -om*pb;
-
-  }
-
   void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float dtol, float ptol) const {
     // compute scaling factor
     float spd = speed(drange.low());

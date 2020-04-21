@@ -65,11 +65,11 @@ typedef Residual<KTRAJ> RESIDUAL;
 
 // ugly global variables
 double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
+double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5), dmax(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --dmax f\n");
 }
 
 // helper function
@@ -82,7 +82,7 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
   double eta = TR->Uniform(-M_PI,M_PI);
   Vec3 sdir(cos(eta),sin(eta),0.0);
   // generate a random drift perp to this and the trajectory
-  double rdrift = TR->Uniform(-rstraw,rstraw);
+  double rdrift = TR->Uniform(-dmax,dmax);
   Vec3 drift = (sdir.Cross(hdir)).Unit();
   Vec3 dpos = hpos.Vect() + rdrift*drift;
 //  cout << "Generating hit at position " << dpos << endl;
@@ -113,7 +113,7 @@ KinKal::TLine GenerateStraw(PLHelix const& traj, double htime, TRandom* TR) {
 int main(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
-  double ambigdoca(0.5); // minimum DOCA to consider sign accurate
+  double ambigdoca(0.5); // minimum Doca to consider sign accurate
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
@@ -138,6 +138,7 @@ int main(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ddoca",     required_argument, 0, 'x'  },
+    {"dmax",     required_argument, 0, 'r'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
   };
@@ -145,7 +146,6 @@ int main(int argc, char **argv) {
   int long_index =0;
   while ((opt = getopt_long_only(argc, argv,"",
 	  long_options, &long_index )) != -1) {
-    cout << "found option " << opt << " argument " <<optarg << endl;
     switch (opt) {
       case 'm' : mom = atof(optarg);
 		 break;
@@ -168,6 +168,8 @@ int main(int argc, char **argv) {
       case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'x' : ddoca = atof(optarg);
+		 break;
+      case 'r' : dmax = atof(optarg);
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
@@ -216,7 +218,7 @@ int main(int argc, char **argv) {
   hel->Draw();
 // divide time range
   double dt = plhel.range().range()/(nhits-1);
-  cout << "True " << plhel << endl;
+//  cout << "True " << plhel << endl;
   // create straw material
   MatDBInfo matdbinfo;
   const DetMaterial* wallmat = matdbinfo.findDetMaterial("straw-wall");
@@ -228,17 +230,17 @@ int main(int argc, char **argv) {
   const_cast<DetMaterial*>(wiremat)->setScatterFraction(scatfrac);
 
   StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
-  TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;DOCA (mm);Pathlength (mm)");
-  TGraph* gwplen = new TGraph(nhits); gwplen->SetTitle("Wall Pathlength;DOCA (mm);Pathlength (mm)");
-  TGraph* ggeloss = new TGraph(nhits); ggeloss->SetTitle("Gas Energy Loss;DOCA (mm);Energy Loss (MeV)");
-  TGraph* gweloss = new TGraph(nhits); gweloss->SetTitle("Wall Energy Loss;DOCA (mm);Energy Loss (MeV)");
-  TGraph* ggscat = new TGraph(nhits); ggscat->SetTitle("Gas Scattering;DOCA (mm);Scattering (radians)");
-  TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;DOCA (mm);Scattering (radians)");
+  TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
+  TGraph* gwplen = new TGraph(nhits); gwplen->SetTitle("Wall Pathlength;Doca (mm);Pathlength (mm)"); gwplen->SetMinimum(0.0);
+  TGraph* ggeloss = new TGraph(nhits); ggeloss->SetTitle("Gas Energy Change;Doca (mm);Energy Change (MeV)"); ggeloss->SetMaximum(0.0);
+  TGraph* gweloss = new TGraph(nhits); gweloss->SetTitle("Wall Energy Change;Doca (mm);Energy Change (MeV)"); gweloss->SetMaximum(0.0);
+  TGraph* ggscat = new TGraph(nhits); ggscat->SetTitle("Gas Scattering;Doca (mm);Scattering (radians)"); ggscat->SetMinimum(0.0);
+  TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;Doca (mm);Scattering (radians)"); gwscat->SetMinimum(0.0);
 
   // generate hits
   THITCOL thits;
   std::vector<TPolyLine3D*> tpl;
-  cout << "ambigdoca = " << ambigdoca << endl;
+//  cout << "ambigdoca = " << ambigdoca << endl;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = plhel.range().low() + ihit*dt;
     auto tline = GenerateStraw(plhel,htime,TR);
@@ -246,7 +248,7 @@ int main(int argc, char **argv) {
 // try to create TPoca for a hit
     TPoca<PLHelix,TLine> tp(plhel,tline);
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-// only set ambiguity if DOCA is above this value
+// only set ambiguity if Doca is above this value
     LRAmbig ambig(LRAmbig::null);
     if(fabs(tp.doca())> ambigdoca)
       ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
@@ -256,7 +258,7 @@ int main(int argc, char **argv) {
    // compute residual
     RESIDUAL  res;
     thits.back()->resid(plhel,res);
-    cout << res << " ambig " << ambig << endl;
+//    cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     tline.position(tline.range().low(),plow);
@@ -268,14 +270,14 @@ int main(int argc, char **argv) {
     tpl.push_back(line);
     // compute material effects
 //    double adot = tp.dirDot();
-//    double adot =0.0; // transverse
-    double adot = tp.dirDot();
+    double adot =0.0; // transverse
+//    double adot = tp.dirDot();
     double gpath = smat.gasPath(tp.doca(),ddoca,adot);
     double wpath = smat.wallPath(tp.doca(),ddoca,adot);
     ggplen->SetPoint(ihit,fabs(tp.doca()),gpath );
     gwplen->SetPoint(ihit,fabs(tp.doca()),wpath);
-    cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),ddoca,adot)
-    << " wall path " << smat.wallPath(tp.doca(),ddoca,adot) << endl;
+//    cout << "doca " << tp.doca() << " gas path " << smat.gasPath(tp.doca(),ddoca,adot)
+//    << " wall path " << smat.wallPath(tp.doca(),ddoca,adot) << endl;
     // compute material effects
     double geloss = gasmat->energyLoss(mom,gpath,pmass);
     double weloss = wallmat->energyLoss(mom,wpath,pmass);
@@ -287,7 +289,7 @@ int main(int argc, char **argv) {
     gwscat->SetPoint(ihit,fabs(tp.doca()),wscat);
 
     KKMHit<LHelix> kmh(thits.back(),plhel);
-    kmh.print(cout,1);
+//    kmh.print(cout,1);
   }
   // create a LightHit at the end, axis parallel to z
   // first, find the position at showermax.
@@ -307,15 +309,15 @@ int main(int argc, char **argv) {
   TLine lline(lmeas,lvel,tmeas);
   // then create the hit and add it; the hit has no material
   LIGHTHIT lhit(lline, ttvar, twvar);
-  lhit.print();
+//  lhit.print();
   Vec3 lhpos;
   lline.position(ltime,lhpos);
   // test
-  cout << "plhel pos " << lpos << endl;
-  cout << "lhit pos " << lhpos << endl;
+//  cout << "plhel pos " << lpos << endl;
+//  cout << "lhit pos " << lhpos << endl;
   RESIDUAL lres;
   lhit.resid(plhel,lres);
-  cout << lres << endl;
+//  cout << lres << endl;
 
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();

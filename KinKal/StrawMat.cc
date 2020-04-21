@@ -10,28 +10,20 @@ namespace KinKal {
     if(!isfinite(afac))throw std::runtime_error("Invalid angle");
 
     float retval;
-  // if the uncertainty is large, just take the average over all possible impact parameters
-    if(ddoca > srad_) {
-      retval = 0.5*M_PI*srad_;
-    } else if (ddoca < ddmax_) {  // small error: don't integrate
-      if(doca < srad_)
-	retval = 2.0*sqrt(srad2_-doca*doca); 
-      else
-	retval = 0.0;
-    } else if ( doca - srad_ > ddoca ) {
-    // near the edge, set to minimal value
-      retval = 0.0;
+    if (ddoca < ddmax_) {  // small error: don't integrate
+      float rad = std::min(doca,srad_-thick_);
+      retval = 2.0*sqrt(srad2_-rad*rad); 
     } else { 
       // integrate +- 1 sigma from DOCA.  Restrict rmax to physical values
       // Note that negative rdmin is handled naturally
       float rdmax = std::min(rdmax_,(doca+ddoca)/srad_);
-      float rdmin = (doca-ddoca)/srad_;
+      float rdmin = std::min(std::max(wrad_,doca-ddoca)/srad_,rdmax-thick_);
       retval = srad_*(asin(rdmax) - asin(rdmin) +
 	  rdmax*sqrt(1.0-rdmax*rdmax) - rdmin*sqrt(1.0-rdmin*rdmin) )/(rdmax-rdmin);
+      if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     }
     // correct for the angle
     retval *= afac;
-    if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     return retval;
   }
 
@@ -39,27 +31,19 @@ namespace KinKal {
     doca = fabs(doca);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     float retval(-1.0);
-    // if the uncertainty is large, just take the average over all possible impact parameters
-    if(ddoca > srad_ ) {
-      retval = M_PI*thick_;
-    } else if (ddoca < ddmax_) {  // small error: don't integrate
-      if(srad_ > doca + 0.25*thick_)
-	retval = 2.0*thick_*srad_/sqrt(srad2_-doca*doca);
-      else
-	retval = wpmax_;
-    } else if ( doca - srad_ > ddoca ) {
-    // way outside: set to a maximal value
-      retval = wpmax_;
+    if (ddoca < ddmax_) {  // small error: don't integrate
+      float rad = std::min(doca,srad_-thick_);
+      retval = 2.0*thick_*srad_/sqrt(srad2_-rad*rad);
     } else {
       // integrate +- 1 sigma from DOCA.  Restrict rmax to physical values
       // Note that negative rdmin is handled naturally
       float rdmax = std::min(rdmax_,(doca+ddoca)/srad_);
-      float rdmin = std::max(-rdmax_,(doca-ddoca)/srad_);
+      float rdmin = std::min(std::max(wrad_,doca-ddoca)/srad_,rdmax-thick_);
       retval = 2.0*thick_*(asin(rdmax) - asin(rdmin))/(rdmax-rdmin);
+      if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     }
     // correct for the angle
     retval *= afac;
-    if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     return retval;
   }
 

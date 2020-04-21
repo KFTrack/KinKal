@@ -3,7 +3,7 @@
 //
 // class desribing the looping helix basis for the kinematic Kalman fit
 // It provides geometric, kinematic, and algebraic representation of
-// a particule executing a multi-loop helix in a constant magnetic field.
+// a particle executing a multi-loop helix in a constant magnetic field.
 // Original Author David Brown (LBNL) 1/2020
 //
 
@@ -58,16 +58,12 @@ namespace KinKal {
       bool inRange(float time) const { return trange_.inRange(time); }
       // KInter interface
       void momentum(float time,Mom4& mom) const ;
-      double momentum(float time) const  { return  mass_*pbar()/mbar_; }
+      double momentum(float time) const  { return  fabs(mass_*pbar()/mbar_); }
       double momentumVar(float time) const ;
-      double energy(float time) const  { return  mass_*ebar()/mbar_; }
+      double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
       void momDeriv(MDir mdir, float time, PDER& der) const;
-      // position change derivatives; this is required to instantiate a KalTrk using this KInter
-      // we only care about this along the momentum direction
-      void posDeriv(float time, PDER& der) const;
-
      // named parameter accessors
       double param(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
@@ -101,6 +97,8 @@ namespace KinKal {
 	mbar_ *= -1.0;
 	charge_ *= -1;
 	pars_.parameters()[t0_] *= -1.0;
+//	pars_.parameters()[lam_] *= -1.0;
+//	pars_.parameters()[rad_] *= -1.0;
       }
       //
     private :

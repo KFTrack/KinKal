@@ -37,7 +37,7 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: TPoca --charge i--gap f --time f --dtime f --dphi f --vprop f\n");
+  printf("Usage: TPoca --charge i--gap f --time f --dtime f --dphi f --vprop f --costheta f \n");
 }
 
 int main(int argc, char **argv) {
@@ -53,6 +53,7 @@ int main(int argc, char **argv) {
 
   static struct option long_options[] = {
     {"charge",     required_argument, 0, 'q'  },
+    {"costheta",     required_argument, 0, 'c'  },
     {"gap",     required_argument, 0, 'g'  },
     {"time",     required_argument, 0, 't'  },
     {"dtime",     required_argument, 0, 'd'  },
@@ -64,6 +65,8 @@ int main(int argc, char **argv) {
   while ((opt = getopt_long_only(argc, argv,"", 
 	  long_options, &long_index )) != -1) {
     switch (opt) {
+      case 'c' : cost = atof(optarg);
+		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
       case 'g' : gap = atof(optarg); 
