@@ -87,7 +87,7 @@ int iseed(124223);
 unsigned nhits(40);
 float escale(5.0);
 vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), lighthit(true), updatehits(false), addbf(false);
+bool simmat(true), fitmat(true), lighthit(true), updatehits(false), addbf(false);
   // time hit parameters
 float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
 // define the BF
@@ -98,8 +98,9 @@ TRandom* TR = new TRandom3(iseed);
 CVD2T d2t(sdrift,sigt*sigt,rstraw);
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i --invert i\n");
 }
+
 
 struct KTRAJPars{
   Float_t pars_[KTRAJ::NParams()];
@@ -156,6 +157,27 @@ void createSeed(KTRAJ& seed){
   }
 }
 
+void extendTraj(PKTRAJ& plhel,double htime) {
+  if(Bgrad != 0.0){
+    auto const& back = plhel.back();
+    float tend = back.range().low();
+    Vec3 vel;
+    back.velocity(htime,vel);
+    float tstep = 0.0001*back.bnom().R()*zrange/(Bgrad*vel.Z()); // how far before BField changes by 1/10000
+    while(tend < htime-tstep){
+      tend += tstep;
+      Vec3 bf;
+      Vec4 pos; pos.SetE(tend);
+      Mom4 mom;
+      plhel.momentum(tend,mom);
+      plhel.position(pos);
+      BF->fieldVect(bf,pos.Vect());
+      KTRAJ newend(pos,mom,plhel.charge(),bf,TRange(tend,plhel.range().high()));
+      plhel.append(newend);
+    }
+  }
+}
+
 double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& dxings) {
   //  cout << "Creating " << nhits << " hits " << endl;
   // divide time range
@@ -165,6 +187,9 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
   Vec3 bsim;
   for(size_t ihit=0; ihit<nhits; ihit++){
     double htime = tbuff + plhel.range().low() + ihit*dt;
+// extend the trajectory in the BField 
+    extendTraj(plhel,htime);
+// create the hit at this time
     auto tline = GenerateStraw(plhel,htime);
     TPoca<PKTRAJ,TLine> tp(plhel,tline);
     LRAmbig ambig(LRAmbig::null);
@@ -204,7 +229,6 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	    throw std::invalid_argument("Invalid direction");
 	}
 //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-
 	Vec3 dmvec;
 	endpiece.dirVector(mdir,tp.particleToca(),dmvec);
 	dmvec *= dm*mom;
@@ -215,6 +239,7 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
       // generate a new piece and append
       BF->fieldVect(bsim,endpos.Vect());
       KTRAJ newend(endpos,endmom,endpiece.charge(),bsim,TRange(tp.particleToca(),plhel.range().high()));
+//      newend.print(cout,1);
       plhel.append(newend);
     }
   }
@@ -235,7 +260,8 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
     float tmeas = TR->Gaus(ltime+(lmeas.Z()-shmpos.Z())/vlight,sqrt(ttvar));
     // create the ttraj for the light propagation
     Vec3 lvel(0.0,0.0,vlight);
-    TLine lline(lmeas,lvel,tmeas);
+    TRange trange(cstart,cstart+clen/vlight);
+    TLine lline(lmeas,lvel,tmeas,trange);
     // then create the hit and add it; the hit has no material
     thits.push_back(std::make_shared<LIGHTHIT>(lline, ttvar, twvar));
  // test
@@ -263,22 +289,23 @@ int main(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
-  int imass(0), icharge(-1);
-  double pmass;
-  unsigned maxniter(10);
+  int isimmass(0), ifitmass(0), icharge(-1);
+  double simmass, fitmass;
+  unsigned maxniter(5);
   unsigned nmeta(2);
   float maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
-  int detail(0);
+  int detail(0), invert(0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
     {"costheta",     required_argument, 0, 'c'  },
     {"azimuth",     required_argument, 0, 'a'  },
-    {"particle",     required_argument, 0, 'p'  },
+    {"simparticle",     required_argument, 0, 'S'  },
+    {"fitparticle",     required_argument, 0, 'F'  },
     {"charge",     required_argument, 0, 'q'  },
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
@@ -290,6 +317,7 @@ int main(int argc, char **argv) {
     {"nmeta",     required_argument, 0, 'M'  },
     {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
+    {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 't'  },
     {"convdchisq",     required_argument, 0, 'C'  },
@@ -302,6 +330,7 @@ int main(int argc, char **argv) {
     {"LightHit",     required_argument, 0, 'L'  },
     {"UpdateHits",     required_argument, 0, 'U'  },
     {"addbf",     required_argument, 0, 'B'  },
+    {"invert",     required_argument, 0, 'I'  },
   };
 
   int long_index =0;
@@ -314,7 +343,9 @@ int main(int argc, char **argv) {
 		 break;
       case 'a' : phi = atof(optarg);
 		 break;
-      case 'p' : imass = atoi(optarg);
+      case 'S' : isimmass = atoi(optarg);
+		 break;
+      case 'F' : ifitmass = atoi(optarg);
 		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
@@ -338,6 +369,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
+      case 'f' : fitmat = atoi(optarg);
+		 break;
       case 'L' : lighthit = atoi(optarg);
 		 break;
       case 'U' : updatehits = atoi(optarg);
@@ -360,6 +393,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'D' : detail = atoi(optarg);
 		 break;
+      case 'I' : invert = atoi(optarg);
+		 break;
       case 'T' : tfname = optarg;
 		 break;
       default: print_usage();
@@ -368,7 +403,7 @@ int main(int argc, char **argv) {
   }
   // construct BField
   if(Bgrad != 0){
-    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
     bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
@@ -384,10 +419,11 @@ int main(int argc, char **argv) {
   float rwire(0.025), wthick(0.015);
   StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
 
-  pmass = masses[imass];
+  simmass = masses[isimmass];
+  fitmass = masses[ifitmass];
   Vec4 origin(0.0,0.0,0.0,0.0);
   float sint = sqrt(1.0-cost*cost);
-  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
+  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,simmass);
   Vec3 bsim;
   BF->fieldVect(bsim,origin.Vect());
   KTRAJ lhel(origin,momv,icharge,bsim);
@@ -408,10 +444,21 @@ int main(int argc, char **argv) {
   plhel.front().direction(plhel.range().high(),bend);
   plhel.back().direction(plhel.range().high(),end);
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
-  cout << "total momentum change = " << startmom-endmom << " total angle change = " << angle << endl;
+  cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
   auto const& midhel = plhel.nearestPiece(0.0);
-  KTRAJ seedhel(midhel.params(),midhel.mass(),midhel.charge(),bnom,midhel.range());
+  KTRAJ seedhel(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+  if(invert){
+    Vec3 pos, ipos;
+    Mom4 mom, imom;
+    seedhel.position(seedhel.range().mid(),pos);
+    seedhel.momentum(seedhel.range().mid(),mom);
+    seedhel.invertCT();
+    seedhel.position(seedhel.range().mid(),ipos);
+    seedhel.momentum(seedhel.range().mid(),imom);
+    cout << "before invert pos = " << pos << " mom " << mom << endl;
+    cout << "after  invert pos = " << ipos << " mom " << imom << endl;
+  }
   createSeed(seedhel);
   cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
   // Create the KKTrk from these hits
@@ -420,21 +467,24 @@ int main(int argc, char **argv) {
   configptr->dwt_ = 1.0e6;
   configptr->maxniter_ = maxniter;
   configptr->addbf_ = addbf;
+  configptr->addmat_ = fitmat;
+  configptr->plevel_ = (KKConfig::printLevel)detail;
   // add schedule; MC-truth based ambiguity
   MConfig mconfig;
   mconfig.updatemat_ = mconfig.updatebfcorr_ = false ;
   mconfig.updatehits_ = updatehits;
   mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
-  mconfig.temp_ = 10.0; // first
-  mconfig.convdchisq_ = 1.0; // initially crude 
-  mconfig.divdchisq_ = 100*mconfig.convdchisq_;
-  mconfig.oscdchisq_ = 5*mconfig.convdchisq_;
+  mconfig.temp_ = maxtemp; // first
+//  mconfig.convdchisq_ = 1.0; // initially crude 
+  mconfig.convdchisq_ = convdchisq; 
+  mconfig.divdchisq_ = 1000*mconfig.convdchisq_;
+  mconfig.oscdchisq_ = 10*mconfig.convdchisq_;
   configptr->schedule_.push_back(mconfig);
   float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
   float temp = maxtemp;
-  for(unsigned imeta = 0; imeta< nmeta+1; imeta++){
+  for(unsigned imeta = 0; imeta< nmeta; imeta++){
     mconfig.temp_ = temp;
-    mconfig.updatemat_ = true;
+    mconfig.updatemat_ = fitmat;
     if(imeta > 1)mconfig.updatebfcorr_ = true;
     if(imeta > nmeta-2){
       mconfig.convdchisq_ = convdchisq;
@@ -444,7 +494,7 @@ int main(int argc, char **argv) {
     temp -= tstep;
     configptr->schedule_.push_back(mconfig);
   }
-   // cout << *configptr << endl;
+  cout << *configptr << endl;
 // create and fit the track
   KKTRK kktrk(configptr,seedhel,thits,dxings);
   kktrk.print(cout,detail);
@@ -460,7 +510,7 @@ int main(int argc, char **argv) {
     auto const& fithel = kktrk.fitTraj();
     unsigned np = fithel.range().range()*fithel.speed(fithel.range().mid());
     TPolyLine3D* fitpl = new TPolyLine3D(np);
-    fitpl->SetLineColor(kBlack);
+    fitpl->SetLineColor(kBlue);
     fitpl->SetLineStyle(kSolid);
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
@@ -473,7 +523,7 @@ int main(int argc, char **argv) {
 // now draw the truth
     TPolyLine3D* thelpl = new TPolyLine3D(np);
     thelpl->SetLineColor(kGreen);
-    thelpl->SetLineStyle(kDotted);
+    thelpl->SetLineStyle(kDashDotted);
     ts = plhel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = plhel.range().low() + ip*ts;
@@ -482,6 +532,29 @@ int main(int argc, char **argv) {
       thelpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     thelpl->Draw();
+    // draw the hits
+    std::vector<TPolyLine3D*> tpl;
+    for(auto const& thit : thits) {
+      TPolyLine3D* line = new TPolyLine3D(2);
+      Vec3 plow, phigh;
+      STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
+      LIGHTHITPTR lhptr = std::dynamic_pointer_cast<LIGHTHIT> (thit);
+      if(shptr.use_count() > 0){
+	auto const& tline = shptr->wire();
+	tline.position(tline.range().low(),plow);
+	tline.position(tline.range().high(),phigh);
+	line->SetLineColor(kRed);
+      } else if (lhptr.use_count() > 0){
+	auto const& tline = lhptr->sensorAxis();
+	tline.position(tline.range().low(),plow);
+	tline.position(tline.range().high(),phigh);
+	line->SetLineColor(kCyan);
+      }
+      line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+      line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+      line->Draw();
+      tpl.push_back(line);
+    }
 
     // draw the origin and axes
     TAxis3D* rulers = new TAxis3D();
@@ -526,8 +599,12 @@ int main(int argc, char **argv) {
     vector<TH1F*> fdpullgenh(KTRAJ::NParams());
     vector<TH1F*> bdpullgenh(KTRAJ::NParams());
     vector<TH1F*> fiterrh(KTRAJ::NParams());
-    TH1F* niter = new TH1F("niter", "N Iterations", 100,0,100);
-    TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,0,100);
+    TH1F* hniter = new TH1F("niter", "Total Iterations", 50,-0.5,49.5);
+    TH1F* hnfail = new TH1F("nfail", "Failed Iterations", 50,-0.5,49.5);
+    TH1F* hndiv = new TH1F("ndiv", "Diverged Iterations", 50,-0.5,49.5);
+    hnfail->SetLineColor(kRed);
+    hndiv->SetLineColor(kOrange);
+    TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,-0.5,99.5);
     TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
     TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
     TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
@@ -565,15 +642,18 @@ int main(int argc, char **argv) {
       double tphi = TR->Uniform(-M_PI,M_PI);
       double tcost = TR->Uniform(0.5,0.8);
       double tsint = sqrt(1.0-tcost*tcost);
-      Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,pmass);
-      KTRAJ tlhel(torigin,tmomv,icharge,bnom);
+      Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,simmass);
+      BF->fieldVect(bsim,torigin.Vect());
+      KTRAJ tlhel(torigin,tmomv,icharge,bsim);
       PKTRAJ tplhel(tlhel);
       Vec3 vel; tplhel.velocity(0.0,vel);
       tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
       thits.clear();
       dxings.clear();
       tde_ = createHits(tplhel,smat, thits,dxings);
-      auto seedhel = tplhel.nearestPiece(0.0);
+      auto const& midhel = tplhel.nearestPiece(tplhel.range().mid());
+      KTRAJ seedhel(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+      if(invert)seedhel.invertCT();
       createSeed(seedhel);
       auto start = Clock::now();
       KKTRK kktrk(configptr,seedhel,thits,dxings);
@@ -607,9 +687,17 @@ int main(int argc, char **argv) {
 	}
       }
       // accumulate chisquared info
+      unsigned niter(0), nfail(0), ndiv(0);
+      for(auto const& fstat: kktrk.history()){
+	if(fstat.status_ != FitStatus::needsfit)niter++;
+	if(fstat.status_ == FitStatus::failed)nfail++;
+	if(fstat.status_ == FitStatus::diverged)ndiv++;
+      }
+      hniter->Fill(niter);
+      hnfail->Fill(nfail);
+      hndiv->Fill(ndiv);
       auto const& fstat = kktrk.fitStatus();
       chiprob_ = fstat.prob_; 
-      niter->Fill(fstat.iter_);
       ndof->Fill(fstat.ndof_);
       chisq->Fill(fstat.chisq_);
       chisqndof->Fill(fstat.chisq_/fstat.ndof_);
@@ -694,7 +782,9 @@ int main(int argc, char **argv) {
     TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
     statuscan->Divide(3,2);
     statuscan->cd(1);
-    niter->Draw();
+    hniter->Draw();
+    hnfail->Draw("same");
+    hndiv->Draw("same");
     statuscan->cd(2);
     ndof->Draw();
     statuscan->cd(3);

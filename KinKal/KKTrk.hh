@@ -52,7 +52,7 @@
 #include "KinKal/KKMHit.hh"
 #include "KinKal/KKHit.hh"
 #include "KinKal/KKMat.hh"
-#include "KinKal/KKBFCorr.hh"
+#include "KinKal/KKBField.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/THit.hh"
 #include "KinKal/KKConfig.hh"
@@ -76,7 +76,7 @@ namespace KinKal {
       typedef KKHit<KTRAJ> KKHIT;
       typedef KKMHit<KTRAJ> KKMHIT;
       typedef KKMat<KTRAJ> KKMAT;
-      typedef KKBFCorr<KTRAJ> KKBFCORR;
+      typedef KKBField<KTRAJ> KKBFIELD;
       typedef std::shared_ptr<KKConfig> KKCONFIGPTR;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef THit<KTRAJ> THIT;
@@ -100,7 +100,7 @@ namespace KinKal {
       KKTrk(KKCONFIGPTR const& kkconfig, PKTRAJ const& reftraj, THITCOL& thits, DXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
-      std::vector<FitStatus> const& statusHistory() const { return history_; }
+      std::vector<FitStatus> const& history() const { return history_; }
       FitStatus const& fitStatus() const { return history_.back(); } // most recent status
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
@@ -174,70 +174,73 @@ namespace KinKal {
       FitStatus fstat(mconfig.miter_);
       history_.push_back(fstat);
       while(canIterate()) {
-	update(fstat,mconfig);
-	fitIteration(fstat,mconfig);
+	try {
+	  update(fstat,mconfig);
+	  fitIteration(fstat,mconfig);
+	} catch (std::exception const& error) {
+	  fstat.status_ = FitStatus::failed;
+	  fstat.comment_ = error.what();
+	}
+	// record this status in the history
+	history_.push_back(fstat);
       }
+//      if(!fitStatus().usable())break;
+// discontinuing if a single iteration fails is too harsh, the fit often recovers at the next stage: a better strategy
+// would be to reseed the fit FIXME!
     }
   }
 
   // single algebraic iteration 
   template <class KTRAJ> void KKTrk<KTRAJ>::fitIteration(FitStatus& fstat, MConfig const& mconfig) {
   // catch exceptions and record them in the status
-    try {
     // reset counters
-      fstat.chisq_ = 0.0;
-      fstat.ndof_ = -(int)KTRAJ::NParams();
-      fstat.iter_++;
-      // fit in both directions (order doesn't matter)
-      auto feff = effects_.begin();
-      // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
-      KKData<KTRAJ::NParams()> ffitdata;
-      while(feff != effects_.end()){
-	auto ieff = feff->get();
-	// update chisquared; only needed forwards
-	fstat.ndof_ += ieff->nDOF();
-	fstat.chisq_ += ieff->chisq(ffitdata.pData());
-	// process
-	ieff->process(ffitdata,TDir::forwards);
-	feff++;
-      }
-      fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
-      // reset the fit information and process backwards (the order does not matter)
-      KKData<KTRAJ::NParams()> bfitdata;
-      auto beff = effects_.rbegin();
-      while(beff != effects_.rend()){
-	auto ieff = beff->get();
-	ieff->process(bfitdata,TDir::backwards);
-	beff++;
-      }
-      // convert the fit result into a new trajectory; start with an empty ptraj
-      fittraj_ = PKTRAJ(reftraj_.range(),reftraj_.mass(),reftraj_.charge());
-      // process forwards, adding pieces as necessary
-      for(auto& ieff : effects_) {
-	ieff->append(fittraj_);
-      }
-      // trim the range to the physical elements (past the end sites)
-      feff = effects_.begin(); feff++;
-      beff = effects_.rbegin(); beff++;
-      fittraj_.range().low() = (*feff)->time() - config().tbuff_;
-      fittraj_.range().high() = (*beff)->time() + config().tbuff_;
-      // update status.  Convergence criteria is iteration-dependent
-      if(fabs(fstat.chisq_ -fitStatus().chisq_) < mconfig.convdchisq_) {
-	fstat.status_ = FitStatus::converged;
-      } else if (fstat.chisq_-fitStatus().chisq_ > mconfig.divdchisq_) {
-	fstat.status_ = FitStatus::diverged;
-      } else if (fstat.ndof_ < config().minndof_){
-	fstat.status_ = FitStatus::lowNDOF;
-      } else if(oscillating(fstat,mconfig)){
-	fstat.status_ = FitStatus::oscillating;
-      } else
-	fstat.status_ = FitStatus::unconverged;
-    } catch (std::exception const& error) {
-      fstat.status_ = FitStatus::failed;
-      fstat.comment_ = error.what();
+    fstat.chisq_ = 0.0;
+    fstat.ndof_ = -(int)KTRAJ::NParams();
+    fstat.iter_++;
+    // fit in both directions (order doesn't matter)
+    auto feff = effects_.begin();
+    // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
+    KKData<KTRAJ::NParams()> ffitdata;
+    while(feff != effects_.end()){
+      auto ieff = feff->get();
+      // update chisquared; only needed forwards
+      fstat.ndof_ += ieff->nDOF();
+      fstat.chisq_ += ieff->chisq(ffitdata.pData());
+      // process
+      ieff->process(ffitdata,TDir::forwards);
+      feff++;
     }
-    // record this status in the history
-    history_.push_back(fstat);
+    fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
+    // reset the fit information and process backwards (the order does not matter)
+    KKData<KTRAJ::NParams()> bfitdata;
+    auto beff = effects_.rbegin();
+    while(beff != effects_.rend()){
+      auto ieff = beff->get();
+      ieff->process(bfitdata,TDir::backwards);
+      beff++;
+    }
+    // convert the fit result into a new trajectory; start with an empty ptraj
+    fittraj_ = PKTRAJ(reftraj_.range(),reftraj_.mass(),reftraj_.charge());
+    // process forwards, adding pieces as necessary
+    for(auto& ieff : effects_) {
+      ieff->append(fittraj_);
+    }
+    // trim the range to the physical elements (past the end sites)
+    feff = effects_.begin(); feff++;
+    beff = effects_.rbegin(); beff++;
+    fittraj_.range().low() = (*feff)->time() - config().tbuff_;
+    fittraj_.range().high() = (*beff)->time() + config().tbuff_;
+    // update status.  Convergence criteria is iteration-dependent
+    if(fabs(fstat.chisq_ -fitStatus().chisq_) < mconfig.convdchisq_) {
+      fstat.status_ = FitStatus::converged;
+    } else if (fstat.chisq_-fitStatus().chisq_ > mconfig.divdchisq_) {
+      fstat.status_ = FitStatus::diverged;
+    } else if (fstat.ndof_ < config().minndof_){
+      fstat.status_ = FitStatus::lowNDOF;
+    } else if(oscillating(fstat,mconfig)){
+      fstat.status_ = FitStatus::oscillating;
+    } else
+      fstat.status_ = FitStatus::unconverged;
   }
 
   // update between iterations 
@@ -247,23 +250,22 @@ namespace KinKal {
 	reftraj_ = fittraj_;
       for(auto& ieff : effects_ ) ieff->update(reftraj_,mconfig);
     } else {
-    //swap the fit trajectory to the reference
+      //swap the fit trajectory to the reference
       reftraj_ = fittraj_;
-    // update the effects to use the new reference
+      // update the effects to use the new reference
       for(auto& ieff : effects_) ieff->update(reftraj_);
     }
-// sort the effects by time
+    // sort the effects by time
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
+    if(kkconfig_->plevel_ > 1){
+      std::cout << "Update for config " << mconfig  << " effects: " << std::endl;
+      for(auto const& eff: effects_)
+	eff->print(std::cout,kkconfig_->plevel_);
+    }
   }
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::canIterate() const {
-    auto const& fstat = fitStatus();
-    if( (fstat.status_ == FitStatus::needsfit ||
-	  fstat.status_ == FitStatus::unconverged) &&
-	fstat.iter_ < config().maxniter_) {
-      return true;
-    } else
-      return false;
+    return fitStatus().needsFit() && fitStatus().iter_ < config().maxniter_;
   }
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat, MConfig const& mconfig) const {
@@ -287,7 +289,7 @@ namespace KinKal {
       // truncate if necessary
       drange.high() = std::min(drange.high(),reftraj_.range().high());
       // create the BField effect for this drange
-      effects_.emplace_back(std::make_unique<KKBFCORR>(kkconfig_->bfield_,10,reftraj_,drange)); //# of steps should be a config parameter FIXME
+      effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,10,reftraj_,drange)); //# of steps should be a config parameter FIXME
       drange.low() = drange.high();
     }
   }
@@ -298,7 +300,7 @@ namespace KinKal {
       ost <<  fitStatus();
     else {
       ost <<  "Fit History " << endl;
-      for(auto const& stat : statusHistory()) ost << stat << endl;
+      for(auto const& stat : history_) ost << stat << endl;
     }
     ost << " Fit Result ";
     fitTraj().print(ost,detail);

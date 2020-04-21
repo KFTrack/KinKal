@@ -35,7 +35,7 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --ltime f --By f \n");
+  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
 }
 
 struct MomVec {
@@ -68,6 +68,7 @@ int main(int argc, char **argv) {
   double ltime(3.0), vprop(0.8), gap(2.0);
   double hlen(500.0); // half-length of the wire
   double By(0.0);
+  int invert(0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -81,6 +82,7 @@ int main(int argc, char **argv) {
     {"tmax",     required_argument, 0, 'e'  },
     {"ltime",     required_argument, 0, 'l'  },
     {"By",     required_argument, 0, 'y'  },
+    {"invert",     required_argument, 0, 'I'  },
   };
 
   int long_index =0;
@@ -109,6 +111,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
+      case 'I' : invert = atoi(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
@@ -123,6 +127,7 @@ int main(int argc, char **argv) {
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   LHelix lhel(origin,momv,icharge,bnom);
+  if(invert)lhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
   cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
@@ -170,6 +175,39 @@ int main(int argc, char **argv) {
   else
     hel->SetLineColor(kRed);
   hel->Draw();
+// inversion test
+  TPolyLine3D* ihel = new TPolyLine3D(nsteps+1);
+  auto ilhel = lhel;
+  ilhel.invertCT();
+  for(int istep=0;istep<nsteps+1;++istep){
+  // compute the position from the time
+    hpos.SetE(tmin + tstep*istep);
+    ilhel.position(hpos);
+    // add these positions to the TPolyLine3D
+    ihel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
+  }
+  // draw the helix
+  ihel->SetLineColor(kBlue);
+  ihel->SetLineStyle(kDashDotted);
+  ihel->Draw();
+// now draw momentum vectors at reference, start and end
+  MomVec imstart,imend,imref;
+  Vec3 imompos;
+  ilhel.position(ot,imompos);
+  ilhel.direction(ot,mdir);
+  Vec3 imomvec =mom*mdir;
+  drawMom(imompos,imomvec,kBlack,imref);
+  //
+  lhel.position(tmin,imompos);
+  lhel.direction(tmin,mdir);
+  imomvec =mom*mdir;
+  drawMom(imompos,imomvec,kBlue,imstart);
+  //
+  lhel.position(tmax,imompos);
+  lhel.direction(tmax,mdir);
+  imomvec =mom*mdir;
+  drawMom(imompos,imomvec,kGreen,imend);
+  //
 
   // draw the origin and axes
   TAxis3D* rulers = new TAxis3D();

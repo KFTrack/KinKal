@@ -1,5 +1,5 @@
-#ifndef KinKal_KKBFCorr_hh
-#define KinKal_KKBFCorr_hh
+#ifndef KinKal_KKBField_hh
+#define KinKal_KKBField_hh
 //
 // Class to correct for BField inhomogenity; adjust the parameters for the momentum change
 // This effect adds no information content or noise (presently), just transports the parameters 
@@ -12,7 +12,7 @@
 #include <ostream>
 
 namespace KinKal {
-  template<class KTRAJ> class KKBFCorr : public KKEff<KTRAJ> {
+  template<class KTRAJ> class KKBField : public KKEff<KTRAJ> {
     public:
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
@@ -28,9 +28,9 @@ namespace KinKal {
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
       PDER const& effect() const { return bfeff_; }
-      virtual ~KKBFCorr(){}
+      virtual ~KKBField(){}
       // create from the domain range, the effect, and the
-      KKBFCorr(BField const& bfield, unsigned nsteps, PKTRAJ const& pktraj,TRange const& drange) : 
+      KKBField(BField const& bfield, unsigned nsteps, PKTRAJ const& pktraj,TRange const& drange) : 
 	bfield_(bfield), nsteps_(nsteps), drange_(drange), active_(false) {} // not active until updated
     private:
       BField const& bfield_; // bfield
@@ -41,7 +41,7 @@ namespace KinKal {
       bool active_; // activity state
   };
 
-  template<class KTRAJ> void KKBFCorr<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
+  template<class KTRAJ> void KKBField<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     if(this->isActive()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards) {
@@ -56,7 +56,7 @@ namespace KinKal {
     KKEffBase::setStatus(tdir,KKEffBase::processed);
   }
 
-  template<class KTRAJ> void KKBFCorr<KTRAJ>::update(PKTRAJ const& ref) {
+  template<class KTRAJ> void KKBField<KTRAJ>::update(PKTRAJ const& ref) {
     auto const& locref = ref.nearestPiece(drange_.mid()); 
     float time = this->time();
     // translate the momentum change to the parameter change.
@@ -74,7 +74,7 @@ namespace KinKal {
     KKEffBase::updateStatus();
   }
 
-  template<class KTRAJ> void KKBFCorr<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) {
+  template<class KTRAJ> void KKBField<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) {
     if(mconfig.updatebfcorr_){
       active_ = true;
     // integrate the fractional momentum change
@@ -88,13 +88,13 @@ namespace KinKal {
 	bfield_.fieldVect(bvec,tpos);
 	Vec3 db = bvec - ktraj.bnom();
 	Vec3 vel; ktraj.velocity(tsamp,vel);
-	dpfrac_ -= tstep*vel.Cross(db)/(ktraj.pbar()*ktraj.bnom().R());
+	dpfrac_ -= tstep*vel.Cross(db)/(ktraj.pbar()*ktraj.bnom().R()); // check sign FIXME!
       }
     }
     update(ref);
   }
 
-  template<class KTRAJ> void KKBFCorr<KTRAJ>::append(PKTRAJ& fit) {
+  template<class KTRAJ> void KKBField<KTRAJ>::append(PKTRAJ& fit) {
     if(isActive()){
       // adjust to make sure the piece is appendable
       float time = std::max(this->time(),float(fit.back().range().low() + 0.01)); // buffer should be a parameter FIXME!
@@ -105,12 +105,12 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void KKBFCorr<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost << "KKBFCorr " << static_cast<KKEff<KTRAJ>const&>(*this);
+  template<class KTRAJ> void KKBField<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "KKBField " << static_cast<KKEff<KTRAJ>const&>(*this);
     ost << " dP fraction " << dpfrac_ << " effect " << bfeff_.parameters() << " domain range " << drange_ << std::endl;
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKBFCorr<KTRAJ> const& kkmat) {
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, KKBField<KTRAJ> const& kkmat) {
     kkmat.print(ost,0);
     return ost;
   }

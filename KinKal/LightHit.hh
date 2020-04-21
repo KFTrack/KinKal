@@ -27,14 +27,14 @@ namespace KinKal {
       virtual float tension() const override { return 0.0; }  // FIXME!
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
-      TLine const& lightLine() const { return lightline_; }
-      LightHit(TLine const& lightLine, float tvar, float wvar, bool active=true) : 
-	THit<KTRAJ>(active), lightline_(lightLine), tvar_(tvar), wvar_(wvar) {}
+      TLine const& sensorAxis() const { return saxis_; }
+      LightHit(TLine const& sensorAxis, float tvar, float wvar, bool active=true) : 
+	THit<KTRAJ>(active), saxis_(sensorAxis), tvar_(tvar), wvar_(wvar) {}
       virtual ~LightHit(){}
       float timeVariance() const { return tvar_; }
       float widthVariance() const { return wvar_; }
     private:
-      TLine lightline_;
+      TLine saxis_;
       float tvar_; // variance in the time measurement: assumed independent of propagation distance/time FIXME!
       float wvar_; // variance in transverse position of the sensor/measurement in mm.  Assumes cylindrical error, Should be more general FIXME!
   };
@@ -43,14 +43,14 @@ namespace KinKal {
     // compute TPOCA
     TPocaHint tphint;
     tphint.particleHint_ = true;
-    tphint.particleToca_ = lightline_.t0();
-    TPOCA tpoca(pktraj,lightline_,tphint);
+    tphint.particleToca_ = saxis_.t0();
+    TPOCA tpoca(pktraj,saxis_,tphint);
  
     if(tpoca.usable()){
       // residual is just delta-T at POCA. 
       // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
 	double dd2 = tpoca.dirDot()*tpoca.dirDot();
-	double totvar = tvar_ + wvar_*dd2/(lightline_.speed()*lightline_.speed()*(1.0-dd2));
+	double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
 	resid = RESIDUAL(tpoca.particleToca(),tpoca.deltaT(),totvar,tpoca.dTdP());
     } else
       throw std::runtime_error("POCA failure");
@@ -69,7 +69,7 @@ namespace KinKal {
     ost << " LightHit  tvar " << tvar_ << " wvar " << wvar_ << std::endl;
     if(detail > 0){
       ost << "Line ";
-      lightline_.print(ost,detail);
+      saxis_.print(ost,detail);
     }
   }
 

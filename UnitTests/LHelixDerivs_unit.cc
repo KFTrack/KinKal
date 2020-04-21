@@ -120,8 +120,6 @@ int main(int argc, char **argv) {
   TGraph* mom0graph[3];
   TGraph* mom1graph[3];
   TGraph* mom2graph[3];
-  // position change
-  TGraph* posgraph[6];
   // gaps
   TGraph* gapgraph[3];
   // canvases
@@ -243,37 +241,6 @@ int main(int argc, char **argv) {
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();
   }
-
-// now spatial derivatives: these are used to constrain continuity between traj pieces
-  LHelix::PDER pder;
-  refhel.posDeriv(ttest,pder);
-  Vec3 refpos, refdir;
-  refhel.position(ttest,refpos);
-  refhel.direction(ttest,refdir);
-  double refpdot = refpos.Dot(refdir);
-
-  TCanvas* dpdotcan = new TCanvas("dpdot","P dot D derivatives",1200,800);
-  dpdotcan->Divide(3,2);
-  for(size_t ipar=0;ipar< LHelix::NParams();ipar++){
-    LHelix::ParamIndex ip = static_cast<LHelix::ParamIndex>(ipar);
-    posgraph[ipar] = new TGraph(ndel);
-    string title = LHelix::paramName(ip) + string(" #Delta #vec{P} #bullet #vec{D};exact;1st derivative");
-    posgraph[ipar]->SetTitle(title.c_str());
-    LHelix xhel(refhel);
-    for(int id=0;id<ndel;++id){
-      double delta = dmin + del*id;
-      xhel.params().parameters()[ipar] = refhel.params().parameters()[ipar]*(1.0 + delta);
-      Vec3 pos;
-      xhel.position(ttest,pos);
-      double dpdot = pos.Dot(refdir) - refpdot;
-      // linear approximation
-      double dirdpdot = pder[ipar]*delta*refhel.params().parameters()[ipar];
-      posgraph[ipar]->SetPoint(id,dpdot,dirdpdot);
-    }
-    dpdotcan->cd(ipar+1);
-    posgraph[ipar]->Draw("AC*");
-  }
-  dpdotcan->Write();
 
   lhderiv.Write();
   lhderiv.Close();

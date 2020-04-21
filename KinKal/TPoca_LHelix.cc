@@ -99,7 +99,7 @@ namespace KinKal {
       float r2 = lhelix.rad()*lhelix.rad();
       float s2 = sindphi*sindphi;
       float denom =  l2 + s2*r2;
-      float Factor = fabs(lhelix.lam())/sqrt(denom);
+      float Factor = -copysign(1.0,lhelix.charge())*lhelix.lam()/sqrt(denom);
 
       float dx = lhelix.cx() - sensorPoca().X();
       float dy = lhelix.cy() - sensorPoca().Y();

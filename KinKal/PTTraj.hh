@@ -72,8 +72,8 @@ namespace KinKal {
   template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange) {
     trange_ = trange;
 // trim pieces as necessary
-    while(pieces_.size() > 0 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
-    while(pieces_.size() > 0 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
+    while(pieces_.size() > 1 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
+    while(pieces_.size() > 1 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
 // update piece range
     pieces_.front().setRange(TRange(trange.low(),pieces_.front().range().high()));
     pieces_.back().setRange(TRange(pieces_.front().range().low(),trange.high()));
@@ -127,7 +127,7 @@ namespace KinKal {
 	  // subtract a small buffer to prevent overlaps
 	  pieces_.front().range().high() -= TRange::tbuff_;
 	} else {
-	  throw std::invalid_argument("range error");
+//	  throw std::invalid_argument("range error");
 	}
       }
     }
@@ -164,7 +164,7 @@ namespace KinKal {
 	  range().high() = std::max(range().high(),newpiece.range().high());
 	  pieces_.push_back(newpiece);
 	} else {
-	  throw std::invalid_argument("range error");
+//	  throw std::invalid_argument("range error");
 	}
       }
     }
