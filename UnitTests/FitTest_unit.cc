@@ -230,7 +230,8 @@ double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& 
 	}
 //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
 	Vec3 dmvec;
-	endpiece.dirVector(mdir,tp.particleToca(),dmvec);
+	KTRAJ::PDER pder;
+	endpiece.momDeriv(mdir,tp.particleToca(),pder,dmvec);
 	dmvec *= dm*mom;
 	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
       }

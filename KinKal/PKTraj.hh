@@ -27,13 +27,7 @@ namespace KinKal {
 	if(newpiece.mass() != mass() || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
 	PTTRAJ::prepend(newpiece,allowremove);
       }
-      // base class s; these just rely on the PKTraj to find the appropriate piece
-      void dirVector(MDir mdir,float time,Vec3& unit) const  {
-	PTTRAJ::nearestPiece(time).dirVector(mdir,time,unit);
-      }
-      void momentum(float time,Mom4& mom) const  {
-	PTTRAJ::nearestPiece(time).momentum(time,mom);
-      }
+      void momentum(float time,Mom4& mom) const  { PTTRAJ::nearestPiece(time).momentum(time,mom); }
       double momentum(float time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
       double momentumVar(float time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
       double energy(float time) const  { return PTTRAJ::nearestPiece(time).energy(time); }

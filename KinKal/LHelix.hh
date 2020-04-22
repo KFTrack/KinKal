@@ -50,7 +50,6 @@ namespace KinKal {
       void direction(float time,Vec3& dir) const ;
       double speed(float time) const  {  return CLHEP::c_light*beta(); }
       void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const ;
-      void dirVector(MDir dir,float time,Vec3& unit) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
@@ -61,19 +60,18 @@ namespace KinKal {
       double momentum(float time) const  { return  fabs(mass_*pbar()/mbar_); }
       double momentumVar(float time) const ;
       double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
-
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
-      void momDeriv(MDir mdir, float time, PDER& der) const;
+      void momDeriv(MDir mdir, float time, PDER& der, Vec3& unit) const;
      // named parameter accessors
-      double param(size_t index) const { return pars_.parameters()[index]; }
+      double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
-      double rad() const { return param(rad_); }
-      double lam() const { return param(lam_); }
-      double cx() const { return param(cx_); }
-      double cy() const { return param(cy_); }
-      double phi0() const { return param(phi0_); }
-      double t0() const { return param(t0_); }
+      double rad() const { return paramVal(rad_); }
+      double lam() const { return paramVal(lam_); }
+      double cx() const { return paramVal(cx_); }
+      double cy() const { return paramVal(cy_); }
+      double phi0() const { return paramVal(phi0_); }
+      double t0() const { return paramVal(t0_); }
       
       // simple functions; these can be cached if they cause performance problems
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 

@@ -1,12 +1,15 @@
 // 
-// test derivatives of the Loop Helix TTraj class
+// test derivatives of Traj class
 //
 #include "KinKal/LHelix.hh"
+#include "KinKal/IPHelix.hh"
+#include "KinKal/TPoca.hh"
 
 #include <iostream>
 #include <stdio.h>
 #include <iostream>
 #include <getopt.h>
+#include <typeinfo>
 
 #include "TROOT.h"
 #include "TH1F.h"
@@ -37,6 +40,8 @@ void print_usage() {
 }
 
 int main(int argc, char **argv) {
+//  typedef LHelix KTRAJ;
+  typedef IPHelix KTRAJ;
   gROOT->SetBatch(kTRUE);
   // save canvases
   int opt;
@@ -100,7 +105,7 @@ int main(int argc, char **argv) {
   // reference helix
   pmass = masses[imass];
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix refhel(origin,momv,icharge,bnom);
+  KTRAJ refhel(origin,momv,icharge,bnom);
   cout << "Reference " << refhel << endl;
   Vec4 refpos4;
   refpos4.SetE(ttest);
@@ -110,49 +115,31 @@ int main(int argc, char **argv) {
   refhel.momentum(ttest,refmom);
   int ndel(50);
   // graphs to compare parameter change
-  TGraph* radgraph[3];
-  TGraph* lambdagraph[3];
-  TGraph* t0graph[3];
-  TGraph* phi0graph[3];
-  TGraph* cxgraph[3];
-  TGraph* cygraph[3];
+  std::vector<TGraph*> pgraphs[3];
   // graphs to compare momentum change
-  TGraph* mom0graph[3];
-  TGraph* mom1graph[3];
-  TGraph* mom2graph[3];
+  TGraph* momgraph[3];
   // gaps
   TGraph* gapgraph[3];
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
-  TFile lhderiv("LHelixDerivs.root","RECREATE");
+  std::string tfname = std::string(typeid(KTRAJ).name()) + "Derivs.root";
+  TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
   for(int idir=0;idir<3;++idir){
     KInter::MDir tdir =static_cast<KInter::MDir>(idir);
-    Vec3 dmomdir;
-    refhel.dirVector(tdir,ttest,dmomdir);
 //    cout << "testing direction " << KInter::directionName(tdir) << endl;
     // parameter change
-
-    radgraph[idir] = new TGraph(ndel);
-    radgraph[idir]->SetTitle("Radius;exact;1st derivative");
-    lambdagraph[idir] = new TGraph(ndel);
-    lambdagraph[idir]->SetTitle("Lambda;exact;1st derivative");
-    t0graph[idir] = new TGraph(ndel);
-    t0graph[idir]->SetTitle("t_{0};exact;1st derivative");
-    phi0graph[idir] = new TGraph(ndel);
-    phi0graph[idir]->SetTitle("phi_{0};exact;1st derivative");
-    cxgraph[idir] = new TGraph(ndel);
-    cxgraph[idir]->SetTitle("C_{x};exact;1st derivative");
-    cygraph[idir] = new TGraph(ndel);
-    cygraph[idir]->SetTitle("C_{y};exact;1st derivative");
-    mom0graph[idir] = new TGraph(ndel);
-    mom0graph[idir]->SetTitle("Momentum Direction;exact;1st derivative");
-    mom1graph[idir] = new TGraph(ndel);
-    mom1graph[idir]->SetTitle("Theta Direction;exact;1st derivative");
-    mom2graph[idir] = new TGraph(ndel);
-    mom2graph[idir]->SetTitle("Phi Direction;exact;1st derivative");
+    pgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
+    for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+      pgraphs[idir][ipar] = new TGraph(ndel);
+      string title = KTRAJ::paramName(KTRAJ::ParamIndex(ipar));
+      title += ";exact;1st derivative";
+      pgraphs[idir][ipar]->SetTitle(title.c_str());
+    }
+    momgraph[idir] = new TGraph(ndel);
+    momgraph[idir]->SetTitle("Momentum Direction;exact;1st derivative");
     gapgraph[idir] = new TGraph(ndel);
     gapgraph[idir]->SetTitle("Gap;change;gap value (mm)");
 
@@ -160,17 +147,18 @@ int main(int argc, char **argv) {
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
+      // compute 1st order change in parameters
+      KTRAJ::PDER pder;
+      Vec3 dmomdir;
+      refhel.momDeriv(tdir,ttest,pder,dmomdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
-      LHelix xhel(refpos4,momv,icharge,bnom);
-      // now, compute 1st order change in parameters
-      LHelix::PDER pder;
-      refhel.momDeriv(tdir,ttest,pder);
+      KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters() + delta*pder;
-      LHelix::PDATA pdata(dvec,refhel.params().covariance());
-      LHelix dhel(pdata,refhel.mass(),refhel.charge(),bnom);
+      KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
+      KTRAJ dhel(pdata,refhel.mass(),refhel.charge(),bnom);
       // test
       Vec4 xpos, dpos;
       xpos.SetE(ttest);
@@ -186,24 +174,14 @@ int main(int argc, char **argv) {
       Vec4 gap = dpos - refpos4;
       gapgraph[idir]->SetPoint(id,delta,sqrt(gap.Vect().Mag2()));
       // parameter diff
-      radgraph[idir]->SetPoint(id,xhel.rad()-refhel.rad(),dhel.rad()-refhel.rad());
-      lambdagraph[idir]->SetPoint(id,xhel.lam()-refhel.lam(),dhel.lam()-refhel.lam());
-      t0graph[idir]->SetPoint(id,xhel.t0()-refhel.t0(),dhel.t0()-refhel.t0());
-      phi0graph[idir]->SetPoint(id,xhel.phi0()-refhel.phi0(),dhel.phi0()-refhel.phi0());
-      cxgraph[idir]->SetPoint(id,xhel.cx()-refhel.cx(),dhel.cx()-refhel.cx());
-      cygraph[idir]->SetPoint(id,xhel.cy()-refhel.cy(),dhel.cy()-refhel.cy());
-
+      for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+	pgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
+      }
       // compare momenta after change
       //
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
-      Vec3 changedir;
-      refhel.dirVector(KInter::momdir,ttest,changedir);
-      mom0graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KInter::theta1,ttest,changedir);
-      mom1graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
-      refhel.dirVector(KInter::theta2,ttest,changedir);
-      mom2graph[idir]->SetPoint(id,dxmom.Dot(changedir),ddmom.Dot(changedir));
+      momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
     char title[80];
     char name[80];
@@ -211,32 +189,20 @@ int main(int argc, char **argv) {
     snprintf(title,80,"Helix Change %s",KInter::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(name,title,1200,800);
     dhcan[idir]->Divide(3,2);
-    dhcan[idir]->cd(1);
-    radgraph[idir]->Draw("AC*");
-    dhcan[idir]->cd(2);
-    lambdagraph[idir]->Draw("AC*");
-    dhcan[idir]->cd(3);
-    t0graph[idir]->Draw("AC*");
-    dhcan[idir]->cd(4);
-    phi0graph[idir]->Draw("AC*");
-    dhcan[idir]->cd(5);
-    cxgraph[idir]->Draw("AC*");
-    dhcan[idir]->cd(6);
-    cygraph[idir]->Draw("AC*");
+    for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+      dhcan[idir]->cd(ipar+1);
+      pgraphs[idir][ipar]->Draw("AC*");
+    }
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
 
     snprintf(name,80,"dm%s",KInter::directionName(tdir).c_str());
     snprintf(title,80,"Mom Change %s",KInter::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(name,title,800,800);
-    dmomcan[idir]->Divide(2,2);
+    dmomcan[idir]->Divide(1,2);
     dmomcan[idir]->cd(1);
-    mom0graph[idir]->Draw("AC*");
+    momgraph[idir]->Draw("AC*");
     dmomcan[idir]->cd(2);
-    mom1graph[idir]->Draw("AC*");
-    dmomcan[idir]->cd(3);
-    mom2graph[idir]->Draw("AC*");
-    dmomcan[idir]->cd(4);
     gapgraph[idir]->Draw("AC*");
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();

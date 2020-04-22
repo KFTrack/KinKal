@@ -26,6 +26,7 @@ namespace KinKal {
   std::string const& IPHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)]; }
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
 
+
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
                  TRange const &trange) :  KInter(mom.M(),charge), trange_(trange), bnom_(bnom)
   {
@@ -79,6 +80,9 @@ namespace KinKal {
     }
     return dphi;
   }
+
+  IPHelix::IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range) : IPHelix(pdata.parameters(),pdata.covariance(),mass,charge,bnom,range) {}
+
 
   IPHelix::IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom,
                  TRange const &trange) :  KInter(mass, charge), trange_(trange), pars_(pvec, pcov), bnom_(bnom)
@@ -164,42 +168,15 @@ namespace KinKal {
     dir = mom.Vect().Unit();
   }
 
-  void IPHelix::dirVector(MDir dir, float time, Vec3 &unit) const
-  {
-    // FIXME: these formulas need to be verified
-    double phival = phi(time);                   // azimuth at this point
-    // double norm = 1.0 / copysign(pbar(), mbar_); // sign matters!
-    double sinval = sinDip();
-    double cosval = cosDip();
-
-    switch (dir)
-    {
-    case theta1:
-      unit.SetX(-sinval * cos(phival));
-      unit.SetY(-sinval * sin(phival));
-      unit.SetZ(cosval);
-      // unit *= norm;
-      break;
-    case theta2: // purely transverse
-      unit.SetX(-sin(phival));
-      unit.SetY(cos(phival));
-      unit.SetZ(0.0);
-      break;
-    case momdir: // along momentum: sign matters!
-      direction(time, unit);
-      break;
-    default:
-      throw std::invalid_argument("Invalid direction");
-    }
-  }
-
-  void IPHelix::momDeriv(MDir mdir, float time, PDER &pder) const
+  void IPHelix::momDeriv(MDir mdir, float time, PDER &pder,Vec3& unit) const
   {
     // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
     double cosval = cosDip();
+    double sinval = sinDip();
     double omval = omega();
+    double phival = phi(time);                   // azimuth at this point
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
     // cases
@@ -212,6 +189,10 @@ namespace KinKal {
         pder[z0_] = -l - tanval * tanval * sin(omval * l) / (omval * (1 + omval * d0val));
         pder[tanDip_] = 1 / (cosval * cosval);
         pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
+	// set unit
+	unit.SetX(-sinval * cos(phival));
+	unit.SetY(-sinval * sin(phival));
+	unit.SetZ(cosval);
         break;
       case theta2:
         // Azimuthal bending: R, Lambda, t0 are unchanged
@@ -221,6 +202,10 @@ namespace KinKal {
         pder[z0_] = -tanval / (omval * cosval) * (1 - cos(omval * l) / (1 + omval * d0val));
         pder[tanDip_] = 0;
         pder[t0_] = pder[z0_] / vz();
+	// set unit
+	unit.SetX(-sin(phival));
+	unit.SetY(cos(phival));
+	unit.SetZ(0.0);
         break;
       case momdir:
         // fractional momentum change: position and direction are unchanged
@@ -230,6 +215,8 @@ namespace KinKal {
         pder[z0_] = -tanval * (l - sin(omval * l) / (omval * (1 + omval * d0val)));
         pder[tanDip_] = 0;
         pder[t0_] = pder[z0_] / vz();
+	// set unit
+	direction(time, unit);
         break;
       default:
         throw std::invalid_argument("Invalid direction");
@@ -239,7 +226,7 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, IPHelix const& hhel) {
     ost << " IPHelix parameters: ";
     for(size_t ipar=0;ipar < IPHelix::npars_;ipar++){
-      ost << IPHelix::paramName(static_cast<IPHelix::ParamIndex>(ipar) ) << " : " << hhel.param(ipar);
+      ost << IPHelix::paramName(static_cast<IPHelix::ParamIndex>(ipar) ) << " : " << hhel.paramVal(ipar);
       if(ipar < IPHelix::npars_-1) ost << " , ";
     }
     return ost;

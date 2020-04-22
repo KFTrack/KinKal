@@ -57,7 +57,6 @@ namespace KinKal {
       double speed(float time) const  { return CLHEP::c_light * beta(); }
       void rangeInTolerance(TRange &range, BField const &bfield, float dtol, float ptol) const ;
       // local momentum direction basis
-      void dirVector(MDir dir, float time, Vec3 &unit) const ;
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
@@ -65,18 +64,18 @@ namespace KinKal {
       bool inRange(float time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(MDir mdir, float time, PDER &der) const;
+      void momDeriv(MDir mdir, float time, PDER &der,Vec3& unit) const;
 
       // named parameter accessors
-      double param(size_t index) const { return pars_.parameters()[index]; }
+      double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const &params() const { return pars_; }
       PDATA &params() { return pars_; }
-      double d0() const { return param(d0_); }
-      double phi0() const { return param(phi0_); }
-      double omega() const { return param(omega_); }
-      double z0() const { return param(z0_); }
-      double tanDip() const { return param(tanDip_); }
-      double t0() const { return param(t0_); }
+      double d0() const { return paramVal(d0_); }
+      double phi0() const { return paramVal(phi0_); }
+      double omega() const { return paramVal(omega_); }
+      double z0() const { return paramVal(z0_); }
+      double tanDip() const { return paramVal(tanDip_); }
+      double t0() const { return paramVal(t0_); }
 
       // simple functions
       double pbar() const { return 1 / omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm

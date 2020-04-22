@@ -60,14 +60,11 @@ namespace KinKal {
     auto const& locref = ref.nearestPiece(drange_.mid()); 
     float time = this->time();
     // translate the momentum change to the parameter change.
-    // First get the perp basis for the BField x-product at this point
+    // First get the derivatives and perp basis for the BField x-product at this point
     Vec3 t1hat, t2hat;
-    locref.dirVector(KInter::theta1,time,t1hat);
-    locref.dirVector(KInter::theta2,time,t2hat);
-    // find the derivative on the local parameters
     PDER dpdt1, dpdt2;
-    locref.momDeriv(KInter::theta1,time,dpdt1);
-    locref.momDeriv(KInter::theta2,time,dpdt2);
+    locref.momDeriv(KInter::theta1,time,dpdt1,t1hat);
+    locref.momDeriv(KInter::theta2,time,dpdt2,t2hat);
     // project the momentum change onto these directions to get the parameter change
     // should add noise due to field measurement and gradientXposition uncertainties FIXME!
     bfeff_.parameters() = dpfrac_.Dot(t1hat)*dpdt1 + dpfrac_.Dot(t2hat)*dpdt2;
