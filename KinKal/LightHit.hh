@@ -16,7 +16,7 @@ namespace KinKal {
   template <class KTRAJ> class LightHit : public THit<KTRAJ> {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef Residual<KTRAJ> RESIDUAL;
+      typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef TPoca<PKTRAJ,TLine> TPOCA;
       typedef typename KTRAJ::PDER PDER; 
       // THit interface overrrides
@@ -51,7 +51,7 @@ namespace KinKal {
       // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
 	double dd2 = tpoca.dirDot()*tpoca.dirDot();
 	double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
-	resid = RESIDUAL(tpoca.particleToca(),tpoca.deltaT(),totvar,tpoca.dTdP());
+	resid = RESIDUAL(RESIDUAL::dtime,tpoca,tpoca.deltaT(),totvar,tpoca.dTdP());
     } else
       throw std::runtime_error("POCA failure");
   }

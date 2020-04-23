@@ -18,7 +18,7 @@ namespace KinKal {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef DXing<KTRAJ> DXING;
-      typedef Residual<KTRAJ> RESIDUAL;
+      typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef std::shared_ptr<DXING> DXINGPTR;
       typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
       // default

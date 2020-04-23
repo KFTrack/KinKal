@@ -1,7 +1,8 @@
 // 
-// test basic functions of the Loop Helix TTraj class
+// test basic functions of KTraj class
 //
 #include "KinKal/LHelix.hh"
+#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -59,6 +60,8 @@ void drawMom(Vec3 const& start, Vec3 const& momvec,int momcolor,MomVec& mom) {
 }
 
 int main(int argc, char **argv) {
+  typedef LHelix KTRAJ;
+//  typedef IPHelix KTRAJ;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -120,22 +123,22 @@ int main(int argc, char **argv) {
 
   pmass = masses[imass];
 
-  printf("Testing LHelix with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
+  printf("Testing KTraj with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
 // define the BF (tesla)
   Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,bnom);
+  KTRAJ lhel(origin,momv,icharge,bnom);
   if(invert)lhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
-  cout << "LHelix with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "KTRAJ with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 vel;
   lhel.velocity(ot,vel);
   double dot = vel.Dot(testmom)/CLHEP::c_light;
   cout << "velocity dot mom = " << dot << endl;
-  cout << "momentum beta =" << momv.Beta() << " LHelix beta = " << lhel.beta() << endl;
+  cout << "momentum beta =" << momv.Beta() << " KTRAJ beta = " << lhel.beta() << endl;
   Vec3 mdir;
   lhel.direction(ot,mdir);
   // create the helix at tmin and tmax 
@@ -144,14 +147,14 @@ int main(int argc, char **argv) {
   lhel.momentum(tmax,tmom);
   tpos.SetE(tmax);
   lhel.position(tpos);
-  LHelix lhelmax(tpos,tmom,icharge,bnom);
+  KTRAJ lhelmax(tpos,tmom,icharge,bnom);
   lhel.momentum(tmin,tmom);
   tpos.SetE(tmin);
   lhel.position(tpos);
-  LHelix lhelmin(tpos,tmom,icharge,bnom);
+  KTRAJ lhelmin(tpos,tmom,icharge,bnom);
 
-  cout << "LHelix at tmax has parameters : " << lhelmax << endl;
-  cout << "LHelix at tmin has parameters : " << lhelmin << endl;
+  cout << "KTRAJ at tmax has parameters : " << lhelmax << endl;
+  cout << "KTRAJ at tmin has parameters : " << lhelmin << endl;
 
 // now graph this as a polyline over the specified time range.
   double tstep = 0.1; // nanoseconds
@@ -239,7 +242,7 @@ int main(int argc, char **argv) {
   //
   TLegend* leg = new TLegend(0.8,0.8,1.0,1.0);
   char title[80];
-  snprintf(title,80,"LHelix, q=%1i, mom=%3.1g MeV/c",icharge,mom);
+  snprintf(title,80,"KTRAJ, q=%1i, mom=%3.1g MeV/c",icharge,mom);
   leg->AddEntry(hel,title,"L");
   snprintf(title,80,"Ref. Momentum, t=%4.2g ns",ot);
   leg->AddEntry(mref.arrow,title,"L");
@@ -266,7 +269,7 @@ int main(int argc, char **argv) {
   TRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
   TLine tline(ppos, pvel,ltime,prange);
 // find TPoca
-  TPoca<LHelix,TLine> tp(lhel,tline);
+  TPoca<KTRAJ,TLine> tp(lhel,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   if(tp.status() == TPocaBase::converged) {
     // draw the line and TPoca
@@ -285,9 +288,9 @@ int main(int argc, char **argv) {
     poca->Draw();
   }
 
-  snprintf(title,80,"LHelix_m%3.1f_p%3.2f_q%i.root",pmass,mom,icharge);
+  std::string tfname = std::string(typeid(KTRAJ).name()) + ".root";
   cout << "Saving canvas to " << title << endl;
-  hcan->SaveAs(title); 
+  hcan->SaveAs(tfname.c_str()); 
 
   exit(EXIT_SUCCESS);
 }

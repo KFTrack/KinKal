@@ -37,13 +37,13 @@ namespace KinKal {
       float deltaT() const { return sensPoca_.T() - partPoca_.T(); }
       void delta(Vec3& ds) const { ds = sensPoca_.Vect()-partPoca_.Vect(); }
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
+      TPocaBase(float precision=1e-2) : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0), ddot_(-1.0), precision_(precision)  {}
     protected:
       TPStat status_; // status of computation
       float doca_, docavar_, tocavar_;
       float ddot_;
       float precision_; // precision used to define convergence
       Vec4 partPoca_, sensPoca_; //POCA for particle and sensor
-      TPocaBase(float precision) : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0), ddot_(-1.0), precision_(precision)  {}
       void reset() {status_ = unknown;}
     private:
       static std::vector<std::string> statusNames_;

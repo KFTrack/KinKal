@@ -24,7 +24,7 @@ namespace KinKal {
       typedef THit<KTRAJ> THIT;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef TPoca<PKTRAJ,TLine> TPOCA;
-      typedef Residual<KTRAJ> RESIDUAL;
+      typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef DXing<KTRAJ> DXING;
       typedef std::shared_ptr<DXING> DXINGPTR;
       typedef typename KTRAJ::PDER PDER;
@@ -103,11 +103,11 @@ namespace KinKal {
 	d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
 	PDER dRdP = tpoca.dDdP()*iambig/vdrift + tpoca.dTdP(); 
-	resid = RESIDUAL(tpoca.particleToca(),tpoca.deltaT()-tdrift,tdvar,dRdP);
+	resid = RESIDUAL(RESIDUAL::dtime,tpoca,tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
 	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
 	// residual is in space, so unit dependendence on distance, none on time
-	resid = RESIDUAL(tpoca.particleToca(),-tpoca.doca(),nullvar_,tpoca.dDdP());
+	resid = RESIDUAL(RESIDUAL::distance,tpoca,-tpoca.doca(),nullvar_,tpoca.dDdP());
       }
     } else
       throw std::runtime_error("POCA failure");

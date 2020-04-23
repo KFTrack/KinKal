@@ -3,11 +3,14 @@
 // class defining a BField Map interface for use in KinKal.
 #include "KinKal/Vectors.hh"
 #include <vector>
+#include "Math/SMatrix.h"
 
 namespace KinKal {
   class BField {
     public:
-      virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; // nominal field defined at the origin
+      typedef ROOT::Math::SMatrix<float,3> Grad; // field gradient: ie dBi/d(x,y,z)
+      virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; 
+      virtual void fieldGrad(Grad& grad,Vec3 const& position=Vec3()) const = 0;
       virtual ~BField(){}
       // add interface for path integration FIXME!
   };
@@ -16,6 +19,7 @@ namespace KinKal {
   class UniformBField : public BField {
     public:
       virtual void fieldVect(Vec3& fvec, Vec3 const& position=Vec3()) const override { fvec = fvec_; }
+      virtual void fieldGrad(Grad& fgrad, Vec3 const& position=Vec3()) const override { fgrad = Grad(); }
       UniformBField(Vec3 const& bnom) : fvec_(bnom) {}
       UniformBField(double BZ) : UniformBField(Vec3(0.0,0.0,BZ)) {}
       virtual ~UniformBField(){}
@@ -34,13 +38,20 @@ namespace KinKal {
 	  fvec += temp;
 	}
       }
+      virtual void fieldGrad(Grad& fgrad, Vec3 const& position=Vec3()) const override {
+	fgrad = Grad();
+	for(auto const field : fields_ ){
+	  Grad temp;
+	  field->fieldGrad(temp,position);
+	  fgrad += temp;
+	}
+
+      }
       CompositeBField () {}
       void addField(BField const& field) { fields_.push_back(&field); }
     private:
       std::vector<const BField*> fields_; // fields
   };
-
-
 
   // simple Z gradient field, used to test Field corrections
   class GradBField : public BField {
@@ -60,6 +71,22 @@ namespace KinKal {
 	  double by = -0.5*grad_*position.y();
 	  fvec = Vec3(bx,by,bz);
 	}
+      }
+      virtual void fieldGrad(Grad& fgrad, Vec3 const& position=Vec3()) const override {
+	if(position.z() > z0_ && position.z() < z1_ ){
+	  std::vector<float> gvals;
+	  gvals.push_back(-0.5*grad_);// dBx/dx 
+	  gvals.push_back(0.0);// dBy/dx 
+	  gvals.push_back(0.0);// dBz/dx
+	  gvals.push_back(0.0);// dBx/dy 
+	  gvals.push_back(-0.5*grad_);// dBy/dy
+	  gvals.push_back(0.0);// dBz/dy
+	  gvals.push_back(0.0);// dBx/dz 
+	  gvals.push_back(0.0);// dBy/dz
+	  gvals.push_back(grad_);// dBz/dz
+	  fgrad = Grad(gvals.data(),9);
+	} else
+	  fgrad = Grad();
       }
       virtual ~GradBField(){}
     private:

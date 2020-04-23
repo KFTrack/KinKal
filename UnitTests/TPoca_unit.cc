@@ -42,6 +42,7 @@ void print_usage() {
 }
 
 int main(int argc, char **argv) {
+//  typedef IPHelix KTRAJ;
   typedef LHelix KTRAJ;
   typedef TPoca<KTRAJ,TLine> TPOCA;
   int opt;

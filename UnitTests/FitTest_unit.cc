@@ -16,6 +16,7 @@
 #include "KinKal/KKHit.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
+#include "UnitTests/ToyMC.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -72,35 +73,13 @@ typedef StrawXing<KTRAJ> STRAWXING;
 typedef shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef vector<THITPTR> THITCOL;
 typedef vector<DXINGPTR> DXINGCOL;
-typedef Residual<KTRAJ> RESIDUAL;
+typedef Residual<KTRAJ::NParams()> RESIDUAL;
 typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
-// ugly global variables
-float zrange(3000.0), rmax(800.0); // tracker dimension
-float sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5);
-float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
-float sigt(3); // drift time resolution in ns
-float ineff(0.1); // hit inefficiency
-float tbuff(0.1);
-int iseed(124223);
-unsigned nhits(40);
-float escale(5.0);
-vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameters (per hit!)
-bool simmat(true), fitmat(true), lighthit(true), updatehits(false), addbf(false);
-  // time hit parameters
-float ttvar(0.25), twvar(100.0), shmax(80.0), vlight(0.8*CLHEP::c_light), clen(200.0);
-// define the BF
-Vec3 bnom(0.0,0.0,1.0);
-double Bgrad(0.0), By(0.0);
-BField *BF(0);
-TRandom* TR = new TRandom3(iseed);
-CVD2T d2t(sdrift,sigt*sigt,rstraw);
-
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --escale f --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --ineff f --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i --invert i\n");
 }
-
 
 struct KTRAJPars{
   Float_t pars_[KTRAJ::NParams()];
@@ -119,174 +98,10 @@ struct KKHitInfo {
   static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
 };
 
-
-// helper function
-KinKal::TLine GenerateStraw(PKTRAJ const& traj, double htime) {
-  // start with the true helix position at this time
-  Vec4 hpos; hpos.SetE(htime);
-  traj.position(hpos);
-  Vec3 hdir; traj.direction(htime,hdir);
-  // generate a random direction for the straw
-  double eta = TR->Uniform(-M_PI,M_PI);
-  Vec3 sdir(cos(eta),sin(eta),0.0);
-  // generate a random drift perp to this and the trajectory
-  double rdrift = TR->Uniform(-rstraw,rstraw);
-  Vec3 drift = (sdir.Cross(hdir)).Unit();
-  Vec3 dpos = hpos.Vect() + rdrift*drift;
-//  cout << "Generating hit at position " << dpos << endl;
-  double dprop = TR->Uniform(0.0,rmax);
-  Vec3 mpos = dpos + sdir*dprop;
-  Vec3 vprop = sdir*sprop;
-  // measured time is after propagation and drift
-  double tmeas = htime + dprop/sprop + fabs(rdrift)/sdrift;
-  // smear measurement time
-  tmeas = TR->Gaus(tmeas,sigt);
-  // range doesn't really matter
-  TRange trange(tmeas-dprop/sprop,tmeas+dprop/sprop);
-  // construct the trajectory for this hit
-  return TLine(mpos,vprop,tmeas,trange);
-}
-
-void createSeed(KTRAJ& seed){
-  auto& seedpar = seed.params();
-  seedpar.covariance() = ROOT::Math::SMatrixIdentity();
-  for(unsigned ipar=0;ipar < 6; ipar++){
-    double perr = sigmas[ipar]*escale/sqrt(nhits);
-    seedpar.parameters()[ipar] += TR->Gaus(0.0,perr);
-    seedpar.covariance()[ipar][ipar] *= perr*perr;
-  }
-}
-
-void extendTraj(PKTRAJ& plhel,double htime) {
-  if(Bgrad != 0.0){
-    auto const& back = plhel.back();
-    float tend = back.range().low();
-    Vec3 vel;
-    back.velocity(htime,vel);
-    float tstep = 0.0001*back.bnom().R()*zrange/(Bgrad*vel.Z()); // how far before BField changes by 1/10000
-    while(tend < htime-tstep){
-      tend += tstep;
-      Vec3 bf;
-      Vec4 pos; pos.SetE(tend);
-      Mom4 mom;
-      plhel.momentum(tend,mom);
-      plhel.position(pos);
-      BF->fieldVect(bf,pos.Vect());
-      KTRAJ newend(pos,mom,plhel.charge(),bf,TRange(tend,plhel.range().high()));
-      plhel.append(newend);
-    }
-  }
-}
-
-double createHits(PKTRAJ& plhel,StrawMat const& smat, THITCOL& thits, DXINGCOL& dxings) {
-  //  cout << "Creating " << nhits << " hits " << endl;
-  // divide time range
-  double dt = (plhel.range().range()-2*tbuff)/(nhits-1);
-  double desum(0.0);
-  double dscatsum(0.0);
-  Vec3 bsim;
-  for(size_t ihit=0; ihit<nhits; ihit++){
-    double htime = tbuff + plhel.range().low() + ihit*dt;
-// extend the trajectory in the BField 
-    extendTraj(plhel,htime);
-// create the hit at this time
-    auto tline = GenerateStraw(plhel,htime);
-    TPoca<PKTRAJ,TLine> tp(plhel,tline);
-    LRAmbig ambig(LRAmbig::null);
-    if(fabs(tp.doca())> ambigdoca) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
-    // construct the hit from this trajectory
-    auto sxing = std::make_shared<STRAWXING>(tp,smat);
-    if(TR->Uniform(0.0,1.0) > ineff){
-      thits.push_back(std::make_shared<STRAWHIT>(*BF, tline, d2t,sxing,ambig));
-    } else {
-      dxings.push_back(sxing);
-    }
-    // compute material effects and change trajectory accordingly
-    if(simmat){
-      auto const& endpiece = plhel.nearestPiece(tp.particleToca());
-      double mom = endpiece.momentum(tp.particleToca());
-      Mom4 endmom;
-      endpiece.momentum(tp.particleToca(),endmom);
-      Vec4 endpos; endpos.SetE(tp.particleToca());
-      endpiece.position(endpos);
-      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-      sxing->momEffects(plhel,TDir::forwards, dmom, momvar);
-      for(int idir=0;idir<=KInter::theta2; idir++) {
-	auto mdir = static_cast<KInter::MDir>(idir);
-	double momsig = sqrt(momvar[idir]);
-	double dm;
-	// generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
-	switch( mdir ) {
-	  case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
-	    dm = TR->Gaus(dmom[idir],momsig);
-	    dscatsum += dm;
-	    break;
-	  case KinKal::KInter::momdir :
-	    dm = std::min(0.0,TR->Gaus(dmom[idir],momsig));
-	    desum += dm*mom;
-	    break;
-	  default:
-	    throw std::invalid_argument("Invalid direction");
-	}
-//	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-	Vec3 dmvec;
-	KTRAJ::PDER pder;
-	endpiece.momDeriv(mdir,tp.particleToca(),pder,dmvec);
-	dmvec *= dm*mom;
-	endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
-      }
-	// terminate if there is catastrophic energy loss
-      if(fabs(desum)/mom > 0.1)break;
-      // generate a new piece and append
-      BF->fieldVect(bsim,endpos.Vect());
-      KTRAJ newend(endpos,endmom,endpiece.charge(),bsim,TRange(tp.particleToca(),plhel.range().high()));
-//      newend.print(cout,1);
-      plhel.append(newend);
-    }
-  }
-  if(lighthit && TR->Uniform(0.0,1.0) > ineff){
-    // create a LightHit at the end, axis parallel to z
-    // first, find the position at showermax.
-    Vec3 shmpos, hend, lmeas;
-    float cstart = plhel.range().high() + 0.5;
-    plhel.position(cstart,hend);
-    float ltime = cstart + shmax/plhel.speed(cstart);
-    plhel.position(ltime,shmpos); // true position at shower-max
-    // smear the x-y position by the transverse variance.
-    lmeas.SetX(TR->Gaus(shmpos.X(),sqrt(twvar)));
-    lmeas.SetY(TR->Gaus(shmpos.Y(),sqrt(twvar)));
-    // set the z position to the sensor plane (end of the crystal)
-    lmeas.SetZ(hend.Z()+clen);
-    // set the measurement time to correspond to the light propagation from showermax, smeared by the resolution
-    float tmeas = TR->Gaus(ltime+(lmeas.Z()-shmpos.Z())/vlight,sqrt(ttvar));
-    // create the ttraj for the light propagation
-    Vec3 lvel(0.0,0.0,vlight);
-    TRange trange(cstart,cstart+clen/vlight);
-    TLine lline(lmeas,lvel,tmeas,trange);
-    // then create the hit and add it; the hit has no material
-    thits.push_back(std::make_shared<LIGHTHIT>(lline, ttvar, twvar));
- // test
-//    cout << "cstart " << cstart << " pos " << hend << endl;
-//    cout << "shmax " << ltime << " pos " << shmpos  << endl;
-//    Vec3 lhpos;
-//    lline.position(tmeas,lhpos);
-//    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
-//    RESIDUAL lres;
-//    thits.back()->resid(plhel,lres);
-//    cout << "LightHit " << lres << endl;
-//    TPOCA tpl(plhel,lline);
-//    cout <<"Light TPOCA ";
-//    tpl.print(cout,2);
-  }
-
-//  cout << "Total energy loss " << desum << " scattering " << dscatsum << endl;
-  return desum;
-}
-
 int main(int argc, char **argv) {
-// enable throw on FPE
+// enable throw on FPE; not working with clang!
   fetestexcept(FE_ALL_EXCEPT );
-
+// parameters
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -300,6 +115,16 @@ int main(int argc, char **argv) {
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
   int detail(0), invert(0);
+  float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
+  bool updatehits(false), addbf(false), fitmat(true);
+  vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
+  Vec3 bnom(0.0,0.0,1.0);
+  BField *BF(0);
+  float Bgrad(0.0), By(0.0);
+  float zrange(3000);
+  int iseed(123421);
+  unsigned nhits(40);
+  bool simmat(true), lighthit(true);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -312,7 +137,6 @@ int main(int argc, char **argv) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"ineff",     required_argument, 0, 'i'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'x'  },
     {"nmeta",     required_argument, 0, 'M'  },
@@ -352,15 +176,9 @@ int main(int argc, char **argv) {
 		 break;
       case 'z' : zrange = atof(optarg);
 		 break;
-      case 'h' : sigt = atof(optarg);
-		 break;
-      case 'i' : ineff = atof(optarg);
-		 break;
       case 'n' : nhits = atoi(optarg);
 		 break;
       case 's' : iseed = atoi(optarg);
-		 break;
-      case 'e' : escale = atof(optarg);
 		 break;
       case 'M' : nmeta = atoi(optarg);
 		 break;
@@ -402,6 +220,7 @@ int main(int argc, char **argv) {
 	       exit(EXIT_FAILURE);
     }
   }
+
   // construct BField
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
@@ -412,56 +231,31 @@ int main(int argc, char **argv) {
     BF = new UniformBField(bsim);
     bnom = Vec3(0.0,0.0,1.0);
   }
-
-  MatDBInfo matdbinfo;
-  const DetMaterial* wallmat = matdbinfo.findDetMaterial("straw-wall");
-  const DetMaterial* gasmat = matdbinfo.findDetMaterial("straw-gas");
-  const DetMaterial* wiremat = matdbinfo.findDetMaterial("straw-wire");
-  float rwire(0.025), wthick(0.015);
-  StrawMat smat(rstraw,wthick,rwire, *wallmat, *gasmat, *wiremat);
-
+  // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  Vec4 origin(0.0,0.0,0.0,0.0);
-  float sint = sqrt(1.0-cost*cost);
-  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,simmass);
-  Vec3 bsim;
-  BF->fieldVect(bsim,origin.Vect());
-  KTRAJ lhel(origin,momv,icharge,bsim);
-  cout << "True initial " << lhel << endl;
-  PKTRAJ plhel(lhel);
-  // truncate the range according to the Z range
-  Vec3 vel; plhel.velocity(0.0,vel);
-  plhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
   // generate hits
   THITCOL thits; // this program shares hit ownership with KKTrk
   DXINGCOL dxings; // this program shares det xing ownership with KKTrk
-  createHits(plhel,smat, thits, dxings);
+  PKTRAJ tptraj(TRange(),simmass,icharge);
+  toy.simulateParticle(tptraj, thits, dxings);
+  cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
-//  cout << "True " << plhel << endl;
-  double startmom = plhel.momentum(plhel.range().low());
-  double endmom = plhel.momentum(plhel.range().high());
+//  cout << "True " << tptraj << endl;
+  double startmom = tptraj.momentum(tptraj.range().low());
+  double endmom = tptraj.momentum(tptraj.range().high());
   Vec3 end, bend;
-  plhel.front().direction(plhel.range().high(),bend);
-  plhel.back().direction(plhel.range().high(),end);
+  tptraj.front().direction(tptraj.range().high(),bend);
+  tptraj.back().direction(tptraj.range().high(),end);
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
-  auto const& midhel = plhel.nearestPiece(0.0);
-  KTRAJ seedhel(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
-  if(invert){
-    Vec3 pos, ipos;
-    Mom4 mom, imom;
-    seedhel.position(seedhel.range().mid(),pos);
-    seedhel.momentum(seedhel.range().mid(),mom);
-    seedhel.invertCT();
-    seedhel.position(seedhel.range().mid(),ipos);
-    seedhel.momentum(seedhel.range().mid(),imom);
-    cout << "before invert pos = " << pos << " mom " << mom << endl;
-    cout << "after  invert pos = " << ipos << " mom " << imom << endl;
-  }
-  createSeed(seedhel);
-  cout << "Seed params " << seedhel.params().parameters() <<" covariance " << endl << seedhel.params().covariance() << endl;
+  auto const& midhel = tptraj.nearestPiece(0.0);
+  KTRAJ seedtraj(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+  if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
+  toy.createSeed(seedtraj);
+  cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
   // Create the KKTrk from these hits
   //
   KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
@@ -497,12 +291,12 @@ int main(int argc, char **argv) {
   }
   cout << *configptr << endl;
 // create and fit the track
-  KKTRK kktrk(configptr,seedhel,thits,dxings);
+  KKTRK kktrk(configptr,seedtraj,thits,dxings);
   kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, etmom_, ftmom_, ffmom_, efmom_, tde_, chiprob_;
+  float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
   float fft_,eft_;
   int ndof_, niter_, status_;
   if(ntries <=0 ){
@@ -522,19 +316,19 @@ int main(int argc, char **argv) {
     }
     fitpl->Draw();
 // now draw the truth
-    TPolyLine3D* thelpl = new TPolyLine3D(np);
-    thelpl->SetLineColor(kGreen);
-    thelpl->SetLineStyle(kDashDotted);
-    ts = plhel.range().range()/(np-1);
+    TPolyLine3D* ttpl = new TPolyLine3D(np);
+    ttpl->SetLineColor(kGreen);
+    ttpl->SetLineStyle(kDashDotted);
+    ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
-      double tp = plhel.range().low() + ip*ts;
+      double tp = tptraj.range().low() + ip*ts;
       Vec3 ppos;
-      plhel.position(tp,ppos);
-      thelpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+      tptraj.position(tp,ppos);
+      ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
-    thelpl->Draw();
+    ttpl->Draw();
     // draw the hits
-    std::vector<TPolyLine3D*> tpl;
+    std::vector<TPolyLine3D*> htpls;
     for(auto const& thit : thits) {
       TPolyLine3D* line = new TPolyLine3D(2);
       Vec3 plow, phigh;
@@ -554,7 +348,7 @@ int main(int argc, char **argv) {
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
       line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
       line->Draw();
-      tpl.push_back(line);
+      htpls.push_back(line);
     }
 
     // draw the origin and axes
@@ -591,7 +385,6 @@ int main(int argc, char **argv) {
       ftree->Branch("efmom", &efmom_,"efmom/F");
       ftree->Branch("fft", &fft_,"fft/F");
       ftree->Branch("eft", &eft_,"eft/F");
-      ftree->Branch("tde", &tde_,"tde/F");
       ftree->Branch("hinfo",&hinfo);
     }
     // now repeat this to gain statistics
@@ -638,32 +431,23 @@ int main(int argc, char **argv) {
     }
     double duration (0.0);
     for(unsigned itry=0;itry<ntries;itry++){
-      // randomize the helix
-      Vec4 torigin(TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0), TR->Gaus(0.0,3.0),TR->Gaus(0.0,3.0));
-      double tphi = TR->Uniform(-M_PI,M_PI);
-      double tcost = TR->Uniform(0.5,0.8);
-      double tsint = sqrt(1.0-tcost*tcost);
-      Mom4 tmomv(mom*tsint*cos(tphi),mom*tsint*sin(tphi),mom*tcost,simmass);
-      BF->fieldVect(bsim,torigin.Vect());
-      KTRAJ tlhel(torigin,tmomv,icharge,bsim);
-      PKTRAJ tplhel(tlhel);
-      Vec3 vel; tplhel.velocity(0.0,vel);
-      tplhel.setRange(TRange(-0.5*zrange/vel.Z()-tbuff,0.5*zrange/vel.Z()+tbuff));
+    // create a random true initial helix with hits and material interactions from this.  This also handles BField inhomogeneity truth tracking
+      PKTRAJ tptraj(TRange(),simmass,icharge);
       thits.clear();
       dxings.clear();
-      tde_ = createHits(tplhel,smat, thits,dxings);
-      auto const& midhel = tplhel.nearestPiece(tplhel.range().mid());
-      KTRAJ seedhel(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
-      if(invert)seedhel.invertCT();
-      createSeed(seedhel);
+      toy.simulateParticle(tptraj,thits,dxings);
+      auto const& midhel = tptraj.nearestPiece(tptraj.range().mid());
+      KTRAJ seedtraj(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+      if(invert)seedtraj.invertCT();
+      toy.createSeed(seedtraj);
       auto start = Clock::now();
-      KKTRK kktrk(configptr,seedhel,thits,dxings);
+      KKTRK kktrk(configptr,seedtraj,thits,dxings);
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       // compare parameters at the first traj of both true and fit
-      auto const& tpars = tplhel.front().params();
+      auto const& tpars = tptraj.front().params();
       auto const& fpars = kktrk.fitTraj().front().params();
-      auto const& btpars = tplhel.back().params();
+      auto const& btpars = tptraj.back().params();
       auto const& bfpars = kktrk.fitTraj().back().params();
      // momentum
       // accumulate parameter difference and pull
@@ -706,16 +490,16 @@ int main(int argc, char **argv) {
       logchisqprob->Fill(log10(chiprob_));
       // fill tree
       for(size_t ipar=0;ipar<6;ipar++){
-	spars_.pars_[ipar] = seedhel.params().parameters()[ipar];
-	ftpars_.pars_[ipar] = tplhel.front().params().parameters()[ipar];
-	etpars_.pars_[ipar] = tplhel.back().params().parameters()[ipar];
+	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+	ftpars_.pars_[ipar] = tptraj.front().params().parameters()[ipar];
+	etpars_.pars_[ipar] = tptraj.back().params().parameters()[ipar];
 	ffitpars_.pars_[ipar] = kktrk.fitTraj().front().params().parameters()[ipar];
 	efitpars_.pars_[ipar] = kktrk.fitTraj().back().params().parameters()[ipar];
 	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
 	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
       }
-      ftmom_ = tplhel.front().momentum(tplhel.range().low());
-      etmom_ = tplhel.back().momentum(tplhel.range().high());
+      ftmom_ = tptraj.front().momentum(tptraj.range().low());
+      etmom_ = tptraj.back().momentum(tptraj.range().high());
       ffmom_ = kktrk.fitTraj().front().momentum(kktrk.fitTraj().range().low());
       efmom_ = kktrk.fitTraj().back().momentum(kktrk.fitTraj().range().high());
       fft_ = kktrk.fitTraj().range().low();
@@ -728,8 +512,8 @@ int main(int argc, char **argv) {
       // test
       if(printbad && !kktrk.fitStatus().usable()){
 	cout << "Bad Fit try " << itry << endl;
-	cout << "True Traj " << tlhel << endl;
-	cout << "Seed Traj " << seedhel << endl;
+	cout << "True Traj " << tptraj << endl;
+	cout << "Seed Traj " << seedtraj << endl;
 	kktrk.print(cout,detail);
       }
       if(ttree)ftree->Fill();

@@ -18,7 +18,7 @@ namespace KinKal {
       typedef KKEff<KTRAJ> KKEFF;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef THit<KTRAJ> THIT;
-      typedef Residual<KTRAJ> RESIDUAL;
+      typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef std::shared_ptr<THIT> THITPTR;
       typedef typename KTRAJ::PDATA PDATA; // forward derivative type
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
