@@ -29,7 +29,7 @@ namespace KinKal {
       constexpr static ParamIndex t0Index() { return t0_; }
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
-      typedef ROOT::Math::SVector<double, npars_> PDER; // derivative of parameters type in a particular direction
+      typedef typename PDATA::DVEC DVEC; // derivative of parameters type
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -64,7 +64,7 @@ namespace KinKal {
       bool inRange(float time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(MDir mdir, float time, PDER &der,Vec3& unit) const;
+      void momDeriv(MDir mdir, float time, DVEC &der,Vec3& unit) const;
 
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }

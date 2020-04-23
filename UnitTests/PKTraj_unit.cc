@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    KTRAJ::PDER pder;
+    KTRAJ::DVEC pder;
     Vec3 mdir;
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
@@ -138,7 +138,7 @@ int main(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    KTRAJ::PDER pder;
+    KTRAJ::DVEC pder;
     Vec3 mdir;
     KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();

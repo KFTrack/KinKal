@@ -148,7 +148,7 @@ int main(int argc, char **argv) {
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
-      KTRAJ::PDER pder;
+      KTRAJ::DVEC pder;
       Vec3 dmomdir;
       refhel.momDeriv(tdir,ttest,pder,dmomdir);
       //  compute exact altered params

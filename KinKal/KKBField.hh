@@ -19,7 +19,7 @@ namespace KinKal {
       typedef typename KKEFF::PDATA PDATA; // forward the typedef
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
-      typedef typename KTRAJ::PDER PDER; // forward the typedef
+      typedef typename KTRAJ::DVEC DVEC; // forward the typedef
       virtual float time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       virtual bool isActive() const override { return active_;}
       virtual void update(PKTRAJ const& ref) override;
@@ -27,7 +27,7 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
-      PDER const& effect() const { return bfeff_; }
+      DVEC const& effect() const { return bfeff_; }
       virtual ~KKBField(){}
       // create from the domain range, the effect, and the
       KKBField(BField const& bfield, unsigned nsteps, PKTRAJ const& pktraj,TRange const& drange) : 
@@ -62,7 +62,7 @@ namespace KinKal {
     // translate the momentum change to the parameter change.
     // First get the derivatives and perp basis for the BField x-product at this point
     Vec3 t1hat, t2hat;
-    PDER dpdt1, dpdt2;
+    DVEC dpdt1, dpdt2;
     locref.momDeriv(KInter::theta1,time,dpdt1,t1hat);
     locref.momDeriv(KInter::theta2,time,dpdt2,t2hat);
     // project the momentum change onto these directions to get the parameter change

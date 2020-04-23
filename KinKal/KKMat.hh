@@ -23,7 +23,7 @@ namespace KinKal {
       typedef typename KKEFF::PDATA PDATA; // forward the typedef
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
-      typedef typename KTRAJ::PDER PDER; // forward the typedef
+      typedef typename KTRAJ::DVEC DVEC; // forward the typedef
       virtual float time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
       virtual bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
       virtual void update(PKTRAJ const& ref) override;
@@ -96,7 +96,7 @@ namespace KinKal {
       for(int idir=0;idir<KInter::ndir; idir++) {
 	auto mdir = static_cast<KInter::MDir>(idir);
 	// get the derivatives of the parameters WRT material effects
-	PDER pder;
+	DVEC pder;
 	Vec3 pdir;
 	ref_.momDeriv(mdir, time(), pder, pdir);
 	// convert derivative vector to a Nx1 matrix

@@ -168,7 +168,7 @@ namespace KinKal {
     dir = mom.Vect().Unit();
   }
 
-  void IPHelix::momDeriv(MDir mdir, float time, PDER &pder,Vec3& unit) const
+  void IPHelix::momDeriv(MDir mdir, float time, DVEC &pder,Vec3& unit) const
   {
     // FIXME: these formulas need to be verified
     // compute some useful quantities

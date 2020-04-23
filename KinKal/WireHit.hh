@@ -27,7 +27,7 @@ namespace KinKal {
       typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef DXing<KTRAJ> DXING;
       typedef std::shared_ptr<DXING> DXINGPTR;
-      typedef typename KTRAJ::PDER PDER;
+      typedef typename KTRAJ::DVEC DVEC;
       // THit interface overrrides
       virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const override;
       void resid(TPOCA const& tpoca, RESIDUAL& resid) const; // actual implementation of resid uses TPOCA
@@ -102,7 +102,7 @@ namespace KinKal {
 	float tdrift, tdvar, vdrift;
 	d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
-	PDER dRdP = tpoca.dDdP()*iambig/vdrift + tpoca.dTdP(); 
+	DVEC dRdP = tpoca.dDdP()*iambig/vdrift + tpoca.dTdP(); 
 	resid = RESIDUAL(RESIDUAL::dtime,tpoca,tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
 	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case

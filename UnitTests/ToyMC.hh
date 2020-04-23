@@ -7,7 +7,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/LightHit.hh"
+#include "KinKal/ScintHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/D2T.hh"
@@ -23,15 +23,15 @@ namespace KKTest {
       typedef std::shared_ptr<DXING> DXINGPTR;
       typedef StrawHit<KTRAJ> STRAWHIT;
       typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-      typedef LightHit<KTRAJ> LIGHTHIT;
-      typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
+      typedef ScintHit<KTRAJ> SCINTHIT;
+      typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
       typedef StrawXing<KTRAJ> STRAWXING;
       typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
       typedef std::vector<THITPTR> THITCOL;
       typedef std::vector<DXINGPTR> DXINGCOL;
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef TPoca<PKTRAJ,TLine> TPOCA;
-      typedef typename KTRAJ::PDER PDER;     
+      typedef typename KTRAJ::DVEC DVEC;     
       // create from aseed
       ToyMC(BField const& bfield, float mom, int icharge, float zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, float ambigdoca ,float simmass) : 
 	bfield_(bfield), mom_(mom), icharge_(icharge),
@@ -49,7 +49,9 @@ namespace KKTest {
       void createSeed(KTRAJ& seed);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
+      void createScintHit(PKTRAJ const& pktraj, THITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,THITCOL& thits, DXINGCOL& dxings);
+      float createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
 
       // accessors
       float shVar() const {return sigt_*sigt_;}
@@ -114,13 +116,12 @@ namespace KKTest {
     //  cout << "Creating " << nhits_ << " hits " << endl;
     // divide time range
     double dt = (pktraj.range().range()-2*tbuff_)/(nhits_-1);
-    double desum(0.0);
-    double dscatsum(0.0);
     Vec3 bsim;
+    // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
       double htime = tbuff_ + pktraj.range().low() + ihit*dt;
-      // extend the trajectory in the BField 
-//      extendTraj(pktraj,htime);
+      // extend the trajectory in the BField to this time
+      extendTraj(pktraj,htime);
       // create the hit at this time
       auto tline = generateStraw(pktraj,htime);
       TPOCA tp(pktraj,tline);
@@ -135,87 +136,96 @@ namespace KKTest {
       }
       // compute material effects and change trajectory accordingly
       if(simmat_){
-	auto const& endpiece = pktraj.nearestPiece(tp.particleToca());
-	double mom = endpiece.momentum(tp.particleToca());
-	Mom4 endmom;
-	endpiece.momentum(tp.particleToca(),endmom);
-	Vec4 endpos; endpos.SetE(tp.particleToca());
-	endpiece.position(endpos);
-	std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-	sxing->momEffects(pktraj,TDir::forwards, dmom, momvar);
-	for(int idir=0;idir<=KInter::theta2; idir++) {
-	  auto mdir = static_cast<KInter::MDir>(idir);
-	  double momsig = sqrt(momvar[idir]);
-	  double dm;
-	  // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
-	  switch( mdir ) {
-	    case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
-	      dm = tr_.Gaus(dmom[idir],momsig);
-	      dscatsum += dm;
-	      break;
-	    case KinKal::KInter::momdir :
-	      dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-	      desum += dm*mom;
-	      break;
-	    default:
-	      throw std::invalid_argument("Invalid direction");
-	  }
-	  //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-	  Vec3 dmvec;
-	  PDER pder;
-	  endpiece.momDeriv(mdir,tp.particleToca(),pder,dmvec);
-	  dmvec *= dm*mom;
-	  endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
-	}
+	float defrac = createStrawMaterial(pktraj, *sxing.get());
 	// terminate if there is catastrophic energy loss
-	if(fabs(desum)/mom > 0.1)break;
-	// generate a new piece and append
-	bfield_.fieldVect(bsim,endpos.Vect());
-	KTRAJ newend(endpos,endmom,endpiece.charge(),bsim,TRange(tp.particleToca(),pktraj.range().high()));
-	//      newend.print(cout,1);
-	pktraj.append(newend);
+	if(fabs(defrac) > 0.1)break;
       }
     }
     if(lighthit_ && tr_.Uniform(0.0,1.0) > ineff_){
-      // create a LightHit at the end, axis parallel to z
-      // first, find the position at showermax_.
-      Vec3 shmpos, hend, lmeas;
-      float cstart = pktraj.range().high() + tbuff_;
-      pktraj.position(cstart,hend);
-      float ltime = cstart + shmax_/pktraj.speed(cstart);
-      pktraj.position(ltime,shmpos); // true position at shower-max
-      // smear the x-y position by the transverse variance.
-      lmeas.SetX(tr_.Gaus(shmpos.X(),twsig_));
-      lmeas.SetY(tr_.Gaus(shmpos.Y(),twsig_));
-      // set the z position to the sensor plane (end of the crystal)
-      lmeas.SetZ(hend.Z()+clen_);
-      // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
-      float tmeas = tr_.Gaus(ltime+(lmeas.Z()-shmpos.Z())/cprop_,ttsig_);
-      // create the ttraj for the light propagation
-      Vec3 lvel(0.0,0.0,cprop_);
-      TRange trange(cstart,cstart+clen_/cprop_);
-      TLine lline(lmeas,lvel,tmeas,trange);
-      // then create the hit and add it; the hit has no material
-      thits.push_back(std::make_shared<LIGHTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
-      // test
-      //    cout << "cstart " << cstart << " pos " << hend << endl;
-      //    cout << "shmax_ " << ltime << " pos " << shmpos  << endl;
-      //    Vec3 lhpos;
-      //    lline.position(tmeas,lhpos);
-      //    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
-      //    RESIDUAL lres;
-      //    thits.back()->resid(pktraj,lres);
-      //    cout << "LightHit " << lres << endl;
-      //    TPOCA tpl(pktraj,lline);
-      //    cout <<"Light TPOCA ";
-      //    tpl.print(cout,2);
+      createScintHit(pktraj,thits);
     }
+  }
+
+  template <class KTRAJ> float ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing) {
+    double desum = 0.0;
+    float tstraw = sxing.crossingTime();
+    auto const& endpiece = pktraj.nearestPiece(tstraw);
+    double mom = endpiece.momentum(tstraw);
+    Mom4 endmom;
+    endpiece.momentum(tstraw,endmom);
+    Vec4 endpos; endpos.SetE(tstraw);
+    endpiece.position(endpos);
+    std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+    sxing.momEffects(pktraj,TDir::forwards, dmom, momvar);
+    for(int idir=0;idir<=KInter::theta2; idir++) {
+      auto mdir = static_cast<KInter::MDir>(idir);
+      double momsig = sqrt(momvar[idir]);
+      double dm;
+      // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
+      switch( mdir ) {
+	case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
+	  dm = tr_.Gaus(dmom[idir],momsig);
+	  break;
+	case KinKal::KInter::momdir :
+	  dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
+	  desum += dm*mom;
+	  break;
+	default:
+	  throw std::invalid_argument("Invalid direction");
+      }
+      //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
+      Vec3 dmvec;
+      DVEC pder;
+      endpiece.momDeriv(mdir,tstraw,pder,dmvec);
+      dmvec *= dm*mom;
+      endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+    }
+    // generate a new piece and append
+    KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TRange(tstraw,pktraj.range().high()));
+    //      newend.print(cout,1);
+    pktraj.append(newend);
+    return desum/mom;
+  }
+
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, THITCOL& thits) {
+    // create a ScintHit at the end, axis parallel to z
+    // first, find the position at showermax_.
+    Vec3 shmpos, hend, lmeas;
+    float cstart = pktraj.range().high() + tbuff_;
+    pktraj.position(cstart,hend);
+    float ltime = cstart + shmax_/pktraj.speed(cstart);
+    pktraj.position(ltime,shmpos); // true position at shower-max
+    // smear the x-y position by the transverse variance.
+    lmeas.SetX(tr_.Gaus(shmpos.X(),twsig_));
+    lmeas.SetY(tr_.Gaus(shmpos.Y(),twsig_));
+    // set the z position to the sensor plane (end of the crystal)
+    lmeas.SetZ(hend.Z()+clen_);
+    // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
+    float tmeas = tr_.Gaus(ltime+(lmeas.Z()-shmpos.Z())/cprop_,ttsig_);
+    // create the ttraj for the light propagation
+    Vec3 lvel(0.0,0.0,cprop_);
+    TRange trange(cstart,cstart+clen_/cprop_);
+    TLine lline(lmeas,lvel,tmeas,trange);
+    // then create the hit and add it; the hit has no material
+    thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
+    // test
+    //    cout << "cstart " << cstart << " pos " << hend << endl;
+    //    cout << "shmax_ " << ltime << " pos " << shmpos  << endl;
+    //    Vec3 lhpos;
+    //    lline.position(tmeas,lhpos);
+    //    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
+    //    RESIDUAL lres;
+    //    thits.back()->resid(pktraj,lres);
+    //    cout << "ScintHit " << lres << endl;
+    //    TPOCA tpl(pktraj,lline);
+    //    cout <<"Light TPOCA ";
+    //    tpl.print(cout,2);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed){
     auto& seedpar = seed.params();
     // propagate the momentum and position variances to parameter variances
-    PDER pder;
+    DVEC pder;
     Vec3 unit;
     for(int idir=0;idir<KInter::ndir;idir++){
       seed.momDeriv(KInter::MDir(idir),seed.range().mid(),pder,unit);

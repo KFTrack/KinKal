@@ -24,8 +24,7 @@ namespace KinKal {
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef typename KKEFF::KKDATA KKDATA;
       typedef TData<PDATA::PDim()> TDATA;
-      typedef typename KTRAJ::PDATA::DVEC DVEC; // forward derivative type
-      typedef typename KTRAJ::PDER PDER; // forward derivative type
+      typedef typename KTRAJ::DVEC DVEC; // forward derivative type
       virtual unsigned nDOF() const override { return thit_->isActive() ? thit_->nDOF() : 0; }
       virtual float fitChi() const override; 
       virtual float chisq(PDATA const& pdata) const override{ float chival = chi(pdata); return chival*chival; } 

@@ -9,7 +9,7 @@
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/LightHit.hh"
+#include "KinKal/ScintHit.hh"
 #include "KinKal/BField.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKConfig.hh"
@@ -67,8 +67,8 @@ typedef DXing<KTRAJ> DXING;
 typedef std::shared_ptr<DXING> DXINGPTR;
 typedef StrawHit<KTRAJ> STRAWHIT;
 typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-typedef LightHit<KTRAJ> LIGHTHIT;
-typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
+typedef ScintHit<KTRAJ> SCINTHIT;
+typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
 typedef shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef vector<THITPTR> THITCOL;
@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --PrintBad i --PrintDetail i --LightHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -152,7 +152,7 @@ int main(int argc, char **argv) {
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
-    {"LightHit",     required_argument, 0, 'L'  },
+    {"ScintHit",     required_argument, 0, 'L'  },
     {"UpdateHits",     required_argument, 0, 'U'  },
     {"addbf",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
@@ -333,7 +333,7 @@ int main(int argc, char **argv) {
       TPolyLine3D* line = new TPolyLine3D(2);
       Vec3 plow, phigh;
       STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
-      LIGHTHITPTR lhptr = std::dynamic_pointer_cast<LIGHTHIT> (thit);
+      SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
 	tline.position(tline.range().low(),plow);

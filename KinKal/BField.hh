@@ -12,7 +12,6 @@ namespace KinKal {
       virtual void fieldVect(Vec3& field, Vec3 const& position=Vec3()) const = 0; 
       virtual void fieldGrad(Grad& grad,Vec3 const& position=Vec3()) const = 0;
       virtual ~BField(){}
-      // add interface for path integration FIXME!
   };
 
   // trivial instance of the above, used for testing

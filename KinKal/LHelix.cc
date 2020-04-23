@@ -123,7 +123,7 @@ namespace KinKal {
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
-  void LHelix::momDeriv(MDir mdir, float time, PDER& pder, Vec3& unit) const {
+  void LHelix::momDeriv(MDir mdir, float time, DVEC& pder, Vec3& unit) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();

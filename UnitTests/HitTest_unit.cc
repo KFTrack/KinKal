@@ -8,7 +8,7 @@
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
-#include "KinKal/LightHit.hh"
+#include "KinKal/ScintHit.hh"
 #include "KinKal/StrawMat.hh"
 #include "KinKal/KKMHit.hh"
 #include "KinKal/Residual.hh"
@@ -56,8 +56,8 @@ typedef DXing<KTRAJ> DXING;
 typedef std::shared_ptr<DXING> DXINGPTR;
 typedef StrawHit<KTRAJ> STRAWHIT;
 typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-typedef LightHit<KTRAJ> LIGHTHIT;
-typedef std::shared_ptr<LIGHTHIT> LIGHTHITPTR;
+typedef ScintHit<KTRAJ> SCINTHIT;
+typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
 typedef StrawXing<KTRAJ> STRAWXING;
 typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
 typedef std::vector<THITPTR> THITCOL;
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
-    LIGHTHITPTR lhptr = std::dynamic_pointer_cast<LIGHTHIT> (thit);
+    SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if(shptr.use_count() > 0){
       auto const& tline = shptr->wire();
       tline.position(tline.range().low(),plow);
