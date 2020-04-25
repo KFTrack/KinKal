@@ -20,7 +20,7 @@ namespace KinKal {
   class KInter {
     public:
       // define basis vectors WRT the local momentum direction.  theta2 is also perpendicular to z
-      enum MDir {momdir=0,theta1,theta2};
+      enum MDir {momdir=0,theta1,theta2,ndir};
       static std::string directionName(MDir tdir) {
 	switch (tdir) {
 	  case momdir:

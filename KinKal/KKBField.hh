@@ -19,7 +19,7 @@ namespace KinKal {
       typedef typename KKEFF::PDATA PDATA; // forward the typedef
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
-      typedef typename KTRAJ::PDER PDER; // forward the typedef
+      typedef typename KTRAJ::DVEC DVEC; // forward the typedef
       virtual float time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       virtual bool isActive() const override { return active_;}
       virtual void update(PKTRAJ const& ref) override;
@@ -27,7 +27,7 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
-      PDER const& effect() const { return bfeff_; }
+      DVEC const& effect() const { return bfeff_; }
       virtual ~KKBField(){}
       // create from the domain range, the effect, and the
       KKBField(BField const& bfield, unsigned nsteps, PKTRAJ const& pktraj,TRange const& drange) : 
@@ -60,14 +60,11 @@ namespace KinKal {
     auto const& locref = ref.nearestPiece(drange_.mid()); 
     float time = this->time();
     // translate the momentum change to the parameter change.
-    // First get the perp basis for the BField x-product at this point
+    // First get the derivatives and perp basis for the BField x-product at this point
     Vec3 t1hat, t2hat;
-    locref.dirVector(KInter::theta1,time,t1hat);
-    locref.dirVector(KInter::theta2,time,t2hat);
-    // find the derivative on the local parameters
-    PDER dpdt1, dpdt2;
-    locref.momDeriv(KInter::theta1,time,dpdt1);
-    locref.momDeriv(KInter::theta2,time,dpdt2);
+    DVEC dpdt1, dpdt2;
+    locref.momDeriv(KInter::theta1,time,dpdt1,t1hat);
+    locref.momDeriv(KInter::theta2,time,dpdt2,t2hat);
     // project the momentum change onto these directions to get the parameter change
     // should add noise due to field measurement and gradientXposition uncertainties FIXME!
     bfeff_.parameters() = dpfrac_.Dot(t1hat)*dpdt1 + dpfrac_.Dot(t2hat)*dpdt2;
@@ -78,18 +75,9 @@ namespace KinKal {
     if(mconfig.updatebfcorr_){
       active_ = true;
     // integrate the fractional momentum change
-      dpfrac_ = Vec3();
-      float tstep = drange_.range()/float(nsteps_);
-      for(unsigned istep=0; istep< nsteps_; istep++){
-	float tsamp = drange_.low() + istep*tstep;
-	auto const& ktraj = ref.nearestPiece(tsamp);
-	Vec3 tpos, bvec;
-	ktraj.position(tsamp,tpos);
-	bfield_.fieldVect(bvec,tpos);
-	Vec3 db = bvec - ktraj.bnom();
-	Vec3 vel; ktraj.velocity(tsamp,vel);
-	dpfrac_ -= tstep*vel.Cross(db)/(ktraj.pbar()*ktraj.bnom().R()); // check sign FIXME!
-      }
+      Vec3 dp;
+      bfield_.integrate(ref,drange_,dp);
+      dpfrac_ = dp/ref.momentum(drange_.mid());
     }
     update(ref);
   }

@@ -28,7 +28,7 @@ namespace KinKal {
       constexpr static ParamIndex t0Index() { return t0_; }
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
-      typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type 
+      typedef typename PDATA::DVEC DVEC; // derivative of parameters type
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
@@ -50,7 +50,6 @@ namespace KinKal {
       void direction(float time,Vec3& dir) const ;
       double speed(float time) const  {  return CLHEP::c_light*beta(); }
       void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const ;
-      void dirVector(MDir dir,float time,Vec3& unit) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
@@ -58,22 +57,21 @@ namespace KinKal {
       bool inRange(float time) const { return trange_.inRange(time); }
       // KInter interface
       void momentum(float time,Mom4& mom) const ;
-      double momentum(float time) const  { return  fabs(mass_*pbar()/mbar_); }
+      double momentum(float time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(float time) const ;
       double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
-
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
-      void momDeriv(MDir mdir, float time, PDER& der) const;
+      void momDeriv(MDir mdir, float time, DVEC& der, Vec3& unit) const;
      // named parameter accessors
-      double param(size_t index) const { return pars_.parameters()[index]; }
+      double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
-      double rad() const { return param(rad_); }
-      double lam() const { return param(lam_); }
-      double cx() const { return param(cx_); }
-      double cy() const { return param(cy_); }
-      double phi0() const { return param(phi0_); }
-      double t0() const { return param(t0_); }
+      double rad() const { return paramVal(rad_); }
+      double lam() const { return paramVal(lam_); }
+      double cx() const { return paramVal(cx_); }
+      double cy() const { return paramVal(cy_); }
+      double phi0() const { return paramVal(phi0_); }
+      double t0() const { return paramVal(t0_); }
       
       // simple functions; these can be cached if they cause performance problems
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 
@@ -85,12 +83,13 @@ namespace KinKal {
       double omega() const { return copysign(CLHEP::c_light, mbar_) / ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
+      double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       int charge() const { return charge_; }
-      Vec3 const& bnom() const { return bnom_; }
+      Vec3 const& bnom(float time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {

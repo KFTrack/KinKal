@@ -15,10 +15,10 @@ namespace KinKal {
   template<class KTRAJ, class STRAJ> class TPoca : public TPocaBase {
     public:
     // forward the base interface.
-      typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
+      typedef typename KTRAJ::DVEC DVEC; // forward derivative type from the particle trajectory
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
-      PDER const& dDdP() const { return dDdP_; }
-      PDER const& dTdP() const { return dTdP_; }
+      DVEC const& dDdP() const { return dDdP_; }
+      DVEC const& dTdP() const { return dTdP_; }
       // construct from the particle and sensor trajectories; POCA is computed on construction, using possible hints
       // default precision = 1 Ps (~300 um) along the trajectories
       TPoca(KTRAJ const& ktraj, STRAJ const& straj, TPocaHint const& hint=TPocaHint(), float precision=0.001);
@@ -30,8 +30,8 @@ namespace KinKal {
     private:
       const KTRAJ* ktraj_; // kinematic particle trajectory
       const STRAJ* straj_; // sensor trajectory
-      PDER dDdP_; // derivative of DOCA WRT Parameters
-      PDER dTdP_; // derivative of Dt WRT Parameters
+      DVEC dDdP_; // derivative of DOCA WRT Parameters
+      DVEC dTdP_; // derivative of Dt WRT Parameters
   };
 
   template<class KTRAJ, class STRAJ> void TPoca<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {

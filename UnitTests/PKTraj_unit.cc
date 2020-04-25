@@ -42,7 +42,8 @@ void print_usage() {
 }
 
 int main(int argc, char **argv) {
-  typedef PKTraj<LHelix> PLHelix;
+  typedef LHelix KTRAJ;
+  typedef PKTraj<KTRAJ> PKTRAJ;
 
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
@@ -97,21 +98,22 @@ int main(int argc, char **argv) {
   //initial piece
   double tend = tstart + tstep;
   TRange range(tstart,tend);
-  LHelix lhel(origin,momv,icharge,bnom,range);
+  KTRAJ lhel(origin,momv,icharge,bnom,range);
   // create initial piecewise helix from this
-  PLHelix ptraj(lhel);
+  PKTRAJ ptraj(lhel);
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    LHelix::PDER pder;
-    LHelix const& back = ptraj.pieces().back();
+    KTRAJ::DVEC pder;
+    Vec3 mdir;
+    KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    back.momDeriv(tdir,tcomp,pder);
+    back.momDeriv(tdir,tcomp,pder,mdir);
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-      LHelix::PDATA pdata(dvec,back.params().covariance());
-    LHelix endhel(pdata,back.mass(),back.charge(),bnom,range);
+      KTRAJ::PDATA pdata(dvec,back.params().covariance());
+    KTRAJ endhel(pdata,back.mass(),back.charge(),bnom,range);
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -136,15 +138,16 @@ int main(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    LHelix::PDER pder;
-    LHelix const& front = ptraj.pieces().front();
+    KTRAJ::DVEC pder;
+    Vec3 mdir;
+    KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
-    front.momDeriv(tdir,tcomp,pder);
+    front.momDeriv(tdir,tcomp,pder,mdir);
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    LHelix::PDATA pdata(dvec,front.params().covariance());
-    LHelix endhel(pdata,front.mass(),front.charge(),bnom,range);
+    KTRAJ::PDATA pdata(dvec,front.params().covariance());
+    KTRAJ endhel(pdata,front.mass(),front.charge(),bnom,range);
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);
@@ -175,7 +178,7 @@ int main(int argc, char **argv) {
   char fname[100];
   snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
   TFile pkfile(fname,"RECREATE");
-  TCanvas* pttcan = new TCanvas("pttcan","PieceLHelix",1000,1000);
+  TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
   std::vector<TPolyLine3D*> plhel;
   int icolor(kBlue);
   for(auto const& piece : ptraj.pieces()) {
@@ -234,13 +237,13 @@ int main(int argc, char **argv) {
   Vec3 lpos = midpos + gap*rdir;
   TLine tline(lpos, pvel,ptraj.range().mid(),prange);
   // create TPoca from these
-  TPoca<PLHelix,TLine> tp(ptraj,tline);
+  TPoca<PKTRAJ,TLine> tp(ptraj,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
   tp.particleTraj().position(tp.particleToca(),thpos);
   tp.sensorTraj().position(tp.sensorToca(),tlpos);
   double refd = tp.doca();
-  cout << " Helix Pos " << midpos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
+  cout << " Helix Pos " << midpos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
   cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
   if(tp.status() == TPocaBase::converged) {
     // draw the line and TPoca
@@ -260,7 +263,7 @@ int main(int argc, char **argv) {
   }
 
   // now derivatives
-  TPoca<PLHelix,TLine> tdp(tp);
+  TPoca<PKTRAJ,TLine> tdp(tp);
   cout << "TPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
  
   pttcan->Write();

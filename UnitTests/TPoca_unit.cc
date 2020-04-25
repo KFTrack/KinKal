@@ -1,7 +1,8 @@
 // 
-// test basic functions of TPoca using LHelix and TLine
+// test basic functions of TPoca using KTraj and TLine
 //
 #include "KinKal/LHelix.hh"
+#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/BField.hh"
@@ -41,13 +42,16 @@ void print_usage() {
 }
 
 int main(int argc, char **argv) {
+//  typedef IPHelix KTRAJ;
+  typedef LHelix KTRAJ;
+  typedef TPoca<KTRAJ,TLine> TPOCA;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   int icharge(-1);
   double pmass(0.511), oz(100.0), ot(0.0);
   double time(8.0), dtime(20.0), dphi(5.0);
   double hlen(500.0); // half-length of the wire
-  double gap(2.0); // distance between TLine and LHelix 
+  double gap(2.0); // distance between TLine and KTRAJ 
   double vprop(0.7);
   unsigned ndtest(50);
 
@@ -89,7 +93,7 @@ int main(int argc, char **argv) {
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  LHelix lhel(origin,momv,icharge,bnom);
+  KTRAJ lhel(origin,momv,icharge,bnom);
 // create tline perp to z axis at the specified time, separated by the specified gap
   Vec3 pos, dir;
   lhel.position(time,pos);
@@ -109,17 +113,17 @@ int main(int argc, char **argv) {
   // create the TLine
   TLine tline(ppos, pvel,time+dtime,prange);
   // create TPoca from these
-  TPoca<LHelix,TLine> tp(lhel,tline);
+  TPOCA tp(lhel,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
   tp.particleTraj().position(tp.particlePoca().T(),thpos);
   tp.sensorTraj().position(tp.sensorPoca().T(),tlpos);
   double refd = tp.doca();
-  cout << " Helix Pos " << pos << " TPoca LHelix pos " << thpos << " TPoca TLine pos " << tlpos << endl;
+  cout << " Helix Pos " << pos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
   cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
 
   // now derivatives
-  TPoca<LHelix,TLine> tdp(tp);
+  TPOCA tdp(tp);
   cout << "TPoca dDdP " << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
   // test against numerical derivatives
   std::vector<TGraph*> dtpoca;
@@ -129,9 +133,9 @@ int main(int argc, char **argv) {
   TCanvas* dtpcan = new TCanvas("dtpcan","DTPoca",1200,800);
   dtpcan->Divide(3,2);
   for(int ipar=0;ipar<lhel.npars_;ipar++){
-    LHelix::ParamIndex parindex = static_cast<LHelix::ParamIndex>(ipar);
+    KTRAJ::ParamIndex parindex = static_cast<KTRAJ::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(ndtest));
-    string ts = LHelix::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
+    string ts = KTRAJ::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
     dtpoca.back()->SetTitle(ts.c_str());
     double dstep = pchange[ipar]/(ndtest-1);
     double dstart = -0.5*pchange[ipar];
@@ -140,9 +144,9 @@ int main(int argc, char **argv) {
       auto dvec = lhel.params().parameters();
       double dpar = dstart + dstep*istep;
       dvec[ipar] += dpar; 
-      LHelix::PDATA pdata(dvec,lhel.params().covariance());
-      LHelix dlhel(pdata,lhel.mass(),lhel.charge(),bnom);
-      TPoca<LHelix,TLine> dtp(dlhel,tline);
+      KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
+      KTRAJ dlhel(pdata,lhel.mass(),lhel.charge(),bnom);
+      TPOCA dtp(dlhel,tline);
       double xd = dtp.doca();
       // now derivatives
       double dd = tdp.dDdP()[ipar]*dpar;

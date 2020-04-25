@@ -3,31 +3,51 @@
 //
 //  A Residual describes the 1-dimensional tension between an individual sensor measurement and a prediction of a particle trajectory
 //  It does not have fixed units, but must have consistent units between value, variance and derivatives.
-//  It is based implicitly on the concept of TPOCA (time point of closest approach) between a measurement and a prediction
-//  The residual value may depend on space, time, or both
+//  It is based on the concept of TPOCA (time point of closest approach) between a measurement and a prediction
+//  The residual value may depend on any aspect of the measurement, reduced to a single dimension.
 //  used as part of the kinematic kalman fit
 //
+#include "KinKal/TPocaBase.hh"
 #include <ostream>
+#include <string>
+
 namespace KinKal {
-  template <class KTRAJ> class Residual {
+  template <size_t DDIM> class Residual {
     public:
-      typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
+      enum rdim {unknown=-1,dtime=0,distance}; // residual dimension
+      static std::string dimensionName(rdim dim) {
+	switch(dim) {
+	  case unknown: default:
+	    return std::string("Unknown");
+	    break;
+	  case dtime:
+	    return std::string("Time");
+	    break;
+	  case distance:
+	    return std::string("Distance");
+	    break;
+	}
+      }
+      typedef ROOT::Math::SVector<double,DDIM> DVEC; // data vector
       // accessors
-      float time() const { return time_; } 
+      rdim dimension() const { return dim_; }
+      TPocaBase const& tPoca() const { return tpoca_; }
+      float time() const { return tpoca_.particleToca(); }
       float value() const { return value_; }
       float variance() const  { return var_; }
-      PDER const& dRdP() const { return dRdP_; }
-      Residual(float time, float value, float var, PDER const& dRdP) : time_(time), value_(value), var_(var), dRdP_(dRdP) {}
-      Residual() : time_(0.0), value_(0.0), var_(-1.0) {}
+      DVEC const& dRdP() const { return dRdP_; }
+      Residual(rdim dim, TPocaBase const& tpoca, float value, float var, DVEC const& dRdP) : dim_(dim), tpoca_(tpoca), value_(value), var_(var), dRdP_(dRdP) {}
+      Residual() : dim_(unknown), value_(0.0), var_(-1.0) {}
     private:
-      float time_; // particle time associated with this residual
-      float value_; // residual value
+      rdim dim_; // dimension of this residual
+      TPocaBase tpoca_; // TPOCA associated with this residual
+      float value_;  // value for this residual
       float var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
-      PDER dRdP_; // derivative of residual WRT the reference parameters
+      DVEC dRdP_; // derivative of residual WRT the reference parameters
   };
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Residual<KTRAJ> const& res) {
-    ost << " residual " << res.value() << " variance " << res.variance() << " time " << res.time() << " dRdP " << res.dRdP();
+  template <size_t DDIM> std::ostream& operator <<(std::ostream& ost, Residual<DDIM> const& res) {
+    ost << " residual dimension " << Residual<DDIM>::dimensionName(res.dimension()) << " value " << res.value() << " variance " << res.variance() << " time " << res.time() << " dRdP " << res.dRdP();
     return ost;
   }
 }

@@ -18,9 +18,9 @@ namespace KinKal {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
       typedef DXing<KTRAJ> DXING;
-      typedef Residual<KTRAJ> RESIDUAL;
+      typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef std::shared_ptr<DXING> DXINGPTR;
-      typedef typename KTRAJ::PDER PDER; // forward derivative type from the particle trajectory
+      typedef typename KTRAJ::DVEC DVEC; // forward derivative type from the particle trajectory
       // default
       THit(bool active=true) : active_(active) {}
       // optionally create with an associated detector material crossing
