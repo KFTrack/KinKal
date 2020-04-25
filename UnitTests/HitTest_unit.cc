@@ -70,13 +70,12 @@ double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5), dmax(2.5);
 double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --dmax f --simmat i\n");
+  printf("Usage: FitTest  --momentum f --particle i --charge i --zrange f --nhits i --hres f --seed i --ddoca f --By f --Bgrad f --dmax f --simmat i\n");
 }
 
 int main(int argc, char **argv) {
   int opt;
-  double mom(105.0), cost(0.7), phi(0.5);
-  double ambigdoca(0.5); // minimum Doca to consider sign accurate
+  double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
@@ -89,15 +88,12 @@ int main(int argc, char **argv) {
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
     {"simmat",     required_argument, 0, 'b'  },
-    {"costheta",     required_argument, 0, 'c'  },
-    {"azimuth",     required_argument, 0, 'a'  },
     {"particle",     required_argument, 0, 'p'  },
     {"charge",     required_argument, 0, 'q'  },
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"ambigdoca",     required_argument, 0, 'd'  },
     {"ddoca",     required_argument, 0, 'x'  },
     {"dmax",     required_argument, 0, 'r'  },
     {"By",     required_argument, 0, 'y'  },
@@ -109,10 +105,6 @@ int main(int argc, char **argv) {
 	  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
-      case 'c' : cost = atof(optarg);
-		 break;
-      case 'a' : phi = atof(optarg);
 		 break;
       case 'p' : imass = atoi(optarg);
 		 break;
@@ -127,8 +119,6 @@ int main(int argc, char **argv) {
       case 'b' : simmat = atoi(optarg);
 		 break;
       case 's' : iseed = atoi(optarg);
-		 break;
-      case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'x' : ddoca = atof(optarg);
 		 break;
@@ -189,7 +179,6 @@ int main(int argc, char **argv) {
    // compute residual
     RESIDUAL  res;
     thit->resid(tptraj,res);
-//    cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 

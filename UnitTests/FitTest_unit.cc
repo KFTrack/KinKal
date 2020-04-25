@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
   fetestexcept(FE_ALL_EXCEPT );
 // parameters
   int opt;
-  double mom(105.0), cost(0.7), phi(0.5);
+  double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int isimmass(0), ifitmass(0), icharge(-1);
   double simmass, fitmass;
@@ -128,8 +128,6 @@ int main(int argc, char **argv) {
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
-    {"costheta",     required_argument, 0, 'c'  },
-    {"azimuth",     required_argument, 0, 'a'  },
     {"simparticle",     required_argument, 0, 'S'  },
     {"fitparticle",     required_argument, 0, 'F'  },
     {"charge",     required_argument, 0, 'q'  },
@@ -164,10 +162,6 @@ int main(int argc, char **argv) {
 	  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
-      case 'c' : cost = atof(optarg);
-		 break;
-      case 'a' : phi = atof(optarg);
 		 break;
       case 'S' : isimmass = atoi(optarg);
 		 break;
