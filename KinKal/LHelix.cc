@@ -47,7 +47,7 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
-    double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
+    double momToRad = 1.0/(BField::cbar()*charge_*bnom_.R());
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
@@ -111,14 +111,14 @@ namespace KinKal {
  void LHelix::velocity(float time,Vec3& vel) const{
     Mom4 mom;
     momentum(time,mom);
-    vel = mom.Vect()*CLHEP::c_light/fabs(Q()*ebar());
+    vel = mom.Vect()*CLHEP::c_light/(gamma()*mass_);
     if(needsrot_)vel = brot_(vel);
   }
 
   void LHelix::direction(float time,Vec3& dir) const{
     Mom4 mom;
     momentum(time,mom);
-    dir = mom.Vect().Unit();
+    dir = mom.Vect()/(betaGamma()*mass_);
     if(needsrot_)dir = brot_(dir);
   }
 
@@ -189,7 +189,7 @@ namespace KinKal {
     while(fabs(dx) < ptol && drange.high() < range().high()) {
       Vec3 tpos, bvec;
       position(drange.high(),tpos);
-      bfield.fieldVect(bvec,tpos);
+      bfield.fieldVect(tpos,bvec);
       // BField diff with nominal
       auto dbvec = bvec - bnom_;
       // spatial distortion accumulation

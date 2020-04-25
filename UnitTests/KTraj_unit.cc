@@ -134,11 +134,12 @@ int main(int argc, char **argv) {
   Mom4 testmom;
   lhel.momentum(ot,testmom);
   cout << "KTRAJ with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
-  Vec3 vel;
-  lhel.velocity(ot,vel);
-  double dot = vel.Dot(testmom)/CLHEP::c_light;
-  cout << "velocity dot mom = " << dot << endl;
-  cout << "momentum beta =" << momv.Beta() << " KTRAJ beta = " << lhel.beta() << endl;
+  Vec3 tvel, tdir;
+  lhel.velocity(ot,tvel);
+  lhel.direction(ot,tdir);
+  cout << "velocity " << tvel << " direction " << tdir << endl;
+  cout << "momentum beta =" << momv.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << momv.Gamma() << 
+  " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
   Vec3 mdir;
   lhel.direction(ot,mdir);
   // create the helix at tmin and tmax 

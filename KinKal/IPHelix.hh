@@ -95,7 +95,7 @@ namespace KinKal {
       double translen(const double &f) const { return cosDip() * f; }
       double arc(const double &f) const { return translen(f) * omega(); }
       double ztime(double zpos) const { return t0() + zpos / vz(); }
-      Vec3 const &bnom() const { return bnom_; }
+      Vec3 const &bnom(float time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()

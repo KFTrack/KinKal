@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
   BField* BF;
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
-    BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
+    BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
   } else {
     BF = new UniformBField(bnom);
   }

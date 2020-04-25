@@ -251,17 +251,15 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PKTRAJ& pktraj,double htime) {
     ROOT::Math::SMatrix<float,3> bgrad;
-    Vec4 pos; pos.SetE(htime);
-    pktraj.position(pos);
-    bfield_.fieldGrad(bgrad,pos.Vect());
-    float det;
-    bgrad.Det(det);
-    if(det != 0.0){
+    Vec3 pos,vel, dBdt;
+    pktraj.position(htime,pos);
+    pktraj.velocity(htime,vel);
+    bfield_.fieldDeriv(pos,vel,dBdt);
+    if(dBdt.R() != 0.0){
       auto const& back = pktraj.back();
       float tend = back.range().low();
-      Vec3 vel;
-      back.velocity(htime,vel);
-      float tstep = 0.0001*back.bnom().R()*zrange_/(det*vel.Z()); // how far before BField changes by 1/10000
+      float tstep = 0.001*back.bnom().R()/dBdt.R(); // how far before BField changes by 1/1000.  Should be a parameter FIXME!
+      std::cout << "TStep " << tstep << std::endl;
       if(tstep < htime-tend){
 	while(tend < htime-tstep){
 	  tend += tstep;
@@ -270,7 +268,8 @@ namespace KKTest {
 	  Mom4 mom;
 	  pktraj.momentum(tend,mom);
 	  pktraj.position(pos);
-	  bfield_.fieldVect(bf,pos.Vect());
+	  bfield_.fieldVect(pos.Vect(),bf);
+	  std::cout << "BField " << bf << std::endl;
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,TRange(tend,pktraj.range().high()));
 	  pktraj.append(newend);
 	}
@@ -286,7 +285,7 @@ namespace KKTest {
     double tsint = sqrt(1.0-tcost*tcost);
     Mom4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
     Vec3 bsim;
-    bfield_.fieldVect(bsim,torigin.Vect());
+    bfield_.fieldVect(torigin.Vect(),bsim);
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim);
     pktraj = PKTRAJ(ktraj);
     Vec3 vel; pktraj.velocity(0.0,vel);

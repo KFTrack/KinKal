@@ -57,7 +57,7 @@ namespace KinKal {
       bool inRange(float time) const { return trange_.inRange(time); }
       // KInter interface
       void momentum(float time,Mom4& mom) const ;
-      double momentum(float time) const  { return  fabs(mass_*pbar()/mbar_); }
+      double momentum(float time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(float time) const ;
       double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
@@ -83,12 +83,13 @@ namespace KinKal {
       double omega() const { return copysign(CLHEP::c_light, mbar_) / ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
+      double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       int charge() const { return charge_; }
-      Vec3 const& bnom() const { return bnom_; }
+      Vec3 const& bnom(float time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {

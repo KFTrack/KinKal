@@ -34,6 +34,7 @@ namespace KinKal {
       void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const  {
       // this could have a smarter implementation FIXME!
 	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,dtol,ptol); }
+      Vec3 const& bnom(float time) const { return PTTRAJ::nearestPiece(time).bnom(); }
   };
 }
 #endif

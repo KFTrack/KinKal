@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   Vec3 bnom(0.0,0.0,1.0);
   BField *BF(0);
-  float Bgrad(0.0), By(0.0);
+  float Bgrad(0.0), By(0.0), dBz(0.0);
   float zrange(3000);
   int iseed(123421);
   unsigned nhits(40);
@@ -149,6 +149,7 @@ int main(int argc, char **argv) {
     {"ttree",     required_argument, 0, 'r'  },
     {"TFile",     required_argument, 0, 'T'  },
     {"By",     required_argument, 0, 'y'  },
+    {"dBz",     required_argument, 0, 'Z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
@@ -206,6 +207,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
+      case 'Z' : dBz = atof(optarg);
+		 break;
       case 'g' : Bgrad = atof(optarg);
 		 break;
       case 'P' : printbad = atoi(optarg);
@@ -224,10 +227,10 @@ int main(int argc, char **argv) {
   // construct BField
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
-    BF->fieldVect(bnom,Vec3(0.0,0.0,0.0));
+    BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
     bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
-    Vec3 bsim(0.0,By,1.0);
+    Vec3 bsim(0.0,By,1.0+dBz);
     BF = new UniformBField(bsim);
     bnom = Vec3(0.0,0.0,1.0);
   }
@@ -388,10 +391,10 @@ int main(int argc, char **argv) {
       ftree->Branch("hinfo",&hinfo);
     }
     // now repeat this to gain statistics
-    vector<TH1F*> fdpgenh(KTRAJ::NParams());
-    vector<TH1F*> bdpgenh(KTRAJ::NParams());
-    vector<TH1F*> fdpullgenh(KTRAJ::NParams());
-    vector<TH1F*> bdpullgenh(KTRAJ::NParams());
+    vector<TH1F*> fdp(KTRAJ::NParams());
+    vector<TH1F*> bdp(KTRAJ::NParams());
+    vector<TH1F*> fpull(KTRAJ::NParams());
+    vector<TH1F*> bpull(KTRAJ::NParams());
     vector<TH1F*> fiterrh(KTRAJ::NParams());
     TH1F* hniter = new TH1F("niter", "Total Iterations", 50,-0.5,49.5);
     TH1F* hnfail = new TH1F("nfail", "Failed Iterations", 50,-0.5,49.5);
@@ -413,16 +416,16 @@ int main(int argc, char **argv) {
       auto tpar = static_cast<KTRAJ::ParamIndex>(ipar);
       hname = string("fd") + KTRAJ::paramName(tpar);
       htitle = string("Front #Delta ") + KTRAJ::paramTitle(tpar);
-      fdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      fdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("bd") + KTRAJ::paramName(tpar);
       htitle = string("Back #Delta ") + KTRAJ::paramTitle(tpar);
-      bdpgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      bdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("fp") + KTRAJ::paramName(tpar);
       htitle = string("Front Pull ") + KTRAJ::paramTitle(tpar);
-      fdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      fpull[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
       hname = string("bp") + KTRAJ::paramName(tpar);
       htitle = string("Back Pull ") + KTRAJ::paramTitle(tpar);
-      bdpullgenh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      bpull[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
       hname = string("e") + KTRAJ::paramName(tpar);
       htitle = string("Error ") + KTRAJ::paramTitle(tpar);
       fiterrh[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,0.0,pscale*sigmas[ipar]);
@@ -445,24 +448,43 @@ int main(int argc, char **argv) {
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       // compare parameters at the first traj of both true and fit
-      auto const& tpars = tptraj.front().params();
-      auto const& fpars = kktrk.fitTraj().front().params();
-      auto const& btpars = tptraj.back().params();
+      // correct the true parameters in case the BField isn't nominal
+      KTRAJ::PDATA ftpars, btpars; 
+      if((kktrk.fitTraj().front().bnom() - tptraj.front().bnom()).R() < 1e-6){
+	ftpars = tptraj.front().params();
+	btpars = tptraj.back().params();
+      } else {
+	Mom4 fmom, bmom;
+	Vec4 fpos, bpos;
+	tptraj.front().position(fpos);
+	tptraj.back().position(bpos);
+	fpos.SetE(tptraj.front().range().mid());
+	bpos.SetE(tptraj.back().range().mid());
+	tptraj.front().momentum(fpos.T(),fmom);
+	tptraj.back().momentum(bpos.T(),bmom);
+	KTRAJ ft(fpos,fmom,tptraj.charge(),kktrk.fitTraj().front().bnom());
+	KTRAJ bt(bpos,bmom,tptraj.charge(),kktrk.fitTraj().back().bnom());
+	ftpars = ft.params();
+	btpars = bt.params();
+      }
+      // fit parameters
+      auto const& ffpars = kktrk.fitTraj().front().params();
       auto const& bfpars = kktrk.fitTraj().back().params();
+      
      // momentum
       // accumulate parameter difference and pull
       vector<double> cerr(6,0.0), bcerr(6,0.0);
       for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
-	cerr[ipar] = sqrt(fpars.covariance()[ipar][ipar]);
+	cerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
 	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
-	fdpgenh[ipar]->Fill(fpars.parameters()[ipar]-tpars.parameters()[ipar]);
-	bdpgenh[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
-	fdpullgenh[ipar]->Fill((fpars.parameters()[ipar]-tpars.parameters()[ipar])/cerr[ipar]);
-	bdpullgenh[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
+	fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
+	bdp[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
+	fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/cerr[ipar]);
+	bpull[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
 	fiterrh[ipar]->Fill(cerr[ipar]);
       }
       // accumulate average correlation matrix
-      auto const& cov = fpars.covariance();
+      auto const& cov = ffpars.covariance();
       //    auto cormat = cov;
       for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
 	for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
@@ -524,28 +546,28 @@ int main(int argc, char **argv) {
     fdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fdpcan->cd(ipar+1);
-      fdpgenh[ipar]->Fit("gaus","q");
+      fdp[ipar]->Fit("gaus","q");
     }
     fdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bdpcan->cd(ipar+1);
-      bdpgenh[ipar]->Fit("gaus","q");
+      bdp[ipar]->Fit("gaus","q");
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
-      fdpullgenh[ipar]->Fit("gaus","q");
+      fpull[ipar]->Fit("gaus","q");
     }
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,2);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
-      bdpullgenh[ipar]->Fit("gaus","q");
+      bpull[ipar]->Fit("gaus","q");
     }
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);

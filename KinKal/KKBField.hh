@@ -75,18 +75,9 @@ namespace KinKal {
     if(mconfig.updatebfcorr_){
       active_ = true;
     // integrate the fractional momentum change
-      dpfrac_ = Vec3();
-      float tstep = drange_.range()/float(nsteps_);
-      for(unsigned istep=0; istep< nsteps_; istep++){
-	float tsamp = drange_.low() + istep*tstep;
-	auto const& ktraj = ref.nearestPiece(tsamp);
-	Vec3 tpos, bvec;
-	ktraj.position(tsamp,tpos);
-	bfield_.fieldVect(bvec,tpos);
-	Vec3 db = bvec - ktraj.bnom();
-	Vec3 vel; ktraj.velocity(tsamp,vel);
-	dpfrac_ -= tstep*vel.Cross(db)/(ktraj.pbar()*ktraj.bnom().R()); // check sign FIXME!
-      }
+      Vec3 dp;
+      bfield_.integrate(ref,drange_,dp);
+      dpfrac_ = dp/ref.momentum(drange_.mid());
     }
     update(ref);
   }

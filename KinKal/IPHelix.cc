@@ -141,7 +141,7 @@ namespace KinKal {
     // compute the BField difference in the middle of the range
     Vec3 midpos, bvec;
     position(brange.mid(), midpos);
-    bfield.fieldVect(bvec, midpos);
+    bfield.fieldVect(midpos, bvec);
     auto db = bvec - bnom();
     double dt = fact / sqrt(db.R());
     // truncate the range if necessary
