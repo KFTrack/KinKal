@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --dBx f --dBy f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -120,7 +120,7 @@ int main(int argc, char **argv) {
   vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   Vec3 bnom(0.0,0.0,1.0);
   BField *BF(0);
-  float Bgrad(0.0), By(0.0), dBz(0.0);
+  float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
   float zrange(3000);
   int iseed(123421);
   unsigned nhits(40);
@@ -138,17 +138,18 @@ int main(int argc, char **argv) {
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"escale",     required_argument, 0, 'e'  },
-    {"maxniter",     required_argument, 0, 'x'  },
+    {"maxniter",     required_argument, 0, 'i'  },
     {"nmeta",     required_argument, 0, 'M'  },
     {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
     {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
-    {"ntries",     required_argument, 0, 't'  },
+    {"ntries",     required_argument, 0, 'N'  },
     {"convdchisq",     required_argument, 0, 'C'  },
     {"ttree",     required_argument, 0, 'r'  },
     {"TFile",     required_argument, 0, 'T'  },
-    {"By",     required_argument, 0, 'y'  },
+    {"dBx",     required_argument, 0, 'x'  },
+    {"dBy",     required_argument, 0, 'y'  },
     {"dBz",     required_argument, 0, 'Z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
@@ -183,7 +184,7 @@ int main(int argc, char **argv) {
 		 break;
       case 'M' : nmeta = atoi(optarg);
 		 break;
-      case 'x' : maxniter = atoi(optarg);
+      case 'i' : maxniter = atoi(optarg);
 		 break;
       case 'X' : maxtemp = atof(optarg);
 		 break;
@@ -201,11 +202,13 @@ int main(int argc, char **argv) {
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
-      case 't' : ntries = atoi(optarg);
+      case 'N' : ntries = atoi(optarg);
 		 break;
       case 'C' : convdchisq= atof(optarg);
 		 break;
-      case 'y' : By = atof(optarg);
+      case 'x' : dBx = atof(optarg);
+		 break;
+      case 'y' : dBy = atof(optarg);
 		 break;
       case 'Z' : dBz = atof(optarg);
 		 break;
@@ -230,7 +233,7 @@ int main(int argc, char **argv) {
     BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
     bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
-    Vec3 bsim(0.0,By,1.0+dBz);
+    Vec3 bsim(dBx,dBy,1.0+dBz);
     BF = new UniformBField(bsim);
     bnom = Vec3(0.0,0.0,1.0);
   }
@@ -281,15 +284,10 @@ int main(int argc, char **argv) {
   float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
   float temp = maxtemp;
   for(unsigned imeta = 0; imeta< nmeta; imeta++){
+    temp -= tstep;
     mconfig.temp_ = temp;
     mconfig.updatemat_ = fitmat;
-    if(imeta > 1)mconfig.updatebfcorr_ = true;
-    if(imeta > nmeta-2){
-      mconfig.convdchisq_ = convdchisq;
-      mconfig.divdchisq_ = 100*mconfig.convdchisq_;
-      mconfig.oscdchisq_ = 5*mconfig.convdchisq_;
-    }
-    temp -= tstep;
+    mconfig.updatebfcorr_ = true;
     configptr->schedule_.push_back(mconfig);
   }
   cout << *configptr << endl;

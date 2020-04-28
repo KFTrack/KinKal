@@ -19,13 +19,14 @@ namespace KinKal {
   "d0","phi0","omega","z0","tanDip","Time0"};
   vector<string> IPHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
+  string IPHelix::trajName_("IPHelix");  
   std::vector<std::string> const& IPHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& IPHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& IPHelix::paramTitles() { return paramTitles_; }
   std::string const& IPHelix::paramName(ParamIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& IPHelix::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)]; }
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
-
+  string const& IPHelix::trajName() { return trajName_; }
 
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
                  TRange const &trange) :  KInter(mom.M(),charge), trange_(trange), bnom_(bnom)

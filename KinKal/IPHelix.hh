@@ -36,6 +36,7 @@ namespace KinKal {
       static std::string const& paramName(ParamIndex index);
       static std::string const& paramUnit(ParamIndex index);
       static std::string const& paramTitle(ParamIndex index);
+      static std::string const& trajName();
 
       // construct from momentum, position, and particle properties.
       // This also requires the BField
@@ -113,6 +114,7 @@ namespace KinKal {
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;
+      static std::string trajName_;
       double vt_; // transverse velocity
       double vz_; // z velocity
       // non-const accessors
