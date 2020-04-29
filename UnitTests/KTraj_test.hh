@@ -126,17 +126,23 @@ int test(int argc, char **argv) {
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom);
+  KTRAJ lhel(origin,momv,icharge,bnom,TRange(-10,10));
   if(invert)lhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
-  cout << "KTRAJ with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "KTRAJ with momentum " << momv << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 tvel, tdir;
-  lhel.velocity(ot,tvel);
-  lhel.direction(ot,tdir);
-  cout << "velocity " << tvel << " direction " << tdir << endl;
-  cout << "momentum beta =" << momv.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << momv.Gamma() << 
-  " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
+  float ttime;
+  float tstp = lhel.range().range()/9;
+  for(int istep=0;istep<10;istep++){
+    ttime = lhel.range().low() + istep*tstp;
+    lhel.velocity(ttime,tvel);
+    lhel.direction(ttime,tdir);
+    lhel.momentum(ttime,testmom);
+    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom << endl;
+//    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
+//      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
+  }
   Vec3 mdir;
   lhel.direction(ot,mdir);
   // create the helix at tmin and tmax 

@@ -289,7 +289,7 @@ namespace KinKal {
       // truncate if necessary
       drange.high() = std::min(drange.high(),reftraj_.range().high());
       // create the BField effect for this drange
-      effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,10,reftraj_,drange)); //# of steps should be a config parameter FIXME
+      effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange));
       drange.low() = drange.high();
     }
   }

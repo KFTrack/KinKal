@@ -64,13 +64,9 @@ typedef std::vector<THITPTR> THITCOL;
 typedef vector<DXINGPTR> DXINGCOL;
 typedef Residual<KTRAJ::NParams()> RESIDUAL;
 
-// ugly global variables
-double zrange(3000.0), rmax(800.0); // tracker dimension
-double sprop(0.8*CLHEP::c_light), sdrift(0.065), rstraw(2.5), dmax(2.5);
-double sigt(3); // drift time resolution in ns
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --dmax f --simmat i\n");
+  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i\n");
 }
 
 int main(int argc, char **argv) {
@@ -85,6 +81,7 @@ int main(int argc, char **argv) {
   float ddoca(0.1);
   double Bgrad(0.0), By(0.0);
   bool simmat(true), lighthit(true);
+  double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -99,7 +96,6 @@ int main(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ddoca",     required_argument, 0, 'x'  },
-    {"dmax",     required_argument, 0, 'r'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
   };
@@ -120,8 +116,6 @@ int main(int argc, char **argv) {
 		 break;
       case 'z' : zrange = atof(optarg);
 		 break;
-      case 'h' : sigt = atof(optarg);
-		 break;
       case 'n' : nhits = atoi(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
@@ -131,8 +125,6 @@ int main(int argc, char **argv) {
       case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'x' : ddoca = atof(optarg);
-		 break;
-      case 'r' : dmax = atof(optarg);
 		 break;
       case 'y' : By = atof(optarg);
 		 break;

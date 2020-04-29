@@ -69,10 +69,12 @@ namespace KinKal {
     param(cy_) = pos.Y() - mom.X()*momToRad;
     if(needsrot_){
      // test position and momentum function
-      position(pos);
-      momentum(pos.T(),mom);
-      auto dp = pos.Vect() - pos0.Vect();
-      auto dm = mom.Vect() - mom0.Vect();
+      Vec4 testpos; testpos.SetE(pos0.T());
+      Mom4 testmom;
+      position(testpos);
+      momentum(testpos.T(),testmom);
+      auto dp = testpos.Vect() - pos0.Vect();
+      auto dm = testmom.Vect() - mom0.Vect();
       if(dp.R() > 1.0e-3 || dm.R() > 1.0e-3)throw invalid_argument("Rotation Error");
     }
   }
@@ -116,22 +118,18 @@ namespace KinKal {
     mom.SetPy(bgm*dir.Y());
     mom.SetPz(bgm*dir.Z());
     mom.SetM(mass_);
-    if(needsrot_) mom.Vect() = brot_(mom.Vect());
   }
 
  void LHelix::velocity(float time,Vec3& vel) const{
     direction(time,vel);
-    vel *= beta()*CLHEP::c_light;
-    if(needsrot_)vel = brot_(vel);
+    vel *= speed(time); 
   }
 
   void LHelix::direction(float time,Vec3& dir) const{
     double phival = phi(time);
-    double pb = pbar();
     // correct for signing convention
-    double rval = rad()*sign();
-    double lval = lam()*sign();
-    dir = Vec3(rval*cos(phival)/pb,rval*sin(phival)/pb,lval/pb);
+    double pb = pbar()*sign();
+    dir = Vec3(rad()*cos(phival)/pb,rad()*sin(phival)/pb,lam()/pb);
     if(needsrot_)dir = brot_(dir);
   }
 

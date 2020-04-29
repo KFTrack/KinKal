@@ -30,14 +30,12 @@ namespace KinKal {
       DVEC const& effect() const { return bfeff_; }
       virtual ~KKBField(){}
       // create from the domain range, the effect, and the
-      KKBField(BField const& bfield, unsigned nsteps, PKTRAJ const& pktraj,TRange const& drange) : 
-	bfield_(bfield), nsteps_(nsteps), drange_(drange), active_(false) {} // not active until updated
+      KKBField(BField const& bfield, PKTRAJ const& pktraj,TRange const& drange) : 
+	bfield_(bfield), drange_(drange), active_(false) {} // not active until updated
     private:
       BField const& bfield_; // bfield
-      unsigned nsteps_; // number of steps to integrate over this domain
       TRange drange_; // extent of this domain
       Vec3 dpfrac_; // fractional change in momentum for BField diff from nominal over this range
-//      Vec3 bnom_; // nominal field used to define the fractional change
       PDATA bfeff_; // effect of the difference beween the actual BField and bnom integrated over this integral
       bool active_; // activity state
   };
@@ -69,7 +67,7 @@ namespace KinKal {
     // project the momentum change onto these directions to get the parameter change
     // should add noise due to field measurement and gradientXposition uncertainties FIXME!
     bfeff_.parameters() = dpfrac_.Dot(t1hat)*dpdt1 + dpfrac_.Dot(t2hat)*dpdt2;
-    std::cout << "BF parameters " << bfeff_.parameters() << std::endl;
+//    std::cout << "BF parameters " << bfeff_.parameters() << std::endl;
     KKEffBase::updateStatus();
   }
 
@@ -80,7 +78,7 @@ namespace KinKal {
       Vec3 dp;
       bfield_.integrate(ref,drange_,dp);
       dpfrac_ = dp/ref.momentum(drange_.mid());
-      std::cout << "Updating iteration " << mconfig.miter_ << " dP " << dp << std::endl;
+//      std::cout << "Updating iteration " << mconfig.miter_ << " dP " << dp << std::endl;
     }
     update(ref);
   }
@@ -93,9 +91,8 @@ namespace KinKal {
       TRange newrange(tlow,fit.range().high());
 // 1st order effect
       KTRAJ newpiece(fit.back());
-      std::cout << "appending dP = " << bfeff_.parameters() << std::endl;
+//      std::cout << "appending dP = " << bfeff_.parameters() << std::endl;
       newpiece.params() += bfeff_.parameters(); // bfield correction is a dead-reckoning correction
-
       newpiece.setRange(newrange);
 // exact solution to avoid spatial discontinuities
 //      Mom4 mom;

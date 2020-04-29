@@ -246,6 +246,8 @@ int main(int argc, char **argv) {
   DXINGCOL dxings; // this program shares det xing ownership with KKTrk
   PKTRAJ tptraj(TRange(),simmass,icharge);
   toy.simulateParticle(tptraj, thits, dxings);
+  // temporary FIXME!
+  toy.setSmearSeed(false);
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
