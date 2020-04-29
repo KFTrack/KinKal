@@ -71,8 +71,7 @@ void print_usage() {
 
 int main(int argc, char **argv) {
   int opt;
-  double mom(105.0), cost(0.7), phi(0.5);
-  double ambigdoca(0.5); // minimum Doca to consider sign accurate
+  double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass;
@@ -86,15 +85,12 @@ int main(int argc, char **argv) {
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
     {"simmat",     required_argument, 0, 'b'  },
-    {"costheta",     required_argument, 0, 'c'  },
-    {"azimuth",     required_argument, 0, 'a'  },
     {"particle",     required_argument, 0, 'p'  },
     {"charge",     required_argument, 0, 'q'  },
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"ambigdoca",     required_argument, 0, 'd'  },
     {"ddoca",     required_argument, 0, 'x'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
@@ -105,10 +101,6 @@ int main(int argc, char **argv) {
 	  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
-      case 'c' : cost = atof(optarg);
-		 break;
-      case 'a' : phi = atof(optarg);
 		 break;
       case 'p' : imass = atoi(optarg);
 		 break;
@@ -121,8 +113,6 @@ int main(int argc, char **argv) {
       case 'b' : simmat = atoi(optarg);
 		 break;
       case 's' : iseed = atoi(optarg);
-		 break;
-      case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'x' : ddoca = atof(optarg);
 		 break;
@@ -181,7 +171,6 @@ int main(int argc, char **argv) {
    // compute residual
     RESIDUAL  res;
     thit->resid(tptraj,res);
-//    cout << res << " ambig " << ambig << endl;
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
