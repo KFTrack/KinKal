@@ -1,8 +1,6 @@
 // 
 // test basic functions of KTraj class
 //
-#include "KinKal/LHelix.hh"
-#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -59,9 +57,8 @@ void drawMom(Vec3 const& start, Vec3 const& momvec,int momcolor,MomVec& mom) {
   mom.end->Draw();
 }
 
-int main(int argc, char **argv) {
-  typedef LHelix KTRAJ;
-//  typedef IPHelix KTRAJ;
+template <class KTRAJ>
+int test(int argc, char **argv) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -129,17 +126,23 @@ int main(int argc, char **argv) {
   Vec4 origin(0.0,0.0,oz,ot);
   float sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom);
+  KTRAJ lhel(origin,momv,icharge,bnom,TRange(-10,10));
   if(invert)lhel.invertCT();
   Mom4 testmom;
   lhel.momentum(ot,testmom);
-  cout << "KTRAJ with momentum " << testmom << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "KTRAJ with momentum " << momv << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 tvel, tdir;
-  lhel.velocity(ot,tvel);
-  lhel.direction(ot,tdir);
-  cout << "velocity " << tvel << " direction " << tdir << endl;
-  cout << "momentum beta =" << momv.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << momv.Gamma() << 
-  " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
+  float ttime;
+  float tstp = lhel.range().range()/9;
+  for(int istep=0;istep<10;istep++){
+    ttime = lhel.range().low() + istep*tstp;
+    lhel.velocity(ttime,tvel);
+    lhel.direction(ttime,tdir);
+    lhel.momentum(ttime,testmom);
+    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom << endl;
+//    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
+//      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
+  }
   Vec3 mdir;
   lhel.direction(ot,mdir);
   // create the helix at tmin and tmax 
@@ -270,26 +273,26 @@ int main(int argc, char **argv) {
   TRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
   TLine tline(ppos, pvel,ltime,prange);
 // find TPoca
-  TPoca<KTRAJ,TLine> tp(lhel,tline);
-  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-  if(tp.status() == TPocaBase::converged) {
-    // draw the line and TPoca
-    TPolyLine3D* line = new TPolyLine3D(2);
-    Vec3 plow, phigh;
-    tline.position(tline.range().low(),plow);
-    tline.position(tline.range().high(),phigh);
-    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
-    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
-    line->SetLineColor(kOrange);
-    line->Draw();
-    TPolyLine3D* poca = new TPolyLine3D(2);
-    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
-    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
-    poca->SetLineColor(kBlack);
-    poca->Draw();
-  }
+//  TPoca<KTRAJ,TLine> tp(lhel,tline);
+//  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+//  if(tp.status() == TPocaBase::converged) {
+//    // draw the line and TPoca
+//    TPolyLine3D* line = new TPolyLine3D(2);
+//    Vec3 plow, phigh;
+//    tline.position(tline.range().low(),plow);
+//    tline.position(tline.range().high(),phigh);
+//    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+//    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+//    line->SetLineColor(kOrange);
+//    line->Draw();
+//    TPolyLine3D* poca = new TPolyLine3D(2);
+//    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
+//    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
+//    poca->SetLineColor(kBlack);
+//    poca->Draw();
+//  }
 
-  std::string tfname = std::string(typeid(KTRAJ).name()) + ".root";
+  std::string tfname = KTRAJ::trajName() + ".root";
   cout << "Saving canvas to " << title << endl;
   hcan->SaveAs(tfname.c_str()); 
 

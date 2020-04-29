@@ -52,7 +52,9 @@ namespace KKTest {
       void createScintHit(PKTRAJ const& pktraj, THITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,THITCOL& thits, DXINGCOL& dxings);
       float createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
-
+      // set functions, for special purposes
+      void setSeedVar(float momvar) { momvar_ = momvar; }
+      void setSmearSeed(bool smear) { smearseed_ = smear; }
       // accessors
       float shVar() const {return sigt_*sigt_;}
       float chVar() const {return ttsig_*ttsig_;}
@@ -67,7 +69,7 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_;
+      bool simmat_, lighthit_, smearseed_;
       float ambigdoca_, simmass_;
       float sprop_; // propagation speed along straw
       float sdrift_; // drift speed inside straw
@@ -238,14 +240,16 @@ namespace KKTest {
       for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++)
 	seedpar.covariance()[ipar][ipar] += cpars[ipar][ipar];
     }
-    // smearing on T0 from momentum is too smalle
+    // smearing on T0 from momentum is too small
     size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME!
-    seedpar.covariance()[it0][it0] += 2.0;
+    seedpar.covariance()[it0][it0]*= 100;
 
     // now, randomize the parameters within those errors.  Don't include correlations
-    for(unsigned ipar=0;ipar < 6; ipar++){
-      double perr = sqrt(seedpar.covariance()[ipar][ipar]);
-      seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
+    if(smearseed_){
+      for(unsigned ipar=0;ipar < 6; ipar++){
+	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
+	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
+      }
     }
   }
 

@@ -1,8 +1,6 @@
 // 
 // test derivatives of Traj class
 //
-#include "KinKal/LHelix.hh"
-#include "KinKal/IPHelix.hh"
 #include "KinKal/TPoca.hh"
 
 #include <iostream>
@@ -36,12 +34,11 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: LHelixDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f \n");
+  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f \n");
 }
 
-int main(int argc, char **argv) {
-//  typedef LHelix KTRAJ;
-  typedef IPHelix KTRAJ;
+template <class KTRAJ>
+int test(int argc, char **argv) {
   gROOT->SetBatch(kTRUE);
   // save canvases
   int opt;
@@ -119,11 +116,11 @@ int main(int argc, char **argv) {
   // graphs to compare momentum change
   TGraph* momgraph[3];
   // gaps
-  TGraph* gapgraph[3];
+  TGraph* gapgraph[3][3];
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
-  std::string tfname = std::string(typeid(KTRAJ).name()) + "Derivs.root";
+ std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
@@ -134,21 +131,24 @@ int main(int argc, char **argv) {
     pgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
       pgraphs[idir][ipar] = new TGraph(ndel);
-      string title = KTRAJ::paramName(KTRAJ::ParamIndex(ipar));
+      string title = KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar));
       title += ";exact;1st derivative";
       pgraphs[idir][ipar]->SetTitle(title.c_str());
     }
     momgraph[idir] = new TGraph(ndel);
     momgraph[idir]->SetTitle("Momentum Direction;exact;1st derivative");
-    gapgraph[idir] = new TGraph(ndel);
-    gapgraph[idir]->SetTitle("Gap;change;gap value (mm)");
-
+    for(int jdir=0;jdir < 3;jdir++){
+      KInter::MDir tjdir =static_cast<KInter::MDir>(jdir);
+      gapgraph[idir][jdir] = new TGraph(ndel);
+      string title = "Gap in " + KInter::directionName(tjdir) + ";change;gap value (mm)";
+      gapgraph[idir][jdir]->SetTitle(title.c_str());
+    }
     // scan range of change
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
-      KTRAJ::DVEC pder;
+      typename KTRAJ::DVEC pder;
       Vec3 dmomdir;
       refhel.momDeriv(tdir,ttest,pder,dmomdir);
       //  compute exact altered params
@@ -157,7 +157,7 @@ int main(int argc, char **argv) {
       KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters() + delta*pder;
-      KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
+      typename KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel.mass(),refhel.charge(),bnom);
       // test
       Vec4 xpos, dpos;
@@ -172,7 +172,13 @@ int main(int argc, char **argv) {
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
       Vec4 gap = dpos - refpos4;
-      gapgraph[idir]->SetPoint(id,delta,sqrt(gap.Vect().Mag2()));
+      // project along 3 directions
+      for(int jdir=0;jdir < 3;jdir++){
+	KInter::MDir tjdir =static_cast<KInter::MDir>(jdir);
+	Vec3 jmomdir;
+	refhel.momDeriv(tjdir,ttest,pder,jmomdir);
+	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
+      }
       // parameter diff
       for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
 	pgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
@@ -199,11 +205,13 @@ int main(int argc, char **argv) {
     snprintf(name,80,"dm%s",KInter::directionName(tdir).c_str());
     snprintf(title,80,"Mom Change %s",KInter::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(name,title,800,800);
-    dmomcan[idir]->Divide(1,2);
+    dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);
     momgraph[idir]->Draw("AC*");
-    dmomcan[idir]->cd(2);
-    gapgraph[idir]->Draw("AC*");
+    for(int jdir=0;jdir < 3;jdir++){
+      dmomcan[idir]->cd(2+jdir);
+      gapgraph[idir][jdir]->Draw("AC*");
+    }
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();
   }

@@ -45,6 +45,7 @@ namespace KinKal {
       size_t nearestIndex(float time) const;
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
+      float gap(size_t ihigh) const;
       void gaps(double& largest, size_t& ilargest, double& average) const;
       void print(std::ostream& ost, int detail) const ;
     private:
@@ -188,19 +189,27 @@ namespace KinKal {
     return retval;
   }
 
+  template <class TTRAJ> float PTTraj<TTRAJ>::gap(size_t ihigh) const {
+    float retval(0.0);
+    if(ihigh>0 && ihigh < pieces_.size()){
+      float jtime = pieces_[ihigh].range().low(); // time of the junction of this piece with its preceeding piece
+      Vec3 p0,p1;
+      pieces_[ihigh].position(jtime,p0);
+      pieces_[ihigh-1].position(jtime,p1);
+      retval = (p1 - p0).R();
+    }
+    return retval;
+  }
+
   template <class TTRAJ> void PTTraj<TTRAJ>::gaps(double& largest,  size_t& ilargest, double& average) const {
     largest = average = 0.0;
     ilargest =0;
     // loop over adjacent pairs
     for(size_t ipair=1; ipair<pieces_.size();++ipair){
-      double jtime = pieces_[ipair].range().low(); // time of the junction of this piece with its preceeding piece
-      Vec3 p0,p1;
-      pieces_[ipair].position(jtime,p0);
-      pieces_[ipair-1].position(jtime,p1);
-      double diff = sqrt((p1 - p0).Mag2());
-      average += diff;
-      if(diff > largest){
-	largest = diff;
+      float gval = gap(ipair);
+      average += gval;
+      if(gval > largest){
+	largest = gval;
 	ilargest = ipair;
       }
     }

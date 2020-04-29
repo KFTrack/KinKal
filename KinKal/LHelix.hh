@@ -35,6 +35,7 @@ namespace KinKal {
       static std::string const& paramName(ParamIndex index);
       static std::string const& paramUnit(ParamIndex index);
       static std::string const& paramTitle(ParamIndex index);
+      static std::string const& trajName();
 
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
@@ -74,13 +75,14 @@ namespace KinKal {
       double t0() const { return paramVal(t0_); }
       
       // simple functions; these can be cached if they cause performance problems
+      double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 
       double pbar() const { return  sqrt(pbar2()); } // momentum in mm
       double ebar2() const { return  pbar2() + mbar_*mbar_; }
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge
-      double omega() const { return copysign(CLHEP::c_light, mbar_) / ebar(); } // rotational velocity, sign set by magnetic force
+      double omega() const { return CLHEP::c_light*sign()/ ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
@@ -110,6 +112,7 @@ namespace KinKal {
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;
+      static std::string trajName_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
  };
