@@ -40,7 +40,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: BField  --momentum f --costheta f --phi f --charge i --dBz f --dBx f --dBy f --Bgrad f --tmin f --tmax f \n");
+  printf("Usage: BField  --momentum f --costheta f --phi f --charge i --dBz f --dBx f --dBy f --Bgrad f \n");
 }
 
 int main(int argc, char **argv) {
@@ -57,7 +57,6 @@ int main(int argc, char **argv) {
   int icharge(-1);
   int iseed(124223);
   double pmass(0.511);
-  double tmin(-10.0), tmax(10.0);
   BField *BF(0);
   float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
   double zrange(3000.0); // tracker dimension
@@ -71,8 +70,7 @@ int main(int argc, char **argv) {
     {"dBy",     required_argument, 0, 'y'  },
     {"dBz",     required_argument, 0, 'Z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
-    {"tmin",     required_argument, 0, 't'  },
-    {"tmax",     required_argument, 0, 'd'  },
+    {NULL, 0,0,0}
   };
   int opt;
   int long_index =0;
@@ -93,10 +91,6 @@ int main(int argc, char **argv) {
 		 break;
       case 'g' : Bgrad = atof(optarg);
 		 break;
-      case 't' : tmin = atof(optarg);
-		 break;
-      case 'd' : tmax = atof(optarg);
-		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
       default: print_usage();
@@ -106,7 +100,7 @@ int main(int argc, char **argv) {
   Vec3 bnom(0.0,0.0,1.0);
   Vec3 bsim;
   if(Bgrad != 0){
-    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
   } else {
     Vec3 bsim(dBx,dBy,1.0+dBz);
@@ -257,6 +251,12 @@ int main(int argc, char **argv) {
   rulers->GetZaxis()->SetAxisColor(kOrange);
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
+  TLegend* hleg = new TLegend(0.7,0.7,1.0,1.0);
+  hleg->AddEntry(ttrue,"True Trajectory","L");
+  hleg->AddEntry(tnom,"Nominal Trajectory","L");
+  hleg->AddEntry(tpx,"Exact Correction Trajectory","L");
+  hleg->AddEntry(tpl,"Linear Correction Trajectory","L");
+  hleg->Draw();
   hcan->Write();
 
   TCanvas* dxcan = new TCanvas("dxcan","dxcan",1200,1200);

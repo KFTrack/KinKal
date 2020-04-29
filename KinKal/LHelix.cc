@@ -189,10 +189,11 @@ namespace KinKal {
 
   void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float dtol, float ptol) const {
     // compute scaling factor
+    float bn = bnom_.R();
     float spd = speed(drange.low());
-    float sfac = spd*spd/(bnom_.R()*pbar());
+    float sfac = spd*spd/(bn*pbar());
     // loop over the trajectory in fixed steps to compute integrals and domains.
-    // step size is defined by momentum direction tolerance or field change (last part not implemented needs gradient calc FIXME!)
+    // step size is defined by momentum direction tolerance.
     float tstep = dtol*ebar()/CLHEP::c_light;
     drange.high() = drange.low();
     float dx(0.0);
@@ -208,7 +209,8 @@ namespace KinKal {
       // spatial distortion accumulation
       dx += sfac*drange.range()*tstep*dbvec.R();
     } while(fabs(dx) < ptol && drange.high() < range().high());
-  }
+//     std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
+ }
  
   void LHelix::print(ostream& ost, int detail) const {
     auto perr = params().diagonal(); 

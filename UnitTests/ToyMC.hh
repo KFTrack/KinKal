@@ -263,7 +263,7 @@ namespace KKTest {
       auto const& back = pktraj.back();
       float tend = back.range().low();
       float tstep = 0.001*back.bnom().R()/dBdt.R(); // how far before BField changes by 1/1000.  Should be a parameter FIXME!
-      std::cout << "TStep " << tstep << std::endl;
+//      std::cout << "TStep " << tstep << std::endl;
       if(tstep < htime-tend){
 	while(tend < htime-tstep){
 	  tend += tstep;
@@ -273,7 +273,7 @@ namespace KKTest {
 	  pktraj.momentum(tend,mom);
 	  pktraj.position(pos);
 	  bfield_.fieldVect(pos.Vect(),bf);
-	  std::cout << "BField " << bf << std::endl;
+//	  std::cout << "BField " << bf << std::endl;
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,TRange(tend,pktraj.range().high()));
 	  pktraj.append(newend);
 	}
@@ -283,7 +283,7 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {
     // randomize the position and momentum
-    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_),tr_.Gaus(0.0,osig_));
+    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-zrange_/2.1,osig_),tr_.Gaus(0.0,osig_));
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
     double tsint = sqrt(1.0-tcost*tcost);

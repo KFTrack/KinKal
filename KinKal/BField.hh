@@ -64,7 +64,7 @@ namespace KinKal {
       virtual ~GradBField(){}
     private:
       float b0_, b1_;
-      float z0_, z1_;
+      float z0_; 
       float grad_; // gradient in tesla/mm, computed from the fvec values
       Grad fgrad_;
   };

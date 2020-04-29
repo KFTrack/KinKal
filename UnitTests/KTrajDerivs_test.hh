@@ -61,6 +61,7 @@ int test(int argc, char **argv) {
     {"dmax",     required_argument, 0, 'e'  },
     {"ttest",     required_argument, 0, 't'  },
     {"By",     required_argument, 0, 'y'  },
+    {NULL, 0,0,0}
 
 
   };

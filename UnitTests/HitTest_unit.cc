@@ -94,6 +94,7 @@ int main(int argc, char **argv) {
     {"ddoca",     required_argument, 0, 'x'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
+    {NULL, 0,0,0}
   };
 
   int long_index =0;
@@ -131,7 +132,7 @@ int main(int argc, char **argv) {
   Vec3 bnom(0.0,By,1.0);
   BField* BF;
   if(Bgrad != 0){
-    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
   } else {
     BF = new UniformBField(bnom);

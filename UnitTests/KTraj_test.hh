@@ -83,6 +83,7 @@ int test(int argc, char **argv) {
     {"ltime",     required_argument, 0, 'l'  },
     {"By",     required_argument, 0, 'y'  },
     {"invert",     required_argument, 0, 'I'  },
+    {NULL, 0,0,0}
   };
 
   int long_index =0;
