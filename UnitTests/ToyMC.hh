@@ -283,7 +283,8 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {
     // randomize the position and momentum
-    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-zrange_/2.1,osig_),tr_.Gaus(0.0,osig_));
+//    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-zrange_/2.1,osig_),tr_.Gaus(0.0,osig_));
+    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_),tr_.Gaus(0.0,osig_));
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
     double tsint = sqrt(1.0-tcost*tcost);

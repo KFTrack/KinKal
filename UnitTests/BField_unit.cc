@@ -40,7 +40,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: BField  --momentum f --costheta f --phi f --charge i --dBz f --dBx f --dBy f --Bgrad f \n");
+  printf("Usage: BField  --momentum f --charge i --dBz f --dBx f --dBy f --Bgrad f  \n");
 }
 
 int main(int argc, char **argv) {
@@ -53,7 +53,8 @@ int main(int argc, char **argv) {
   typedef std::vector<THITPTR> THITCOL;
   typedef vector<DXINGPTR> DXINGCOL;
   typedef typename KTRAJ::PDATA::DVEC DVEC;
-  double mom(105.0), cost(0.7), phi(0.5);
+  double mom(105.0);
+  float tmin(-10.0), tmax(10.0);
   int icharge(-1);
   int iseed(124223);
   double pmass(0.511);
@@ -63,8 +64,6 @@ int main(int argc, char **argv) {
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
-    {"costheta",     required_argument, 0, 'c'  },
-    {"phi",     required_argument, 0, 'f'  },
     {"charge",     required_argument, 0, 'q'  },
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
@@ -78,10 +77,6 @@ int main(int argc, char **argv) {
 	  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
-      case 'c' : cost = atof(optarg);
-		 break;
-      case 'f' : phi = atof(optarg);
 		 break;
       case 'x' : dBx = atof(optarg);
 		 break;
@@ -109,7 +104,7 @@ int main(int argc, char **argv) {
   }
     // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 40, false, false, -1.0, pmass );
-  PKTRAJ tptraj(TRange(),pmass,icharge);
+  PKTRAJ tptraj(TRange(tmin,tmax),pmass,icharge);
   THITCOL thits;
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);

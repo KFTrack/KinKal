@@ -80,39 +80,26 @@ namespace KinKal {
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector
       float lsign = tline.dir().Cross(hdir).Dot(sensPoca_.Vect()-partPoca_.Vect());
-      doca_ = copysign(doca,lsign);
+      float dsign = copysign(1.0,lsign);
+      doca_ = doca*dsign;
 
       // pre-compute some values needed for the derivative calculations
-      Vec3 vdoca, ddir, hdir;
+      float time = particlePoca().T();
+      Vec3 vdoca, ddir;
       delta(vdoca);
       ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
-      lhelix.direction(particlePoca().T(),hdir);
-
-      float hphi = lhelix.phi(particlePoca().T()); // local azimuth of helix
-      float lphi = tline.dir().Phi(); // line azimuth
-      float sineta = sin(lphi);
-      float coseta = cos(lphi);
-      float dphi = hphi - lphi;
-      float sindphi = sin(dphi);
-      float cosdphi = cos(dphi);
-      float l2 = lhelix.lam()*lhelix.lam();
-      float r2 = lhelix.rad()*lhelix.rad();
-      float s2 = sindphi*sindphi;
-      float denom =  l2 + s2*r2;
-      float Factor = -copysign(1.0,lhelix.charge())*lhelix.lam()/sqrt(denom);
-
-      float dx = lhelix.cx() - sensorPoca().X();
-      float dy = lhelix.cy() - sensorPoca().Y();
-      float ddot = -sineta*dx + coseta*dy;
+      float invpbar = lhelix.sign()/lhelix.pbar();
+      Vec3 t1 = lhelix.momDir(KInter::theta1,time);
+      Vec3 t2 = lhelix.momDir(KInter::theta2,time);
+      float coseta = ddir.Dot(t1);
+      float sineta = ddir.Dot(t2);
 
       // no t0 dependence, DOCA is purely geometric
-      dDdP_[LHelix::cx_] = -Factor*sineta;
-      dDdP_[LHelix::cy_] = Factor*coseta;
-      // components that depend on phi; this ignores terms of magnitude DOCA/Radius
-      dDdP_[LHelix::phi0_] = Factor*lhelix.rad()*sindphi;
-      dDdP_[LHelix::rad_] = -Factor*(l2*cosdphi + lhelix.rad()*s2*ddot)/denom;
-      // this becomes inaccurate when z=0, but should have no effect on the fit
-      dDdP_[LHelix::lam_] = -Factor*lhelix.rad()*sindphi*particlePoca().Z()/l2; 
+      dDdP_[LHelix::cx_] = -dsign*ddir.x();
+      dDdP_[LHelix::cy_] = -dsign*ddir.y();
+      dDdP_[LHelix::phi0_] = -dsign*lhelix.rad()*lhelix.lam()*invpbar*coseta;
+      dDdP_[LHelix::rad_] = dsign*sineta;
+      dDdP_[LHelix::lam_] = dsign*lhelix.dphi(time)*lhelix.rad()*invpbar*coseta;
 
       // no spatial dependence, DT is purely temporal
       dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
