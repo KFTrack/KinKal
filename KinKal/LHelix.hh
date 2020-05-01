@@ -49,6 +49,7 @@ namespace KinKal {
       void position(float time,Vec3& pos) const ; // time is input 
       void velocity(float time, Vec3& vel) const ;
       void direction(float time,Vec3& dir) const ;
+      Vec3 direction(float time) const ;
       double speed(float time) const  {  return CLHEP::c_light*beta(); }
       void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const ;
       void print(std::ostream& ost, int detail) const ;
@@ -63,6 +64,8 @@ namespace KinKal {
       double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
       // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
       void momDeriv(MDir mdir, float time, DVEC& der, Vec3& unit) const;
+      // unit vectors by themselves
+      Vec3 momDir(MDir mdir,float time) const;
      // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
@@ -115,6 +118,8 @@ namespace KinKal {
       static std::string trajName_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
+      // private utility, to optimize rotation
+      Vec3 rawMomDir(MDir mdir, float time) const;
  };
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }

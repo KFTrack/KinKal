@@ -126,11 +126,33 @@ namespace KinKal {
   }
 
   void LHelix::direction(float time,Vec3& dir) const{
+    dir = direction(time);
+  }
+
+  Vec3 LHelix::direction(float time) const {
+    return momDir(KInter::momdir,time);
+  }
+  
+  Vec3 LHelix::rawMomDir(MDir mdir, float time) const {
     double phival = phi(time);
-    // correct for signing convention
-    double pb = pbar()*sign();
-    dir = Vec3(rad()*cos(phival)/pb,rad()*sin(phival)/pb,lam()/pb);
-    if(needsrot_)dir = brot_(dir);
+    double invpb = sign()/pbar(); // need to sign
+    switch ( mdir ) {
+      case theta1:
+	return Vec3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
+      case theta2:
+	return Vec3(-sin(phival),cos(phival),0.0);
+      case momdir:
+	return Vec3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
+      default:
+	throw invalid_argument("Invalid direction");
+    }
+  }
+  
+  Vec3 LHelix::momDir(MDir mdir, float time) const {
+    if(needsrot_)
+      return brot_(rawMomDir(mdir,time));
+    else
+      return rawMomDir(mdir,time);
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
@@ -141,6 +163,8 @@ namespace KinKal {
     double pb = pbar()*sign(); // need to sign
     double dt = time-t0();
     double phival = omval*dt + phi0();
+    // set unit vector.  remove this eventually FIXME!
+    unit = momDir(mdir,time);
     // cases
     switch ( mdir ) {
       case theta1:
@@ -151,11 +175,6 @@ namespace KinKal {
 	pder[phi0_] = -omval*dt*rad()/lam();
 	pder[cx_] = -lam()*sin(phival);
 	pder[cy_] = lam()*cos(phival);
-	// set unit vector
-
-	unit.SetX(lam()*cos(phival)/pb);
-	unit.SetY(lam()*sin(phival)/pb);
-	unit.SetZ(-rad()/pb);
 	break;
       case theta2:
 	// Azimuthal bending: R, Lambda, t0 are unchanged
@@ -165,10 +184,6 @@ namespace KinKal {
 	pder[phi0_] = pb/rad();
 	pder[cx_] = -pb*cos(phival);
 	pder[cy_] = -pb*sin(phival);
-	// set unit vector
-	unit.SetX(-sin(phival));
-	unit.SetY(cos(phival));
-	unit.SetZ(0.0);
 	break;
       case momdir:
 	// fractional momentum change: position and direction are unchanged
@@ -178,21 +193,19 @@ namespace KinKal {
 	pder[phi0_] = omval*dt;
 	pder[cx_] = -rad()*sin(phival);
 	pder[cy_] = +rad()*cos(phival);
-	// set unit vector
-	direction(time,unit);
 	break;
       default:
 	throw invalid_argument("Invalid direction");
     }
-    if(needsrot_) unit = brot_(unit);
   }
 
   void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float dtol, float ptol) const {
     // compute scaling factor
+    float bn = bnom_.R();
     float spd = speed(drange.low());
-    float sfac = spd*spd/(bnom_.R()*pbar());
+    float sfac = spd*spd/(bn*pbar());
     // loop over the trajectory in fixed steps to compute integrals and domains.
-    // step size is defined by momentum direction tolerance or field change (last part not implemented needs gradient calc FIXME!)
+    // step size is defined by momentum direction tolerance.
     float tstep = dtol*ebar()/CLHEP::c_light;
     drange.high() = drange.low();
     float dx(0.0);
@@ -208,7 +221,8 @@ namespace KinKal {
       // spatial distortion accumulation
       dx += sfac*drange.range()*tstep*dbvec.R();
     } while(fabs(dx) < ptol && drange.high() < range().high());
-  }
+//     std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
+ }
  
   void LHelix::print(ostream& ost, int detail) const {
     auto perr = params().diagonal(); 

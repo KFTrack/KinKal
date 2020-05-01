@@ -66,7 +66,7 @@ typedef Residual<KTRAJ::NParams()> RESIDUAL;
 
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --costheta f --azimuth f --particle i --charge i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i\n");
+  printf("Usage: HitTest  --momentum f --costheta f --azimuth f --particle i --charge i --lighthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i\n");
 }
 
 int main(int argc, char **argv) {
@@ -90,10 +90,12 @@ int main(int argc, char **argv) {
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
+    {"lighthit",     required_argument, 0, 'l'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"ddoca",     required_argument, 0, 'x'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
+    {NULL, 0,0,0}
   };
 
   int long_index =0;
@@ -109,6 +111,8 @@ int main(int argc, char **argv) {
       case 'z' : zrange = atof(optarg);
 		 break;
       case 'n' : nhits = atoi(optarg);
+		 break;
+      case 'l' : lighthit = atoi(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
@@ -131,7 +135,7 @@ int main(int argc, char **argv) {
   Vec3 bnom(0.0,By,1.0);
   BField* BF;
   if(Bgrad != 0){
-    BF = new GradBField(1.0-0.5*zrange*Bgrad,1.0+0.5*zrange*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
   } else {
     BF = new UniformBField(bnom);
@@ -258,6 +262,8 @@ int main(int argc, char **argv) {
 	auto pder = ores.dRdP();
 	double ddr = ROOT::Math::Dot(pder,dpvec);
 	hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+	if(dr*ddr < 0.0)cout << "Sign error doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+
       }
     }
   }

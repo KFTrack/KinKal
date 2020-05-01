@@ -34,35 +34,23 @@ namespace KinKal {
    }
 
    GradBField::GradBField(float b0, float b1, float zg0, float zg1) :
-     b0_(b0), b1_(b1), z0_(zg0), z1_(zg1), grad_((b1_ - b0_)/(zg1-zg0)) {
+     b0_(b0), b1_(b1), z0_(zg0), grad_((b1_ - b0_)/(zg1-zg0)) {
        std::cout << "BGrad = " << grad_ << std::endl;
        fgrad_[0][0] = -0.5*grad_;
        fgrad_[1][1] = -0.5*grad_;
        fgrad_[2][2] = -grad_;
      }
    void GradBField::fieldVect(Vec3 const&position, Vec3& fvec) const  {
-     if(position.z() < z0_)
-       fvec =Vec3(0.0,0.0,b0_);
-     else if(position.z() > z1_)
-       fvec = Vec3(0.0,0.0,b1_); 
-     else {
-       float bz = b0_ + grad_*(position.z()-z0_);
-       float bx = -0.5*grad_*position.x();
-       float by = -0.5*grad_*position.y();
-       fvec = Vec3(bx,by,bz);
-     }
+     float bz = b0_ + grad_*(position.z()-z0_);
+     float bx = -0.5*grad_*position.x();
+     float by = -0.5*grad_*position.y();
+     fvec = Vec3(bx,by,bz);
    }
    void GradBField::fieldGrad(Vec3 const&position, Grad& fgrad) const  {
-     if(position.z() > z0_ && position.z() < z1_ )
-       fgrad = fgrad_;
-     else
-       fgrad = Grad();
+      fgrad = fgrad_;
    }
    void GradBField::fieldDeriv(Vec3 const& position, Vec3 const& velocity, Vec3& dBdt) const  {
-     if(position.z() > z0_ && position.z() < z1_ ){
-       dBdt = Vec3(-0.5*grad_*velocity.X(),-0.5*grad_*velocity.Y(),grad_*velocity.Z());
-     } else
-       dBdt = Vec3(); 
+     dBdt = Vec3(-0.5*grad_*velocity.X(),-0.5*grad_*velocity.Y(),grad_*velocity.Z());
    }
 
 }

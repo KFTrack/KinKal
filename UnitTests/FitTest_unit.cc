@@ -156,6 +156,7 @@ int main(int argc, char **argv) {
     {"UpdateHits",     required_argument, 0, 'U'  },
     {"addbf",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
+    {NULL, 0,0,0}
   };
 
   int long_index =0;
