@@ -285,7 +285,7 @@ namespace KinKal {
     // advance until the range is exhausted
     while(drange.high() < reftraj_.range().high()){
       // find how far we can advance within tolerance
-      reftraj_.rangeInTolerance(drange,kkconfig_->bfield_,kkconfig_->dtol_, kkconfig_->ptol_);
+      reftraj_.rangeInTolerance(drange,kkconfig_->bfield_,kkconfig_->tol_);
       // truncate if necessary
       drange.high() = std::min(drange.high(),reftraj_.range().high());
       // create the BField effect for this drange

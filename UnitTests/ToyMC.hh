@@ -39,7 +39,7 @@ namespace KKTest {
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
 	momvar_(1.0), ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-	osig_(3.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.1),
+	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.1), tol_(0.01),
 	smat_(matdb_,rstraw_, wthick_,rwire_),
 	d2t_(sdrift_,sigt_*sigt_,rstraw_) {}
 
@@ -82,6 +82,7 @@ namespace KKTest {
       float ttsig_, twsig_, shmax_, clen_, cprop_;
       float osig_, ctmin_, ctmax_;
       float tbuff_;
+      float tol_; // tolerance on spatial accuracy for 
       StrawMat smat_; // straw material
       CVD2T d2t_;
   };
@@ -115,9 +116,9 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,THITCOL& thits, DXINGCOL& dxings) {
     // create the seed first
     createTraj(pktraj);
-    //  cout << "Creating " << nhits_ << " hits " << endl;
     // divide time range
-    double dt = (pktraj.range().range()-2*tbuff_)/(nhits_-1);
+    double dt(0.0);
+    if(nhits_ > 0) dt = (pktraj.range().range()-2*tbuff_)/(nhits_);
     Vec3 bsim;
     // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
@@ -146,6 +147,8 @@ namespace KKTest {
     if(lighthit_ && tr_.Uniform(0.0,1.0) > ineff_){
       createScintHit(pktraj,thits);
     }
+    // extend if there are no hits
+    if(thits.size() == 0) extendTraj(pktraj,pktraj.range().high());
   }
 
   template <class KTRAJ> float ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing) {
@@ -258,45 +261,40 @@ namespace KKTest {
     Vec3 pos,vel, dBdt;
     pktraj.position(htime,pos);
     pktraj.velocity(htime,vel);
-    bfield_.fieldDeriv(pos,vel,dBdt);
+    dBdt = bfield_.fieldDeriv(pos,vel);
+//    std::cout << "end time " << pktraj.back().range().low() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
-      auto const& back = pktraj.back();
-      float tend = back.range().low();
-      float tstep = 0.001*back.bnom().R()/dBdt.R(); // how far before BField changes by 1/1000.  Should be a parameter FIXME!
-//      std::cout << "TStep " << tstep << std::endl;
-      if(tstep < htime-tend){
-	while(tend < htime-tstep){
-	  tend += tstep;
-	  Vec3 bf;
-	  Vec4 pos; pos.SetE(tend);
-	  Mom4 mom;
-	  pktraj.momentum(tend,mom);
-	  pktraj.position(pos);
-	  bfield_.fieldVect(pos.Vect(),bf);
-//	  std::cout << "BField " << bf << std::endl;
-	  KTRAJ newend(pos,mom,pktraj.charge(),bf,TRange(tend,pktraj.range().high()));
-	  pktraj.append(newend);
-	}
-      }
+      TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
+      pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+      prange.low() = prange.high();
+      do {
+	pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+//	std::cout << " Range " << prange << std::endl;
+	Vec4 pos; pos.SetE(prange.low());
+	Mom4 mom;
+	pktraj.momentum(prange.low(),mom);
+	pktraj.position(pos);
+	Vec3 bf = bfield_.fieldVect(pos.Vect());
+	KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
+	pktraj.append(newend);
+	prange.low() = prange.high();
+      } while(prange.high() < htime);
     }
+//    std::cout << "Extended traj " << pktraj << std::endl;
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {
     // randomize the position and momentum
-//    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-zrange_/2.1,osig_),tr_.Gaus(0.0,osig_));
-    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_),tr_.Gaus(0.0,osig_));
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
     double tsint = sqrt(1.0-tcost*tcost);
     Mom4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
-    Vec3 bsim;
-    bfield_.fieldVect(torigin.Vect(),bsim);
-    KTRAJ ktraj(torigin,tmomv,icharge_,bsim);
+    float tmax = fabs(zrange_/(CLHEP::c_light*tcost));
+    Vec4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(-tmax,tmax));
+    Vec3 bsim = bfield_.fieldVect(torigin.Vect());
+    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TRange(torigin.T(),torigin.T()+tmax+tbuff_));
     pktraj = PKTRAJ(ktraj);
-    Vec3 vel; pktraj.velocity(0.0,vel);
-    pktraj.setRange(TRange(-0.5*zrange_/vel.Z()-tbuff_,0.5*zrange_/vel.Z()+tbuff_));
   }
-
 }
 
 

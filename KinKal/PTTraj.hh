@@ -7,6 +7,7 @@
 //
 #include "KinKal/TDir.hh"
 #include "KinKal/Vectors.hh"
+#include "KinKal/KInter.hh"
 #include "KinKal/TRange.hh"
 #include <deque>
 #include <ostream>
@@ -19,14 +20,17 @@ namespace KinKal {
       constexpr static size_t NParams() { return TTRAJ::NParams(); }
       typedef typename std::deque<TTRAJ> DTTRAJ;
       // base class implementation
-      void position(Vec4& pos) const ;
-      void position(float time, Vec3& pos) const ;
-      void velocity(float time, Vec3& vel) const ;
-      double speed(float time) const ;
-      void direction(float time, Vec3& dir) const ;
+      void position(Vec4& pos) const;
+      void position(float time, Vec3& pos) const;
+      void velocity(float time, Vec3& vel) const;
+      double speed(float time) const;
+      void direction(float time, Vec3& dir) const;
+      // local direction basis vectors
+      Vec3 momDir(KInter::MDir mdir, float time) const { return nearestPiece(time).momDir(mdir,time); }
+
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
-      void setRange(TRange const& trange) ;
+      void setRange(TRange const& trange);
 // construct without any pieces, but specify the range
       PTTraj(TRange const& range) : trange_(range) {}
 // one initial piece
@@ -127,6 +131,7 @@ namespace KinKal {
 	  pieces_.push_front(newpiece);
 	  // subtract a small buffer to prevent overlaps
 	  pieces_.front().range().high() -= TRange::tbuff_;
+	  pieces_.front().range().low() = std::min(pieces_.front().range().low(),range().low());
 	} else {
 //	  throw std::invalid_argument("range error");
 	}
@@ -164,6 +169,7 @@ namespace KinKal {
 	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
 	  range().high() = std::max(range().high(),newpiece.range().high());
 	  pieces_.push_back(newpiece);
+	  pieces_.back().range().high() = std::max(pieces_.back().range().high(),range().high());
 	} else {
 //	  throw std::invalid_argument("range error");
 	}

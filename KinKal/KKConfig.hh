@@ -35,7 +35,7 @@ namespace KinKal {
     enum printLevel{none=-1, minimal, basic, complete, detailed, extreme};
     typedef std::vector<MConfig> MCONFIGCOL;
     KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
-    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), dtol_(0.1), ptol_(0.1), minndof_(5), addmat_(true), addbf_(true), plevel_(none) {} 
+    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), tol_(0.1), minndof_(5), addmat_(true), addbf_(true), plevel_(none) {} 
     BField const& bfield() const { return bfield_; }
     MCONFIGCOL const& schedule() const { return schedule_; }
     BField const& bfield_;
@@ -43,8 +43,7 @@ namespace KinKal {
     int maxniter_; // maximum number of algebraic iterations for this config
     float dwt_; // dweighting of initial seed covariance
     float tbuff_; // time buffer for final fit (ns)
-    float dtol_; // tolerance on direction change in BField integration (dimensionless)
-    float ptol_; // tolerance on position change in BField integration (mm)
+    float tol_; // tolerance on position change in BField integration (mm)
     unsigned minndof_; // minimum number of DOFs to continue fit
     bool addmat_; // add material effects in the fit
     bool addbf_; // add BField effects in the fit

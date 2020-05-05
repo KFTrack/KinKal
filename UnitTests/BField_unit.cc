@@ -40,7 +40,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: BField  --momentum f --charge i --dBz f --dBx f --dBy f --Bgrad f  \n");
+  printf("Usage: BField  --momentum f --charge i --dBz f --dBx f --dBy f --Bgrad f --Tol f n");
 }
 
 int main(int argc, char **argv) {
@@ -60,6 +60,7 @@ int main(int argc, char **argv) {
   double pmass(0.511);
   BField *BF(0);
   float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
+  float tol(0.1);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
@@ -69,6 +70,7 @@ int main(int argc, char **argv) {
     {"dBy",     required_argument, 0, 'y'  },
     {"dBz",     required_argument, 0, 'Z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
+    {"Tol",     required_argument, 0, 't'  },
     {NULL, 0,0,0}
   };
   int opt;
@@ -86,6 +88,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'g' : Bgrad = atof(optarg);
 		 break;
+      case 't' : tol = atof(optarg);
+		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
       default: print_usage();
@@ -96,14 +100,14 @@ int main(int argc, char **argv) {
   Vec3 bsim;
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
-    BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
+    bnom = BF->fieldVect(Vec3(0.0,0.0,0.0));
   } else {
     Vec3 bsim(dBx,dBy,1.0+dBz);
     BF = new UniformBField(bsim);
     bnom = Vec3(0.0,0.0,1.0);
   }
     // first, create a traj based on the actual field at this point
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 40, false, false, -1.0, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
   PKTRAJ tptraj(TRange(tmin,tmax),pmass,icharge);
   THITCOL thits;
   DXINGCOL dxings;
@@ -120,15 +124,17 @@ int main(int argc, char **argv) {
   TRange prange = start.range();
   do {
     auto const& piece = xptraj.back();
-    piece.rangeInTolerance(prange,*BF,0.1,0.1);
+    piece.rangeInTolerance(prange,*BF, tol);
 // integrate the momentum change over this range
     Vec3 dp;
     BF->integrate(piece,prange,dp);
+    // approximate change in position
+//    Vec3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
     pos.SetE(prange.high());
     piece.position(pos);
     piece.momentum(pos.T(),momv);
-//    cout << "BField integral dP " << dp << " range " << prange.range() << " pos " << pos << endl;
+//    cout << "BField integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
     prange = TRange(prange.high(),std::max(prange.high()+float(0.1),xptraj.range().high()));
     // clumsy code to modify a vector
     Vec3 mom = momv.Vect();
@@ -166,18 +172,26 @@ int main(int argc, char **argv) {
 
 // setup histograms
   TFile tpfile("BField.root","RECREATE");
-  TH1F* dxpos, *dxvel, *dxspeed, *dxmom;
-  TH1F* dlpos, *dlvel, *dlspeed, *dlmom;
-  dxpos = new TH1F("dxpos","Position difference",100,0.0,5.0);
-  dxvel = new TH1F("dxvel","Velocity difference",100,0.0,10.0);
-  dxspeed = new TH1F("dxspeed","Speed difference",100,0.0,1.0);
-  dxmom = new TH1F("dxmom","momentum difference",100,0.0,2.0);
+  TH1F *dxmomt1, *dxmomt2, *dxmommd;
+  TH1F *dlmomt1, *dlmomt2, *dlmommd;
+  TH1F *dxpost1, *dxpost2, *dxposmd;
+  TH1F *dlpost1, *dlpost2, *dlposmd;
+  dxmomt1 = new TH1F("dxmomt1","#Delta mom, T1 Dir",100,-2.0,2.0);
+  dxmomt2 = new TH1F("dxmomt2","#Delta mom, T2 Dir",100,-2.0,2.0);
+  dxmommd = new TH1F("dxmommd","#Delta mom, M Dir",100,-2.0,2.0);
 
-  dlpos = new TH1F("dlpos","Position difference",100,0.0,5.0);
-  dlvel = new TH1F("dlvel","Velocity difference",100,0.0,10.0);
-  dlspeed = new TH1F("dlspeed","Speed difference",100,0.0,1.0);
-  dlmom = new TH1F("dlmom","momentum difference",100,0.0,2.0);
+  dlmomt1 = new TH1F("dlmomt1","#Delta mom, T1 Dir",100,-2.0,2.0);
+  dlmomt2 = new TH1F("dlmomt2","#Delta mom, T2 Dir",100,-2.0,2.0);
+  dlmommd = new TH1F("dlmommd","#Delta mom, M Dir",100,-2.0,2.0);
 
+  dxpost1 = new TH1F("dxpost1","#Delta Pos, T1 Dir",100,-5.0,5.0);
+  dxpost2 = new TH1F("dxpost2","#Delta Pos, T2 Dir",100,-5.0,5.0);
+  dxposmd = new TH1F("dxposmd","#Delta Pos, M Dir",100,-5.0,5.0);
+  
+  dlpost1 = new TH1F("dlpost1","#Delta Pos, T1 Dir",100,-5.0,5.0);
+  dlpost2 = new TH1F("dlpost2","#Delta Pos, T2 Dir",100,-5.0,5.0);
+  dlposmd = new TH1F("dlposmd","#Delta Pos, M Dir",100,-5.0,5.0);
+  
   // draw the true helix
   TCanvas* hcan = new TCanvas("hcan","Traj",1000,1000);
   TPolyLine3D* ttrue = new TPolyLine3D(200);
@@ -186,13 +200,17 @@ int main(int argc, char **argv) {
   TPolyLine3D* tnom = new TPolyLine3D(200);
   Vec4 tpos, xpos, lpos, npos;
   Vec3 tvel, xvel, lvel;
+  Vec3 t1dir, t2dir, mdir;
   Mom4 tmom, xmom, lmom;
-  float tspeed, xspeed, lspeed;
   double tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
   // compute the position from the time
     tpos.SetE(tptraj.range().low() + tstep*istep);
     tptraj.position(tpos);
+    t1dir = tptraj.momDir(KInter::theta1,tpos.T());
+    t2dir = tptraj.momDir(KInter::theta2,tpos.T());
+    mdir = tptraj.momDir(KInter::momdir,tpos.T());
+ 
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
     xpos.SetE(tptraj.range().low() + tstep*istep);
     xptraj.position(xpos);
@@ -203,23 +221,25 @@ int main(int argc, char **argv) {
     npos.SetE(tptraj.range().low() + tstep*istep);
     start.position(npos);
     tnom->SetPoint(istep, npos.X(), npos.Y(), npos.Z());
-    dxpos->Fill( (xpos-tpos).Vect().R());
-    dlpos->Fill( (lpos-tpos).Vect().R());
-    tptraj.velocity(tpos.T(),tvel);
-    xptraj.velocity(xpos.T(),xvel);
-    lptraj.velocity(lpos.T(),lvel);
-    dxvel->Fill( (xvel-tvel).R());
-    dlvel->Fill( (lvel-tvel).R());
-    tspeed = tptraj.speed(tpos.T());
-    xspeed = xptraj.speed(tpos.T());
-    lspeed = lptraj.speed(tpos.T());
-    dxspeed->Fill(xspeed-tspeed);
-    dlspeed->Fill(lspeed-tspeed);
+
+    dxpost1->Fill( (xpos-tpos).Vect().Dot(t1dir));
+    dxpost2->Fill( (xpos-tpos).Vect().Dot(t2dir));
+    dxposmd->Fill( (xpos-tpos).Vect().Dot(mdir));
+
+    dlpost1->Fill( (lpos-tpos).Vect().Dot(t1dir));
+    dlpost2->Fill( (lpos-tpos).Vect().Dot(t2dir));
+    dlposmd->Fill( (lpos-tpos).Vect().Dot(mdir));
+
     tptraj.momentum(tpos.T(),tmom);
     xptraj.momentum(xpos.T(),xmom);
     lptraj.momentum(lpos.T(),lmom);
-    dxmom->Fill( (xmom.Vect()-tmom.Vect()).R());
-    dlmom->Fill( (lmom.Vect()-tmom.Vect()).R());
+    dxmomt1->Fill( (xmom.Vect()-tmom.Vect()).Dot(t1dir));
+    dxmomt2->Fill( (xmom.Vect()-tmom.Vect()).Dot(t2dir));
+    dxmommd->Fill( (xmom.Vect()-tmom.Vect()).Dot(mdir));
+
+    dlmomt1->Fill( (lmom.Vect()-tmom.Vect()).Dot(t1dir));
+    dlmomt2->Fill( (lmom.Vect()-tmom.Vect()).Dot(t2dir));
+    dlmommd->Fill( (lmom.Vect()-tmom.Vect()).Dot(mdir));
   }
   // draw the true helix
   ttrue->SetLineColor(kBlue);
@@ -254,29 +274,37 @@ int main(int argc, char **argv) {
   hleg->Draw();
   hcan->Write();
 
-  TCanvas* dxcan = new TCanvas("dxcan","dxcan",1200,1200);
-  dxcan->Divide(2,2);
+  TCanvas* dxcan = new TCanvas("dxcan","dxcan",800,1200);
+  dxcan->Divide(3,2);
   dxcan->cd(1);
-  dxpos->Draw();
+  dxpost1->Draw();
   dxcan->cd(2);
-  dxvel->Draw();
+  dxpost2->Draw();
   dxcan->cd(3);
-  dxspeed->Draw();
+  dxposmd->Draw();
   dxcan->cd(4);
-  dxmom->Draw();
+  dxmomt1->Draw();
+  dxcan->cd(5);
+  dxmomt2->Draw();
+  dxcan->cd(6);
+  dxmommd->Draw();
   dxcan->Draw();
   dxcan->Write();
 
-  TCanvas* dlcan = new TCanvas("dlcan","dlcan",1200,1200);
-  dlcan->Divide(2,2);
+  TCanvas* dlcan = new TCanvas("dlcan","dlcan",800,1200);
+  dlcan->Divide(3,2);
   dlcan->cd(1);
-  dlpos->Draw();
+  dlpost1->Draw();
   dlcan->cd(2);
-  dlvel->Draw();
+  dlpost2->Draw();
   dlcan->cd(3);
-  dlspeed->Draw();
+  dlposmd->Draw();
   dlcan->cd(4);
-  dlmom->Draw();
+  dlmomt1->Draw();
+  dlcan->cd(5);
+  dlmomt2->Draw();
+  dlcan->cd(6);
+  dlmommd->Draw();
   dlcan->Draw();
   dlcan->Write();
  

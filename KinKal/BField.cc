@@ -8,29 +8,29 @@ namespace KinKal {
        fields_.push_back(va_arg(args,const BField*));
      }
    }
-   void CompositeBField::fieldVect(Vec3 const&position, Vec3& fvec) const  {
-     fvec = Vec3();
+
+   Vec3 CompositeBField::fieldVect(Vec3 const&position) const  {
+     Vec3 fvec;
      for(auto const field : fields_ ){
-       Vec3 temp;
-       field->fieldVect(position,temp);
-       fvec += temp;
+       fvec += field->fieldVect(position);
      }
+     return fvec;
    }
-   void CompositeBField::fieldGrad(Vec3 const&position, Grad& fgrad) const  {
-     fgrad = Grad();
+
+   BField::Grad CompositeBField::fieldGrad(Vec3 const&position) const  {
+     Grad fgrad;
      for(auto const field : fields_ ){
-       Grad temp;
-       field->fieldGrad(position,temp);
-       fgrad += temp;
+       fgrad += field->fieldGrad(position);
      }
+     return fgrad;
    }
-   void CompositeBField::fieldDeriv(Vec3 const& position, Vec3 const& velocity, Vec3& dBdt) const  {
-     dBdt = Vec3();
+
+   Vec3 CompositeBField::fieldDeriv(Vec3 const& position, Vec3 const& velocity) const  {
+     Vec3 dBdt;
      for(auto const field : fields_ ){
-       Vec3 dbdt;
-       field->fieldDeriv(position,velocity,dbdt);
-       dBdt += dbdt;
+       dBdt += field->fieldDeriv(position,velocity);
      }
+     return dBdt;
    }
 
    GradBField::GradBField(float b0, float b1, float zg0, float zg1) :
@@ -40,17 +40,13 @@ namespace KinKal {
        fgrad_[1][1] = -0.5*grad_;
        fgrad_[2][2] = -grad_;
      }
-   void GradBField::fieldVect(Vec3 const&position, Vec3& fvec) const  {
-     float bz = b0_ + grad_*(position.z()-z0_);
-     float bx = -0.5*grad_*position.x();
-     float by = -0.5*grad_*position.y();
-     fvec = Vec3(bx,by,bz);
+
+   Vec3 GradBField::fieldVect(Vec3 const&position) const  {
+     return Vec3(-0.5*grad_*position.X(), -0.5*grad_*position.Y(), b0_ + grad_*(position.Z()-z0_));
    }
-   void GradBField::fieldGrad(Vec3 const&position, Grad& fgrad) const  {
-      fgrad = fgrad_;
-   }
-   void GradBField::fieldDeriv(Vec3 const& position, Vec3 const& velocity, Vec3& dBdt) const  {
-     dBdt = Vec3(-0.5*grad_*velocity.X(),-0.5*grad_*velocity.Y(),grad_*velocity.Z());
+
+   Vec3 GradBField::fieldDeriv(Vec3 const& position, Vec3 const& velocity) const  {
+     return Vec3(-0.5*grad_*velocity.X(),-0.5*grad_*velocity.Y(),grad_*velocity.Z());
    }
 
 }

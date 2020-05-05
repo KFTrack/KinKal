@@ -31,9 +31,9 @@ namespace KinKal {
       double momentum(float time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
       double momentumVar(float time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
       double energy(float time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
-      void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const  {
+      void rangeInTolerance(TRange& range, BField const& bfield, float tol) const  {
       // this could have a smarter implementation FIXME!
-	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,dtol,ptol); }
+	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
       Vec3 const& bnom(float time) const { return PTTRAJ::nearestPiece(time).bnom(); }
   };
 }

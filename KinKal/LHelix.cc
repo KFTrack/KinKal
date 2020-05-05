@@ -199,29 +199,39 @@ namespace KinKal {
     }
   }
 
-  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float dtol, float ptol) const {
+  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float tol) const {
     // compute scaling factor
     float bn = bnom_.R();
     float spd = speed(drange.low());
     float sfac = spd*spd/(bn*pbar());
+    // estimate step size from initial BField difference
+    Vec3 tpos;
+    position(drange.low(),tpos);
+    Vec3 bvec = bfield.fieldVect(tpos);
+    auto db = (bvec - bnom_).R();
+    double tstep(0.1);
+    if(db > 1e-4) tstep = 0.1*sqrt(tol/(sfac*db)); // step increment from difference from nominal
+    Vec3  vel;
+    velocity(drange.low(),vel);
+    Vec3 dBdt = bfield.fieldDeriv(tpos,vel);
+    tstep = std::min(tstep, 0.1*cbrt(tol/(sfac*dBdt.R())));
+    //
     // loop over the trajectory in fixed steps to compute integrals and domains.
     // step size is defined by momentum direction tolerance.
-    float tstep = dtol*ebar()/CLHEP::c_light;
     drange.high() = drange.low();
     float dx(0.0);
     // advance till spatial distortion exceeds position tolerance or we reach the range limit
     do{
       // increment the range
       drange.high() += tstep;
-      Vec3 tpos, bvec;
       position(drange.high(),tpos);
-      bfield.fieldVect(tpos,bvec);
+      bvec = bfield.fieldVect(tpos);
       // BField diff with nominal
-      auto dbvec = bvec - bnom_;
+      auto db = (bvec - bnom_).R();
       // spatial distortion accumulation
-      dx += sfac*drange.range()*tstep*dbvec.R();
-    } while(fabs(dx) < ptol && drange.high() < range().high());
-//     std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
+      dx += sfac*drange.range()*tstep*db;
+    } while(fabs(dx) < tol && drange.high() < range().high());
+//    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
  }
  
   void LHelix::print(ostream& ost, int detail) const {

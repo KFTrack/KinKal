@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -122,6 +122,7 @@ int main(int argc, char **argv) {
   BField *BF(0);
   float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
   float zrange(3000);
+  float tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
   bool simmat(true), lighthit(true);
@@ -145,6 +146,7 @@ int main(int argc, char **argv) {
     {"ntries",     required_argument, 0, 'N'  },
     {"convdchisq",     required_argument, 0, 'C'  },
     {"ttree",     required_argument, 0, 'r'  },
+    {"tolerance",     required_argument, 0, 't'  },
     {"TFile",     required_argument, 0, 'T'  },
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
@@ -215,6 +217,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'I' : invert = atoi(optarg);
 		 break;
+      case 't' : tol = atof(optarg);
+		 break;
       case 'T' : tfname = optarg;
 		 break;
       default: print_usage();
@@ -225,7 +229,7 @@ int main(int argc, char **argv) {
   // construct BField
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
-    BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
+    bnom = BF->fieldVect(Vec3(0.0,0.0,0.0));
     bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
     Vec3 bsim(dBx,dBy,1.0+dBz);
@@ -266,6 +270,7 @@ int main(int argc, char **argv) {
   configptr->maxniter_ = maxniter;
   configptr->addbf_ = addbf;
   configptr->addmat_ = fitmat;
+  configptr->tol_ = tol;
   configptr->plevel_ = (KKConfig::printLevel)detail;
   // add schedule; MC-truth based ambiguity
   MConfig mconfig;
