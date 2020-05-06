@@ -32,22 +32,17 @@ namespace KinKal {
   }
 
   void TLine::position(Vec4& pos) const {
-    Vec3 pos3;
-    position(pos.T(),pos3);
+    Vec3 pos3 = position(pos.T());
     pos.SetXYZT(pos3.X(),pos3.Y(),pos3.Z(),pos.T());
   }
 
-  void TLine::position(float time, Vec3& pos) const {
+  Vec3 TLine::position(float time) const {
     if(forceRange()) range().forceRange(time);
-    pos = pos0() + ((time-t0())*speed())*dir();
+    return pos0() + ((time-t0())*speed())*dir_;
   }
 
-  void TLine::velocity(float time, Vec3& vel) const {
-    vel = dir()*speed();
-  }
-
-  void TLine::direction(float time, Vec3& dirvec) const {
-    dirvec = dir();
+  Vec3 TLine::velocity(float time) const {
+    return dir_*speed();
   }
 
   double TLine::speed(float time) const {
@@ -55,7 +50,7 @@ namespace KinKal {
   }
 
   double TLine::TOCA(Vec3 point) const {
-    double s = (point - pos0()).Dot(dir());
+    double s = (point - pos0()).Dot(dir_);
     return s/speed_ - t0();
   }
 

@@ -7,7 +7,7 @@
 namespace KinKal {
   class TRange {
     public:
-      static constexpr float tbuff_ = 1.0e-6; // small buffer to prevent overlaps between adjacent trajs
+      static constexpr float tbuff_ = 1.0e-10; // small buffer to prevent overlaps between adjacent trajs
       TRange() : range_{1.0,-1.0} {} // initialize to have infinite range
       TRange(float low, float high) : range_{low,high} {}
       bool inRange(float t) const { return (range_[0] > range_[1]) ||

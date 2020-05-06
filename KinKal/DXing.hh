@@ -4,7 +4,7 @@
 //  Describe the material effects of a kinematic trajectory crossing a piece of physical detector (material)
 //  Used in the kinematic Kalman fit
 //
-#include "KinKal/KInter.hh"
+#include "KinKal/LocalBasis.hh"
 #include "KinKal/MatXing.hh"
 #include "KinKal/TPocaBase.hh"
 #include "KinKal/TDir.hh"
@@ -37,19 +37,19 @@ namespace KinKal {
 
   template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<float,3>& dmom, std::array<float,3>& momvar) const {
     // compute the derivative of momentum to energy
-    double mom = pktraj.momentum(xtime_);
+    double mom = pktraj.momentumMag(xtime_);
     double mass = pktraj.mass();
     double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     if(tdir == TDir::backwards)dmFdE *= -1.0;
     // loop over crossings for this detector piece
     for(auto const& mxing : mxings_){
       // compute FRACTIONAL momentum change and variance on that in the given direction
-      momvar[KInter::momdir] += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass)*dmFdE*dmFdE;
-      dmom [KInter::momdir]+= mxing.dmat_.energyLoss(mom,mxing.plen_,mass)*dmFdE;
+      momvar[LocalBasis::momdir] += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass)*dmFdE*dmFdE;
+      dmom [LocalBasis::momdir]+= mxing.dmat_.energyLoss(mom,mxing.plen_,mass)*dmFdE;
       double scatvar = mxing.dmat_.scatterAngleVar(mom,mxing.plen_,mass);
       // scattering is the same in each direction and has no net effect, it only adds noise
-      momvar[KInter::theta1] += scatvar;
-      momvar[KInter::theta2] += scatvar;
+      momvar[LocalBasis::perpdir] += scatvar;
+      momvar[LocalBasis::phidir] += scatvar;
     }
     // correct for time direction
   }

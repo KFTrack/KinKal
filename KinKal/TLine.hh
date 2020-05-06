@@ -37,7 +37,6 @@ namespace KinKal {
 
       // cached values
       Vec3 const& pos0() const { return pos0_; }
-      Vec3 const& dir() const { return dir_; }
       double speed() const { return speed_; }
       // are we forcing the range?
       bool forceRange() const { return forcerange_; }
@@ -46,9 +45,10 @@ namespace KinKal {
 
       // geometric accessors
       void position(Vec4& pos) const ;
-      void position(float time, Vec3& pos) const ;
-      void velocity(float time, Vec3& vel) const ;
-      void direction(float time, Vec3& dir) const ;
+      Vec3 position(float time) const ;
+      Vec3 velocity(float time) const ;
+      Vec3 const& direction(float time) const { return dir_; }
+      Vec3 const& dir() const { return dir_; }
       double speed(float time) const ;
       void print(std::ostream& ost, int detail) const ;
       TRange const& range() const { return trange_; }

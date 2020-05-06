@@ -13,15 +13,13 @@
 //  Material effects and spatial variation of magnetic fields are modeled through changes between adjacent simple
 //  trajectories.
 //  To instantiate KKTrk the particle trajectory class must satisfy the following interface:
-//      void position(Vec4& pos) const;
-//      void position(float time, Vec3& pos) const;
-//      void velocity(float time, Vec3& vel) const;
+//	void position(Vec4& pos) const;
+//      Vec3 position(float time) const;
+//      Vec3 velocity(float time) const;
 //      double speed(float time) const;
-//      void direction(float time, Vec3& dir) const;
+//      Vece direction(float time) const;
 //      void print(std::ostream& ost, int detail) const;
-//      void momentum(double t,Mom4& mom) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
-//      void momentum(Vec4 const& pos, Mom4& mom) const { return momentum(pos.T(),mom); }
-//      double momentum(float time) const; // momentum and energy magnitude in MeV/
+//      Mom4 momentum(float time) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
 //      double momentumVar(float time) const; // variance on momentum value
 //      double energy(float time) const; 
 //      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
@@ -129,8 +127,7 @@ namespace KinKal {
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
   template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(KKCONFIGPTR const& kkconfig, PKTRAJ const& reftraj,  THITCOL& thits, DXINGCOL& dxings) : 
-    kkconfig_(kkconfig), reftraj_(reftraj), fittraj_(reftraj.range(),reftraj.mass(),reftraj.charge()), 
-    thits_(thits), dxings_(dxings) {
+    kkconfig_(kkconfig), reftraj_(reftraj), thits_(thits), dxings_(dxings) {
     // create the effects.  First, loop over the hits
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
@@ -220,7 +217,7 @@ namespace KinKal {
       beff++;
     }
     // convert the fit result into a new trajectory; start with an empty ptraj
-    fittraj_ = PKTRAJ(reftraj_.range(),reftraj_.mass(),reftraj_.charge());
+    fittraj_ = PKTRAJ();
     // process forwards, adding pieces as necessary
     for(auto& ieff : effects_) {
       ieff->append(fittraj_);
@@ -228,8 +225,8 @@ namespace KinKal {
     // trim the range to the physical elements (past the end sites)
     feff = effects_.begin(); feff++;
     beff = effects_.rbegin(); beff++;
-    fittraj_.range().low() = (*feff)->time() - config().tbuff_;
-    fittraj_.range().high() = (*beff)->time() + config().tbuff_;
+    fittraj_.front().range().low() = (*feff)->time() - config().tbuff_;
+    fittraj_.back().range().high() = (*beff)->time() + config().tbuff_;
     // update status.  Convergence criteria is iteration-dependent
     if(fabs(fstat.chisq_ -fitStatus().chisq_) < mconfig.convdchisq_) {
       fstat.status_ = FitStatus::converged;

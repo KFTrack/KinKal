@@ -91,7 +91,7 @@ namespace KKTest {
     // start with the true helix position at this time
     Vec4 hpos; hpos.SetE(htime);
     traj.position(hpos);
-    Vec3 hdir; traj.direction(htime,hdir);
+    Vec3 hdir = traj.direction(htime);
     // generate a random direction for the straw
     double eta = tr_.Uniform(-M_PI,M_PI);
     Vec3 sdir(cos(eta),sin(eta),0.0);
@@ -155,33 +155,32 @@ namespace KKTest {
     double desum = 0.0;
     float tstraw = sxing.crossingTime();
     auto const& endpiece = pktraj.nearestPiece(tstraw);
-    double mom = endpiece.momentum(tstraw);
-    Mom4 endmom;
-    endpiece.momentum(tstraw,endmom);
+    double mom = endpiece.momentumMag(tstraw);
+    Mom4 endmom = endpiece.momentum(tstraw);
     Vec4 endpos; endpos.SetE(tstraw);
     endpiece.position(endpos);
     std::array<float,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
     sxing.momEffects(pktraj,TDir::forwards, dmom, momvar);
-    for(int idir=0;idir<=KInter::theta2; idir++) {
-      auto mdir = static_cast<KInter::MDir>(idir);
+    for(int idir=0;idir<=LocalBasis::phidir; idir++) {
+      auto mdir = static_cast<LocalBasis::LocDir>(idir);
       double momsig = sqrt(momvar[idir]);
       double dm;
       // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
       switch( mdir ) {
-	case KinKal::KInter::theta1: case KinKal::KInter::theta2 :
+	case KinKal::LocalBasis::perpdir: case KinKal::LocalBasis::phidir :
 	  dm = tr_.Gaus(dmom[idir],momsig);
 	  break;
-	case KinKal::KInter::momdir :
+	case KinKal::LocalBasis::momdir :
 	  dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
 	  desum += dm*mom;
 	  break;
 	default:
 	  throw std::invalid_argument("Invalid direction");
       }
-      //	cout << "mom change dir " << KInter::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
+      //	cout << "mom change dir " << LocalBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
       Vec3 dmvec;
       DVEC pder;
-      endpiece.momDeriv(mdir,tstraw,pder,dmvec);
+      endpiece.momDeriv(tstraw,mdir,pder,dmvec);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
@@ -197,9 +196,9 @@ namespace KKTest {
     // first, find the position at showermax_.
     Vec3 shmpos, hend, lmeas;
     float cstart = pktraj.range().high() + tbuff_;
-    pktraj.position(cstart,hend);
+    hend = pktraj.position(cstart);
     float ltime = cstart + shmax_/pktraj.speed(cstart);
-    pktraj.position(ltime,shmpos); // true position at shower-max
+    shmpos = pktraj.position(ltime); // true position at shower-max
     // smear the x-y position by the transverse variance.
     lmeas.SetX(tr_.Gaus(shmpos.X(),twsig_));
     lmeas.SetY(tr_.Gaus(shmpos.Y(),twsig_));
@@ -232,8 +231,8 @@ namespace KKTest {
     // propagate the momentum and position variances to parameter variances
     DVEC pder;
     Vec3 unit;
-    for(int idir=0;idir<KInter::ndir;idir++){
-      seed.momDeriv(KInter::MDir(idir),seed.range().mid(),pder,unit);
+    for(int idir=0;idir<LocalBasis::ndir;idir++){
+      seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir),pder,unit);
       // convert derivative vector to a Nx1 matrix
       ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
       dPdm.Place_in_col(pder,0,0);
@@ -259,8 +258,8 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PKTRAJ& pktraj,double htime) {
     ROOT::Math::SMatrix<float,3> bgrad;
     Vec3 pos,vel, dBdt;
-    pktraj.position(htime,pos);
-    pktraj.velocity(htime,vel);
+    pos = pktraj.position(htime);
+    vel = pktraj.velocity(htime);
     dBdt = bfield_.fieldDeriv(pos,vel);
 //    std::cout << "end time " << pktraj.back().range().low() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
@@ -271,8 +270,7 @@ namespace KKTest {
 	pktraj.back().rangeInTolerance(prange,bfield_, tol_);
 //	std::cout << " Range " << prange << std::endl;
 	Vec4 pos; pos.SetE(prange.low());
-	Mom4 mom;
-	pktraj.momentum(prange.low(),mom);
+	Mom4 mom =  pktraj.momentum(prange.low());
 	pktraj.position(pos);
 	Vec3 bf = bfield_.fieldVect(pos.Vect());
 	KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);

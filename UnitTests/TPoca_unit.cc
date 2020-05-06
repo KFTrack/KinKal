@@ -118,11 +118,11 @@ int main(int argc, char **argv) {
     float time = tmin + itime*(tmax-tmin)/(ntstep-1);
     // create tline perp to trajectory at the specified time, separated by the specified gap
     Vec3 pos, dir, perp1, perp2;
-    lhel.position(time,pos);
-    lhel.direction(time,dir);
+    pos = lhel.position(time);
+    dir = lhel.direction(time);
     KTRAJ::DVEC der;
-    lhel.momDeriv(KInter::theta1,time,der,perp1); 
-    lhel.momDeriv(KInter::theta2,time,der,perp2); 
+    lhel.momDeriv(time,LocalBasis::perpdir,der,perp1);
+    lhel.momDeriv(time,LocalBasis::phidir,der,perp2); 
     // choose a specific direction for DOCA
     // the line traj must be perp. to this and perp to the track
     Vec3 docadir = cos(eta)*perp1 + sin(eta)*perp2;
@@ -139,8 +139,8 @@ int main(int argc, char **argv) {
     TPOCA tp(lhel,tline);
 //    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
     Vec3 thpos, tlpos;
-    tp.particleTraj().position(tp.particlePoca().T(),thpos);
-    tp.sensorTraj().position(tp.sensorPoca().T(),tlpos);
+    thpos = tp.particleTraj().position(tp.particlePoca().T());
+    tlpos = tp.sensorTraj().position(tp.sensorPoca().T());
     double refd = tp.doca();
     double reft = tp.deltaT();
 //    cout << " Helix Pos " << pos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;

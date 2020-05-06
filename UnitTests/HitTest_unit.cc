@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     BF = new UniformBField(bnom);
   }
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, -1.0, pmass );
-  PKTRAJ tptraj(TRange(),pmass,icharge);
+  PKTRAJ tptraj;
 //  cout << "True " << tptraj << endl;
   StrawMat const& smat = toy.strawMaterial();
   TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
@@ -181,13 +181,13 @@ int main(int argc, char **argv) {
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if(shptr.use_count() > 0){
       auto const& tline = shptr->wire();
-      tline.position(tline.range().low(),plow);
-      tline.position(tline.range().high(),phigh);
+      plow = tline.position(tline.range().low());
+      phigh = tline.position(tline.range().high());
       line->SetLineColor(kRed);
     } else if (lhptr.use_count() > 0){
       auto const& tline = lhptr->sensorAxis();
-      tline.position(tline.range().low(),plow);
-      tline.position(tline.range().high(),phigh);
+      plow = tline.position(tline.range().low());
+      phigh = tline.position(tline.range().high());
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());

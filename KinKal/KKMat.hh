@@ -93,12 +93,12 @@ namespace KinKal {
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<float,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
-      for(int idir=0;idir<KInter::ndir; idir++) {
-	auto mdir = static_cast<KInter::MDir>(idir);
+      for(int idir=0;idir<LocalBasis::ndir; idir++) {
+	auto mdir = static_cast<LocalBasis::LocDir>(idir);
 	// get the derivatives of the parameters WRT material effects
 	DVEC pder;
 	Vec3 pdir;
-	ref_.momDeriv(mdir, time(), pder, pdir);
+	ref_.momDeriv(time(), mdir, pder, pdir);
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
 	dPdm.Place_in_col(pder,0,0);

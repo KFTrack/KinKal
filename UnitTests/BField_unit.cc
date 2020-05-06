@@ -54,7 +54,6 @@ int main(int argc, char **argv) {
   typedef vector<DXINGPTR> DXINGCOL;
   typedef typename KTRAJ::PDATA::DVEC DVEC;
   double mom(105.0);
-  float tmin(-10.0), tmax(10.0);
   int icharge(-1);
   int iseed(124223);
   double pmass(0.511);
@@ -108,15 +107,14 @@ int main(int argc, char **argv) {
   }
     // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
-  PKTRAJ tptraj(TRange(tmin,tmax),pmass,icharge);
+  PKTRAJ tptraj;
   THITCOL thits;
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,
-  Mom4 momv;
   Vec4 pos; pos.SetE(tptraj.range().low());
   tptraj.position(pos);
-  tptraj.momentum(pos.T(),momv);
+  Mom4 momv = tptraj.momentum(pos.T());
   KTRAJ start(pos,momv,icharge,bnom,tptraj.range());
   PKTRAJ xptraj(start);
   PKTRAJ lptraj(start);
@@ -133,7 +131,7 @@ int main(int argc, char **argv) {
     // create a new trajectory piece at this point, correcting for the momentum change
     pos.SetE(prange.high());
     piece.position(pos);
-    piece.momentum(pos.T(),momv);
+    momv = piece.momentum(pos.T());
 //    cout << "BField integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
     prange = TRange(prange.high(),std::max(prange.high()+float(0.1),xptraj.range().high()));
     // clumsy code to modify a vector
@@ -148,8 +146,8 @@ int main(int argc, char **argv) {
     // same thing, but using the linear parameter corrections
     Vec3 t1hat, t2hat;
     DVEC dpdt1, dpdt2;
-    lptraj.back().momDeriv(KInter::theta1,pos.T(),dpdt1,t1hat);
-    lptraj.back().momDeriv(KInter::theta2,pos.T(),dpdt2,t2hat);
+    lptraj.back().momDeriv(pos.T(),LocalBasis::perpdir,dpdt1,t1hat);
+    lptraj.back().momDeriv(pos.T(),LocalBasis::phidir,dpdt2,t2hat);
     auto dpfrac = dp/mom.R();
     DVEC dpars = dpfrac.Dot(t1hat)*dpdt1 + dpfrac.Dot(t2hat)*dpdt2;
     KTRAJ lnew = lptraj.back();
@@ -207,9 +205,9 @@ int main(int argc, char **argv) {
   // compute the position from the time
     tpos.SetE(tptraj.range().low() + tstep*istep);
     tptraj.position(tpos);
-    t1dir = tptraj.momDir(KInter::theta1,tpos.T());
-    t2dir = tptraj.momDir(KInter::theta2,tpos.T());
-    mdir = tptraj.momDir(KInter::momdir,tpos.T());
+    t1dir = tptraj.direction(tpos.T(),LocalBasis::perpdir);
+    t2dir = tptraj.direction(tpos.T(),LocalBasis::phidir);
+    mdir = tptraj.direction(tpos.T(),LocalBasis::momdir);
  
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
     xpos.SetE(tptraj.range().low() + tstep*istep);
@@ -230,9 +228,9 @@ int main(int argc, char **argv) {
     dlpost2->Fill( (lpos-tpos).Vect().Dot(t2dir));
     dlposmd->Fill( (lpos-tpos).Vect().Dot(mdir));
 
-    tptraj.momentum(tpos.T(),tmom);
-    xptraj.momentum(xpos.T(),xmom);
-    lptraj.momentum(lpos.T(),lmom);
+    tmom = tptraj.momentum(tpos.T());
+    xmom = xptraj.momentum(xpos.T());
+    lmom = lptraj.momentum(lpos.T());
     dxmomt1->Fill( (xmom.Vect()-tmom.Vect()).Dot(t1dir));
     dxmomt2->Fill( (xmom.Vect()-tmom.Vect()).Dot(t2dir));
     dxmommd->Fill( (xmom.Vect()-tmom.Vect()).Dot(mdir));

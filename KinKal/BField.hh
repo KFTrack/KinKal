@@ -77,8 +77,7 @@ namespace KinKal {
     std::vector<float> tvals = {trange.low(),trange.mid(),trange.high()};
     std::vector<float> db;
     for(auto tval :tvals){
-      Vec3 pos; ktraj.position(tval,pos);
-      Vec3 bf = fieldVect(pos);
+      Vec3 bf = fieldVect(ktraj.position(tval));
       db.push_back( (bf - ktraj.bnom(tval)).R());
     }
     if(*std::max_element(db.begin(),db.end()) > 1e-6){ // tolerance should be a parameter FIXME!
@@ -86,11 +85,8 @@ namespace KinKal {
       float dt = trange.range()/float(nsteps);
       for(unsigned istep=0; istep< nsteps; istep++){
 	float tstep = trange.low() + istep*dt;
-	Vec3 tpos, vel;
-	ktraj.position(tstep,tpos);
-	ktraj.velocity(tstep,vel);
-	Vec3 bvec = fieldVect(tpos);
-	Vec3 db = bvec - ktraj.bnom(tstep);
+	Vec3 vel = ktraj.velocity(tstep);
+	Vec3 db = fieldVect(ktraj.position(tstep)) - ktraj.bnom(tstep);
 	dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);
       }
     }

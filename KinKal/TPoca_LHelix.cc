@@ -28,13 +28,11 @@ namespace KinKal {
     unsigned niter(0);
     // helix speed doesn't change
     float hspeed = lhelix.speed(lhelix.t0());
-    Vec3 hdir;
     // iterate until change in TOCA is less than precision
     while((fabs(dptoca) > precision_ || fabs(dstoca) > precision_) && niter++ < maxiter) {
       // find helix local position and direction
-      Vec3 hpos;
-      lhelix.position(htoca,hpos);
-      lhelix.direction(htoca,hdir);
+      Vec3 hpos = lhelix.position(htoca);
+      Vec3 hdir = lhelix.direction(htoca);
       auto dpos = tline.pos0()-hpos;
       // dot products
       float ddot = tline.dir().Dot(hdir);
@@ -52,9 +50,8 @@ namespace KinKal {
       htoca += dptoca; // helix time is iterative
       stoca += dstoca; // line time is always WRT t0, since it uses p0
       // compute DOCA
-      lhelix.position(htoca,hpos);
-      Vec3 lpos;
-      tline.position(stoca,lpos);
+      hpos = lhelix.position(htoca);
+      Vec3 lpos = tline.position(stoca);
       float dd2 = (hpos-lpos).Mag2();
       if(dd2 < 0.0 ){
 	status_ = pocafailed;
@@ -73,24 +70,22 @@ namespace KinKal {
         status_ = TPoca::converged;
       else
         status_ = TPoca::unconverged;
-        // set the positions
+      // set the TPOCA 4-vectors
       partPoca_.SetE(htoca);
-      lhelix.position(partPoca_);
       sensPoca_.SetE(stoca);
+      lhelix.position(partPoca_);
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector
-      float lsign = tline.dir().Cross(hdir).Dot(sensPoca_.Vect()-partPoca_.Vect());
+      float lsign = tline.dir().Cross(lhelix.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
       float dsign = copysign(1.0,lsign);
       doca_ = doca*dsign;
 
       // pre-compute some values needed for the derivative calculations
       float time = particlePoca().T();
-      Vec3 vdoca, ddir;
-      delta(vdoca);
-      ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
+      Vec3 ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       float invpbar = lhelix.sign()/lhelix.pbar();
-      Vec3 t1 = lhelix.momDir(KInter::theta1,time);
-      Vec3 t2 = lhelix.momDir(KInter::theta2,time);
+      Vec3 t1 = lhelix.direction(time,LocalBasis::perpdir);
+      Vec3 t2 = lhelix.direction(time,LocalBasis::phidir);
       float coseta = ddir.Dot(t1);
       float sineta = ddir.Dot(t2);
 
@@ -107,10 +102,7 @@ namespace KinKal {
       docavar_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
       tocavar_ = ROOT::Math::Similarity(dTdP(),lhelix.params().covariance());
       // dot product between directions at POCA
-      Vec3 pdir, sdir;
-      lhelix.direction(particleToca(),pdir);
-      tline.direction(sensorToca(),sdir);
-      ddot_ = pdir.Dot(sdir);
+      ddot_ = lhelix.direction(particleToca()).Dot(tline.direction(sensorToca()));
     }
   }
 

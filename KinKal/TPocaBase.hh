@@ -33,9 +33,8 @@ namespace KinKal {
       float dirDot() const { return ddot_; } // cosine of angle between traj directions at POCA
       float precision() const { return precision_; }
       // utility functions
-      void delta(Vec4& ds) const { ds = sensPoca_-partPoca_; } // measurement - prediction convention
+      Vec4 delta() const { return sensPoca_-partPoca_; } // measurement - prediction convention
       float deltaT() const { return sensPoca_.T() - partPoca_.T(); }
-      void delta(Vec3& ds) const { ds = sensPoca_.Vect()-partPoca_.Vect(); }
       bool usable() const { return status_ != pocafailed && status_ != unknown; }
       TPocaBase(float precision=1e-2) : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0), ddot_(-1.0), precision_(precision)  {}
     protected:

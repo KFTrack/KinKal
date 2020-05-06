@@ -94,8 +94,7 @@ namespace KinKal {
 	float rho = tpoca.doca()*iambig; // this is allowed to go negative
 	Vec3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
 	auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BField
-	Vec3 dvec;
-	tpoca.delta(dvec);
+	Vec3 dvec = tpoca.delta().Vect();
 	float phi = asin(float(dvec.Unit().Dot(pdir)));
 	Pol2 drift(rho, phi);
 	float tdrift, tdvar, vdrift;

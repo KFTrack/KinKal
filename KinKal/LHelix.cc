@@ -29,7 +29,7 @@ namespace KinKal {
   string const& LHelix::trajName() { return trajName_; }
 
   LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& trange) : KInter(mom0.M(),charge), trange_(trange), bnom_(bnom), needsrot_(false) {
+  LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom), needsrot_(false) {
     static double twopi = 2*M_PI; // FIXME
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     Vec4 pos(pos0);
@@ -69,19 +69,18 @@ namespace KinKal {
     param(cy_) = pos.Y() - mom.X()*momToRad;
     if(needsrot_){
      // test position and momentum function
-      Vec4 testpos; testpos.SetE(pos0.T());
-      Mom4 testmom;
+      Vec4 testpos(pos0);
       position(testpos);
-      momentum(testpos.T(),testmom);
+      Mom4 testmom = momentum(testpos.T());
       auto dp = testpos.Vect() - pos0.Vect();
       auto dm = testmom.Vect() - mom0.Vect();
-      if(dp.R() > 1.0e-3 || dm.R() > 1.0e-3)throw invalid_argument("Rotation Error");
+      if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
     }
   }
 
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
   LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& trange) : 
-     KInter(mass,charge), trange_(trange), pars_(pdata), bnom_(bnom) {
+     trange_(trange), pars_(pdata), mass_(mass), charge_(charge), bnom_(bnom) {
       double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
       // reduced mass; note sign convention!
       mbar_ = -mass_*momToRad;
@@ -94,69 +93,58 @@ namespace KinKal {
   }
 
   void LHelix::position(Vec4& pos) const {
-    Vec3 temp;
-    position(pos.T(),temp);
+    Vec3 temp = position(pos.T());
     pos.SetXYZT(temp.X(),temp.Y(),temp.Z(),pos.T());
   }
   
-  void LHelix::position(float time, Vec3& pos) const {
+  Vec3 LHelix::position(float time) const {
+    if(!needsrot_)
+      return rawPosition(time);
+    else
+      return brot_(rawPosition(time));
+ }
+
+ Vec3 LHelix::rawPosition(float time) const {
     // compute azimuthal angle
     double df = dphi(time);
     double phival = df + phi0();
-    // now compute position
-    pos.SetX(cx() + rad()*sin(phival));
-    pos.SetY(cy() - rad()*cos(phival));
-    pos.SetZ(df*lam());
-    if(needsrot_) pos = brot_(pos);
+    return Vec3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam());
  } 
 
-  void LHelix::momentum(float time,Mom4& mom) const{
-    Vec3 dir;
-    direction(time,dir);
+  Mom4 LHelix::momentum(float time) const{
+    Vec3 dir = direction(time);
     double bgm = betaGamma()*mass_;
-    mom.SetPx(bgm*dir.X());
-    mom.SetPy(bgm*dir.Y());
-    mom.SetPz(bgm*dir.Z());
-    mom.SetM(mass_);
+    return Mom4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
   }
 
- void LHelix::velocity(float time,Vec3& vel) const{
-    direction(time,vel);
-    vel *= speed(time); 
+ Vec3 LHelix::velocity(float time) const{
+    return direction(time)*speed(time); 
   }
 
-  void LHelix::direction(float time,Vec3& dir) const{
-    dir = direction(time);
-  }
-
-  Vec3 LHelix::direction(float time) const {
-    return momDir(KInter::momdir,time);
-  }
-  
-  Vec3 LHelix::rawMomDir(MDir mdir, float time) const {
+ Vec3 LHelix::rawDirection(float time, LocalBasis::LocDir mdir) const {
     double phival = phi(time);
     double invpb = sign()/pbar(); // need to sign
     switch ( mdir ) {
-      case theta1:
+      case LocalBasis::perpdir:
 	return Vec3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
-      case theta2:
+      case LocalBasis::phidir:
 	return Vec3(-sin(phival),cos(phival),0.0);
-      case momdir:
+      case LocalBasis::momdir:
 	return Vec3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
       default:
 	throw invalid_argument("Invalid direction");
     }
   }
   
-  Vec3 LHelix::momDir(MDir mdir, float time) const {
-    if(needsrot_)
-      return brot_(rawMomDir(mdir,time));
+  Vec3 LHelix::direction( float time, LocalBasis::LocDir mdir) const {
+    if(!needsrot_)
+      return rawDirection(time,mdir);
     else
-      return rawMomDir(mdir,time);
+      return brot_(rawDirection(time,mdir));
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
-  void LHelix::momDeriv(MDir mdir, float time, DVEC& pder, Vec3& unit) const {
+  void LHelix::momDeriv(float time, LocalBasis::LocDir mdir, DVEC& pder, Vec3& unit) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
@@ -164,10 +152,10 @@ namespace KinKal {
     double dt = time-t0();
     double phival = omval*dt + phi0();
     // set unit vector.  remove this eventually FIXME!
-    unit = momDir(mdir,time);
+    unit = direction(time,mdir);
     // cases
     switch ( mdir ) {
-      case theta1:
+      case LocalBasis::perpdir:
 	// polar bending: only momentum and position are unchanged
 	pder[rad_] = lam();
 	pder[lam_] = -rad();
@@ -176,7 +164,7 @@ namespace KinKal {
 	pder[cx_] = -lam()*sin(phival);
 	pder[cy_] = lam()*cos(phival);
 	break;
-      case theta2:
+      case LocalBasis::phidir:
 	// Azimuthal bending: R, Lambda, t0 are unchanged
 	pder[rad_] = 0.0;
 	pder[lam_] = 0.0;
@@ -185,7 +173,7 @@ namespace KinKal {
 	pder[cx_] = -pb*cos(phival);
 	pder[cy_] = -pb*sin(phival);
 	break;
-      case momdir:
+      case LocalBasis::momdir:
 	// fractional momentum change: position and direction are unchanged
 	pder[rad_] = rad();
 	pder[lam_] = lam();
@@ -205,15 +193,12 @@ namespace KinKal {
     float spd = speed(drange.low());
     float sfac = spd*spd/(bn*pbar());
     // estimate step size from initial BField difference
-    Vec3 tpos;
-    position(drange.low(),tpos);
+    Vec3 tpos = position(drange.low());
     Vec3 bvec = bfield.fieldVect(tpos);
     auto db = (bvec - bnom_).R();
     double tstep(0.1);
     if(db > 1e-4) tstep = 0.1*sqrt(tol/(sfac*db)); // step increment from difference from nominal
-    Vec3  vel;
-    velocity(drange.low(),vel);
-    Vec3 dBdt = bfield.fieldDeriv(tpos,vel);
+    Vec3 dBdt = bfield.fieldDeriv(tpos,velocity(drange.low()));
     tstep = std::min(tstep, 0.1*cbrt(tol/(sfac*dBdt.R())));
     //
     // loop over the trajectory in fixed steps to compute integrals and domains.
@@ -224,7 +209,7 @@ namespace KinKal {
     do{
       // increment the range
       drange.high() += tstep;
-      position(drange.high(),tpos);
+      tpos = position(drange.high());
       bvec = bfield.fieldVect(tpos);
       // BField diff with nominal
       auto db = (bvec - bnom_).R();

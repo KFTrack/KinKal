@@ -243,18 +243,18 @@ int main(int argc, char **argv) {
   // generate hits
   THITCOL thits; // this program shares hit ownership with KKTrk
   DXINGCOL dxings; // this program shares det xing ownership with KKTrk
-  PKTRAJ tptraj(TRange(),simmass,icharge);
+  PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
   // temporary FIXME!
   toy.setSmearSeed(false);
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentum(tptraj.range().low());
-  double endmom = tptraj.momentum(tptraj.range().high());
+  double startmom = tptraj.momentumMag(tptraj.range().low());
+  double endmom = tptraj.momentumMag(tptraj.range().high());
   Vec3 end, bend;
-  tptraj.front().direction(tptraj.range().high(),bend);
-  tptraj.back().direction(tptraj.range().high(),end);
+  bend = tptraj.front().direction(tptraj.range().high());
+  end = tptraj.back().direction(tptraj.range().high());
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
@@ -313,8 +313,7 @@ int main(int argc, char **argv) {
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fithel.range().low() + ip*ts;
-      Vec3 ppos;
-      fithel.position(tp,ppos);
+      Vec3 ppos = fithel.position(tp);
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     fitpl->Draw();
@@ -325,8 +324,7 @@ int main(int argc, char **argv) {
     ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = tptraj.range().low() + ip*ts;
-      Vec3 ppos;
-      tptraj.position(tp,ppos);
+      Vec3 ppos = tptraj.position(tp);
       ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     ttpl->Draw();
@@ -339,13 +337,13 @@ int main(int argc, char **argv) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
-	tline.position(tline.range().low(),plow);
-	tline.position(tline.range().high(),phigh);
+	plow = tline.position(tline.range().low());
+	phigh = tline.position(tline.range().high());
 	line->SetLineColor(kRed);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
-	tline.position(tline.range().low(),plow);
-	tline.position(tline.range().high(),phigh);
+	plow = tline.position(tline.range().low());
+	phigh = tline.position(tline.range().high());
 	line->SetLineColor(kCyan);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -435,7 +433,7 @@ int main(int argc, char **argv) {
     double duration (0.0);
     for(unsigned itry=0;itry<ntries;itry++){
     // create a random true initial helix with hits and material interactions from this.  This also handles BField inhomogeneity truth tracking
-      PKTRAJ tptraj(TRange(),simmass,icharge);
+      PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
       toy.simulateParticle(tptraj,thits,dxings);
@@ -460,8 +458,8 @@ int main(int argc, char **argv) {
 	tptraj.back().position(bpos);
 	fpos.SetE(tptraj.front().range().mid());
 	bpos.SetE(tptraj.back().range().mid());
-	tptraj.front().momentum(fpos.T(),fmom);
-	tptraj.back().momentum(bpos.T(),bmom);
+	fmom = tptraj.front().momentum(fpos.T());
+	bmom = tptraj.back().momentum(bpos.T());
 	KTRAJ ft(fpos,fmom,tptraj.charge(),kktrk.fitTraj().front().bnom());
 	KTRAJ bt(bpos,bmom,tptraj.charge(),kktrk.fitTraj().back().bnom());
 	ftpars = ft.params();
@@ -520,10 +518,10 @@ int main(int argc, char **argv) {
 	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
 	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
       }
-      ftmom_ = tptraj.front().momentum(tptraj.range().low());
-      etmom_ = tptraj.back().momentum(tptraj.range().high());
-      ffmom_ = kktrk.fitTraj().front().momentum(kktrk.fitTraj().range().low());
-      efmom_ = kktrk.fitTraj().back().momentum(kktrk.fitTraj().range().high());
+      ftmom_ = tptraj.front().momentumMag(tptraj.range().low());
+      etmom_ = tptraj.back().momentumMag(tptraj.range().high());
+      ffmom_ = kktrk.fitTraj().front().momentumMag(kktrk.fitTraj().range().low());
+      efmom_ = kktrk.fitTraj().back().momentumMag(kktrk.fitTraj().range().high());
       fft_ = kktrk.fitTraj().range().low();
       eft_ = kktrk.fitTraj().range().high();
       chisq_ = fstat.chisq_;

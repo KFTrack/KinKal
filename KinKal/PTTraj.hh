@@ -7,7 +7,7 @@
 //
 #include "KinKal/TDir.hh"
 #include "KinKal/Vectors.hh"
-#include "KinKal/KInter.hh"
+#include "KinKal/LocalBasis.hh"
 #include "KinKal/TRange.hh"
 #include <deque>
 #include <ostream>
@@ -19,21 +19,17 @@ namespace KinKal {
     public:
       constexpr static size_t NParams() { return TTRAJ::NParams(); }
       typedef typename std::deque<TTRAJ> DTTRAJ;
-      // base class implementation
-      void position(Vec4& pos) const;
-      void position(float time, Vec3& pos) const;
-      void velocity(float time, Vec3& vel) const;
-      double speed(float time) const;
-      void direction(float time, Vec3& dir) const;
-      // local direction basis vectors
-      Vec3 momDir(KInter::MDir mdir, float time) const { return nearestPiece(time).momDir(mdir,time); }
-
-      TRange const& range() const { return trange_; }
-      TRange& range() { return trange_; }
-      void setRange(TRange const& trange);
-// construct without any pieces, but specify the range
-      PTTraj(TRange const& range) : trange_(range) {}
-// one initial piece
+      // forward calls to the pieces 
+      void position(Vec4& pos) const {nearestPiece(pos.T()).position(pos); }
+      Vec3 position(float time) const { return nearestPiece(time).position(time); }
+      Vec3 velocity(float time) const { return nearestPiece(time).velocity(time); }
+      double speed(float time) const { return nearestPiece(time).speed(time); }
+      Vec3 direction(float time, LocalBasis::LocDir mdir=LocalBasis::momdir) const { return nearestPiece(time).direction(time,mdir); }
+      TRange range() const { return TRange(pieces_.front().range().low(),pieces_.back().range().high()); }
+      void setRange(TRange const& trange, bool trim=false);
+// construct without any content.  Any functions except append or prepend will throw in this state
+      PTTraj() {}
+// construct from an initial piece
       PTTraj(TTRAJ const& piece);
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
@@ -46,6 +42,8 @@ namespace KinKal {
       TTRAJ const& nearestPiece(float time) const { return pieces_[nearestIndex(time)]; }
       TTRAJ const& front() const { return pieces_.front(); }
       TTRAJ const& back() const { return pieces_.back(); }
+      TTRAJ& front() { return pieces_.front(); }
+      TTRAJ& back() { return pieces_.back(); }
       size_t nearestIndex(float time) const;
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
@@ -53,38 +51,22 @@ namespace KinKal {
       void gaps(double& largest, size_t& ilargest, double& average) const;
       void print(std::ostream& ost, int detail) const ;
     private:
-      PTTraj() = delete; // no default/null constructor
-      TRange trange_;
       DTTRAJ pieces_; // constituent pieces
   };
 
-  // implementation: just return the values from the piece
-  template <class TTRAJ> void PTTraj<TTRAJ>::position(Vec4& pos) const {
-    nearestPiece(pos.T()).position(pos);
-  }
-  template <class TTRAJ> void PTTraj<TTRAJ>::position(float time, Vec3& pos) const {
-    nearestPiece(time).position(time,pos);
-  }
-  template <class TTRAJ> void PTTraj<TTRAJ>::velocity(float time, Vec3& vel) const {
-    nearestPiece(time).velocity(time,vel);
-  }
-  template <class TTRAJ> double PTTraj<TTRAJ>::speed(float time) const {
-    return nearestPiece(time).speed(time);
-  }
-  template <class TTRAJ> void PTTraj<TTRAJ>::direction(float time, Vec3& dir) const {
-    nearestPiece(time).direction(time,dir);
-  }
-  template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange) {
-    trange_ = trange;
+  template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange, bool trim) {
 // trim pieces as necessary
-    while(pieces_.size() > 1 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
-    while(pieces_.size() > 1 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
-// update piece range
+    if(trim){
+      while(pieces_.size() > 1 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
+      while(pieces_.size() > 1 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
+    } else if(trange.low() > pieces_.front().range().high() || trange.high() < pieces_.back().range().low())
+      throw std::invalid_argument("Invalid Range");
+    // update piece range
     pieces_.front().setRange(TRange(trange.low(),pieces_.front().range().high()));
     pieces_.back().setRange(TRange(pieces_.front().range().low(),trange.high()));
   }
 
-  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : trange_(piece.range()),pieces_(1,piece)
+  template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : pieces_(1,piece)
   {}
 
   template <class TTRAJ> void PTTraj<TTRAJ>::add(TTRAJ const& newpiece, TDir tdir, bool allowremove){
@@ -126,12 +108,10 @@ namespace KinKal {
 	// if we're at the start, prepend
 	if(ipiece == 0){
 	  // update ranges and add the piece
-	  pieces_.front().range().low() = newpiece.range().high();
-	  range().low() = std::min(range().low(),newpiece.range().low());
+	  double tmin = std::min(newpiece.range().low(),pieces_.front().range().low());
+	  pieces_.front().range().low() = newpiece.range().high() +TRange::tbuff_; 
 	  pieces_.push_front(newpiece);
-	  // subtract a small buffer to prevent overlaps
-	  pieces_.front().range().high() -= TRange::tbuff_;
-	  pieces_.front().range().low() = std::min(pieces_.front().range().low(),range().low());
+	  pieces_.front().range().low() = tmin;
 	} else {
 //	  throw std::invalid_argument("range error");
 	}
@@ -164,12 +144,13 @@ namespace KinKal {
 	}
 	// if we're at the end, append
 	if(ipiece == pieces_.size()-1){
-	// check ranges
-	  // update ranges and add the piece.  Leave a buffer on the upper range to prevent overlap
+	  // update ranges and add the piece.
+	  // first, make sure we don't loose range
+	  double tmax = std::max(newpiece.range().high(),pieces_.back().range().high());
+	  // truncate the range of the current back to match with the start of the new piece.  Leave a buffer on the upper range to prevent overlap
 	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
-	  range().high() = std::max(range().high(),newpiece.range().high());
 	  pieces_.push_back(newpiece);
-	  pieces_.back().range().high() = std::max(pieces_.back().range().high(),range().high());
+	  pieces_.back().range().high() = tmax;
 	} else {
 //	  throw std::invalid_argument("range error");
 	}
@@ -200,8 +181,8 @@ namespace KinKal {
     if(ihigh>0 && ihigh < pieces_.size()){
       float jtime = pieces_[ihigh].range().low(); // time of the junction of this piece with its preceeding piece
       Vec3 p0,p1;
-      pieces_[ihigh].position(jtime,p0);
-      pieces_[ihigh-1].position(jtime,p1);
+      p0 = pieces_[ihigh].position(jtime);
+      p1 = pieces_[ihigh-1].position(jtime);
       retval = (p1 - p0).R();
     }
     return retval;
