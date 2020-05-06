@@ -21,7 +21,7 @@ namespace KinKal {
       DVEC const& dTdP() const { return dTdP_; }
       // construct from the particle and sensor trajectories; POCA is computed on construction, using possible hints
       // default precision = 1 Ps (~300 um) along the trajectories
-      TPoca(KTRAJ const& ktraj, STRAJ const& straj, TPocaHint const& hint=TPocaHint(), float precision=0.001);
+      TPoca(KTRAJ const& ktraj, STRAJ const& straj, TPocaHint const& hint=TPocaHint(), double precision=0.001);
       // accessors
       KTRAJ const& particleTraj() const { return *ktraj_; }
       STRAJ const& sensorTraj() const { return *straj_; }

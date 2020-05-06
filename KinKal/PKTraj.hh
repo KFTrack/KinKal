@@ -29,16 +29,16 @@ namespace KinKal {
 	if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
 	PTTRAJ::prepend(newpiece,allowremove);
       }
-      Mom4 momentum(float time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
-      double momentumMag(float time) const  { return PTTRAJ::nearestPiece(time).momentumMag(time); }
-      double momentumVar(float time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
-      double energy(float time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
+      Mom4 momentum(double time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
+      double momentumMag(double time) const  { return PTTRAJ::nearestPiece(time).momentumMag(time); }
+      double momentumVar(double time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
+      double energy(double time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
       double mass() const { return PTTRAJ::front().mass(); } // this will throw for empty
       double charge() const { return PTTRAJ::front().charge(); } // this will throw for empty 
-      void rangeInTolerance(TRange& range, BField const& bfield, float tol) const  {
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const  {
       // this could have a smarter implementation FIXME!
 	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
-      Vec3 const& bnom(float time) const { return PTTRAJ::nearestPiece(time).bnom(); }
+      Vec3 const& bnom(double time) const { return PTTRAJ::nearestPiece(time).bnom(); }
   };
 }
 #endif

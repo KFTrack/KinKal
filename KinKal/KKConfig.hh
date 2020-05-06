@@ -18,13 +18,13 @@
 
 namespace KinKal {
   struct MConfig {
-    float temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
+    double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
     bool updatemat_; // update material effects
     bool updatebfcorr_; // update magnetic field inhomogeneity effects
     bool updatehits_; // update the internal state of the hits (activity, LR ambiguity) 
-    float convdchisq_; // maximum change in chisquared for convergence
-    float divdchisq_; // minimum change in chisquared for divergence
-    float oscdchisq_; // maximum change in chisquared for oscillation
+    double convdchisq_; // maximum change in chisquared for convergence
+    double divdchisq_; // minimum change in chisquared for divergence
+    double oscdchisq_; // maximum change in chisquared for oscillation
     int miter_; // count of meta-iteration
     // payload for hit updating; specific hit classes should find their particular payload inside the vector
     std::vector<std::any> hitupdateparams_;
@@ -41,9 +41,9 @@ namespace KinKal {
     BField const& bfield_;
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
-    float dwt_; // dweighting of initial seed covariance
-    float tbuff_; // time buffer for final fit (ns)
-    float tol_; // tolerance on position change in BField integration (mm)
+    double dwt_; // dweighting of initial seed covariance
+    double tbuff_; // time buffer for final fit (ns)
+    double tol_; // tolerance on position change in BField integration (mm)
     unsigned minndof_; // minimum number of DOFs to continue fit
     bool addmat_; // add material effects in the fit
     bool addbf_; // add BField effects in the fit

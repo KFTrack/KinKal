@@ -12,13 +12,13 @@ namespace KinKal {
     int miter_; // meta-iteration number;
     int iter_; // iteration number;
     status status_; // current status
-    float chisq_; // current chisquared
+    double chisq_; // current chisquared
     unsigned ndof_; // current number of degrees of freedom
-    float prob_; // chisquared probability
+    double prob_; // chisquared probability
     std::string comment_; // further information about the status 
     bool usable() const { return status_ !=failed; }
     bool needsFit() const { return status_ == needsfit || status_ == unconverged; }
-    FitStatus(unsigned miter) : miter_(miter), iter_(-1), status_(needsfit), chisq_(std::numeric_limits<float>::max()), ndof_(0), prob_(-1.0){}
+    FitStatus(unsigned miter) : miter_(miter), iter_(-1), status_(needsfit), chisq_(std::numeric_limits<double>::max()), ndof_(0), prob_(-1.0){}
     static std::string statusName(status stat);
   };
   std::ostream& operator <<(std::ostream& os, FitStatus fitstatus );

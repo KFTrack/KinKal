@@ -93,7 +93,7 @@ int main(int argc, char **argv) {
   Vec3 bnom(0.0,0.0,1.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   //initial piece
   double tend = tstart + tstep;

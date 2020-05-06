@@ -38,7 +38,7 @@ namespace KinKal {
     double radius = fabs(pt*momToRad);
 
     double lambda = -mom.z()*momToRad;
-    float amsign = copysign(1.0, -charge * bnom_.R());
+    double amsign = copysign(1.0, -charge * bnom_.R());
 
     Vec3 center = Vec3(pos.x() + mom.y()*momToRad, pos.y() - mom.x()*momToRad, 0.0);
     double rcent = sqrt(center.perp2());
@@ -108,7 +108,7 @@ namespace KinKal {
     pos.SetPz(z0() + l * tanDip());
   }
 
-  Vec3 IPHelix::position(float t) const
+  Vec3 IPHelix::position(double t) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
@@ -122,7 +122,7 @@ namespace KinKal {
     return Vec3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip());
   }
 
-  Mom4 IPHelix::momentum(float tval) const
+  Mom4 IPHelix::momentum(double tval) const
   {
     double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
     return Mom4( Q() / omega() * cos(phi0() + omega() * l),
@@ -131,7 +131,7 @@ namespace KinKal {
 	mass_);
   }
 
-  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, float tol) const
+  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
   {
     // precompute some factors
     double fact = 0.5 * sqrt(1./omega() * tol * bnom().R()) / CLHEP::c_light;
@@ -152,13 +152,13 @@ namespace KinKal {
     return phi0() + arc(f);
   }
 
-  Vec3 IPHelix::velocity(float time) const
+  Vec3 IPHelix::velocity(double time) const
   {
     Mom4 mom = momentum(time);
     return mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
-  Vec3 IPHelix::direction(float time,LocalBasis::LocDir mdir) const
+  Vec3 IPHelix::direction(double time,LocalBasis::LocDir mdir) const
   {
     double cosval = cosDip();
     double sinval = sinDip();
@@ -178,7 +178,7 @@ namespace KinKal {
     }
   }
 
-  void IPHelix::momDeriv(float time, LocalBasis::LocDir mdir, DVEC &pder,Vec3& unit) const
+  void IPHelix::momDeriv(double time, LocalBasis::LocDir mdir, DVEC &pder,Vec3& unit) const
   {
     // FIXME: these formulas need to be verified
     // compute some useful quantities

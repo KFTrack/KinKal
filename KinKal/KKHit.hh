@@ -26,22 +26,22 @@ namespace KinKal {
       typedef TData<PDATA::PDim()> TDATA;
       typedef typename KTRAJ::DVEC DVEC; // forward derivative type
       virtual unsigned nDOF() const override { return thit_->isActive() ? thit_->nDOF() : 0; }
-      virtual float fitChi() const override; 
-      virtual float chisq(PDATA const& pdata) const override{ float chival = chi(pdata); return chival*chival; } 
+      virtual double fitChi() const override; 
+      virtual double chisq(PDATA const& pdata) const override{ double chival = chi(pdata); return chival*chival; } 
       virtual void update(PKTRAJ const& pktraj)  override;
       virtual void update(PKTRAJ const& pktraj, MConfig const& mconfig) override;
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual bool isActive() const override { return thit_->isActive(); }
-      virtual float time() const override { return rresid_.time(); } // time on the particle trajectory
+      virtual double time() const override { return rresid_.time(); } // time on the particle trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~KKHit(){}
       // local functions
       void updateCache(PKTRAJ const& pktraj);
-      void setTemp(float temp) { rvscale_ = (1.0+temp)*(1.0+temp); } // scale the variance using the 'temperature'.  This deweights the measurement
+      void setTemp(double temp) { rvscale_ = (1.0+temp)*(1.0+temp); } // scale the variance using the 'temperature'.  This deweights the measurement
       // construct from a hit and reference trajectory
       KKHit(THITPTR const& thit, PKTRAJ const& reftraj);
       // interface for reduced residual
-      float chi(PDATA const& pdata) const;
+      double chi(PDATA const& pdata) const;
       // accessors
       THITPTR const& tHit() const { return thit_; }
       RESIDUAL const& refResid() const { return rresid_; }
@@ -54,7 +54,7 @@ namespace KinKal {
       WDATA wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute chisquared and reduced residuals
       WDATA hiteff_; // wdata representation of this effect's constraint/measurement
       RESIDUAL rresid_; // residuals for this reference and hit
-      float rvscale_; // variance factor due to annealing 'temperature'
+      double rvscale_; // variance factor due to annealing 'temperature'
   };
 
   template<class KTRAJ> KKHit<KTRAJ>::KKHit(THITPTR const& thit, PKTRAJ const& reftraj) : thit_(thit), rvscale_(1.0) {
@@ -94,7 +94,7 @@ namespace KinKal {
     // reset the processing cache
     wcache_ = WDATA();
     // scale resid variance by temp normalization
-    float tvar = rresid_.variance()*rvscale_; 
+    double tvar = rresid_.variance()*rvscale_; 
     ref_ = pktraj.nearestPiece(rresid_.time()).params();
     // convert derivatives to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dRdPM;
@@ -111,8 +111,8 @@ namespace KinKal {
     KKEffBase::updateStatus();
   }
 
-  template<class KTRAJ> float KKHit<KTRAJ>::fitChi() const {
-    float retval(0.0);
+  template<class KTRAJ> double KKHit<KTRAJ>::fitChi() const {
+    double retval(0.0);
     if(this->isActive() && KKEffBase::wasProcessed(TDir::forwards) && KKEffBase::wasProcessed(TDir::backwards)) {
     // Invert the cache to get unbiased parameters at this hit
       PDATA unbiased(wcache_);
@@ -121,15 +121,15 @@ namespace KinKal {
     return retval;
   }
 
-  template<class KTRAJ> float KKHit<KTRAJ>::chi(PDATA const& pdata) const {
-    float retval(0.0);
+  template<class KTRAJ> double KKHit<KTRAJ>::chi(PDATA const& pdata) const {
+    double retval(0.0);
     if(this->isActive()) {
       // compute the difference between these parameters and the reference parameters
       DVEC dpvec = pdata.parameters() - ref_.parameters(); 
       // use the differnce to 'correct' the reference residual to be WRT these parameters
-      float uresid = rresid_.value() - ROOT::Math::Dot(dpvec,rresid_.dRdP());
+      double uresid = rresid_.value() - ROOT::Math::Dot(dpvec,rresid_.dRdP());
       // project the parameter covariance into a residual space variance
-      float rvar = ROOT::Math::Similarity(rresid_.dRdP(),pdata.covariance());
+      double rvar = ROOT::Math::Similarity(rresid_.dRdP(),pdata.covariance());
       // add the measurement variance, scaled by the current temperature normalization
       rvar +=  rresid_.variance()*rvscale_;
       // chi is the ratio of these

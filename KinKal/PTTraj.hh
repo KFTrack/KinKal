@@ -21,10 +21,10 @@ namespace KinKal {
       typedef typename std::deque<TTRAJ> DTTRAJ;
       // forward calls to the pieces 
       void position(Vec4& pos) const {nearestPiece(pos.T()).position(pos); }
-      Vec3 position(float time) const { return nearestPiece(time).position(time); }
-      Vec3 velocity(float time) const { return nearestPiece(time).velocity(time); }
-      double speed(float time) const { return nearestPiece(time).speed(time); }
-      Vec3 direction(float time, LocalBasis::LocDir mdir=LocalBasis::momdir) const { return nearestPiece(time).direction(time,mdir); }
+      Vec3 position(double time) const { return nearestPiece(time).position(time); }
+      Vec3 velocity(double time) const { return nearestPiece(time).velocity(time); }
+      double speed(double time) const { return nearestPiece(time).speed(time); }
+      Vec3 direction(double time, LocalBasis::LocDir mdir=LocalBasis::momdir) const { return nearestPiece(time).direction(time,mdir); }
       TRange range() const { return TRange(pieces_.front().range().low(),pieces_.back().range().high()); }
       void setRange(TRange const& trange, bool trim=false);
 // construct without any content.  Any functions except append or prepend will throw in this state
@@ -39,15 +39,15 @@ namespace KinKal {
       void prepend(TTRAJ const& newpiece, bool allowremove=false);
       void add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
-      TTRAJ const& nearestPiece(float time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
       TTRAJ const& front() const { return pieces_.front(); }
       TTRAJ const& back() const { return pieces_.back(); }
       TTRAJ& front() { return pieces_.front(); }
       TTRAJ& back() { return pieces_.back(); }
-      size_t nearestIndex(float time) const;
+      size_t nearestIndex(double time) const;
       DTTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
-      float gap(size_t ihigh) const;
+      double gap(size_t ihigh) const;
       void gaps(double& largest, size_t& ilargest, double& average) const;
       void print(std::ostream& ost, int detail) const ;
     private:
@@ -158,7 +158,7 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(float time) const {
+  template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
     if(time <= range().low()){
@@ -176,10 +176,10 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TTRAJ> float PTTraj<TTRAJ>::gap(size_t ihigh) const {
-    float retval(0.0);
+  template <class TTRAJ> double PTTraj<TTRAJ>::gap(size_t ihigh) const {
+    double retval(0.0);
     if(ihigh>0 && ihigh < pieces_.size()){
-      float jtime = pieces_[ihigh].range().low(); // time of the junction of this piece with its preceeding piece
+      double jtime = pieces_[ihigh].range().low(); // time of the junction of this piece with its preceeding piece
       Vec3 p0,p1;
       p0 = pieces_[ihigh].position(jtime);
       p1 = pieces_[ihigh-1].position(jtime);
@@ -193,7 +193,7 @@ namespace KinKal {
     ilargest =0;
     // loop over adjacent pairs
     for(size_t ipair=1; ipair<pieces_.size();++ipair){
-      float gval = gap(ipair);
+      double gval = gap(ipair);
       average += gval;
       if(gval > largest){
 	largest = gval;

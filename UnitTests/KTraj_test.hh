@@ -125,15 +125,15 @@ int test(int argc, char **argv) {
 // define the BF (tesla)
   Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom,TRange(-10,10));
   if(invert)lhel.invertCT();
   Mom4 testmom = lhel.momentum(ot);
   cout << "KTRAJ with momentum " << momv << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 tvel, tdir;
-  float ttime;
-  float tstp = lhel.range().range()/9;
+  double ttime;
+  double tstp = lhel.range().range()/9;
   for(int istep=0;istep<10;istep++){
     ttime = lhel.range().low() + istep*tstp;
     tvel = lhel.velocity(ttime);

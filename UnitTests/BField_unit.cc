@@ -58,8 +58,8 @@ int main(int argc, char **argv) {
   int iseed(124223);
   double pmass(0.511);
   BField *BF(0);
-  float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
-  float tol(0.1);
+  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
+  double tol(0.1);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
@@ -133,7 +133,7 @@ int main(int argc, char **argv) {
     piece.position(pos);
     momv = piece.momentum(pos.T());
 //    cout << "BField integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
-    prange = TRange(prange.high(),std::max(prange.high()+float(0.1),xptraj.range().high()));
+    prange = TRange(prange.high(),std::max(prange.high()+double(0.1),xptraj.range().high()));
     // clumsy code to modify a vector
     Vec3 mom = momv.Vect();
     mom += dp;
@@ -141,7 +141,7 @@ int main(int argc, char **argv) {
     KTRAJ xnew(pos,momv,icharge,bnom,prange);
     // append this
     xptraj.append(xnew);
-    float gap = xptraj.gap(xptraj.pieces().size()-1);
+    double gap = xptraj.gap(xptraj.pieces().size()-1);
     if(gap > 1e-6) cout << "Apended traj gap " << gap << endl;
     // same thing, but using the linear parameter corrections
     Vec3 t1hat, t2hat;

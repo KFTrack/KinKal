@@ -109,20 +109,20 @@ int main(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   unsigned nmeta(2);
-  float maxtemp(0.0);
+  double maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
   int detail(0), invert(0);
-  float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
+  double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   bool updatehits(false), addbf(false), fitmat(true);
-  vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
+  vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   Vec3 bnom(0.0,0.0,1.0);
   BField *BF(0);
-  float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
-  float zrange(3000);
-  float tol(0.1);
+  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
+  double zrange(3000);
+  double tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
   bool simmat(true), lighthit(true);
@@ -283,8 +283,8 @@ int main(int argc, char **argv) {
   mconfig.divdchisq_ = 1000*mconfig.convdchisq_;
   mconfig.oscdchisq_ = 10*mconfig.convdchisq_;
   configptr->schedule_.push_back(mconfig);
-  float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
-  float temp = maxtemp;
+  double tstep = maxtemp/(std::max(nmeta,(unsigned)1));
+  double temp = maxtemp;
   for(unsigned imeta = 0; imeta< nmeta; imeta++){
     temp -= tstep;
     mconfig.temp_ = temp;
@@ -299,8 +299,8 @@ int main(int argc, char **argv) {
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
-  float fft_,eft_;
+  double chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
+  double fft_,eft_;
   int ndof_, niter_, status_;
   if(ntries <=0 ){
     // draw the fit result
@@ -538,7 +538,7 @@ int main(int argc, char **argv) {
       }
       if(ttree)ftree->Fill();
     }
-    cout <<"Time/fit = " << duration/float(ntries) << " Nanoseconds " << endl;
+    cout <<"Time/fit = " << duration/double(ntries) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);
@@ -578,7 +578,7 @@ int main(int argc, char **argv) {
     TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
     corrcan->Divide(1,1);
     corrcan->cd(1);
-    corravg->Scale(1.0/float(ntries));
+    corravg->Scale(1.0/double(ntries));
     corravg->SetStats(0);
     gPad->SetLogz();
     corravg->Draw("colorztext0");

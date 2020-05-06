@@ -24,12 +24,12 @@ namespace KinKal {
       KKMHit(KKHIT& kkhit, KKMAT& kkmat) : kkhit_(kkhit), kkmat_(kkmat) {}
       KKMHit(THITPTR const& thit, PKTRAJ const& reftraj);
       // override the interface
-      virtual float time() const override { return kkhit_.time(); }
+      virtual double time() const override { return kkhit_.time(); }
       virtual unsigned nDOF() const override { return kkhit_.nDOF(); }
       virtual bool isActive() const override { return kkhit_.isActive(); }
       virtual void process(KKDATA& kkdata,TDir tdir) override;
-      virtual float fitChi() const override { return kkhit_.fitChi(); }
-      virtual float chisq(PDATA const& pdata) const override { return kkhit_.chisq(pdata); }
+      virtual double fitChi() const override { return kkhit_.fitChi(); }
+      virtual double chisq(PDATA const& pdata) const override { return kkhit_.chisq(pdata); }
       virtual void update(PKTRAJ const& ref) override;
       virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
       virtual void append(PKTRAJ& fit) override { return kkmat_.append(fit); }

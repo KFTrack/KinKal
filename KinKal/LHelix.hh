@@ -47,21 +47,21 @@ namespace KinKal {
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
       // interface needed for KKTrk instantiation
       void position(Vec4& pos) const; // time of pos is input 
-      Vec3 position(float time) const;
-      Vec3 velocity(float time) const;
-      double speed(float time) const  {  return CLHEP::c_light*beta(); }
-      void rangeInTolerance(TRange& range, BField const& bfield, float tol) const;
+      Vec3 position(double time) const;
+      Vec3 velocity(double time) const;
+      double speed(double time) const  {  return CLHEP::c_light*beta(); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const;
       void print(std::ostream& ost, int detail) const;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(float time) const { return trange_.inRange(time); }
-      Mom4 momentum(float time) const;
-      double momentumMag(float time) const  { return  fabs(mass_*betaGamma()); }
-      double momentumVar(float time) const;
-      double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
-      void momDeriv(float time, LocalBasis::LocDir mdir, DVEC& der, Vec3& unit) const;
-      Vec3 direction(float time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      bool inRange(double time) const { return trange_.inRange(time); }
+      Mom4 momentum(double time) const;
+      double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
+      double momentumVar(double time) const;
+      double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
+      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC& der, Vec3& unit) const;
+      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
 
@@ -92,7 +92,7 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
-      Vec3 const& bnom(float time=0.0) const { return bnom_; }
+      Vec3 const& bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
@@ -119,8 +119,8 @@ namespace KinKal {
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
       // private utility, to optimize rotation
-      Vec3 rawDirection( float time, LocalBasis::LocDir mdir) const;
-      Vec3 rawPosition(float time) const;
+      Vec3 rawDirection( double time, LocalBasis::LocDir mdir) const;
+      Vec3 rawPosition(double time) const;
  };
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }

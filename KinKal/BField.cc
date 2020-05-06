@@ -33,7 +33,7 @@ namespace KinKal {
      return dBdt;
    }
 
-   GradBField::GradBField(float b0, float b1, float zg0, float zg1) :
+   GradBField::GradBField(double b0, double b1, double zg0, double zg1) :
      b0_(b0), b1_(b1), z0_(zg0), grad_((b1_ - b0_)/(zg1-zg0)) {
        std::cout << "BGrad = " << grad_ << std::endl;
        fgrad_[0][0] = -0.5*grad_;

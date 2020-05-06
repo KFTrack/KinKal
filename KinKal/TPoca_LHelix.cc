@@ -7,10 +7,10 @@
 using namespace std;
 namespace KinKal {
   // specialization between a looping helix and a line
-  template<> TPoca<LHelix,TLine>::TPoca(LHelix const& lhelix, TLine const& tline, TPocaHint const& hint, float precision) : TPocaBase(precision),ktraj_(&lhelix), straj_(&tline) {
+  template<> TPoca<LHelix,TLine>::TPoca(LHelix const& lhelix, TLine const& tline, TPocaHint const& hint, double precision) : TPocaBase(precision),ktraj_(&lhelix), straj_(&tline) {
     // reset status
     reset();
-    float htoca,stoca;
+    double htoca,stoca;
     // initialize the helix time using hints, if available.  If not, use the Z of the line
     if(hint.particleHint_)
       htoca = hint.particleToca_;
@@ -22,12 +22,12 @@ namespace KinKal {
     else
       stoca = tline.t0();
     // use successive linear approximation until desired precision on DOCA is met.
-    float dptoca(std::numeric_limits<float>::max()), dstoca(std::numeric_limits<float>::max());
-    float doca(0.0);
+    double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
+    double doca(0.0);
     static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter(0);
     // helix speed doesn't change
-    float hspeed = lhelix.speed(lhelix.t0());
+    double hspeed = lhelix.speed(lhelix.t0());
     // iterate until change in TOCA is less than precision
     while((fabs(dptoca) > precision_ || fabs(dstoca) > precision_) && niter++ < maxiter) {
       // find helix local position and direction
@@ -35,15 +35,15 @@ namespace KinKal {
       Vec3 hdir = lhelix.direction(htoca);
       auto dpos = tline.pos0()-hpos;
       // dot products
-      float ddot = tline.dir().Dot(hdir);
-      float denom = 1.0 - ddot*ddot;
+      double ddot = tline.dir().Dot(hdir);
+      double denom = 1.0 - ddot*ddot;
       // check for parallel)
       if(denom<1.0e-5){
 	status_ = pocafailed;
 	break;
       }
-      float hdd = dpos.Dot(hdir);
-      float ldd = dpos.Dot(tline.dir());
+      double hdd = dpos.Dot(hdir);
+      double ldd = dpos.Dot(tline.dir());
       // compute length from expansion point to POCA and convert to times
       dptoca = (hdd - ldd*ddot)/(denom*hspeed);
       dstoca = tline.t0() + (hdd*ddot - ldd)/(denom*tline.speed(stoca)) - stoca;
@@ -52,7 +52,7 @@ namespace KinKal {
       // compute DOCA
       hpos = lhelix.position(htoca);
       Vec3 lpos = tline.position(stoca);
-      float dd2 = (hpos-lpos).Mag2();
+      double dd2 = (hpos-lpos).Mag2();
       if(dd2 < 0.0 ){
 	status_ = pocafailed;
 	break;
@@ -76,18 +76,18 @@ namespace KinKal {
       lhelix.position(partPoca_);
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector
-      float lsign = tline.dir().Cross(lhelix.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
-      float dsign = copysign(1.0,lsign);
+      double lsign = tline.dir().Cross(lhelix.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
+      double dsign = copysign(1.0,lsign);
       doca_ = doca*dsign;
 
       // pre-compute some values needed for the derivative calculations
-      float time = particlePoca().T();
+      double time = particlePoca().T();
       Vec3 ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
-      float invpbar = lhelix.sign()/lhelix.pbar();
+      double invpbar = lhelix.sign()/lhelix.pbar();
       Vec3 t1 = lhelix.direction(time,LocalBasis::perpdir);
       Vec3 t2 = lhelix.direction(time,LocalBasis::phidir);
-      float coseta = ddir.Dot(t1);
-      float sineta = ddir.Dot(t2);
+      double coseta = ddir.Dot(t1);
+      double sineta = ddir.Dot(t2);
 
       // no t0 dependence, DOCA is purely geometric
       dDdP_[LHelix::cx_] = -dsign*ddir.x();
@@ -108,7 +108,7 @@ namespace KinKal {
 
   // specialization between a piecewise LHelix and a line
   typedef PKTraj<LHelix> PLHELIX;
-  template<> TPoca<PLHELIX,TLine>::TPoca(PLHELIX const& phelix, TLine const& tline, TPocaHint const& hint, float precision) : TPocaBase(precision), ktraj_(&phelix), straj_(&tline)  {
+  template<> TPoca<PLHELIX,TLine>::TPoca(PLHELIX const& phelix, TLine const& tline, TPocaHint const& hint, double precision) : TPocaBase(precision), ktraj_(&phelix), straj_(&tline)  {
     // iteratively find the nearest piece, and POCA for that piece.  Start at hints if availalble, otherwise the middle
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter=0;

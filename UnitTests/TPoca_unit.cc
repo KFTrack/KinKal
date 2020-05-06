@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   Vec3 bnom(0.0,0.0,1.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom);
   TFile tpfile("TPoca.root","RECREATE");
@@ -115,7 +115,7 @@ int main(int argc, char **argv) {
     ttpoca.back()->SetTitle(ts.c_str());
   }
   for(unsigned itime=0;itime < ntstep;itime++){
-    float time = tmin + itime*(tmax-tmin)/(ntstep-1);
+    double time = tmin + itime*(tmax-tmin)/(ntstep-1);
     // create tline perp to trajectory at the specified time, separated by the specified gap
     Vec3 pos, dir, perp1, perp2;
     pos = lhel.position(time);

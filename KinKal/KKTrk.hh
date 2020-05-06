@@ -14,14 +14,14 @@
 //  trajectories.
 //  To instantiate KKTrk the particle trajectory class must satisfy the following interface:
 //	void position(Vec4& pos) const;
-//      Vec3 position(float time) const;
-//      Vec3 velocity(float time) const;
-//      double speed(float time) const;
-//      Vece direction(float time) const;
+//      Vec3 position(double time) const;
+//      Vec3 velocity(double time) const;
+//      double speed(double time) const;
+//      Vece direction(double time) const;
 //      void print(std::ostream& ost, int detail) const;
-//      Mom4 momentum(float time) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
-//      double momentumVar(float time) const; // variance on momentum value
-//      double energy(float time) const; 
+//      Mom4 momentum(double time) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
+//      double momentumVar(double time) const; // variance on momentum value
+//      double energy(double time) const; 
 //      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
 //      PDATA const& params() const;
 //
@@ -267,9 +267,9 @@ namespace KinKal {
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::oscillating(FitStatus const& fstat, MConfig const& mconfig) const {
     if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
-      float d1 = fstat.chisq_ - history_.back().chisq_;
-      float d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
-      float d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
+      double d1 = fstat.chisq_ - history_.back().chisq_;
+      double d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
+      double d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
       if(d1*d2 < 0.0 && d1*d3 > 0.0 && fabs(d1) - fabs(d2) < mconfig.oscdchisq_ && fabs(fabs(d2) - fabs(d3)) < mconfig.oscdchisq_) return true;
     }
     return false;

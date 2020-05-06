@@ -86,7 +86,7 @@ namespace KinKal {
       mbar_ = -mass_*momToRad;
     }
   
-  double LHelix::momentumVar(float time) const {
+  double LHelix::momentumVar(double time) const {
     PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());
@@ -97,31 +97,31 @@ namespace KinKal {
     pos.SetXYZT(temp.X(),temp.Y(),temp.Z(),pos.T());
   }
   
-  Vec3 LHelix::position(float time) const {
+  Vec3 LHelix::position(double time) const {
     if(!needsrot_)
       return rawPosition(time);
     else
       return brot_(rawPosition(time));
  }
 
- Vec3 LHelix::rawPosition(float time) const {
+ Vec3 LHelix::rawPosition(double time) const {
     // compute azimuthal angle
     double df = dphi(time);
     double phival = df + phi0();
     return Vec3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam());
  } 
 
-  Mom4 LHelix::momentum(float time) const{
+  Mom4 LHelix::momentum(double time) const{
     Vec3 dir = direction(time);
     double bgm = betaGamma()*mass_;
     return Mom4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
   }
 
- Vec3 LHelix::velocity(float time) const{
+ Vec3 LHelix::velocity(double time) const{
     return direction(time)*speed(time); 
   }
 
- Vec3 LHelix::rawDirection(float time, LocalBasis::LocDir mdir) const {
+ Vec3 LHelix::rawDirection(double time, LocalBasis::LocDir mdir) const {
     double phival = phi(time);
     double invpb = sign()/pbar(); // need to sign
     switch ( mdir ) {
@@ -136,7 +136,7 @@ namespace KinKal {
     }
   }
   
-  Vec3 LHelix::direction( float time, LocalBasis::LocDir mdir) const {
+  Vec3 LHelix::direction( double time, LocalBasis::LocDir mdir) const {
     if(!needsrot_)
       return rawDirection(time,mdir);
     else
@@ -144,7 +144,7 @@ namespace KinKal {
   }
 
 // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
-  void LHelix::momDeriv(float time, LocalBasis::LocDir mdir, DVEC& pder, Vec3& unit) const {
+  void LHelix::momDeriv(double time, LocalBasis::LocDir mdir, DVEC& pder, Vec3& unit) const {
     // compute some useful quantities
     double bval = beta();
     double omval = omega();
@@ -187,11 +187,11 @@ namespace KinKal {
     }
   }
 
-  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, float tol) const {
+  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, double tol) const {
     // compute scaling factor
-    float bn = bnom_.R();
-    float spd = speed(drange.low());
-    float sfac = spd*spd/(bn*pbar());
+    double bn = bnom_.R();
+    double spd = speed(drange.low());
+    double sfac = spd*spd/(bn*pbar());
     // estimate step size from initial BField difference
     Vec3 tpos = position(drange.low());
     Vec3 bvec = bfield.fieldVect(tpos);
@@ -204,7 +204,7 @@ namespace KinKal {
     // loop over the trajectory in fixed steps to compute integrals and domains.
     // step size is defined by momentum direction tolerance.
     drange.high() = drange.low();
-    float dx(0.0);
+    double dx(0.0);
     // advance till spatial distortion exceeds position tolerance or we reach the range limit
     do{
       // increment the range

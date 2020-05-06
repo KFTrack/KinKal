@@ -46,26 +46,26 @@ namespace KinKal {
       IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
       // particle position and momentum as a function of time
       void position(Vec4& pos) const ; // time is input
-      Vec3 position(float time) const ; // time is input
-      Mom4 momentum(float time) const ;
-      Vec3 velocity(float time) const ;
-      Vec3 direction(float time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      Vec3 position(double time) const ; // time is input
+      Mom4 momentum(double time) const ;
+      Vec3 velocity(double time) const ;
+      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       // scalar momentum and energy in MeV/c units
-      double momentumMag(float time) const  { return mass_ * pbar() / mbar_; }
-      double momentumVar(float time) const  { return -1.0; }//FIXME! 
-      double energy(float time) const  { return mass_ * ebar() / mbar_; }
+      double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
+      double momentumVar(double time) const  { return -1.0; }//FIXME! 
+      double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
-      double speed(float time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, float tol) const ;
+      double speed(double time) const  { return CLHEP::c_light * beta(); }
+      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(float time) const { return trange_.inRange(time); }
+      bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(float time, LocalBasis::LocDir mdir, DVEC &der,Vec3& unit) const;
+      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC &der,Vec3& unit) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
 
@@ -98,7 +98,7 @@ namespace KinKal {
       double translen(const double &f) const { return cosDip() * f; }
       double arc(const double &f) const { return translen(f) * omega(); }
       double ztime(double zpos) const { return t0() + zpos / vz(); }
-      Vec3 const &bnom(float time=0.0) const { return bnom_; }
+      Vec3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()

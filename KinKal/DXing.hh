@@ -19,23 +19,23 @@ namespace KinKal {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
       // construct from a time
-      DXing(float time=-std::numeric_limits<float>::max()) : xtime_(time) {}
+      DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
       virtual ~DXing() {}
       virtual void update(PKTRAJ const& pktraj) =0;
-      virtual void update(PKTRAJ const& pktraj, float xtime) =0; // update including an estimate of the xing time
+      virtual void update(PKTRAJ const& pktraj, double xtime) =0; // update including an estimate of the xing time
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // accessors
-      float crossingTime() const { return xtime_; }
-      float& crossingTime() { return xtime_; }
+      double crossingTime() const { return xtime_; }
+      double& crossingTime() { return xtime_; }
       std::vector<MatXing>const&  matXings() const { return mxings_; }
       // calculate the cumulative material effect from these crossings
-      void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<float,3>& dmom, std::array<float,3>& momvar) const;
+      void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
     protected:
-      float xtime_; // time on the reference trajectory when the xing occured
+      double xtime_; // time on the reference trajectory when the xing occured
       std::vector<MatXing> mxings_; // material crossings for this piece of matter
   };
 
-  template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<float,3>& dmom, std::array<float,3>& momvar) const {
+  template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
     double mom = pktraj.momentumMag(xtime_);
     double mass = pktraj.mass();

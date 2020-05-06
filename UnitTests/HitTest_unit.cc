@@ -77,7 +77,7 @@ int main(int argc, char **argv) {
   double pmass;
   unsigned nhits(40);
   int iseed(124223);
-  float ddoca(0.1);
+  double ddoca(0.1);
   double Bgrad(0.0), By(0.0);
   bool simmat(true), lighthit(true);
   double zrange(3000.0); // tracker dimension
@@ -198,7 +198,7 @@ int main(int argc, char **argv) {
 //    double adot = tp.dirDot();
     double adot =0.0; // transverse
 //    double adot = tp.dirDot();
-    float doca = fabs(res.tPoca().doca());
+    double doca = fabs(res.tPoca().doca());
     double gpath = smat.gasPath(doca,ddoca,adot);
     double wpath = smat.wallPath(doca,ddoca,adot);
     ggplen->SetPoint(ihit,doca,gpath );
@@ -241,7 +241,7 @@ int main(int argc, char **argv) {
   unsigned ipt(0);
   for(size_t istep=0;istep<nsteps; istep++){
     for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){
-      double dpar = delpars[ipar]*(-0.5 + float(istep)/float(nsteps));
+      double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
       // update the hits
       for(auto& thit : thits) {
 	KKHit kkhit(thit,tptraj);
