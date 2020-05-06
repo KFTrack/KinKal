@@ -23,20 +23,20 @@ namespace KinKal {
       virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const override;
       virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) override;
       virtual unsigned nDOF() const override { return 1; }
-//      virtual float tension() const override { return tpoca_.doca()/sqrt(wvar_); } 
-      virtual float tension() const override { return 0.0; }  // FIXME!
+//      virtual double tension() const override { return tpoca_.doca()/sqrt(wvar_); } 
+      virtual double tension() const override { return 0.0; }  // FIXME!
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
       TLine const& sensorAxis() const { return saxis_; }
-      ScintHit(TLine const& sensorAxis, float tvar, float wvar, bool active=true) : 
+      ScintHit(TLine const& sensorAxis, double tvar, double wvar, bool active=true) : 
 	THit<KTRAJ>(active), saxis_(sensorAxis), tvar_(tvar), wvar_(wvar) {}
       virtual ~ScintHit(){}
-      float timeVariance() const { return tvar_; }
-      float widthVariance() const { return wvar_; }
+      double timeVariance() const { return tvar_; }
+      double widthVariance() const { return wvar_; }
     private:
       TLine saxis_;
-      float tvar_; // variance in the time measurement: assumed independent of propagation distance/time FIXME!
-      float wvar_; // variance in transverse position of the sensor/measurement in mm.  Assumes cylindrical error, Should be more general FIXME!
+      double tvar_; // variance in the time measurement: assumed independent of propagation distance/time FIXME!
+      double wvar_; // variance in transverse position of the sensor/measurement in mm.  Assumes cylindrical error, Should be more general FIXME!
   };
 
   template <class KTRAJ> void ScintHit<KTRAJ>::resid(PKTRAJ const& pktraj,  RESIDUAL& resid) const {

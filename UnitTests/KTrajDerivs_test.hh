@@ -99,7 +99,7 @@ int test(int argc, char **argv) {
   // construct original helix from parameters
   Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   // reference helix
   pmass = masses[imass];
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
@@ -109,8 +109,7 @@ int test(int argc, char **argv) {
   refpos4.SetE(ttest);
   refhel.position(refpos4);
   cout << "origin position " << origin << " test position " << refpos4 << endl;
-  Mom4 refmom;
-  refhel.momentum(ttest,refmom);
+  Mom4 refmom = refhel.momentum(ttest);
   int ndel(50);
   // graphs to compare parameter change
   std::vector<TGraph*> pgraphs[3];
@@ -126,8 +125,8 @@ int test(int argc, char **argv) {
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
   for(int idir=0;idir<3;++idir){
-    KInter::MDir tdir =static_cast<KInter::MDir>(idir);
-//    cout << "testing direction " << KInter::directionName(tdir) << endl;
+    LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
+//    cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
     // parameter change
     pgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -139,9 +138,9 @@ int test(int argc, char **argv) {
     momgraph[idir] = new TGraph(ndel);
     momgraph[idir]->SetTitle("Momentum Direction;exact;1st derivative");
     for(int jdir=0;jdir < 3;jdir++){
-      KInter::MDir tjdir =static_cast<KInter::MDir>(jdir);
+      LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
       gapgraph[idir][jdir] = new TGraph(ndel);
-      string title = "Gap in " + KInter::directionName(tjdir) + ";change;gap value (mm)";
+      string title = "Gap in " + LocalBasis::directionName(tjdir) + ";change;gap value (mm)";
       gapgraph[idir][jdir]->SetTitle(title.c_str());
     }
     // scan range of change
@@ -151,7 +150,7 @@ int test(int argc, char **argv) {
       // compute 1st order change in parameters
       typename KTRAJ::DVEC pder;
       Vec3 dmomdir;
-      refhel.momDeriv(tdir,ttest,pder,dmomdir);
+      refhel.momDeriv(ttest,tdir,pder,dmomdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
@@ -168,16 +167,15 @@ int test(int argc, char **argv) {
       dhel.position(dpos);
 //      cout << " exa pos " << xpos << endl
 //      << " del pos " << dpos << endl;
-      Mom4 dmom;
-      dhel.momentum(ttest,dmom);
+      Mom4 dmom = dhel.momentum(ttest);
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
       Vec4 gap = dpos - refpos4;
       // project along 3 directions
       for(int jdir=0;jdir < 3;jdir++){
-	KInter::MDir tjdir =static_cast<KInter::MDir>(jdir);
+	LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
 	Vec3 jmomdir;
-	refhel.momDeriv(tjdir,ttest,pder,jmomdir);
+	refhel.momDeriv(ttest,tjdir,pder,jmomdir);
 	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
       }
       // parameter diff
@@ -192,8 +190,8 @@ int test(int argc, char **argv) {
     }
     char title[80];
     char name[80];
-    snprintf(name,80,"dh%s",KInter::directionName(tdir).c_str());
-    snprintf(title,80,"Helix Change %s",KInter::directionName(tdir).c_str());
+    snprintf(name,80,"dh%s",LocalBasis::directionName(tdir).c_str());
+    snprintf(title,80,"Helix Change %s",LocalBasis::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(name,title,1200,800);
     dhcan[idir]->Divide(3,2);
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -203,8 +201,8 @@ int test(int argc, char **argv) {
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
 
-    snprintf(name,80,"dm%s",KInter::directionName(tdir).c_str());
-    snprintf(title,80,"Mom Change %s",KInter::directionName(tdir).c_str());
+    snprintf(name,80,"dm%s",LocalBasis::directionName(tdir).c_str());
+    snprintf(title,80,"Mom Change %s",LocalBasis::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(name,title,800,800);
     dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);

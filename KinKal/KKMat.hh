@@ -24,7 +24,7 @@ namespace KinKal {
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
       typedef typename KTRAJ::DVEC DVEC; // forward the typedef
-      virtual float time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
+      virtual double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
       virtual bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
       virtual void update(PKTRAJ const& ref) override;
       virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
@@ -33,7 +33,7 @@ namespace KinKal {
       virtual void append(PKTRAJ& fit) override;
       PDATA const& effect() const { return mateff_; }
       WDATA const& cache() const { return cache_; }
-      void setTime(float time) { dxing_->crossingTime() = time; }
+      void setTime(double time) { dxing_->crossingTime() = time; }
       virtual ~KKMat(){}
       // create from the material and a trajectory 
       KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true); 
@@ -91,14 +91,14 @@ namespace KinKal {
     mateff_ = PDATA();
     if(dxing_->matXings().size() > 0){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
-      std::array<float,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
-      for(int idir=0;idir<KInter::ndir; idir++) {
-	auto mdir = static_cast<KInter::MDir>(idir);
+      for(int idir=0;idir<LocalBasis::ndir; idir++) {
+	auto mdir = static_cast<LocalBasis::LocDir>(idir);
 	// get the derivatives of the parameters WRT material effects
 	DVEC pder;
 	Vec3 pdir;
-	ref_.momDeriv(mdir, time(), pder, pdir);
+	ref_.momDeriv(time(), mdir, pder, pdir);
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
 	dPdm.Place_in_col(pder,0,0);
@@ -115,7 +115,7 @@ namespace KinKal {
   template<class KTRAJ> void KKMat<KTRAJ>::append(PKTRAJ& fit) {
     if(isActive()){
       // create a trajectory piece from the cached weight
-      float time = this->time();
+      double time = this->time();
       KTRAJ newpiece(ref_);
       newpiece.params() = PDATA(cache_);
       newpiece.range() = TRange(time,fit.range().high());

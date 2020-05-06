@@ -19,7 +19,7 @@ namespace KinKal {
       // provide interface
       virtual void update(PKTRAJ const& ref) override;
       virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override { return update(ref); }
-      virtual float time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<float>::max() : std::numeric_limits<float>::max(); } // make sure this is always at the end
+      virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       virtual bool isActive() const override { return true; }
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
@@ -70,7 +70,7 @@ namespace KinKal {
     if(tdir_ == TDir::forwards) {
       if(fit.pieces().size() == 0){
 	// start with a very large range 
-	endtraj_.range() = TRange(-std::numeric_limits<float>::max(),std::numeric_limits<float>::max());
+	endtraj_.range() = TRange(-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
 	// append this to the (empty) fit
 	fit.append(endtraj_);
       } else

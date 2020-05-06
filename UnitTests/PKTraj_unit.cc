@@ -84,16 +84,16 @@ int main(int argc, char **argv) {
 	exit(EXIT_FAILURE);
     }
   }
-  KInter::MDir tdir =static_cast<KInter::MDir>(idir);
+  LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
   cout << "Testing PKTraj with "
-    << nsteps << " kinks in " << KInter::directionName(tdir) << " direction of size "
+    << nsteps << " kinks in " << LocalBasis::directionName(tdir) << " direction of size "
     << delta << endl;
 
   // create a helix
   Vec3 bnom(0.0,0.0,1.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   //initial piece
   double tend = tstart + tstep;
@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     Vec3 mdir;
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    back.momDeriv(tdir,tcomp,pder,mdir);
+    back.momDeriv(tcomp,tdir,pder,mdir);
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
@@ -128,10 +128,10 @@ int main(int argc, char **argv) {
     // compare positions and momenta
     Vec3 pold, pnew;
     Mom4 mold, mnew;
-    back.position(tcomp,pold);
-    back.momentum(tcomp,mold);
-    endhel.position(tcomp,pnew);
-    endhel.momentum(tcomp,mnew);
+    pold = back.position(tcomp);
+    mold = back.momentum(tcomp);
+    pnew = endhel.position(tcomp);
+    mnew = endhel.momentum(tcomp);
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
@@ -142,7 +142,7 @@ int main(int argc, char **argv) {
     Vec3 mdir;
     KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
-    front.momDeriv(tdir,tcomp,pder,mdir);
+    front.momDeriv(tcomp,tdir,pder,mdir);
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
@@ -160,10 +160,10 @@ int main(int argc, char **argv) {
     // compare positions and momenta
     Vec3 pold, pnew;
     Mom4 mold, mnew;
-    front.position(tcomp,pold);
-    front.momentum(tcomp,mold);
-    endhel.position(tcomp,pnew);
-    endhel.momentum(tcomp,mnew);
+    pold = front.position(tcomp);
+    mold = front.momentum(tcomp);
+    pnew = endhel.position(tcomp);
+    mnew = endhel.momentum(tcomp);
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
@@ -176,7 +176,7 @@ int main(int argc, char **argv) {
 
 // draw each piece of the piecetraj
   char fname[100];
-  snprintf(fname,100,"PKTraj_%s_%2.2f.root",KInter::directionName(tdir).c_str(),delta);
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",LocalBasis::directionName(tdir).c_str(),delta);
   TFile pkfile(fname,"RECREATE");
   TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
   std::vector<TPolyLine3D*> plhel;
@@ -193,7 +193,7 @@ int main(int argc, char **argv) {
     Vec3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
       double t = tstart + ipt*ts;
-      piece.position(t,ppos);
+      ppos = piece.position(t);
       plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
     }
     plhel.back()->Draw();
@@ -206,8 +206,7 @@ int main(int argc, char **argv) {
   double ts = (ptraj.range().high()-ptraj.range().low())/(np-1);
   for(unsigned ip=0;ip<np;ip++){
   double tp = ptraj.range().low() + ip*ts;
-    Vec3 ppos;
-      ptraj.position(tp,ppos);
+    Vec3 ppos = ptraj.position(tp);
       all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
   }
   all->Draw();
@@ -224,8 +223,8 @@ int main(int argc, char **argv) {
 
 // TPoca test:
   Vec3 midpos, middir;
-  ptraj.position(ptraj.range().mid(),midpos);
-  ptraj.direction(ptraj.range().mid(),middir);
+  midpos = ptraj.position(ptraj.range().mid());
+  middir = ptraj.direction(ptraj.range().mid());
   double lhphi = atan2(midpos.Y(),midpos.X());
   Vec3 rdir(cos(lhphi),sin(lhphi),0.0); // radial perpendicular to the helix
   double dphi = atan2(middir.Y(),middir.X());
@@ -240,8 +239,8 @@ int main(int argc, char **argv) {
   TPoca<PKTRAJ,TLine> tp(ptraj,tline);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
-  tp.particleTraj().position(tp.particleToca(),thpos);
-  tp.sensorTraj().position(tp.sensorToca(),tlpos);
+  thpos = tp.particleTraj().position(tp.particleToca());
+  tlpos = tp.sensorTraj().position(tp.sensorToca());
   double refd = tp.doca();
   cout << " Helix Pos " << midpos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
   cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
@@ -249,8 +248,8 @@ int main(int argc, char **argv) {
     // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
-    tline.position(tline.range().low(),plow);
-    tline.position(tline.range().high(),phigh);
+    plow = tline.position(tline.range().low());
+    phigh = tline.position(tline.range().high());
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);

@@ -78,7 +78,7 @@ typedef TPoca<PKTRAJ,TLine> TPOCA;
 typedef std::chrono::high_resolution_clock Clock;
 
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
 struct KTRAJPars{
@@ -109,19 +109,20 @@ int main(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   unsigned nmeta(2);
-  float maxtemp(0.0);
+  double maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root");
   int detail(0), invert(0);
-  float ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
+  double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   bool updatehits(false), addbf(false), fitmat(true);
-  vector<float> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
+  vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   Vec3 bnom(0.0,0.0,1.0);
   BField *BF(0);
-  float Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
-  float zrange(3000);
+  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
+  double zrange(3000);
+  double tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
   bool simmat(true), lighthit(true);
@@ -145,6 +146,7 @@ int main(int argc, char **argv) {
     {"ntries",     required_argument, 0, 'N'  },
     {"convdchisq",     required_argument, 0, 'C'  },
     {"ttree",     required_argument, 0, 'r'  },
+    {"tolerance",     required_argument, 0, 't'  },
     {"TFile",     required_argument, 0, 'T'  },
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
@@ -215,6 +217,8 @@ int main(int argc, char **argv) {
 		 break;
       case 'I' : invert = atoi(optarg);
 		 break;
+      case 't' : tol = atof(optarg);
+		 break;
       case 'T' : tfname = optarg;
 		 break;
       default: print_usage();
@@ -225,7 +229,7 @@ int main(int argc, char **argv) {
   // construct BField
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
-    BF->fieldVect(Vec3(0.0,0.0,0.0),bnom);
+    bnom = BF->fieldVect(Vec3(0.0,0.0,0.0));
     bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
     Vec3 bsim(dBx,dBy,1.0+dBz);
@@ -239,18 +243,18 @@ int main(int argc, char **argv) {
   // generate hits
   THITCOL thits; // this program shares hit ownership with KKTrk
   DXINGCOL dxings; // this program shares det xing ownership with KKTrk
-  PKTRAJ tptraj(TRange(),simmass,icharge);
+  PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
   // temporary FIXME!
   toy.setSmearSeed(false);
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentum(tptraj.range().low());
-  double endmom = tptraj.momentum(tptraj.range().high());
+  double startmom = tptraj.momentumMag(tptraj.range().low());
+  double endmom = tptraj.momentumMag(tptraj.range().high());
   Vec3 end, bend;
-  tptraj.front().direction(tptraj.range().high(),bend);
-  tptraj.back().direction(tptraj.range().high(),end);
+  bend = tptraj.front().direction(tptraj.range().high());
+  end = tptraj.back().direction(tptraj.range().high());
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
@@ -266,6 +270,7 @@ int main(int argc, char **argv) {
   configptr->maxniter_ = maxniter;
   configptr->addbf_ = addbf;
   configptr->addmat_ = fitmat;
+  configptr->tol_ = tol;
   configptr->plevel_ = (KKConfig::printLevel)detail;
   // add schedule; MC-truth based ambiguity
   MConfig mconfig;
@@ -278,8 +283,8 @@ int main(int argc, char **argv) {
   mconfig.divdchisq_ = 1000*mconfig.convdchisq_;
   mconfig.oscdchisq_ = 10*mconfig.convdchisq_;
   configptr->schedule_.push_back(mconfig);
-  float tstep = maxtemp/(std::max(nmeta,(unsigned)1));
-  float temp = maxtemp;
+  double tstep = maxtemp/(std::max(nmeta,(unsigned)1));
+  double temp = maxtemp;
   for(unsigned imeta = 0; imeta< nmeta; imeta++){
     temp -= tstep;
     mconfig.temp_ = temp;
@@ -294,8 +299,8 @@ int main(int argc, char **argv) {
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
-  float fft_,eft_;
+  double chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
+  double fft_,eft_;
   int ndof_, niter_, status_;
   if(ntries <=0 ){
     // draw the fit result
@@ -308,8 +313,7 @@ int main(int argc, char **argv) {
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fithel.range().low() + ip*ts;
-      Vec3 ppos;
-      fithel.position(tp,ppos);
+      Vec3 ppos = fithel.position(tp);
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     fitpl->Draw();
@@ -320,8 +324,7 @@ int main(int argc, char **argv) {
     ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = tptraj.range().low() + ip*ts;
-      Vec3 ppos;
-      tptraj.position(tp,ppos);
+      Vec3 ppos = tptraj.position(tp);
       ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     ttpl->Draw();
@@ -334,13 +337,13 @@ int main(int argc, char **argv) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
-	tline.position(tline.range().low(),plow);
-	tline.position(tline.range().high(),phigh);
+	plow = tline.position(tline.range().low());
+	phigh = tline.position(tline.range().high());
 	line->SetLineColor(kRed);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
-	tline.position(tline.range().low(),plow);
-	tline.position(tline.range().high(),phigh);
+	plow = tline.position(tline.range().low());
+	phigh = tline.position(tline.range().high());
 	line->SetLineColor(kCyan);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -430,7 +433,7 @@ int main(int argc, char **argv) {
     double duration (0.0);
     for(unsigned itry=0;itry<ntries;itry++){
     // create a random true initial helix with hits and material interactions from this.  This also handles BField inhomogeneity truth tracking
-      PKTRAJ tptraj(TRange(),simmass,icharge);
+      PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
       toy.simulateParticle(tptraj,thits,dxings);
@@ -455,8 +458,8 @@ int main(int argc, char **argv) {
 	tptraj.back().position(bpos);
 	fpos.SetE(tptraj.front().range().mid());
 	bpos.SetE(tptraj.back().range().mid());
-	tptraj.front().momentum(fpos.T(),fmom);
-	tptraj.back().momentum(bpos.T(),bmom);
+	fmom = tptraj.front().momentum(fpos.T());
+	bmom = tptraj.back().momentum(bpos.T());
 	KTRAJ ft(fpos,fmom,tptraj.charge(),kktrk.fitTraj().front().bnom());
 	KTRAJ bt(bpos,bmom,tptraj.charge(),kktrk.fitTraj().back().bnom());
 	ftpars = ft.params();
@@ -515,10 +518,10 @@ int main(int argc, char **argv) {
 	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
 	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
       }
-      ftmom_ = tptraj.front().momentum(tptraj.range().low());
-      etmom_ = tptraj.back().momentum(tptraj.range().high());
-      ffmom_ = kktrk.fitTraj().front().momentum(kktrk.fitTraj().range().low());
-      efmom_ = kktrk.fitTraj().back().momentum(kktrk.fitTraj().range().high());
+      ftmom_ = tptraj.front().momentumMag(tptraj.range().low());
+      etmom_ = tptraj.back().momentumMag(tptraj.range().high());
+      ffmom_ = kktrk.fitTraj().front().momentumMag(kktrk.fitTraj().range().low());
+      efmom_ = kktrk.fitTraj().back().momentumMag(kktrk.fitTraj().range().high());
       fft_ = kktrk.fitTraj().range().low();
       eft_ = kktrk.fitTraj().range().high();
       chisq_ = fstat.chisq_;
@@ -535,7 +538,7 @@ int main(int argc, char **argv) {
       }
       if(ttree)ftree->Fill();
     }
-    cout <<"Time/fit = " << duration/float(ntries) << " Nanoseconds " << endl;
+    cout <<"Time/fit = " << duration/double(ntries) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);
@@ -575,7 +578,7 @@ int main(int argc, char **argv) {
     TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
     corrcan->Divide(1,1);
     corrcan->cd(1);
-    corravg->Scale(1.0/float(ntries));
+    corravg->Scale(1.0/double(ntries));
     corravg->SetStats(0);
     gPad->SetLogz();
     corravg->Draw("colorztext0");

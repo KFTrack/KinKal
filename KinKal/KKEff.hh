@@ -22,13 +22,13 @@ namespace KinKal {
       typedef WData<KTRAJ::PDATA::PDim()> WDATA;
       typedef typename KTRAJ::PDATA PDATA;
       typedef PKTraj<KTRAJ> PKTRAJ;
-      virtual float time() const = 0; // time of this effect
+      virtual double time() const = 0; // time of this effect
       virtual unsigned nDOF() const {return 0; }; // how/if this effect contributes to the measurement NDOF
       virtual bool isActive() const = 0; // whether this effect is/was used in the fit
        // Add this effect to the ongoing fit in a give direction.
       virtual void process(KKDATA& kkdata,TDir tdir) = 0;
-      virtual float fitChi() const { return 0.0;} // unbiased chi contribution of this effect after fitting
-      virtual float chisq(PDATA const& pdata) const { return 0.0;} // chisq contribution WRT parameters 
+      virtual double fitChi() const { return 0.0;} // unbiased chi contribution of this effect after fitting
+      virtual double chisq(PDATA const& pdata) const { return 0.0;} // chisq contribution WRT parameters 
       // update this effect for a new refernce trajectory
       virtual void update(PKTRAJ const& ref) = 0;
       // update this effect for a new configuration and reference trajectory

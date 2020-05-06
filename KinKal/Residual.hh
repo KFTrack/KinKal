@@ -32,17 +32,17 @@ namespace KinKal {
       // accessors
       rdim dimension() const { return dim_; }
       TPocaBase const& tPoca() const { return tpoca_; }
-      float time() const { return tpoca_.particleToca(); }
-      float value() const { return value_; }
-      float variance() const  { return var_; }
+      double time() const { return tpoca_.particleToca(); }
+      double value() const { return value_; }
+      double variance() const  { return var_; }
       DVEC const& dRdP() const { return dRdP_; }
-      Residual(rdim dim, TPocaBase const& tpoca, float value, float var, DVEC const& dRdP) : dim_(dim), tpoca_(tpoca), value_(value), var_(var), dRdP_(dRdP) {}
+      Residual(rdim dim, TPocaBase const& tpoca, double value, double var, DVEC const& dRdP) : dim_(dim), tpoca_(tpoca), value_(value), var_(var), dRdP_(dRdP) {}
       Residual() : dim_(unknown), value_(0.0), var_(-1.0) {}
     private:
       rdim dim_; // dimension of this residual
       TPocaBase tpoca_; // TPOCA associated with this residual
-      float value_;  // value for this residual
-      float var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
+      double value_;  // value for this residual
+      double var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
       DVEC dRdP_; // derivative of residual WRT the reference parameters
   };
 

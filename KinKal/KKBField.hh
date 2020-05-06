@@ -20,7 +20,7 @@ namespace KinKal {
       typedef typename KKEFF::WDATA WDATA; // forward the typedef
       typedef KKData<PDATA::PDim()> KKDATA;
       typedef typename KTRAJ::DVEC DVEC; // forward the typedef
-      virtual float time() const override { return drange_.mid(); } // apply the correction at the middle of the range
+      virtual double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       virtual bool isActive() const override { return active_;}
       virtual void update(PKTRAJ const& ref) override;
       virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
@@ -57,13 +57,13 @@ namespace KinKal {
 
   template<class KTRAJ> void KKBField<KTRAJ>::update(PKTRAJ const& ref) {
     auto const& locref = ref.nearestPiece(drange_.mid()); 
-    float time = this->time();
+    double time = this->time();
     // translate the momentum change to the parameter change.
     // First get the derivatives and perp basis for the BField x-product at this point
     Vec3 t1hat, t2hat;
     DVEC dpdt1, dpdt2;
-    locref.momDeriv(KInter::theta1,time,dpdt1,t1hat);
-    locref.momDeriv(KInter::theta2,time,dpdt2,t2hat);
+    locref.momDeriv(time,LocalBasis::perpdir,dpdt1,t1hat);
+    locref.momDeriv(time,LocalBasis::phidir,dpdt2,t2hat);
     // project the momentum change onto these directions to get the parameter change
     // should add noise due to field measurement and gradientXposition uncertainties FIXME!
     bfeff_.parameters() = dpfrac_.Dot(t1hat)*dpdt1 + dpfrac_.Dot(t2hat)*dpdt2;
@@ -77,7 +77,7 @@ namespace KinKal {
     // integrate the fractional momentum change
       Vec3 dp;
       bfield_.integrate(ref,drange_,dp);
-      dpfrac_ = dp/ref.momentum(drange_.mid());
+      dpfrac_ = dp/ref.momentumMag(drange_.mid());
 //      std::cout << "Updating iteration " << mconfig.miter_ << " dP " << dp << std::endl;
     }
     update(ref);
@@ -86,8 +86,8 @@ namespace KinKal {
   template<class KTRAJ> void KKBField<KTRAJ>::append(PKTRAJ& fit) {
     if(isActive()){
       // adjust to make sure the piece is appendable
-      float time = this->time();
-      float tlow = std::max(time,float(fit.back().range().low() + 0.01)); // buffer should be a parameter FIXME!
+      double time = this->time();
+      double tlow = std::max(time,double(fit.back().range().low() + 0.01)); // buffer should be a parameter FIXME!
       TRange newrange(tlow,fit.range().high());
 // 1st order effect
       KTRAJ newpiece(fit.back());
@@ -99,7 +99,7 @@ namespace KinKal {
 //      Vec4 pos; pos.SetE(time);
 //      fit.position(pos);
 //      fit.momentum(time,mom);
-//      float mommag = mom.Vect().R();
+//      double mommag = mom.Vect().R();
 //      mom.Vect() -= dpfrac_*mommag;
 //      KTRAJ newpiece(pos,mom,fit.charge(),fit.back().bnom(),newrange);
       fit.append(newpiece);

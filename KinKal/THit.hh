@@ -34,7 +34,7 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) = 0;
       // consistency of ancillary information not used in the residual computation
       // return value is the dimensionless number of sigma outside range, 0.0 = perfecty consistent, 1.0 is '1 sigma' tension
-      virtual float tension() const = 0;
+      virtual double tension() const = 0;
       // hits may get deactivated during the fit
       bool isActive() const { return active_; }
       bool setActivity(bool newstate) { bool retval = newstate == active_; active_ = newstate; return retval; }

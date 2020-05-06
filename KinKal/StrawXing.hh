@@ -16,7 +16,7 @@ namespace KinKal {
       typedef TPoca<PKTRAJ,TLine> TPOCA;
 
       // construct from a trajectory and a time:
-      StrawXing(PKTRAJ const& pktraj,float xtime, StrawMat const& smat, TLine const& axis) : DXING(xtime), smat_(smat), axis_(axis) {
+      StrawXing(PKTRAJ const& pktraj,double xtime, StrawMat const& smat, TLine const& axis) : DXING(xtime), smat_(smat), axis_(axis) {
 	update(pktraj); } 
       // construct from TPOCA (for use with hits)
       StrawXing(TPOCA const& tpoca, StrawMat const& smat) : DXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
@@ -24,7 +24,7 @@ namespace KinKal {
       virtual ~StrawXing() {}
       // DXing interface
       virtual void update(PKTRAJ const& pktraj) override;
-      virtual void update(PKTRAJ const& pktraj, float xtime) override;
+      virtual void update(PKTRAJ const& pktraj, double xtime) override;
       // specific interface: this xing is based on TPOCA
       void update(TPOCA const& tpoca);
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -44,7 +44,7 @@ namespace KinKal {
       throw std::runtime_error("POCA failure");
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj, float xtime) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj, double xtime) {
   // update the time to use the current estimate
     DXING::xtime_ = xtime;
     update(pktraj);

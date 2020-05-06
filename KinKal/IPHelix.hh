@@ -10,7 +10,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
-#include "KinKal/KInter.hh"
+#include "KinKal/LocalBasis.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
@@ -20,7 +20,7 @@
 
 namespace KinKal {
 
-  class IPHelix : public KInter {
+  class IPHelix {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
@@ -46,26 +46,28 @@ namespace KinKal {
       IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
       // particle position and momentum as a function of time
       void position(Vec4& pos) const ; // time is input
-      void position(float time,Vec3& pos) const ; // time is input
-      void momentum(float time,Mom4& mom) const ;
-      void velocity(float time, Vec3& vel) const ;
-      void direction(float time,Vec3& dir) const ;
+      Vec3 position(double time) const ; // time is input
+      Mom4 momentum(double time) const ;
+      Vec3 velocity(double time) const ;
+      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       // scalar momentum and energy in MeV/c units
-      double momentum(float time) const  { return mass_ * pbar() / mbar_; }
-      double momentumVar(float time) const  { return -1.0; }//FIXME! 
-      double energy(float time) const  { return mass_ * ebar() / mbar_; }
+      double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
+      double momentumVar(double time) const  { return -1.0; }//FIXME! 
+      double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
-      double speed(float time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, float dtol, float ptol) const ;
+      double speed(double time) const  { return CLHEP::c_light * beta(); }
+      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(float time) const { return trange_.inRange(time); }
+      bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(MDir mdir, float time, DVEC &der,Vec3& unit) const;
+      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC &der,Vec3& unit) const;
+      double mass() const { return mass_;} // mass 
+      int charge() const { return charge_;} // charge in proton charge units
 
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
@@ -96,7 +98,7 @@ namespace KinKal {
       double translen(const double &f) const { return cosDip() * f; }
       double arc(const double &f) const { return translen(f) * omega(); }
       double ztime(double zpos) const { return t0() + zpos / vz(); }
-      Vec3 const &bnom(float time=0.0) const { return bnom_; }
+      Vec3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()
@@ -109,6 +111,8 @@ namespace KinKal {
     private :
       TRange trange_;
       PDATA pars_; // parameters
+      double mass_;  // in units of MeV/c^2
+      int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_;    // nominal BField
       static std::vector<std::string> paramTitles_;

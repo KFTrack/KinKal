@@ -10,7 +10,8 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
-#include "KinKal/KInter.hh"
+#include "KinKal/LocalBasis.hh"
+#include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
 #include <vector>
@@ -19,7 +20,7 @@
 
 namespace KinKal {
 
-  class LHelix : public KInter {
+  class LHelix {
     public:
       // This class must provide the following to be used to instantiate the 
       // classes implementing the Kalman fit
@@ -44,29 +45,27 @@ namespace KinKal {
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
-      // TTraj interface 
-      void position(Vec4& pos) const ; // time is input 
-      void position(float time,Vec3& pos) const ; // time is input 
-      void velocity(float time, Vec3& vel) const ;
-      void direction(float time,Vec3& dir) const ;
-      Vec3 direction(float time) const ;
-      double speed(float time) const  {  return CLHEP::c_light*beta(); }
-      void rangeInTolerance(TRange& range, BField const& bfield, float dtol, float ptol) const ;
-      void print(std::ostream& ost, int detail) const ;
+      // interface needed for KKTrk instantiation
+      void position(Vec4& pos) const; // time of pos is input 
+      Vec3 position(double time) const;
+      Vec3 velocity(double time) const;
+      double speed(double time) const  {  return CLHEP::c_light*beta(); }
+      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const;
+      void print(std::ostream& ost, int detail) const;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
-      bool inRange(float time) const { return trange_.inRange(time); }
-      // KInter interface
-      void momentum(float time,Mom4& mom) const ;
-      double momentum(float time) const  { return  fabs(mass_*betaGamma()); }
-      double momentumVar(float time) const ;
-      double energy(float time) const  { return  fabs(mass_*ebar()/mbar_); }
-      // momentum change derivatives; this is required to instantiate a KalTrk using this KInter
-      void momDeriv(MDir mdir, float time, DVEC& der, Vec3& unit) const;
-      // unit vectors by themselves
-      Vec3 momDir(MDir mdir,float time) const;
-     // named parameter accessors
+      bool inRange(double time) const { return trange_.inRange(time); }
+      Mom4 momentum(double time) const;
+      double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
+      double momentumVar(double time) const;
+      double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
+      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC& der, Vec3& unit) const;
+      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      double mass() const { return mass_;} // mass 
+      int charge() const { return charge_;} // charge in proton charge units
+
+      // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
@@ -93,8 +92,7 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
-      int charge() const { return charge_; }
-      Vec3 const& bnom(float time=0.0) const { return bnom_; }
+      Vec3 const& bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
@@ -108,6 +106,8 @@ namespace KinKal {
     private :
       TRange trange_;
       PDATA pars_; // parameters
+      double mass_;  // in units of MeV/c^2
+      int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_; // nominal BField
       bool needsrot_; // logical flag if Bnom is parallel to global Z or not
@@ -119,7 +119,8 @@ namespace KinKal {
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
       // private utility, to optimize rotation
-      Vec3 rawMomDir(MDir mdir, float time) const;
+      Vec3 rawDirection( double time, LocalBasis::LocDir mdir) const;
+      Vec3 rawPosition(double time) const;
  };
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }

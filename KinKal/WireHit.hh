@@ -14,9 +14,9 @@
 namespace KinKal {
 // struct with parameters for updating hits
   struct WHUParams {
-    float mindoca_; // minimum DOCA value to set an ambiguity
-    float maxdoca_; // maximum DOCA to still use a hit
-    WHUParams(float mindoca,float maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
+    double mindoca_; // minimum DOCA value to set an ambiguity
+    double maxdoca_; // maximum DOCA to still use a hit
+    WHUParams(double mindoca,double maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
   };
 
   template <class KTRAJ> class WireHit : public THit<KTRAJ> {
@@ -33,13 +33,13 @@ namespace KinKal {
       void resid(TPOCA const& tpoca, RESIDUAL& resid) const; // actual implementation of resid uses TPOCA
       virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) override;
       virtual unsigned nDOF() const override { return 1; }
-      float cellSize() const { return csize_; } // approximate transverse cell size, used to set null variance
+      double cellSize() const { return csize_; } // approximate transverse cell size, used to set null variance
 // construct from a D2T relationship; BField is needed to compute ExB effects
       TLine const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
-      void setNullVar(float mindoca) { nullvar_ = mindoca*mindoca/3.0; }
+      void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/3.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
-      WireHit(DXINGPTR const& dxing, BField const& bfield, TLine const& wire, D2T const& d2t, float csize,LRAmbig ambig=LRAmbig::null) : 
+      WireHit(DXINGPTR const& dxing, BField const& bfield, TLine const& wire, D2T const& d2t, double csize,LRAmbig ambig=LRAmbig::null) : 
 	THIT(dxing,true), wire_(wire), d2t_(d2t), csize_(csize), ambig_(ambig), bfield_(bfield) { setNullVar(csize_); }
       virtual ~WireHit(){}
       LRAmbig ambig() const { return ambig_; }
@@ -47,8 +47,8 @@ namespace KinKal {
     private:
       TLine wire_; // local linear approximation to the wire of this hit.  The range describes the active wire length
       D2T const& d2t_; // distance to time relationship for drift in this cell
-      float csize_; // transverse cell size in mm
-      float nullvar_; // variance of the error in space for null ambiguity
+      double csize_; // transverse cell size in mm
+      double nullvar_; // variance of the error in space for null ambiguity
       LRAmbig ambig_; // current ambiguity assignment: can change during a fit
       BField const& bfield_;
   };
@@ -91,15 +91,13 @@ namespace KinKal {
       if(ambig_ != LRAmbig::null){ 
 	auto iambig = static_cast<std::underlying_type<LRAmbig>::type>(ambig_);
 	// convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
-	float rho = tpoca.doca()*iambig; // this is allowed to go negative
-	Vec3 bvec;
-	bfield_.fieldVect(tpoca.particlePoca().Vect(),bvec);
+	double rho = tpoca.doca()*iambig; // this is allowed to go negative
+	Vec3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
 	auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BField
-	Vec3 dvec;
-	tpoca.delta(dvec);
-	float phi = asin(float(dvec.Unit().Dot(pdir)));
+	Vec3 dvec = tpoca.delta().Vect();
+	double phi = asin(double(dvec.Unit().Dot(pdir)));
 	Pol2 drift(rho, phi);
-	float tdrift, tdvar, vdrift;
+	double tdrift, tdvar, vdrift;
 	d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
 	DVEC dRdP = tpoca.dDdP()*iambig/vdrift + tpoca.dTdP(); 

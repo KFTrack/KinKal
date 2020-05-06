@@ -125,35 +125,33 @@ int test(int argc, char **argv) {
 // define the BF (tesla)
   Vec3 bnom(0.0,By,1.0);
   Vec4 origin(0.0,0.0,oz,ot);
-  float sint = sqrt(1.0-cost*cost);
+  double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom,TRange(-10,10));
   if(invert)lhel.invertCT();
-  Mom4 testmom;
-  lhel.momentum(ot,testmom);
+  Mom4 testmom = lhel.momentum(ot);
   cout << "KTRAJ with momentum " << momv << " position " << origin << " has parameters: " << lhel << endl;
   Vec3 tvel, tdir;
-  float ttime;
-  float tstp = lhel.range().range()/9;
+  double ttime;
+  double tstp = lhel.range().range()/9;
   for(int istep=0;istep<10;istep++){
     ttime = lhel.range().low() + istep*tstp;
-    lhel.velocity(ttime,tvel);
-    lhel.direction(ttime,tdir);
-    lhel.momentum(ttime,testmom);
+    tvel = lhel.velocity(ttime);
+    tdir = lhel.direction(ttime);
+    testmom = lhel.momentum(ttime);
     cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom << endl;
 //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
 //      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
   }
-  Vec3 mdir;
-  lhel.direction(ot,mdir);
+  Vec3 mdir = lhel.direction(ot);
   // create the helix at tmin and tmax 
   Mom4 tmom;
   Vec4 tpos; 
-  lhel.momentum(tmax,tmom);
+  tmom = lhel.momentum(tmax);
   tpos.SetE(tmax);
   lhel.position(tpos);
   KTRAJ lhelmax(tpos,tmom,icharge,bnom);
-  lhel.momentum(tmin,tmom);
+  tmom = lhel.momentum(tmin);
   tpos.SetE(tmin);
   lhel.position(tpos);
   KTRAJ lhelmin(tpos,tmom,icharge,bnom);
@@ -200,19 +198,18 @@ int test(int argc, char **argv) {
   ihel->Draw();
 // now draw momentum vectors at reference, start and end
   MomVec imstart,imend,imref;
-  Vec3 imompos;
-  ilhel.position(ot,imompos);
-  ilhel.direction(ot,mdir);
+  Vec3 imompos = ilhel.position(ot);
+  mdir =ilhel.direction(ot);
   Vec3 imomvec =mom*mdir;
   drawMom(imompos,imomvec,kBlack,imref);
   //
-  lhel.position(tmin,imompos);
-  lhel.direction(tmin,mdir);
+  imompos  = lhel.position(tmin);
+  mdir = lhel.direction(tmin);
   imomvec =mom*mdir;
   drawMom(imompos,imomvec,kBlue,imstart);
   //
-  lhel.position(tmax,imompos);
-  lhel.direction(tmax,mdir);
+  imompos = lhel.position(tmax);
+  mdir = lhel.direction(tmax);
   imomvec =mom*mdir;
   drawMom(imompos,imomvec,kGreen,imend);
   //
@@ -229,19 +226,18 @@ int test(int argc, char **argv) {
 
 // now draw momentum vectors at reference, start and end
   MomVec mstart,mend,mref;
-  Vec3 mompos;
-  lhel.position(ot,mompos);
-  lhel.direction(ot,mdir);
+  Vec3 mompos = lhel.position(ot);
+  mdir = lhel.direction(ot);
   Vec3 momvec =mom*mdir;
   drawMom(mompos,momvec,kBlack,mref);
   //
-  lhel.position(tmin,mompos);
-  lhel.direction(tmin,mdir);
+  mompos = lhel.position(tmin);
+  mdir = lhel.direction(tmin);
   momvec =mom*mdir;
   drawMom(mompos,momvec,kBlue,mstart);
   //
-  lhel.position(tmax,mompos);
-  lhel.direction(tmax,mdir);
+  mompos = lhel.position(tmax);
+  mdir = lhel.direction(tmax);
   momvec =mom*mdir;
   drawMom(mompos,momvec,kGreen,mend);
   //
@@ -258,9 +254,8 @@ int test(int argc, char **argv) {
   leg->Draw();
 
   // create a TLine near this helix, and draw it and the TPoca vector
-  Vec3 pos, dir;
-  lhel.position(ltime,pos);
-  lhel.direction(ltime,dir);
+  Vec3 pos = lhel.position(ltime);
+  Vec3 dir = lhel.direction(ltime);
   // rotate the direction
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + M_PI/2.0;
