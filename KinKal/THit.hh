@@ -1,7 +1,7 @@
 #ifndef KinKal_THit_hh
 #define KinKal_THit_hh
 //
-//  Base class to describe a time hit (simultaneous time and position measurement)
+//  Base class to describe a time hit (combination of time and position measurements)
 //  Its interface defines how the measurement is translated into a residual (1=dimensional comparison with a trajectory)
 //  The template argument is the kinematic trajectory base of the KKTrk
 //  Used as part of the kinematic Kalman fit
@@ -21,7 +21,7 @@ namespace KinKal {
       typedef Residual<KTRAJ::NParams()> RESIDUAL;
       typedef std::shared_ptr<DXING> DXINGPTR;
       typedef typename KTRAJ::DVEC DVEC; // forward derivative type from the particle trajectory
-      // default
+     // default
       THit(bool active=true) : active_(active) {}
       // optionally create with an associated detector material crossing
       THit(DXINGPTR const& dxing,bool active=true) : dxing_(dxing), active_(active) {}
@@ -33,7 +33,7 @@ namespace KinKal {
       // update, and compute residual
       virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) = 0;
       // consistency of ancillary information not used in the residual computation
-      // return value is the dimensionless number of sigma outside range, 0.0 = perfecty consistent, 1.0 is '1 sigma' tension
+      // return value is the dimensionless number of sigma outside range, 0.0 = perfectly consistent, 1.0 is '1 sigma' tension
       virtual double tension() const = 0;
       // hits may get deactivated during the fit
       bool isActive() const { return active_; }
@@ -46,6 +46,12 @@ namespace KinKal {
       DXINGPTR dxing_;
       bool active_; 
   };
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, THit<KTRAJ> const& thit) {
+    thit.print(ost,0);
+    return ost;
+ }
+
 }
 #endif
 

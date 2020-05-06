@@ -100,7 +100,7 @@ namespace KinKal {
 	double tdrift, tdvar, vdrift;
 	d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
-	DVEC dRdP = tpoca.dDdP()*iambig/vdrift + tpoca.dTdP(); 
+	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
 	resid = RESIDUAL(RESIDUAL::dtime,tpoca,tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
 	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case

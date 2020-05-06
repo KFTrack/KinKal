@@ -4,7 +4,6 @@
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
-#include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
@@ -40,11 +39,11 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: BField  --momentum f --charge i --dBz f --dBx f --dBy f --Bgrad f --Tol f n");
+  printf("Usage: BFieldTest  --momentum f --charge i --dBz f --dBx f --dBy f --Bgrad f --Tol f n");
 }
 
-int main(int argc, char **argv) {
-  typedef LHelix KTRAJ;
+template <class KTRAJ>
+int BFieldTest(int argc, char **argv) {
   typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
   typedef THit<KTRAJ> THIT;
   typedef std::shared_ptr<THIT> THITPTR;

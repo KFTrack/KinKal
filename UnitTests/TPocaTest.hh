@@ -1,8 +1,6 @@
 // 
 // test basic functions of TPoca using KTraj and TLine
 //
-#include "KinKal/LHelix.hh"
-#include "KinKal/IPHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/BField.hh"
@@ -38,12 +36,11 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: TPoca --charge i--gap f --tmin f --tmax f --phi f --vprop f --costheta f --eta f\n");
+  printf("Usage: TPocaTest --charge i--gap f --tmin f --tmax f --phi f --vprop f --costheta f --eta f\n");
 }
 
-int main(int argc, char **argv) {
-  //  typedef IPHelix KTRAJ;
-  typedef LHelix KTRAJ;
+template <class KTRAJ>
+int TPocaTest(int argc, char **argv) {
   typedef TPoca<KTRAJ,TLine> TPOCA;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -106,7 +103,7 @@ int main(int argc, char **argv) {
   std::vector<TGraph*> dtpoca, ttpoca;
   std::vector<double> pchange = {10.0,5.0,10.0,10.0,0.1,0.1};
   for(int ipar=0;ipar<lhel.npars_;ipar++){
-    KTRAJ::ParamIndex parindex = static_cast<KTRAJ::ParamIndex>(ipar);
+    typename KTRAJ::ParamIndex parindex = static_cast<typename KTRAJ::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(nstep*ntstep));
     string ts = KTRAJ::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
     dtpoca.back()->SetTitle(ts.c_str());
@@ -120,7 +117,7 @@ int main(int argc, char **argv) {
     Vec3 pos, dir, perp1, perp2;
     pos = lhel.position(time);
     dir = lhel.direction(time);
-    KTRAJ::DVEC der;
+    typename KTRAJ::DVEC der;
     lhel.momDeriv(time,LocalBasis::perpdir,der,perp1);
     lhel.momDeriv(time,LocalBasis::phidir,der,perp2); 
     // choose a specific direction for DOCA
@@ -156,7 +153,7 @@ int main(int argc, char **argv) {
 	auto dvec = lhel.params().parameters();
 	double dpar = dstart + dstep*istep;
 	dvec[ipar] += dpar; 
-	KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
+	typename KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
 	KTRAJ dlhel(pdata,lhel.mass(),lhel.charge(),bnom);
 	TPOCA dtp(dlhel,tline);
 	double xd = dtp.doca();

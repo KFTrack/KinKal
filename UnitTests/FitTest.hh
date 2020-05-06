@@ -4,7 +4,6 @@
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
-#include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
@@ -56,52 +55,52 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
-// define the typedefs: to change to a different trajectory implementation, just change this line
-typedef LHelix KTRAJ;
-typedef PKTraj<KTRAJ> PKTRAJ;
-typedef KKTrk<KTRAJ> KKTRK;
-typedef shared_ptr<KKConfig> KKCONFIGPTR;
-typedef THit<KTRAJ> THIT;
-typedef std::shared_ptr<THIT> THITPTR;
-typedef DXing<KTRAJ> DXING;
-typedef std::shared_ptr<DXING> DXINGPTR;
-typedef StrawHit<KTRAJ> STRAWHIT;
-typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-typedef ScintHit<KTRAJ> SCINTHIT;
-typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
-typedef StrawXing<KTRAJ> STRAWXING;
-typedef shared_ptr<STRAWXING> STRAWXINGPTR;
-typedef vector<THITPTR> THITCOL;
-typedef vector<DXINGPTR> DXINGCOL;
-typedef Residual<KTRAJ::NParams()> RESIDUAL;
-typedef TPoca<PKTRAJ,TLine> TPOCA;
-typedef std::chrono::high_resolution_clock Clock;
-
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --zrange f --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --By f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
 }
 
-struct KTRAJPars{
-  Float_t pars_[KTRAJ::NParams()];
-  static std::string leafnames() {
-    std::string names;
-    for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
-      names +=KTRAJ::paramName(static_cast<KTRAJ::ParamIndex>(ipar)) + string("/f");
-      if(ipar < KTRAJ::NParams()-1)names += ":";
+template <class KTRAJ>
+int FitTest(int argc, char **argv) {
+  struct KTRAJPars{
+    Float_t pars_[KTRAJ::NParams()];
+    static std::string leafnames() {
+      std::string names;
+      for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
+	names +=KTRAJ::paramName(static_cast<typename KTRAJ::ParamIndex>(ipar)) + string("/f");
+	if(ipar < KTRAJ::NParams()-1)names += ":";
+      }
+      return names;
     }
-    return names;
-  }
-};
+  };
 
-struct KKHitInfo {
-  Float_t resid_, residvar_, chiref_, chifit_;
-  static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
-};
+  struct KKHitInfo {
+    Float_t resid_, residvar_, chiref_, chifit_;
+    static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
+  };
 
-int main(int argc, char **argv) {
-// enable throw on FPE; not working with clang!
+  // define the typedefs: to change to a different trajectory implementation, just change this line
+  typedef PKTraj<KTRAJ> PKTRAJ;
+  typedef KKTrk<KTRAJ> KKTRK;
+  typedef shared_ptr<KKConfig> KKCONFIGPTR;
+  typedef THit<KTRAJ> THIT;
+  typedef std::shared_ptr<THIT> THITPTR;
+  typedef DXing<KTRAJ> DXING;
+  typedef std::shared_ptr<DXING> DXINGPTR;
+  typedef StrawHit<KTRAJ> STRAWHIT;
+  typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
+  typedef ScintHit<KTRAJ> SCINTHIT;
+  typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
+  typedef StrawXing<KTRAJ> STRAWXING;
+  typedef shared_ptr<STRAWXING> STRAWXINGPTR;
+  typedef vector<THITPTR> THITCOL;
+  typedef vector<DXINGPTR> DXINGCOL;
+  typedef Residual<KTRAJ::NParams()> RESIDUAL;
+  typedef TPoca<PKTRAJ,TLine> TPOCA;
+  typedef std::chrono::high_resolution_clock Clock;
+
+  // enable throw on FPE; not working with clang!
   fetestexcept(FE_ALL_EXCEPT );
-// parameters
+  // parameters
   int opt;
   double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -118,9 +117,8 @@ int main(int argc, char **argv) {
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   bool updatehits(false), addbf(false), fitmat(true);
   vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
-  Vec3 bnom(0.0,0.0,1.0);
   BField *BF(0);
-  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
+  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
   double tol(0.1);
   int iseed(123421);
@@ -132,7 +130,6 @@ int main(int argc, char **argv) {
     {"simparticle",     required_argument, 0, 'S'  },
     {"fitparticle",     required_argument, 0, 'F'  },
     {"charge",     required_argument, 0, 'q'  },
-    {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
@@ -151,6 +148,7 @@ int main(int argc, char **argv) {
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
     {"dBz",     required_argument, 0, 'Z'  },
+    {"Bz",     required_argument, 0, 'z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
@@ -173,7 +171,7 @@ int main(int argc, char **argv) {
 		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
-      case 'z' : zrange = atof(optarg);
+      case 'z' : Bz = atof(optarg);
 		 break;
       case 'n' : nhits = atoi(optarg);
 		 break;
@@ -227,14 +225,14 @@ int main(int argc, char **argv) {
   }
 
   // construct BField
+  Vec3 bnom;
   if(Bgrad != 0){
-    BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradBField(Bz-0.5*Bgrad,Bz+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(Vec3(0.0,0.0,0.0));
-    bnom.SetX(0.0); bnom.SetY(0.0);
   } else {
-    Vec3 bsim(dBx,dBy,1.0+dBz);
+    Vec3 bsim(dBx,dBy,Bz+dBz);
     BF = new UniformBField(bsim);
-    bnom = Vec3(0.0,0.0,1.0);
+    bnom = Vec3(0.0,0.0,Bz);
   }
   // create ToyMC
   simmass = masses[isimmass];
@@ -411,7 +409,7 @@ int main(int argc, char **argv) {
     double nsig(10.0);
     double pscale = nsig/sqrt(nhits);
     for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
-      auto tpar = static_cast<KTRAJ::ParamIndex>(ipar);
+      auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
       hname = string("fd") + KTRAJ::paramName(tpar);
       htitle = string("Front #Delta ") + KTRAJ::paramTitle(tpar);
       fdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
@@ -447,7 +445,7 @@ int main(int argc, char **argv) {
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       // compare parameters at the first traj of both true and fit
       // correct the true parameters in case the BField isn't nominal
-      KTRAJ::PDATA ftpars, btpars; 
+      typename KTRAJ::PDATA ftpars, btpars; 
       if((kktrk.fitTraj().front().bnom() - tptraj.front().bnom()).R() < 1e-6){
 	ftpars = tptraj.front().params();
 	btpars = tptraj.back().params();

@@ -2,7 +2,6 @@
 // test basic functions of the PKTraj, using the LHelix class
 //
 #include "KinKal/PKTraj.hh"
-#include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/BField.hh"
@@ -38,11 +37,11 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: PKTraj --changedir i --delta f --tstep f --nsteps i \n");
+  printf("Usage: PKTrajTest --changedir i --delta f --tstep f --nsteps i \n");
 }
 
-int main(int argc, char **argv) {
-  typedef LHelix KTRAJ;
+template <class KTRAJ>
+int PKTrajTest(int argc, char **argv) {
   typedef PKTraj<KTRAJ> PKTRAJ;
 
   double mom(105.0), cost(0.7), phi(0.5);
@@ -104,7 +103,7 @@ int main(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    KTRAJ::DVEC pder;
+    typename KTRAJ::DVEC pder;
     Vec3 mdir;
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
@@ -112,7 +111,7 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-      KTRAJ::PDATA pdata(dvec,back.params().covariance());
+    typename KTRAJ::PDATA pdata(dvec,back.params().covariance());
     KTRAJ endhel(pdata,back.mass(),back.charge(),bnom,range);
     // test
     Vec4 backpos, endpos;
@@ -138,7 +137,7 @@ int main(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    KTRAJ::DVEC pder;
+    typename KTRAJ::DVEC pder;
     Vec3 mdir;
     KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
@@ -146,7 +145,7 @@ int main(int argc, char **argv) {
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    KTRAJ::PDATA pdata(dvec,front.params().covariance());
+    typename KTRAJ::PDATA pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front.mass(),front.charge(),bnom,range);
     // test
     Vec4 frontpos, endpos;
