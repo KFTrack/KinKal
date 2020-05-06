@@ -32,7 +32,7 @@ namespace KinKal {
       void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
     protected:
       double xtime_; // time on the reference trajectory when the xing occured
-      std::vector<MatXing> mxings_; // material crossings for this piece of matter
+      std::vector<MatXing> mxings_; // material crossings for this detector piece on this trajectory
   };
 
   template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {

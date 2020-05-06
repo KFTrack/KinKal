@@ -12,18 +12,11 @@
 //  The piecewise kinematic trajectory fit result is expressed as a time sequence of these simple trajectory objects.
 //  Material effects and spatial variation of magnetic fields are modeled through changes between adjacent simple
 //  trajectories.
-//  To instantiate KKTrk the particle trajectory class must satisfy the following interface:
-//	void position(Vec4& pos) const;
-//      Vec3 position(double time) const;
-//      Vec3 velocity(double time) const;
-//      double speed(double time) const;
-//      Vece direction(double time) const;
-//      void print(std::ostream& ost, int detail) const;
-//      Mom4 momentum(double time) const; // momentum in MeV/c, mass in MeV/c^2 as a function of time
-//      double momentumVar(double time) const; // variance on momentum value
-//      double energy(double time) const; 
-//      void rangeInTolerance(TRange& range, BField const& bfield, double tol);
-//      PDATA const& params() const;
+//  To instantiate KKTrk the particle trajectory class must satisfy a geometric, kinematic, and parametric interface.
+//  The geometric interface includes functions for position, direction, etc.
+//  The kinematic interface includes functions for velocity, momentum, etc.
+//  The parametric interface includes functions for parameter values, covariance, derivatives, etc.
+//  An example is the LHelix.hh or IPHelix.hh classes.
 //
 //  The PDATA object provides a minimal basis from which the geometric and kinematic properties of the particle as a function
 //  of time can be computed.  For instance, a kinematic helix in space requires a PDATA instance with 6 parameters.  The physical

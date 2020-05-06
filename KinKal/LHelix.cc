@@ -197,9 +197,10 @@ namespace KinKal {
     Vec3 bvec = bfield.fieldVect(tpos);
     auto db = (bvec - bnom_).R();
     double tstep(0.1);
-    if(db > 1e-4) tstep = 0.1*sqrt(tol/(sfac*db)); // step increment from difference from nominal
+    // this next part should have the hard-coded numbers replaced by parameters.  Some calculations should move to BField FIXME!
+    if(db > 1e-4) tstep = 0.2*sqrt(tol/(sfac*db)); // step increment from difference from nominal
     Vec3 dBdt = bfield.fieldDeriv(tpos,velocity(drange.low()));
-    tstep = std::min(tstep, 0.1*cbrt(tol/(sfac*dBdt.R())));
+    tstep = std::min(tstep, 0.5*cbrt(tol/(sfac*dBdt.R())));
     //
     // loop over the trajectory in fixed steps to compute integrals and domains.
     // step size is defined by momentum direction tolerance.

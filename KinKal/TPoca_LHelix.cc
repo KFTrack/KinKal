@@ -97,7 +97,7 @@ namespace KinKal {
       dDdP_[LHelix::lam_] = dsign*lhelix.dphi(time)*lhelix.rad()*invpbar*coseta;
 
       // no spatial dependence, DT is purely temporal
-      dTdP_[LHelix::t0_] = 1.0; // time is 100% correlated
+      dTdP_[LHelix::t0_] = -1.0; // time is 100% correlated
       // propagate parameter covariance to variance on doca and toca
       docavar_ = ROOT::Math::Similarity(dDdP(),lhelix.params().covariance());
       tocavar_ = ROOT::Math::Similarity(dTdP(),lhelix.params().covariance());

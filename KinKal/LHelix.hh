@@ -38,6 +38,7 @@ namespace KinKal {
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
 
+      // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
@@ -45,7 +46,6 @@ namespace KinKal {
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
-      // interface needed for KKTrk instantiation
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
       Vec3 velocity(double time) const;
@@ -64,11 +64,11 @@ namespace KinKal {
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
-
-      // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
+
+      // named parameter accessors
       double rad() const { return paramVal(rad_); }
       double lam() const { return paramVal(lam_); }
       double cx() const { return paramVal(cx_); }
