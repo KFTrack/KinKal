@@ -36,12 +36,12 @@ namespace KinKal {
       BField const& bfield_; // bfield
       TRange drange_; // extent of this domain
       Vec3 dpfrac_; // fractional change in momentum for BField diff from nominal over this range
-      PDATA bfeff_; // effect of the difference beween the actual BField and bnom integrated over this integral
+      PDATA bfeff_; // effect of the difference beween the actual BField and bnom integrated over this range
       bool active_; // activity state
   };
 
   template<class KTRAJ> void KKBField<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
-    if(this->isActive()){
+    if(active_){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards) {
 	kkdata.append(bfeff_);
@@ -84,7 +84,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void KKBField<KTRAJ>::append(PKTRAJ& fit) {
-    if(isActive()){
+    if(active_){
       // adjust to make sure the piece is appendable
       double time = this->time();
       double tlow = std::max(time,double(fit.back().range().low() + 0.01)); // buffer should be a parameter FIXME!

@@ -6,7 +6,6 @@
 //
 #include "KinKal/LocalBasis.hh"
 #include "KinKal/MatXing.hh"
-#include "KinKal/TPocaBase.hh"
 #include "KinKal/TDir.hh"
 #include <vector>
 #include <stdexcept>

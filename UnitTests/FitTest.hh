@@ -297,8 +297,8 @@ int FitTest(int argc, char **argv) {
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  double chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
-  double fft_,eft_;
+  float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
+  float fft_,eft_;
   int ndof_, niter_, status_;
   if(ntries <=0 ){
     // draw the fit result

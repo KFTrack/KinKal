@@ -1,8 +1,7 @@
 #ifndef KinKal_PTTraj_hh
 #define KinKal_PTTraj_hh
 //
-//  TTraj subclass describing a piecewise trajectory.  Templated on a
-//  simple TTraj.
+//  class describing a piecewise trajectory.  Templated on a simple time-based trajectory
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TDir.hh"
@@ -87,8 +86,6 @@ namespace KinKal {
     if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
-      //  the range
-      range() = newpiece.range();
     } else {
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().contains(range())){
@@ -113,7 +110,7 @@ namespace KinKal {
 	  pieces_.push_front(newpiece);
 	  pieces_.front().range().low() = tmin;
 	} else {
-//	  throw std::invalid_argument("range error");
+	  throw std::invalid_argument("range error");
 	}
       }
     }
@@ -124,8 +121,6 @@ namespace KinKal {
     if(newpiece.range().infinite())throw std::invalid_argument("Can't append infinite range traj");
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
-      // override the range
-      range() = newpiece.range();
     } else {
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().low() < range().low()){
@@ -152,7 +147,7 @@ namespace KinKal {
 	  pieces_.push_back(newpiece);
 	  pieces_.back().range().high() = tmax;
 	} else {
-//	  throw std::invalid_argument("range error");
+	  throw std::invalid_argument("range error");
 	}
       }
     }

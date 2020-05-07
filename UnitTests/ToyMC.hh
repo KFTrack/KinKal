@@ -159,7 +159,7 @@ namespace KKTest {
     Mom4 endmom = endpiece.momentum(tstraw);
     Vec4 endpos; endpos.SetE(tstraw);
     endpiece.position(endpos);
-    std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+    std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
     sxing.momEffects(pktraj,TDir::forwards, dmom, momvar);
     for(int idir=0;idir<=LocalBasis::phidir; idir++) {
       auto mdir = static_cast<LocalBasis::LocDir>(idir);
@@ -265,20 +265,22 @@ namespace KKTest {
     if(dBdt.R() != 0.0){
       TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
       pktraj.back().rangeInTolerance(prange,bfield_, tol_);
-      prange.low() = prange.high();
-      do {
-	pktraj.back().rangeInTolerance(prange,bfield_, tol_);
-//	std::cout << " Range " << prange << std::endl;
-	Vec4 pos; pos.SetE(prange.low());
-	Mom4 mom =  pktraj.momentum(prange.low());
-	pktraj.position(pos);
-	Vec3 bf = bfield_.fieldVect(pos.Vect());
-	KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
-	pktraj.append(newend);
+      if(prange.high() > htime) {
+	return;
+      } else {
 	prange.low() = prange.high();
-      } while(prange.high() < htime);
+	do {
+	  pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+	  Vec4 pos; pos.SetE(prange.low());
+	  Mom4 mom =  pktraj.momentum(prange.low());
+	  pktraj.position(pos);
+	  Vec3 bf = bfield_.fieldVect(pos.Vect());
+	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
+	  pktraj.append(newend);
+	  prange.low() = prange.high();
+	} while(prange.high() < htime);
+      }
     }
-//    std::cout << "Extended traj " << pktraj << std::endl;
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {

@@ -54,7 +54,7 @@ namespace KinKal {
    }
 
   template<class KTRAJ> void KKMat<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
-    if(this->isActive()){
+    if(active_){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards) {
 	kkdata.append(mateff_);
@@ -113,7 +113,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void KKMat<KTRAJ>::append(PKTRAJ& fit) {
-    if(isActive()){
+    if(active_){
       // create a trajectory piece from the cached weight
       double time = this->time();
       KTRAJ newpiece(ref_);
