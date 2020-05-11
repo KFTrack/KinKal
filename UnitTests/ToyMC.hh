@@ -1,3 +1,5 @@
+#ifndef KinKal_ToyMC_hh
+#define KinKal_ToyMC_hh
 //
 //  Toy MC for fit and hit testing
 //
@@ -296,5 +298,4 @@ namespace KKTest {
     pktraj = PKTRAJ(ktraj);
   }
 }
-
-
+#endif

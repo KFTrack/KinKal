@@ -195,11 +195,11 @@ class build_helper:
 #
     def dict_tmp_name(self):
         relpath = os.path.relpath('.',self.buildBase)
-        return '#/tmp/src/' + relpath + '/' + self.libname() + '_dict.cpp'
+        return '#/tmp/' + relpath + '/' + self.libname() + '_dict.cpp'
 
     def map_tmp_name(self):
         relpath = os.path.relpath('.',self.buildBase)
-        return '#/tmp/src/' + relpath + '/' + self.libname() + '_map.cpp'
+        return '#/tmp/' + relpath + '/' + self.libname() + '_map.cpp'
 
     def dict_libname(self):
         relpath = os.path.relpath('.',self.buildBase)

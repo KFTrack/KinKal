@@ -94,14 +94,6 @@ namespace KinKal {
 //      std::cout << "appending dP = " << bfeff_.parameters() << std::endl;
       newpiece.params() += bfeff_.parameters(); // bfield correction is a dead-reckoning correction
       newpiece.setRange(newrange);
-// exact solution to avoid spatial discontinuities
-//      Mom4 mom;
-//      Vec4 pos; pos.SetE(time);
-//      fit.position(pos);
-//      fit.momentum(time,mom);
-//      double mommag = mom.Vect().R();
-//      mom.Vect() -= dpfrac_*mommag;
-//      KTRAJ newpiece(pos,mom,fit.charge(),fit.back().bnom(),newrange);
       fit.append(newpiece);
     }
   }

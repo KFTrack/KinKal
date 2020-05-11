@@ -38,6 +38,9 @@ linkLists = {
 
 helper.make_unit_tests ( linkLists )
 
+helper.make_dict_and_map( [
+    ] )
+
 if env['RUNTESTS']:
     print ("Running unit tests" )
     helper.run_unit_tests()

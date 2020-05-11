@@ -16,6 +16,7 @@
 #include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
 #include "UnitTests/ToyMC.hh"
+#include "UnitTests/KKHitInfo.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -73,10 +74,6 @@ int FitTest(int argc, char **argv) {
     }
   };
 
-  struct KKHitInfo {
-    Float_t resid_, residvar_, chiref_, chifit_;
-    static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
-  };
 
   // define the typedefs: to change to a different trajectory implementation, just change this line
   typedef PKTraj<KTRAJ> PKTRAJ;
@@ -299,7 +296,9 @@ int FitTest(int argc, char **argv) {
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
   float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
   float fft_,eft_;
-  int ndof_, niter_, status_;
+  int ndof_, niter_, status_, igap_;
+  float maxgap_, avgap_;
+
   if(ntries <=0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
@@ -363,7 +362,7 @@ int FitTest(int argc, char **argv) {
 
   } else {
     TTree* ftree(0);
-    vector<KKHitInfo> hinfo;
+    KKHIV hinfo;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -384,6 +383,9 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("efmom", &efmom_,"efmom/F");
       ftree->Branch("fft", &fft_,"fft/F");
       ftree->Branch("eft", &eft_,"eft/F");
+      ftree->Branch("maxgap", &maxgap_,"maxgap/F");
+      ftree->Branch("avgap", &avgap_,"avgap/F");
+      ftree->Branch("igap", &igap_,"igap/I");
       ftree->Branch("hinfo",&hinfo);
     }
     // now repeat this to gain statistics
@@ -445,29 +447,39 @@ int FitTest(int argc, char **argv) {
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       // compare parameters at the first traj of both true and fit
       // correct the true parameters in case the BField isn't nominal
+      KTRAJ const& fftraj = kktrk.fitTraj().nearestPiece(tptraj.range().low());
+      KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
+      KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
+      KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
       typename KTRAJ::PDATA ftpars, btpars; 
-      if((kktrk.fitTraj().front().bnom() - tptraj.front().bnom()).R() < 1e-6){
-	ftpars = tptraj.front().params();
-	btpars = tptraj.back().params();
+      if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
+	ftpars = fftraj.params();
+	btpars = bftraj.params();
       } else {
 	Mom4 fmom, bmom;
 	Vec4 fpos, bpos;
-	tptraj.front().position(fpos);
-	tptraj.back().position(bpos);
-	fpos.SetE(tptraj.front().range().mid());
-	bpos.SetE(tptraj.back().range().mid());
-	fmom = tptraj.front().momentum(fpos.T());
-	bmom = tptraj.back().momentum(bpos.T());
-	KTRAJ ft(fpos,fmom,tptraj.charge(),kktrk.fitTraj().front().bnom());
-	KTRAJ bt(bpos,bmom,tptraj.charge(),kktrk.fitTraj().back().bnom());
+	fftraj.position(fpos);
+	bftraj.position(bpos);
+	fpos.SetE(fttraj.range().mid());
+	bpos.SetE(bttraj.range().mid());
+	fmom = fttraj.momentum(fpos.T());
+	bmom = bttraj.momentum(bpos.T());
+	KTRAJ ft(fpos,fmom,tptraj.charge(),fftraj.bnom());
+	KTRAJ bt(bpos,bmom,tptraj.charge(),bftraj.bnom());
 	ftpars = ft.params();
 	btpars = bt.params();
       }
       // fit parameters
-      auto const& ffpars = kktrk.fitTraj().front().params();
-      auto const& bfpars = kktrk.fitTraj().back().params();
-      
-     // momentum
+      auto const& ffpars = fftraj.params();
+      auto const& bfpars = bftraj.params();
+      double maxgap, avgap;
+      size_t igap;
+      kktrk.fitTraj().gaps(maxgap, igap, avgap);
+      maxgap_ = maxgap;
+      avgap_ = avgap;
+      igap_ = igap;
+
+      // momentum
       // accumulate parameter difference and pull
       vector<double> cerr(6,0.0), bcerr(6,0.0);
       for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
@@ -509,17 +521,17 @@ int FitTest(int argc, char **argv) {
       // fill tree
       for(size_t ipar=0;ipar<6;ipar++){
 	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-	ftpars_.pars_[ipar] = tptraj.front().params().parameters()[ipar];
-	etpars_.pars_[ipar] = tptraj.back().params().parameters()[ipar];
-	ffitpars_.pars_[ipar] = kktrk.fitTraj().front().params().parameters()[ipar];
-	efitpars_.pars_[ipar] = kktrk.fitTraj().back().params().parameters()[ipar];
-	ffiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().front().params().covariance()(ipar,ipar));
-	efiterrs_.pars_[ipar] = sqrt(kktrk.fitTraj().back().params().covariance()(ipar,ipar));
+	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+	etpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+	ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
+	efitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
+	ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
+	efiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
       }
-      ftmom_ = tptraj.front().momentumMag(tptraj.range().low());
-      etmom_ = tptraj.back().momentumMag(tptraj.range().high());
-      ffmom_ = kktrk.fitTraj().front().momentumMag(kktrk.fitTraj().range().low());
-      efmom_ = kktrk.fitTraj().back().momentumMag(kktrk.fitTraj().range().high());
+      ftmom_ = fttraj.momentumMag(tptraj.range().low());
+      etmom_ = bttraj.momentumMag(tptraj.range().high());
+      ffmom_ = fftraj.momentumMag(tptraj.range().low());
+      efmom_ = bftraj.momentumMag(tptraj.range().high());
       fft_ = kktrk.fitTraj().range().low();
       eft_ = kktrk.fitTraj().range().high();
       chisq_ = fstat.chisq_;
