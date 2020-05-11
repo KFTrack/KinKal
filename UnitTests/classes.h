@@ -1,0 +1,2 @@
+#include "UnitTests/KKHitInfo.hh"
+
