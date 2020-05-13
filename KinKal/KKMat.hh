@@ -54,7 +54,7 @@ namespace KinKal {
    }
 
   template<class KTRAJ> void KKMat<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
-    if(this->isActive()){
+    if(active_){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TDir::forwards) {
 	kkdata.append(mateff_);
@@ -96,9 +96,7 @@ namespace KinKal {
       for(int idir=0;idir<LocalBasis::ndir; idir++) {
 	auto mdir = static_cast<LocalBasis::LocDir>(idir);
 	// get the derivatives of the parameters WRT material effects
-	DVEC pder;
-	Vec3 pdir;
-	ref_.momDeriv(time(), mdir, pder, pdir);
+	DVEC pder = ref_.momDeriv(time(), mdir);
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
 	dPdm.Place_in_col(pder,0,0);
@@ -113,7 +111,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void KKMat<KTRAJ>::append(PKTRAJ& fit) {
-    if(isActive()){
+    if(active_){
       // create a trajectory piece from the cached weight
       double time = this->time();
       KTRAJ newpiece(ref_);

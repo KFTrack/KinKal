@@ -103,11 +103,9 @@ int PKTrajTest(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
-    typename KTRAJ::DVEC pder;
-    Vec3 mdir;
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    back.momDeriv(tcomp,tdir,pder,mdir);
+    typename KTRAJ::DVEC pder = back.momDeriv(tcomp,tdir);
     // create modified helix
     auto dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
@@ -137,11 +135,9 @@ int PKTrajTest(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    typename KTRAJ::DVEC pder;
-    Vec3 mdir;
     KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
-    front.momDeriv(tcomp,tdir,pder,mdir);
+    typename KTRAJ::DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
     auto dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());

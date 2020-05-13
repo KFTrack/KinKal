@@ -148,9 +148,8 @@ int test(int argc, char **argv) {
       double delta = dmin + del*id; 
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
-      typename KTRAJ::DVEC pder;
-      Vec3 dmomdir;
-      refhel.momDeriv(ttest,tdir,pder,dmomdir);
+      Vec3 dmomdir = refhel.direction(ttest,tdir);
+      typename KTRAJ::DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
@@ -174,8 +173,8 @@ int test(int argc, char **argv) {
       // project along 3 directions
       for(int jdir=0;jdir < 3;jdir++){
 	LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
-	Vec3 jmomdir;
-	refhel.momDeriv(ttest,tjdir,pder,jmomdir);
+	Vec3 jmomdir = refhel.direction(ttest,tjdir);
+	pder = refhel.momDeriv(ttest,tjdir);
 	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
       }
       // parameter diff

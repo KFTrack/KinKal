@@ -178,7 +178,7 @@ namespace KinKal {
     }
   }
 
-  void IPHelix::momDeriv(double time, LocalBasis::LocDir mdir, DVEC &pder,Vec3& unit) const
+  IPHelix::DVEC IPHelix::momDeriv(double time, LocalBasis::LocDir mdir) const
   {
     // FIXME: these formulas need to be verified
     // compute some useful quantities
@@ -187,7 +187,7 @@ namespace KinKal {
     double omval = omega();
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
-    unit = direction(time,mdir);
+    DVEC pder;
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
@@ -220,6 +220,7 @@ namespace KinKal {
       default:
         throw std::invalid_argument("Invalid direction");
     }
+    return pder;
   }
 
   std::ostream& operator <<(std::ostream& ost, IPHelix const& hhel) {

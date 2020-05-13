@@ -46,6 +46,7 @@ namespace KinKal {
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
+      Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
       Vec3 velocity(double time) const;
@@ -60,7 +61,7 @@ namespace KinKal {
       double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(double time) const;
       double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
-      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC& der, Vec3& unit) const;
+      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const;
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
@@ -110,17 +111,13 @@ namespace KinKal {
       int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_; // nominal BField
-      bool needsrot_; // logical flag if Bnom is parallel to global Z or not
-      ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system (along B) to the global
+      ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;
       static std::string trajName_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
-      // private utility, to optimize rotation
-      Vec3 rawDirection( double time, LocalBasis::LocDir mdir) const;
-      Vec3 rawPosition(double time) const;
  };
   std::ostream& operator <<(std::ostream& ost, LHelix const& lhel);
 }

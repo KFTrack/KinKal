@@ -65,7 +65,7 @@ namespace KinKal {
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      void momDeriv(double time, LocalBasis::LocDir mdir, DVEC &der,Vec3& unit) const;
+      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
 

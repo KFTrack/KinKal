@@ -1,3 +1,5 @@
+#ifndef KinKal_ToyMC_hh
+#define KinKal_ToyMC_hh
 //
 //  Toy MC for fit and hit testing
 //
@@ -159,7 +161,7 @@ namespace KKTest {
     Mom4 endmom = endpiece.momentum(tstraw);
     Vec4 endpos; endpos.SetE(tstraw);
     endpiece.position(endpos);
-    std::array<double,3> dmom = {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
+    std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
     sxing.momEffects(pktraj,TDir::forwards, dmom, momvar);
     for(int idir=0;idir<=LocalBasis::phidir; idir++) {
       auto mdir = static_cast<LocalBasis::LocDir>(idir);
@@ -178,9 +180,7 @@ namespace KKTest {
 	  throw std::invalid_argument("Invalid direction");
       }
       //	cout << "mom change dir " << LocalBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-      Vec3 dmvec;
-      DVEC pder;
-      endpiece.momDeriv(tstraw,mdir,pder,dmvec);
+      Vec3 dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
@@ -229,10 +229,8 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed){
     auto& seedpar = seed.params();
     // propagate the momentum and position variances to parameter variances
-    DVEC pder;
-    Vec3 unit;
     for(int idir=0;idir<LocalBasis::ndir;idir++){
-      seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir),pder,unit);
+      DVEC pder = seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir));
       // convert derivative vector to a Nx1 matrix
       ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
       dPdm.Place_in_col(pder,0,0);
@@ -265,20 +263,22 @@ namespace KKTest {
     if(dBdt.R() != 0.0){
       TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
       pktraj.back().rangeInTolerance(prange,bfield_, tol_);
-      prange.low() = prange.high();
-      do {
-	pktraj.back().rangeInTolerance(prange,bfield_, tol_);
-//	std::cout << " Range " << prange << std::endl;
-	Vec4 pos; pos.SetE(prange.low());
-	Mom4 mom =  pktraj.momentum(prange.low());
-	pktraj.position(pos);
-	Vec3 bf = bfield_.fieldVect(pos.Vect());
-	KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
-	pktraj.append(newend);
+      if(prange.high() > htime) {
+	return;
+      } else {
 	prange.low() = prange.high();
-      } while(prange.high() < htime);
+	do {
+	  pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+	  Vec4 pos; pos.SetE(prange.low());
+	  Mom4 mom =  pktraj.momentum(prange.low());
+	  pktraj.position(pos);
+	  Vec3 bf = bfield_.fieldVect(pos.Vect());
+	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
+	  pktraj.append(newend);
+	  prange.low() = prange.high();
+	} while(prange.high() < htime);
+      }
     }
-//    std::cout << "Extended traj " << pktraj << std::endl;
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {
@@ -294,5 +294,4 @@ namespace KKTest {
     pktraj = PKTRAJ(ktraj);
   }
 }
-
-
+#endif
