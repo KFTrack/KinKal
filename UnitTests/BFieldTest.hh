@@ -143,10 +143,10 @@ int BFieldTest(int argc, char **argv) {
     double gap = xptraj.gap(xptraj.pieces().size()-1);
     if(gap > 1e-6) cout << "Apended traj gap " << gap << endl;
     // same thing, but using the linear parameter corrections
-    Vec3 t1hat, t2hat;
-    DVEC dpdt1, dpdt2;
-    lptraj.back().momDeriv(pos.T(),LocalBasis::perpdir,dpdt1,t1hat);
-    lptraj.back().momDeriv(pos.T(),LocalBasis::phidir,dpdt2,t2hat);
+    Vec3 t1hat = lptraj.back().direction(pos.T(),LocalBasis::perpdir);
+    Vec3 t2hat = lptraj.back().direction(pos.T(),LocalBasis::phidir);
+    DVEC dpdt1 = lptraj.back().momDeriv(pos.T(),LocalBasis::perpdir);
+    DVEC dpdt2 = lptraj.back().momDeriv(pos.T(),LocalBasis::phidir);
     auto dpfrac = dp/mom.R();
     DVEC dpars = dpfrac.Dot(t1hat)*dpdt1 + dpfrac.Dot(t2hat)*dpdt2;
     KTRAJ lnew = lptraj.back();

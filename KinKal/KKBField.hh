@@ -60,10 +60,10 @@ namespace KinKal {
     double time = this->time();
     // translate the momentum change to the parameter change.
     // First get the derivatives and perp basis for the BField x-product at this point
-    Vec3 t1hat, t2hat;
-    DVEC dpdt1, dpdt2;
-    locref.momDeriv(time,LocalBasis::perpdir,dpdt1,t1hat);
-    locref.momDeriv(time,LocalBasis::phidir,dpdt2,t2hat);
+    Vec3 t1hat = locref.direction(time,LocalBasis::perpdir);
+    Vec3 t2hat = locref.direction(time,LocalBasis::phidir);
+    DVEC dpdt1 = locref.momDeriv(time,LocalBasis::perpdir);
+    DVEC dpdt2 = locref.momDeriv(time,LocalBasis::phidir);
     // project the momentum change onto these directions to get the parameter change
     // should add noise due to field measurement and gradientXposition uncertainties FIXME!
     bfeff_.parameters() = dpfrac_.Dot(t1hat)*dpdt1 + dpfrac_.Dot(t2hat)*dpdt2;

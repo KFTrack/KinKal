@@ -114,12 +114,11 @@ int TPocaTest(int argc, char **argv) {
   for(unsigned itime=0;itime < ntstep;itime++){
     double time = tmin + itime*(tmax-tmin)/(ntstep-1);
     // create tline perp to trajectory at the specified time, separated by the specified gap
-    Vec3 pos, dir, perp1, perp2;
+    Vec3 pos, dir;
     pos = lhel.position(time);
     dir = lhel.direction(time);
-    typename KTRAJ::DVEC der;
-    lhel.momDeriv(time,LocalBasis::perpdir,der,perp1);
-    lhel.momDeriv(time,LocalBasis::phidir,der,perp2); 
+    Vec3 perp1 = lhel.direction(time,LocalBasis::perpdir);
+    Vec3 perp2 = lhel.direction(time,LocalBasis::phidir);
     // choose a specific direction for DOCA
     // the line traj must be perp. to this and perp to the track
     Vec3 docadir = cos(eta)*perp1 + sin(eta)*perp2;

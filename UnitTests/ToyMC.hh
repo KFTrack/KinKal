@@ -180,9 +180,7 @@ namespace KKTest {
 	  throw std::invalid_argument("Invalid direction");
       }
       //	cout << "mom change dir " << LocalBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-      Vec3 dmvec;
-      DVEC pder;
-      endpiece.momDeriv(tstraw,mdir,pder,dmvec);
+      Vec3 dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
@@ -231,10 +229,8 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed){
     auto& seedpar = seed.params();
     // propagate the momentum and position variances to parameter variances
-    DVEC pder;
-    Vec3 unit;
     for(int idir=0;idir<LocalBasis::ndir;idir++){
-      seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir),pder,unit);
+      DVEC pder = seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir));
       // convert derivative vector to a Nx1 matrix
       ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
       dPdm.Place_in_col(pder,0,0);
