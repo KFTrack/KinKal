@@ -30,6 +30,8 @@ namespace KinKal {
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
+      typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
+      typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -100,6 +102,10 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos / vz(); }
       Vec3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
+      DPDV dPardX(double time) const { return DPDV(); } // TODO
+      DPDV dPardM(double time) const { return DPDV(); } // TODO
+      DVDP dXdPar(double time) const { return DVDP(); } // TODO
+      DVDP dMdPar(double time) const { return DVDP(); } // TODO
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()
       {

@@ -8,6 +8,7 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
+  typedef ROOT::Math::SVector<double,3> SVec3;
   vector<string> LHelix::paramTitles_ = {
     "Transverse Radius",
     "Longiduinal Wavelength",
@@ -169,6 +170,116 @@ namespace KinKal {
 	throw invalid_argument("Invalid direction");
     }
     return pder;
+  }
+  
+  LHelix::LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range) :
+    LHelix(pos,mom,charge,bnom,range){} //TODO!
+  LHelix::  LHelix(PDATA const& pdata, DMAT const& pcov, double mass, int charge, double bnom, TRange const& range) :
+    LHelix(pdata,mass,charge,bnom,range){} //TODO!!
+
+  VMAT LHelix::momCovar(double time) const {
+    return VMAT(); //TODO!
+  }
+  VMAT LHelix::posCovar(double time) const {
+    return VMAT(); //TODO!
+  }
+  LHelix::DPDV LHelix::dPardX(double time) const {
+    // euclidean space is column, parameter space is row
+    double omval = omega();
+    SVec3 zdir(0.0,0.0,1.0);
+    SVec3 dCx_dX (1.0,0.0,0.0);
+    SVec3 dCy_dX (0.0,1.0,0.0);
+    SVec3 dphi0_dX = -zdir/lam();
+    SVec3 dt0_dX = -zdir/(omval*lam());
+    LHelix::DPDV dPdX;
+    dPdX.Place_in_row(dCx_dX,cx_,0);
+    dPdX.Place_in_row(dCy_dX,cy_,0);
+    dPdX.Place_in_row(dphi0_dX,phi0_,0);
+    dPdX.Place_in_row(dt0_dX,t0_,0);
+    return dPdX;
+  }
+
+  LHelix::DPDV LHelix::dPardM(double time) const {
+    // euclidean space is column, parameter space is row
+    double omval = omega();
+    double dt = time-t0();
+    double dphi = omval*dt;
+    double phival = dphi + phi0();
+    double sphi = sin(phival);
+    double cphi = cos(phival);
+    double inve2 = 1.0/ebar2();
+    SVec3 T2(-sphi,cphi,0.0);
+    SVec3 T3(cphi,sphi,0.0);
+    SVec3 zdir(0.0,0.0,1.0);
+    SVec3 mdir = rad()*T3 + lam()*zdir; 
+    SVec3 dR_dM = T3; 
+    SVec3 dL_dM = zdir; 
+    SVec3 dCx_dM (0.0,-1.0,0.0);
+    SVec3 dCy_dM (1.0,0.0,0.0);
+    SVec3 dphi0_dM = T2/rad() + (dphi/lam())*zdir;
+    SVec3 dt0_dM = -dt*(inve2*mdir - zdir/lam());
+    LHelix::DPDV dPdM;
+    dPdM.Place_in_row(dR_dM,rad_,0);
+    dPdM.Place_in_row(dL_dM,lam_,0);
+    dPdM.Place_in_row(dCx_dM,cx_,0);
+    dPdM.Place_in_row(dCy_dM,cy_,0);
+    dPdM.Place_in_row(dphi0_dM,phi0_,0);
+    dPdM.Place_in_row(dt0_dM,t0_,0);
+    dPdM *= 1.0/Q();
+    return dPdM;
+  }
+
+  LHelix::DVDP LHelix::dXdPar(double time) const {
+    // euclidean space is row, parameter space is column
+    double omval = omega();
+    double dt = time-t0();
+    double dphi = omval*dt;
+    double phival = dphi + phi0();
+    double sphi = sin(phival);
+    double cphi = cos(phival);
+    double inve2 = 1.0/ebar2();
+    SVec3 T2(-sphi,cphi,0.0);
+    SVec3 T3(cphi,sphi,0.0);
+    SVec3 zdir(0.0,0.0,1.0);
+    SVec3 mdir = rad()*T3 + lam()*zdir; 
+    SVec3 dX_dR = -T2  -rad()*dphi*inve2*mdir;
+    SVec3 dX_dL = dphi*zdir  -lam()*dphi*inve2*mdir;
+    SVec3 dX_dCx (1.0,0.0,0.0); // along X
+    SVec3 dX_dCy (0.0,1.0,0.0); // along Y
+    SVec3 dX_dphi0 = rad()*T3;
+    SVec3 dX_dt0 = -omval*mdir;
+    LHelix::DVDP dXdP;
+    dXdP.Place_in_col(dX_dR,0,rad_);
+    dXdP.Place_in_col(dX_dL,0,lam_);
+    dXdP.Place_in_col(dX_dCx,0,cx_);
+    dXdP.Place_in_col(dX_dCy,0,cy_);
+    dXdP.Place_in_col(dX_dphi0,0,phi0_);
+    dXdP.Place_in_col(dX_dt0,0,t0_);
+    return dXdP;
+  }
+
+  LHelix::DVDP LHelix::dMdPar(double time) const {
+    double omval = omega();
+    double dt = time-t0();
+    double dphi = omval*dt;
+    double phival = dphi + phi0();
+    double sphi = sin(phival);
+    double cphi = cos(phival);
+    double inve2 = 1.0/ebar2();
+    SVec3 T2(-sphi,cphi,0.0);
+    SVec3 T3(cphi,sphi,0.0);
+    SVec3 zdir(0.0,0.0,1.0);
+    SVec3 dM_dR = T3 -rad()*rad()*dphi*inve2*T2;
+    SVec3 dM_dL = zdir  -rad()*lam()*dphi*inve2*T2;
+    SVec3 dM_dphi0 = rad()*T2;
+    SVec3 dM_dt0 = -rad()*omval*T2;
+    LHelix::DVDP dMdP;
+    dMdP.Place_in_col(dM_dR,0,rad_);
+    dMdP.Place_in_col(dM_dL,0,lam_);
+    dMdP.Place_in_col(dM_dphi0,0,phi0_);
+    dMdP.Place_in_col(dM_dt0,0,t0_);
+    dMdP *= Q(); // scale to momentum
+    return dMdP;
   }
 
   void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, double tol) const {

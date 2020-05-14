@@ -214,6 +214,38 @@ int test(int argc, char **argv) {
     dmomcan[idir]->Write();
   }
 
+  // test parameter<->phase space translation
+  auto dPdX = refhel.dPardX(ttest);  
+  auto dPdM = refhel.dPardM(ttest);  
+  auto dXdP = refhel.dXdPar(ttest);  
+  auto dMdP = refhel.dMdPar(ttest);  
+  auto ptest = dPdX*dXdP + dPdM*dMdP;
+  cout << " PTest " << ptest << endl;
+  auto xtest = dXdP*dPdX;
+  cout << " XTest " << xtest << endl;
+  auto mtest = dMdP*dPdM;
+  cout << " MTest " << mtest << endl;
+
+  auto momderiv = refhel.momDeriv(ttest,LocalBasis::momdir);
+  auto phideriv = refhel.momDeriv(ttest,LocalBasis::phidir);
+  auto perpderiv = refhel.momDeriv(ttest,LocalBasis::perpdir);
+  auto momdir = refhel.direction(ttest,LocalBasis::momdir);
+  auto phidir = refhel.direction(ttest,LocalBasis::phidir);
+  auto perpdir = refhel.direction(ttest,LocalBasis::perpdir);
+  typename KTRAJ::DPDV dPdMtest;
+  typedef ROOT::Math::SVector<double,3> SVec3;
+  for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
+    SVec3 dvec;
+    dvec[0] =momdir.X()*momderiv[ipar]+phidir.X()*phideriv[ipar]+perpdir.X()*perpderiv[ipar];
+    dvec[1] =momdir.Y()*momderiv[ipar]+phidir.Y()*phideriv[ipar]+perpdir.Y()*perpderiv[ipar];
+    dvec[2] =momdir.Z()*momderiv[ipar]+phidir.Z()*phideriv[ipar]+perpdir.Z()*perpderiv[ipar];
+    dPdMtest.Place_in_row(dvec,ipar,0);
+  }
+  dPdMtest /= refhel.momentumMag(ttest);
+//  cout << "dMdP     " << dMdP << endl;
+  cout << "dPdM     " << dPdM << endl;
+  cout << "dPdMtest " << dPdMtest << endl;
+
   lhderiv.Write();
   lhderiv.Close();
   return 0;

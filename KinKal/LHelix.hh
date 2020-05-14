@@ -26,10 +26,10 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
-      constexpr static ParamIndex t0Index() { return t0_; }
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
+      typedef typename PDATA::DMAT DMAT; // parameter covariance matrix type
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
@@ -38,14 +38,21 @@ namespace KinKal {
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
 
+      typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
+      typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
+
       // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // same, including covariance matrices for the 3-momentum and 3-vector position
+      LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range=TRange());
       // construct from parameters
       LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
+      // Same, including the covariance matrix on the parameters
+      LHelix(PDATA const& pdata, DMAT const& pcov, double mass, int charge, double bnom, TRange const& range=TRange());
       Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
@@ -100,10 +107,15 @@ namespace KinKal {
 	mbar_ *= -1.0;
 	charge_ *= -1;
 	pars_.parameters()[t0_] *= -1.0;
-//	pars_.parameters()[lam_] *= -1.0;
-//	pars_.parameters()[rad_] *= -1.0;
       }
-      //
+      // covariance of position and momentum
+      VMAT momCovar(double time) const;
+      VMAT posCovar(double time) const;
+      // functions related to euclidean space to parameter space derivatives
+      DPDV dPardX(double time) const; // return the derivative of the parameters WRT the (global) position vector
+      DPDV dPardM(double time) const; // return the derivative of the parameters WRT the (global) momentum vector
+      DVDP dXdPar(double time) const; // return the derivative of the (global) position vector WRT the parameters
+      DVDP dMdPar(double time) const; // return the derivative of the (global) momentum vector WRT parameters
     private :
       TRange trange_;
       PDATA pars_; // parameters
