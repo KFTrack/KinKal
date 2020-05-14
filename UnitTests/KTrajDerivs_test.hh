@@ -220,11 +220,29 @@ int test(int argc, char **argv) {
   auto dXdP = refhel.dXdPar(ttest);  
   auto dMdP = refhel.dMdPar(ttest);  
   auto ptest = dPdX*dXdP + dPdM*dMdP;
-  cout << " PTest " << ptest << endl;
+  for(size_t irow=0;irow<KTRAJ::NParams();irow++) {
+    for(size_t icol=0;icol<KTRAJ::NParams();icol++) {
+      double val(0.0);
+      if(irow==icol)val = 1.0;
+      if(fabs(ptest(irow,icol) - val) > 1e-9)  cout <<"Error in parameter derivative test" << endl;
+    }
+  }
   auto xtest = dXdP*dPdX;
-  cout << " XTest " << xtest << endl;
+  for(size_t irow=0;irow<3;irow++) {
+    for(size_t icol=0;icol<3;icol++) {
+      double val(0.0);
+      if(irow==icol)val = 1.0;
+      if(fabs(xtest(irow,icol) - val) > 1e-9) cout <<"Error in position derivative test" << endl;
+    }
+  }
   auto mtest = dMdP*dPdM;
-  cout << " MTest " << mtest << endl;
+  for(size_t irow=0;irow<3;irow++) {
+    for(size_t icol=0;icol<3;icol++) {
+      double val(0.0);
+      if(irow==icol)val = 1.0;
+      if(fabs(mtest(irow,icol) - val) > 1e-9) cout <<"Error in momentum derivative test" << endl;
+    }
+  }
 
   auto momderiv = refhel.momDeriv(ttest,LocalBasis::momdir);
   auto phideriv = refhel.momDeriv(ttest,LocalBasis::phidir);
@@ -242,9 +260,11 @@ int test(int argc, char **argv) {
     dPdMtest.Place_in_row(dvec,ipar,0);
   }
   dPdMtest /= refhel.momentumMag(ttest);
-//  cout << "dMdP     " << dMdP << endl;
-  cout << "dPdM     " << dPdM << endl;
-  cout << "dPdMtest " << dPdMtest << endl;
+  for(size_t irow=0;irow<KTRAJ::NParams();irow++) {
+    for(size_t icol=0;icol<3;icol++) {
+      if(fabs(dPdM(irow,icol) - dPdMtest(irow,icol)) > 1e-9) cout <<"Error in dPdM test" << endl;
+    }
+  }
 
   lhderiv.Write();
   lhderiv.Close();
