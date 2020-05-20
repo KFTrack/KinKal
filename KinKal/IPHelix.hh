@@ -41,14 +41,14 @@ namespace KinKal {
       // construct from momentum, position, and particle properties.
       // This also requires the BField
       IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      // construct from parameters
-      IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
+      // copy and override parameters
+      IPHelix(PDATA const &pdata, IPHelix const& other); 
       // particle position and momentum as a function of time
-      void position(Vec4& pos) const ; // time is input
-      Vec3 position(double time) const ; // time is input
-      Mom4 momentum(double time) const ;
-      Vec3 velocity(double time) const ;
+      void position(Vec4& pos) const; // time is input
+      Vec4 pos4(double time) const;
+      Vec3 position(double time) const; // time is input
+      Mom4 momentum(double time) const;
+      Vec3 velocity(double time) const;
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       // scalar momentum and energy in MeV/c units
       double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
@@ -56,7 +56,7 @@ namespace KinKal {
       double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
       double speed(double time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
+      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const;
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }

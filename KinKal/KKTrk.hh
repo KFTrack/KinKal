@@ -247,11 +247,6 @@ namespace KinKal {
     }
     // sort the effects by time
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
-    if(kkconfig_->plevel_ > 1){
-      std::cout << "Update for config " << mconfig  << " effects: " << std::endl;
-      for(auto const& eff: effects_)
-	eff->print(std::cout,kkconfig_->plevel_);
-    }
   }
 
   template<class KTRAJ> bool KKTrk<KTRAJ>::canIterate() const {
@@ -296,11 +291,11 @@ namespace KinKal {
     fitTraj().print(ost,detail);
     if(detail > 1) {
       ost << " Reference ";
-      refTraj().print(ost,detail);
+      refTraj().print(ost,detail-2);
     }
     if(detail > 2) {
       ost << " Effects " << endl;
-      for(auto const& eff : effects()) eff.get()->print(ost,detail);
+      for(auto const& eff : effects()) eff.get()->print(ost,detail-3);
     }
   }
 

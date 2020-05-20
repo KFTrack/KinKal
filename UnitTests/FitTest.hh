@@ -254,7 +254,9 @@ int FitTest(int argc, char **argv) {
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
   auto const& midhel = tptraj.nearestPiece(0.0);
-  KTRAJ seedtraj(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+  auto seedmom = midhel.momentum(0.0);
+  seedmom.SetM(fitmass);
+  KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,midhel.range());
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
   cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
@@ -437,8 +439,11 @@ int FitTest(int argc, char **argv) {
       thits.clear();
       dxings.clear();
       toy.simulateParticle(tptraj,thits,dxings);
-      auto const& midhel = tptraj.nearestPiece(tptraj.range().mid());
-      KTRAJ seedtraj(midhel.params(),fitmass,midhel.charge(),bnom,midhel.range());
+      double tmid = tptraj.range().mid();
+      auto const& midhel = tptraj.nearestPiece(tmid);
+      auto seedmom = midhel.momentum(tmid);
+      seedmom.SetM(fitmass);
+      KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,midhel.range());
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
       auto start = Clock::now();

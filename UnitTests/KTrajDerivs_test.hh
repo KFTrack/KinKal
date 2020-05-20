@@ -157,7 +157,7 @@ int test(int argc, char **argv) {
 //      cout << "derivative vector" << pder << endl;
       auto dvec = refhel.params().parameters() + delta*pder;
       typename KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
-      KTRAJ dhel(pdata,refhel.mass(),refhel.charge(),bnom);
+      KTRAJ dhel(pdata,refhel);
       // test
       Vec4 xpos, dpos;
       xpos.SetE(ttest);
