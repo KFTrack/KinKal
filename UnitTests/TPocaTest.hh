@@ -153,7 +153,7 @@ int TPocaTest(int argc, char **argv) {
 	double dpar = dstart + dstep*istep;
 	dvec[ipar] += dpar; 
 	typename KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
-	KTRAJ dlhel(pdata,lhel.mass(),lhel.charge(),bnom);
+	KTRAJ dlhel(pdata,lhel);
 	TPOCA dtp(dlhel,tline);
 	double xd = dtp.doca();
 	double xt = dtp.deltaT();

@@ -43,9 +43,8 @@ namespace KinKal {
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
-      // construct from parameters
-      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
+      // copy and override the parameters  
+      LHelix(PDATA const& pdata, LHelix const& other);
       Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
