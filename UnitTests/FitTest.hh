@@ -61,7 +61,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --nmeta i --maxniter i --deweight f --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i --Schedule a\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --addbf i --invert i --Schedule a\n");
 }
 
 template <class KTRAJ>
@@ -109,15 +109,12 @@ int FitTest(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   double dwt(1.0e6);
-  unsigned nmeta(2);
-  double maxtemp(0.0);
   unsigned ntries(1000);
-  double convdchisq(0.1);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(0), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
-  bool updatehits(false), addbf(false), fitmat(true);
+  bool addbf(false), fitmat(true);
   vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   BField *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -138,13 +135,10 @@ int FitTest(int argc, char **argv) {
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'i'  },
     {"deweight",     required_argument, 0, 'w'  },
-    {"nmeta",     required_argument, 0, 'M'  },
-    {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
     {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"ntries",     required_argument, 0, 'N'  },
-    {"convdchisq",     required_argument, 0, 'C'  },
     {"ttree",     required_argument, 0, 'r'  },
     {"tolerance",     required_argument, 0, 't'  },
     {"TFile",     required_argument, 0, 'T'  },
@@ -181,21 +175,15 @@ int FitTest(int argc, char **argv) {
 		 break;
       case 's' : iseed = atoi(optarg);
 		 break;
-      case 'M' : nmeta = atoi(optarg);
-		 break;
       case 'i' : maxniter = atoi(optarg);
 		 break;
       case 'w' : dwt = atof(optarg);
-		 break;
-      case 'X' : maxtemp = atof(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
       case 'f' : fitmat = atoi(optarg);
 		 break;
       case 'L' : lighthit = atoi(optarg);
-		 break;
-      case 'U' : updatehits = atoi(optarg);
 		 break;
       case 'B' : addbf = atoi(optarg);
 		 break;
@@ -204,8 +192,6 @@ int FitTest(int argc, char **argv) {
       case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'N' : ntries = atoi(optarg);
-		 break;
-      case 'C' : convdchisq= atof(optarg);
 		 break;
       case 'x' : dBx = atof(optarg);
 		 break;
