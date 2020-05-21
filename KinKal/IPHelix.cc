@@ -28,6 +28,7 @@ namespace KinKal {
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
   string const& IPHelix::trajName() { return trajName_; }
 
+  IPHelix::IPHelix(Vec4 const &pos0, Mom4 const &mom0, int charge, double bnom, TRange const &range) : IPHelix(pos0, mom0, charge, Vec3(0.0, 0.0, bnom), range) {}
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
                  TRange const &trange) : trange_(trange), mass_(mom.M()), charge_(charge), bnom_(bnom)
   {
@@ -60,7 +61,6 @@ namespace KinKal {
     param(z0_) = dphi * tanDip() / omega();
 
     param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
-
     vt_ = CLHEP::c_light * pt / mom.E();
     vz_ = CLHEP::c_light * mom.z() / mom.E();
   }
@@ -82,8 +82,22 @@ namespace KinKal {
     return dphi;
   }
 
+<<<<<<< HEAD
   IPHelix::IPHelix(PDATA const &pdata, IPHelix const& other) : IPHelix(other) {
     pars_ = pdata;
+=======
+  IPHelix::IPHelix(PDATA const &pdata, double mass, int charge, double bnom, TRange const &range) : IPHelix(pdata, mass, charge, Vec3(0.0, 0.0, bnom), range) {}
+  IPHelix::IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pdata), bnom_(bnom)
+  {
+    double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
+    // reduced mass; note sign convention!
+    mbar_ = -mass_ * momToRad;
+    double pt = fabs(1 / omega() / momToRad);
+    double momz = -tanDip() / omega() / momToRad;
+    double e = -ebar() / momToRad;
+    vz_ = CLHEP::c_light * momz / e;
+    vt_ = CLHEP::c_light * pt / e;
+>>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
   }
 
   void IPHelix::position(Vec4 &pos) const
@@ -117,10 +131,18 @@ namespace KinKal {
   Mom4 IPHelix::momentum(double tval) const
   {
     double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
+<<<<<<< HEAD
     return Mom4( Q() / omega() * cos(phi0() + omega() * l),
 	Q() / omega() * sin(phi0() + omega() * l),
 	Q() / omega() * tanDip(),
 	mass_);
+=======
+    mom.SetPx(Q() / omega() * cos(phi0() + omega() * l));
+    mom.SetPy(Q() / omega() * sin(phi0() + omega() * l));
+    mom.SetPz(Q() / omega() * tanDip());
+    mom.SetM(mass_);
+
+>>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
   }
 
   void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
@@ -172,7 +194,6 @@ namespace KinKal {
 
   IPHelix::DVEC IPHelix::momDeriv(double time, LocalBasis::LocDir mdir) const
   {
-    // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
     double cosval = cosDip();
