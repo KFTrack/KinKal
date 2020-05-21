@@ -82,22 +82,8 @@ namespace KinKal {
     return dphi;
   }
 
-<<<<<<< HEAD
   IPHelix::IPHelix(PDATA const &pdata, IPHelix const& other) : IPHelix(other) {
     pars_ = pdata;
-=======
-  IPHelix::IPHelix(PDATA const &pdata, double mass, int charge, double bnom, TRange const &range) : IPHelix(pdata, mass, charge, Vec3(0.0, 0.0, bnom), range) {}
-  IPHelix::IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range) : TTraj(range), KInter(mass, charge), pars_(pdata), bnom_(bnom)
-  {
-    double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
-    // reduced mass; note sign convention!
-    mbar_ = -mass_ * momToRad;
-    double pt = fabs(1 / omega() / momToRad);
-    double momz = -tanDip() / omega() / momToRad;
-    double e = -ebar() / momToRad;
-    vz_ = CLHEP::c_light * momz / e;
-    vt_ = CLHEP::c_light * pt / e;
->>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
   }
 
   void IPHelix::position(Vec4 &pos) const

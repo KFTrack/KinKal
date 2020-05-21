@@ -58,17 +58,10 @@ namespace KinKal {
         break;
       }
       doca = sqrt(dd2);
-<<<<<<< HEAD
       // update convergence test
       if(isnan(doca)){
 	status_ = pocafailed;
 	break;
-=======
-      ddoca -= doca;
-      if(isnan(ddoca)){
-        status_ = pocafailed;
-        break;
->>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
       }
     }
     // if successfull, finalize TPoca
