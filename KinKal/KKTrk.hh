@@ -152,6 +152,7 @@ namespace KinKal {
       effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::backwards,config().dwt_));
       // now fit the track
       fit();
+      if(kkconfig_->plevel_ > KKConfig::none)print(std::cout, kkconfig_->plevel_);
     }
 
   // fit iteration management 
@@ -163,7 +164,9 @@ namespace KinKal {
       // algebraic convergence iteration
       FitStatus fstat(mconfig.miter_);
       history_.push_back(fstat);
+      if(kkconfig_->plevel_ >= KKConfig::basic)std::cout << "Processing fit meta-iteration " << mconfig << std::endl;
       while(canIterate()) {
+	// catch exceptions and record them in the status
 	try {
 	  update(fstat,mconfig);
 	  fitIteration(fstat,mconfig);
@@ -174,15 +177,12 @@ namespace KinKal {
 	// record this status in the history
 	history_.push_back(fstat);
       }
-//      if(!fitStatus().usable())break;
-// discontinuing if a single iteration fails is too harsh, the fit often recovers at the next stage: a better strategy
-// would be to reseed the fit FIXME!
     }
   }
 
   // single algebraic iteration 
   template <class KTRAJ> void KKTrk<KTRAJ>::fitIteration(FitStatus& fstat, MConfig const& mconfig) {
-  // catch exceptions and record them in the status
+    if(kkconfig_->plevel_ >= KKConfig::complete)std::cout << "Processing fit iteration " << fstat.iter_ << std::endl;
     // reset counters
     fstat.chisq_ = 0.0;
     fstat.ndof_ = -(int)KTRAJ::NParams();
@@ -195,9 +195,14 @@ namespace KinKal {
       auto ieff = feff->get();
       // update chisquared; only needed forwards
       fstat.ndof_ += ieff->nDOF();
-      fstat.chisq_ += ieff->chisq(ffitdata.pData());
+      double dchisq = ieff->chisq(ffitdata.pData());
+      fstat.chisq_ += dchisq;
       // process
       ieff->process(ffitdata,TDir::forwards);
+      if(kkconfig_->plevel_ >= KKConfig::detailed){
+	std::cout << "Chisq total " << fstat.chisq_ << " increment " << dchisq << " ";
+	ieff->print(std::cout,kkconfig_->plevel_);
+      }
       feff++;
     }
     fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
@@ -221,12 +226,13 @@ namespace KinKal {
     fittraj_.front().range().low() = (*feff)->time() - config().tbuff_;
     fittraj_.back().range().high() = (*beff)->time() + config().tbuff_;
     // update status.  Convergence criteria is iteration-dependent
-    if(fabs(fstat.chisq_ -fitStatus().chisq_) < mconfig.convdchisq_) {
-      fstat.status_ = FitStatus::converged;
-    } else if (fstat.chisq_-fitStatus().chisq_ > mconfig.divdchisq_) {
-      fstat.status_ = FitStatus::diverged;
-    } else if (fstat.ndof_ < config().minndof_){
+    double dchisq = (fstat.chisq_ -fitStatus().chisq_)/fstat.ndof_;
+    if (fstat.ndof_ < config().minndof_){
       fstat.status_ = FitStatus::lowNDOF;
+    } else if(fabs(dchisq) < mconfig.convdchisq_) {
+      fstat.status_ = FitStatus::converged;
+    } else if (dchisq > mconfig.divdchisq_) {
+      fstat.status_ = FitStatus::diverged;
     } else if(oscillating(fstat,mconfig)){
       fstat.status_ = FitStatus::oscillating;
     } else

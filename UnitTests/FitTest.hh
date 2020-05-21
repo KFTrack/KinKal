@@ -20,6 +20,8 @@
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
+#include <fstream>
+#include <sstream>
 #include <getopt.h>
 #include <typeinfo>
 #include <vector>
@@ -28,6 +30,8 @@
 #include <chrono>
 #include <cfenv>
 #include <memory>
+#include <cstdlib>
+#include <cstring>
 
 #include "TH1F.h"
 #include "TTree.h"
@@ -57,7 +61,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --nmeta i --maxniter i --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --nmeta i --maxniter i --deweight f --maxtemp f--ambigdoca f --ntries i --convdchisq f --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --UpdateHits i--addbf i --invert i --Schedule a\n");
 }
 
 template <class KTRAJ>
@@ -104,12 +108,13 @@ int FitTest(int argc, char **argv) {
   int isimmass(0), ifitmass(0), icharge(-1);
   double simmass, fitmass;
   unsigned maxniter(5);
+  double dwt(1.0e6);
   unsigned nmeta(2);
   double maxtemp(0.0);
   unsigned ntries(1000);
   double convdchisq(0.1);
   bool ttree(true), printbad(false);
-  string tfname("FitTest.root");
+  string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(0), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   bool updatehits(false), addbf(false), fitmat(true);
@@ -132,6 +137,7 @@ int FitTest(int argc, char **argv) {
     {"nhits",     required_argument, 0, 'n'  },
     {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'i'  },
+    {"deweight",     required_argument, 0, 'w'  },
     {"nmeta",     required_argument, 0, 'M'  },
     {"maxtemp",     required_argument, 0, 'X'  },
     {"simmat",     required_argument, 0, 'b'  },
@@ -153,6 +159,7 @@ int FitTest(int argc, char **argv) {
     {"UpdateHits",     required_argument, 0, 'U'  },
     {"addbf",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
+    {"Schedule",     required_argument, 0, 'u'  },
     {NULL, 0,0,0}
   };
 
@@ -177,6 +184,8 @@ int FitTest(int argc, char **argv) {
       case 'M' : nmeta = atoi(optarg);
 		 break;
       case 'i' : maxniter = atoi(optarg);
+		 break;
+      case 'w' : dwt = atof(optarg);
 		 break;
       case 'X' : maxtemp = atof(optarg);
 		 break;
@@ -215,6 +224,8 @@ int FitTest(int argc, char **argv) {
       case 't' : tol = atof(optarg);
 		 break;
       case 'T' : tfname = optarg;
+		 break;
+      case 'u' : sfile = optarg;
 		 break;
       default: print_usage();
 	       exit(EXIT_FAILURE);
@@ -263,36 +274,37 @@ int FitTest(int argc, char **argv) {
   // Create the KKTrk from these hits
   //
   KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
-  configptr->dwt_ = 1.0e6;
+  configptr->dwt_ = dwt;
   configptr->maxniter_ = maxniter;
   configptr->addbf_ = addbf;
   configptr->addmat_ = fitmat;
   configptr->tol_ = tol;
   configptr->plevel_ = (KKConfig::printLevel)detail;
-  // add schedule; MC-truth based ambiguity
-  MConfig mconfig;
-  mconfig.updatemat_ = mconfig.updatebfcorr_ = false ;
-  mconfig.updatehits_ = updatehits;
-  mconfig.hitupdateparams_.push_back(make_any<WHUParams>(ambigdoca,100.0)); // 1st parameter turns off drift, 2nd says accept all hits
-  mconfig.temp_ = maxtemp; // first
-//  mconfig.convdchisq_ = 1.0; // initially crude 
-  mconfig.convdchisq_ = convdchisq; 
-  mconfig.divdchisq_ = 1000*mconfig.convdchisq_;
-  mconfig.oscdchisq_ = 10*mconfig.convdchisq_;
-  configptr->schedule_.push_back(mconfig);
-  double tstep = maxtemp/(std::max(nmeta,(unsigned)1));
-  double temp = maxtemp;
-  for(unsigned imeta = 0; imeta< nmeta; imeta++){
-    temp -= tstep;
-    mconfig.temp_ = temp;
-    mconfig.updatemat_ = fitmat;
-    mconfig.updatebfcorr_ = true;
-    configptr->schedule_.push_back(mconfig);
+  // read the schedule from the file
+  string fullfile;
+  if(strncmp(sfile.c_str(),"/",1) == 0) {
+    fullfile = string(sfile);
+  } else {
+    if(const char* source = std::getenv("PACKAGE_SOURCE")){
+      fullfile = string(source) + string("/UnitTests/") + string(sfile);
+    } else {
+      cout << "PACKAGE_SOURCE not defined" << endl;
+      return -1;
+    }
+  }
+  std::ifstream ifs (fullfile, std::ifstream::in);
+  string line;
+  while (getline(ifs,line)){ 
+    if(strncmp(line.c_str(),"#",1)!=0){
+      istringstream ss(line);
+      MConfig mconfig(ss);
+      configptr->schedule_.push_back(mconfig);
+    }
   }
   cout << *configptr << endl;
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
-  kktrk.print(cout,detail);
+//  kktrk.print(cout,detail);
   TFile fitfile(tfname.c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
@@ -433,6 +445,7 @@ int FitTest(int argc, char **argv) {
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
     double duration (0.0);
+    configptr->plevel_ = KKConfig::none;
     for(unsigned itry=0;itry<ntries;itry++){
     // create a random true initial helix with hits and material interactions from this.  This also handles BField inhomogeneity truth tracking
       PKTRAJ tptraj;

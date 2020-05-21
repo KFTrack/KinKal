@@ -37,7 +37,6 @@ namespace KinKal {
       virtual ~KKHit(){}
       // local functions
       void updateCache(PKTRAJ const& pktraj);
-      void setTemp(double temp) { rvscale_ = (1.0+temp)*(1.0+temp); } // scale the variance using the 'temperature'.  This deweights the measurement
       // construct from a hit and reference trajectory
       KKHit(THITPTR const& thit, PKTRAJ const& reftraj);
       // interface for reduced residual
@@ -54,10 +53,10 @@ namespace KinKal {
       WDATA wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute chisquared and reduced residuals
       WDATA hiteff_; // wdata representation of this effect's constraint/measurement
       RESIDUAL rresid_; // residuals for this reference and hit
-      double rvscale_; // variance factor due to annealing 'temperature'
+      double vscale_; // variance factor due to annealing 'temperature'
   };
 
-  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THITPTR const& thit, PKTRAJ const& reftraj) : thit_(thit), rvscale_(1.0) {
+  template<class KTRAJ> KKHit<KTRAJ>::KKHit(THITPTR const& thit, PKTRAJ const& reftraj) : thit_(thit), vscale_(1.0) {
     update(reftraj);
   }
  
@@ -80,7 +79,7 @@ namespace KinKal {
 
   template<class KTRAJ> void KKHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig) {
     // reset the annealing temp
-    setTemp(mconfig.temp_);
+    vscale_ = mconfig.varianceScale();
     // update the hit internal state; this can depend on specific configuration parameters
     if(mconfig.updatehits_)
       thit_->update(pktraj,mconfig, rresid_);
@@ -94,7 +93,7 @@ namespace KinKal {
     // reset the processing cache
     wcache_ = WDATA();
     // scale resid variance by temp normalization
-    double tvar = rresid_.variance()*rvscale_; 
+    double tvar = rresid_.variance()*vscale_; 
     ref_ = pktraj.nearestPiece(rresid_.time()).params();
     // convert derivatives to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dRdPM;
@@ -131,7 +130,7 @@ namespace KinKal {
       // project the parameter covariance into a residual space variance
       double rvar = ROOT::Math::Similarity(rresid_.dRdP(),pdata.covariance());
       // add the measurement variance, scaled by the current temperature normalization
-      rvar +=  rresid_.variance()*rvscale_;
+      rvar +=  rresid_.variance()*vscale_;
       // chi is the ratio of these
       retval = uresid/sqrt(rvar);
     }
