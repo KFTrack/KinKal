@@ -12,11 +12,11 @@
 #include "KinKal/BField.hh"
 #include <stdexcept>
 namespace KinKal {
-// struct with parameters for updating hits
-  struct WHUParams {
+// struct for updating wire hits; this is just parameters, but could be methods as well
+  struct WireHitUpdater {
     double mindoca_; // minimum DOCA value to set an ambiguity
     double maxdoca_; // maximum DOCA to still use a hit
-    WHUParams(double mindoca,double maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
+    WireHitUpdater(double mindoca,double maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
   };
 
   template <class KTRAJ> class WireHit : public THit<KTRAJ> {
@@ -62,25 +62,28 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig, RESIDUAL& residual ) {
     // find TPOCA
     TPOCA tpoca(pktraj,wire());
-    // find the wire hit config in the update params.  If there are more than 1 I should abort FIXME!
-    const WHUParams* whparams(0);
-    for(auto const& uparams : mconfig.hitupdateparams_){
-      whparams = std::any_cast<WHUParams>(&uparams);
-      if(whparams != 0)break;
+    // find the wire hit updater in the update params.  If there are more than 1 throw 
+    const WireHitUpdater* whupdater(0);
+    for(auto const& uparams : mconfig.hitupdaters_){
+      auto const* whu = std::any_cast<WireHitUpdater>(&uparams);
+      if(whu != 0){
+	if(whupdater !=0) throw std::invalid_argument("Multiple WireHitUpdaters found");
+	whupdater = whu;
+      }
     }
-    if(whparams != 0){
+    if(whupdater != 0){
         // use DOCA to set the ambiguity
-      if(fabs(tpoca.doca()) > whparams->mindoca_){
+      if(fabs(tpoca.doca()) > whupdater->mindoca_){
 	LRAmbig newambig = tpoca.doca() > 0.0 ? LRAmbig::right : LRAmbig::left;
 	setAmbig(newambig);
       } else {
 	setAmbig(LRAmbig::null);
-	setNullVar(std::min(cellSize(),whparams->mindoca_));
+	setNullVar(std::min(cellSize(),whupdater->mindoca_));
       }
       // decide if the hit is consistent with this track, and if not disable/enable it.
-      // for now, just look at DOCA, but could use tension too FIXME!
-      THIT::setActivity(fabs(tpoca.doca()) < whparams->maxdoca_);
-    } 
+      // for now, just look at DOCA, but could use tension too TODO!
+      THIT::setActivity(fabs(tpoca.doca()) < whupdater->maxdoca_);
+    } // allow no updater: hits may be frozen this meta-iteration
     // compute the residual
     resid(tpoca,residual);
   }

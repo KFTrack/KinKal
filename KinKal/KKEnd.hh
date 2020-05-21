@@ -18,7 +18,9 @@ namespace KinKal {
       typedef typename KKEFF::KKDATA KKDATA;
       // provide interface
       virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override { return update(ref); }
+      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override { 
+	vscale_ = mconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
+	return update(ref); }
       virtual double time() const override { return (tdir_ == TDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       virtual bool isActive() const override { return true; }
       virtual void process(KKDATA& kkdata,TDir tdir) override;
@@ -36,12 +38,13 @@ namespace KinKal {
     private:
       TDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       double dwt_; // deweighting factor
+      double vscale_; // variance scale (from annealing)
       WDATA endeff_; // wdata representation of this effect's constraint/measurement
       KTRAJ endtraj_; // cache of parameters at the end of processing this direction, used in traj creation
  };
 
   template <class KTRAJ> KKEnd<KTRAJ>::KKEnd(PKTRAJ const& pktraj, TDir tdir, double dweight) :
-    tdir_(tdir) , dwt_(dweight), endtraj_(tdir == TDir::forwards ? pktraj.front() : pktraj.back()){
+    tdir_(tdir) , dwt_(dweight), vscale_(1.0), endtraj_(tdir == TDir::forwards ? pktraj.front() : pktraj.back()){
       update(pktraj);
     }
 
@@ -58,7 +61,7 @@ namespace KinKal {
 
   template<class KTRAJ> void KKEnd<KTRAJ>::update(PKTRAJ const& ref) {
     auto refend = ref.nearestPiece(time()).params();
-    refend.covariance() *= dwt_;
+    refend.covariance() *= (dwt_/vscale_);
     // convert this to a weight (inversion)
     endeff_ = WData<PKTRAJ::NParams()>(refend);
     KKEffBase::updateStatus();
