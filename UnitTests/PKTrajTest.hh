@@ -111,6 +111,7 @@ int PKTrajTest(int argc, char **argv) {
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
     typename KTRAJ::PDATA pdata(dvec,back.params().covariance());
     KTRAJ endhel(pdata,back);
+    endhel.range() = range;
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -143,6 +144,7 @@ int PKTrajTest(int argc, char **argv) {
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
     typename KTRAJ::PDATA pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front);
+    endhel.range() = range;
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);
