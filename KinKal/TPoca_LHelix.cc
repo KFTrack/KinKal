@@ -81,7 +81,6 @@ namespace KinKal {
       doca_ = doca*dsign;
 
       // pre-compute some values needed for the derivative calculations
-<<<<<<< HEAD
       double time = particlePoca().T();
       Vec3 ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
       double invpbar = lhelix.sign()/lhelix.pbar();
@@ -89,29 +88,6 @@ namespace KinKal {
       Vec3 t2 = lhelix.direction(time,LocalBasis::phidir);
       double coseta = ddir.Dot(t1);
       double sineta = ddir.Dot(t2);
-=======
-      Vec3 vdoca, ddir, hdir;
-      delta(vdoca);
-      ddir = vdoca.Unit();// direction vector along D(POCA) from traj 2 to 1 (line to helix)
-      lhelix.direction(particlePoca().T(),hdir);
-
-      double hphi = lhelix.phi(particlePoca().T()); // local azimuth of helix
-      double lphi = tline.dir().Phi(); // line azimuth
-      double sineta = sin(lphi);
-      double coseta = cos(lphi);
-      double dphi = hphi - lphi;
-      double sindphi = sin(dphi);
-      double cosdphi = cos(dphi);
-      double l2 = lhelix.lam()*lhelix.lam();
-      double r2 = lhelix.rad()*lhelix.rad();
-      double s2 = sindphi*sindphi;
-      double denom =  l2 + s2*r2;
-      double Factor = fabs(lhelix.lam())/sqrt(denom);
-
-      double dx = lhelix.cx() - sensorPoca().X();
-      double dy = lhelix.cy() - sensorPoca().Y();
-      double ddot = -sineta*dx + coseta*dy;
->>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
 
       // no t0 dependence, DOCA is purely geometric
       dDdP_[LHelix::cx_] = -dsign*ddir.x();
@@ -150,7 +126,6 @@ namespace KinKal {
       TPoca<LHelix,TLine> tpoca(piece,tline,hint,precision);
       status_ = tpoca.status();
       if(tpoca.usable()){
-<<<<<<< HEAD
 	// copy over the rest of the state
 	partPoca_ = tpoca.particlePoca();
 	sensPoca_ = tpoca.sensorPoca();
@@ -160,16 +135,6 @@ namespace KinKal {
 	docavar_ = tpoca.docaVar();
 	tocavar_ = tpoca.tocaVar();
 	ddot_ = tpoca.dirDot();
-=======
-        // copy over the rest of the state
-        partPoca_ = tpoca.particlePoca();
-        sensPoca_ = tpoca.sensorPoca();
-        doca_ = tpoca.doca();
-        dDdP_ = tpoca.dDdP();
-        dTdP_ = tpoca.dTdP();
-        ddoca_ = tpoca.dDoca();
-        ddot_ = tpoca.dirDot();
->>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
       }
       oldindex = index;
       index = phelix.nearestIndex(tpoca.particlePoca().T());

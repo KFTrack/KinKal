@@ -28,7 +28,6 @@ namespace KinKal {
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
   string const& IPHelix::trajName() { return trajName_; }
 
-  IPHelix::IPHelix(Vec4 const &pos0, Mom4 const &mom0, int charge, double bnom, TRange const &range) : IPHelix(pos0, mom0, charge, Vec3(0.0, 0.0, bnom), range) {}
   IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
                  TRange const &trange) : trange_(trange), mass_(mom.M()), charge_(charge), bnom_(bnom)
   {
@@ -117,18 +116,10 @@ namespace KinKal {
   Mom4 IPHelix::momentum(double tval) const
   {
     double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
-<<<<<<< HEAD
     return Mom4( Q() / omega() * cos(phi0() + omega() * l),
 	Q() / omega() * sin(phi0() + omega() * l),
 	Q() / omega() * tanDip(),
 	mass_);
-=======
-    mom.SetPx(Q() / omega() * cos(phi0() + omega() * l));
-    mom.SetPy(Q() / omega() * sin(phi0() + omega() * l));
-    mom.SetPz(Q() / omega() * tanDip());
-    mom.SetM(mass_);
-
->>>>>>> 92850d072f103ede1b268b4526f1c4385a4e3f57
   }
 
   void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
