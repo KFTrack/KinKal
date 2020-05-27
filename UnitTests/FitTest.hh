@@ -110,7 +110,7 @@ int FitTest(int argc, char **argv) {
   unsigned maxniter(5);
   double dwt(1.0e6);
   unsigned ntries(1000);
-  bool ttree(true), printbad(false);
+  bool ttree(true), printbad(true);
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(0), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
@@ -516,7 +516,7 @@ int FitTest(int argc, char **argv) {
       hnfail->Fill(nfail);
       hndiv->Fill(ndiv);
       auto const& fstat = kktrk.fitStatus();
-      chiprob_ = fstat.prob_; 
+      chiprob_ = fstat.prob_;
       ndof->Fill(fstat.ndof_);
       chisq->Fill(fstat.chisq_);
       chisqndof->Fill(fstat.chisq_/fstat.ndof_);

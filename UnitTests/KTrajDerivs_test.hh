@@ -145,7 +145,7 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     for(int id=0;id<ndel;++id){
-      double delta = dmin + del*id; 
+      double delta = dmin + del*id;
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
