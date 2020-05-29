@@ -169,15 +169,15 @@ namespace KKTest {
       double dm;
       // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
       switch( mdir ) {
-	case KinKal::LocalBasis::perpdir: case KinKal::LocalBasis::phidir :
-	  dm = tr_.Gaus(dmom[idir],momsig);
-	  break;
-	case KinKal::LocalBasis::momdir :
-	  dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-	  desum += dm*mom;
-	  break;
-	default:
-	  throw std::invalid_argument("Invalid direction");
+	    case KinKal::LocalBasis::perpdir: case KinKal::LocalBasis::phidir :
+	      dm = tr_.Gaus(dmom[idir],momsig);
+	      break;
+	    case KinKal::LocalBasis::momdir :
+	      dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
+	      desum += dm*mom;
+	      break;
+	    default:
+	      throw std::invalid_argument("Invalid direction");
       }
       //	cout << "mom change dir " << LocalBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
       Vec3 dmvec = endpiece.direction(tstraw,mdir);
@@ -186,7 +186,8 @@ namespace KKTest {
     }
     // generate a new piece and append
     KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TRange(tstraw,pktraj.range().high()));
-    //      newend.print(cout,1);
+//    if(newend.range().infinite()) newend.setRangeLH(tstraw,pktraj.range().high());
+//    std::cout<<"DID IT WORK?"<<newend.range()<<std::endl;
     pktraj.append(newend);
     return desum/mom;
   }

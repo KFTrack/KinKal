@@ -146,7 +146,7 @@ namespace KinKal {
 	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
 	  pieces_.push_back(newpiece);
 	  pieces_.back().range().high() = tmax;
-	} else {
+	} else { std::cout<<"IPIECES"<<ipiece<<" "<<pieces_.size()-1<<std::endl;
 	  throw std::invalid_argument("range error");
 	}
       }

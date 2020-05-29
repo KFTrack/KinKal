@@ -249,7 +249,7 @@ int HitTest(int argc, char **argv) {
 	KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
 	modktraj.params().parameters()[ipar] += dpar;
 	PKTRAJ modtptraj(modktraj);
-	ROOT::Math::SVector<double,6> dpvec;
+	ROOT::Math::SVector<double,KTRAJ::NParams()> dpvec;
 	dpvec[ipar] += dpar;
 	kkhit.update(modtptraj);// refer to moded helix
 	RESIDUAL mres = kkhit.refResid();
@@ -268,7 +268,7 @@ int HitTest(int argc, char **argv) {
   }
   TCanvas* hderivgc = new TCanvas("hderiv","hderiv",800,600);
   hderivgc->Divide(3,2);
-  for(size_t ipar=0;ipar<6;++ipar){
+  for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
     hderivgc->cd(ipar+1);
     hderivg[ipar]->Draw("A*");
   };
