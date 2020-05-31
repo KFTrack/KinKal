@@ -84,6 +84,7 @@ int FitTest(int argc, char **argv) {
   typedef KKTrk<KTRAJ> KKTRK;
   typedef shared_ptr<KKConfig> KKCONFIGPTR;
   typedef THit<KTRAJ> THIT;
+  typedef KKHit<KTRAJ> KKHIT;
   typedef std::shared_ptr<THIT> THITPTR;
   typedef DXing<KTRAJ> DXING;
   typedef std::shared_ptr<DXING> DXINGPTR;
@@ -109,8 +110,8 @@ int FitTest(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   double dwt(1.0e6);
-  unsigned ntries(1000);
-  bool ttree(true), printbad(true);
+  unsigned ntries(100);
+  bool ttree(true), printbad(false);
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(0), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
@@ -362,7 +363,7 @@ int FitTest(int argc, char **argv) {
 
   } else {
     TTree* ftree(0);
-    KKHIV hinfo;
+    KKHIV hinfovec;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -386,7 +387,7 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("maxgap", &maxgap_,"maxgap/F");
       ftree->Branch("avgap", &avgap_,"avgap/F");
       ftree->Branch("igap", &igap_,"igap/I");
-      ftree->Branch("hinfo",&hinfo);
+      ftree->Branch("hinfovec",&hinfovec);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdp(KTRAJ::NParams());
@@ -437,6 +438,7 @@ int FitTest(int argc, char **argv) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
+      hinfovec.clear();
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
@@ -542,6 +544,18 @@ int FitTest(int argc, char **argv) {
       ndof_ = fstat.ndof_;
       niter_ = fstat.iter_;
       status_ = fstat.status_;
+      // fill hit information
+      for(auto const& eff: kktrk.effects()) {
+	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	if(kkhit != 0){
+	  KKHitInfo hinfo;
+	  hinfo.active_ = kkhit->isActive();
+	  hinfo.resid_ = kkhit->refResid().value();
+	  hinfo.residvar_ = kkhit->refResid().variance();
+	  hinfo.fitchi_ = kkhit->fitChi();
+	  hinfovec.push_back(hinfo);
+	}
+      }
 
       // test
       if(printbad && !kktrk.fitStatus().usable()){

@@ -39,6 +39,8 @@ void print_usage() {
 
 template <class KTRAJ>
 int test(int argc, char **argv) {
+  typedef typename KTRAJ::PDATA PDATA;
+  typedef typename KTRAJ::DVEC DVEC;
   gROOT->SetBatch(kTRUE);
   // save canvases
   int opt;
@@ -149,14 +151,14 @@ int test(int argc, char **argv) {
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
-      typename KTRAJ::DVEC pder = refhel.momDeriv(ttest,tdir);
+      DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
-      auto dvec = refhel.params().parameters() + delta*pder;
-      typename KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
+      DVEC dvec = refhel.params().parameters() + delta*pder;
+      PDATA pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
       // test
       Vec4 xpos, dpos;

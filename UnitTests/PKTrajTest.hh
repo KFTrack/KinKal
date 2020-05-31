@@ -43,7 +43,8 @@ void print_usage() {
 template <class KTRAJ>
 int PKTrajTest(int argc, char **argv) {
   typedef PKTraj<KTRAJ> PKTRAJ;
-
+  typedef typename KTRAJ::DVEC DVEC;
+  typedef typename KTRAJ::PDATA PDATA; 
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);
@@ -105,12 +106,13 @@ int PKTrajTest(int argc, char **argv) {
 // use derivatives of last piece to define new piece
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    typename KTRAJ::DVEC pder = back.momDeriv(tcomp,tdir);
+    DVEC pder = back.momDeriv(tcomp,tdir);
     // create modified helix
-    auto dvec = back.params().parameters() + delta*pder;
+    DVEC dvec = back.params().parameters() + delta*pder;
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    typename KTRAJ::PDATA pdata(dvec,back.params().covariance());
+    PDATA pdata(dvec,back.params().covariance());
     KTRAJ endhel(pdata,back);
+    endhel.range() = range;
     // test
     Vec4 backpos, endpos;
     backpos.SetE(tcomp);
@@ -137,12 +139,13 @@ int PKTrajTest(int argc, char **argv) {
   for(int istep=0;istep < nsteps; istep++){
     KTRAJ const& front = ptraj.pieces().front();
     double tcomp = front.range().low();
-    typename KTRAJ::DVEC pder = front.momDeriv(tcomp,tdir);
+    DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
-    auto dvec = front.params().parameters() + delta*pder;
+    DVEC dvec = front.params().parameters() + delta*pder;
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    typename KTRAJ::PDATA pdata(dvec,front.params().covariance());
+    PDATA pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front);
+    endhel.range() = range;
     // test
     Vec4 frontpos, endpos;
     frontpos.SetE(tcomp);

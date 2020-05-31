@@ -85,7 +85,7 @@ namespace KinKal {
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
-      double pbar() const { return 1 / omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm
+      double pbar() const { return 1./ omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm
       double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
@@ -93,7 +93,7 @@ namespace KinKal {
       double vt() const { return vt_; }
       double vz() const { return vz_; }
       double Q() const { return mass_/mbar_; } // reduced charge
-      double beta() const { return pbar()/ebar(); } // relativistic beta
+      double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double dphi(double t) const { return omega()*vt()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
