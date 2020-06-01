@@ -103,7 +103,6 @@ namespace KinKal {
 	  ipiece--;
 	}
 	// if we're at the start, prepend
-  std::cout << "ipiece " << ipiece << std::endl;
 	if(ipiece == 0){
 	  // update ranges and add the piece
 	  double tmin = std::min(newpiece.range().low(),pieces_.front().range().low());
@@ -139,7 +138,6 @@ namespace KinKal {
 	  }
 	}
 	// if we're at the end, append
-  std::cout << "ipiece " << ipiece << " " << pieces_.size()-1 << std::endl;
 	if(ipiece == pieces_.size()-1){
 	  // update ranges and add the piece.
 	  // first, make sure we don't loose range

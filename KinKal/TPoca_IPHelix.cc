@@ -99,13 +99,12 @@ namespace KinKal {
       // double pt = sqrt(mom.perp2());
       // double radius = fabs(pt);
 
-      std::cout << "l " << l <<  " " << time << " " << iphelix.pbar() << std::endl;
       // no t0 dependence, DOCA is purely geometric
-      dDdP_[IPHelix::omega_] = -dsign * (1/(w*w) * (-sin(phi) + l*w*cos(phi) + sin(phi0)) * ddir.x() +
-                                         1/(w*w) * ( cos(phi) + l*w*sin(phi) - cos(phi0)) * ddir.y());
+      dDdP_[IPHelix::omega_] = -dsign * (1./(w*w) * (-sin(phi) + l*w*cos(phi) + sin(phi0)) * ddir.x() +
+                                         1./(w*w) * ( cos(phi) + l*w*sin(phi) - cos(phi0)) * ddir.y());
       dDdP_[IPHelix::d0_] = -dsign * (-sin(phi0) * ddir.x() + cos(phi0) * ddir.y());
-      dDdP_[IPHelix::phi0_] = -dsign * (1/w * (cos(phi) - (d0*w+1)*cos(phi0)) * ddir.x() +
-                                        1/w * (sin(phi) - (d0*w+1)*sin(phi0)) * ddir.y());
+      dDdP_[IPHelix::phi0_] = -dsign * (1./w * (cos(phi) - (d0*w+1)*cos(phi0)) * ddir.x() +
+                                        1./w * (sin(phi) - (d0*w+1)*sin(phi0)) * ddir.y());
       dDdP_[IPHelix::tanDip_] = -dsign * l * ddir.z();
       dDdP_[IPHelix::z0_] = -dsign * ddir.z();
 

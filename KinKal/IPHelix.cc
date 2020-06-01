@@ -70,15 +70,15 @@ namespace KinKal {
     param(z0_) = dphi * tanDip() / omega();
 
     param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
-    vt_ = sign() * CLHEP::c_light * pt / mom.E();
-    vz_ = sign() * CLHEP::c_light * mom.z() / mom.E();
+    vt_ = CLHEP::c_light * pt / mom.E();
+    vz_ = CLHEP::c_light * mom.z() / mom.E();
     // test position and momentum function
-    // Vec4 testpos(pos0);
-    // position(testpos);
-    // Mom4 testmom = momentum(testpos.T());
-    // auto dp = testpos.Vect() - pos0.Vect();
-    // auto dm = testmom.Vect() - mom0.Vect();
-    // if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+    Vec4 testpos(pos0);
+    position(testpos);
+    Mom4 testmom = momentum(testpos.T());
+    auto dp = testpos.Vect() - pos0.Vect();
+    auto dm = testmom.Vect() - mom0.Vect();
+    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
   double IPHelix::deltaPhi(double &phi, double refphi) const
@@ -194,7 +194,6 @@ namespace KinKal {
     double omval = omega();
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     double d0val = d0();
-    // std::cout << "SIGN " << sign() << std::endl;
     DVEC pder;
     // cases
     switch ( mdir ) {

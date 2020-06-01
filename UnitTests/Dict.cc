@@ -123,7 +123,7 @@ namespace ROOT {
       vector<KinKal::KKHitInfo> *ptr = 0;
       static ::TVirtualIsAProxy* isa_proxy = new ::TIsAProxy(typeid(vector<KinKal::KKHitInfo>));
       static ::ROOT::TGenericClassInfo 
-         instance("vector<KinKal::KKHitInfo>", -2, "vector", 470,
+         instance("vector<KinKal::KKHitInfo>", -2, "vector", 469,
                   typeid(vector<KinKal::KKHitInfo>), ::ROOT::Internal::DefineBehavior(ptr, ptr),
                   &vectorlEKinKalcLcLKKHitInfogR_Dictionary, isa_proxy, 4,
                   sizeof(vector<KinKal::KKHitInfo>) );
@@ -178,8 +178,8 @@ namespace {
 0
     };
     static const char* includePaths[] = {
-"/Applications/root_v6.18.99/include",
-"/Users/brownd/KFTrack/build_debug/UnitTests/",
+"/usr/local/Cellar/root/6.20.04_1/include/root",
+"/Users/soleti/KFTrack/build_prof/UnitTests/",
 0
     };
     static const char* fwdDeclCode = R"DICTFWDDCLS(
@@ -202,15 +202,15 @@ namespace std{inline namespace __1{template <class _Tp> class __attribute__((ann
 
 #undef  _BACKWARD_BACKWARD_WARNING_H
 )DICTPAYLOAD";
-    static const char* classesHeaders[]={
+    static const char* classesHeaders[] = {
 "KinKal::KKHitInfo", payloadCode, "@",
-nullptr};
-
+nullptr
+};
     static bool isInitialized = false;
     if (!isInitialized) {
       TROOT::RegisterModule("Dict",
         headers, includePaths, payloadCode, fwdDeclCode,
-        TriggerDictionaryInitialization_Dict_Impl, {}, classesHeaders, /*has no C++ module*/false);
+        TriggerDictionaryInitialization_Dict_Impl, {}, classesHeaders, /*hasCxxModule*/false);
       isInitialized = true;
     }
   }
