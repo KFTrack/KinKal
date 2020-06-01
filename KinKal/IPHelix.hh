@@ -77,8 +77,7 @@ namespace KinKal {
       PDATA &params() { return pars_; }
       double d0() const { return paramVal(d0_); }
       double phi0() const { return paramVal(phi0_); }
-      // double omega() const { return 0.00399803; } // rotational velocity, sign set by magnetic force
-      double omega() const { return paramVal(omega_); }
+      double omega() const { return paramVal(omega_); } // rotational velocity, sign set by magnetic force
       double z0() const { return paramVal(z0_); }
       double tanDip() const { return paramVal(tanDip_); }
       double t0() const { return paramVal(t0_); }

@@ -55,7 +55,7 @@ namespace KinKal {
     double fcent = center.phi();
     double centerx = rcent*cos(fcent);
     double centery = rcent*sin(fcent);
-    // std::cout << "OMEGA " << amsign/radius << std::endl;
+
     param(omega_) = amsign/radius;
     param(tanDip_) = amsign*lambda/radius;
     param(d0_) = amsign*(rcent - radius);
@@ -218,7 +218,6 @@ namespace KinKal {
       case LocalBasis::momdir:
         // fractional momentum change: position and direction are unchanged
         pder[d0_] = -(1 - cos(omval * l)) / omval;
-        // std::cout << "phi0 " << sin(omval * l) / (1 + omval * d0val) << std::endl;
         pder[phi0_] = sin(omval * l) / (1 + omval * d0val);
         pder[omega_] = -omval;
         pder[z0_] = -tanval * (l - sin(omval * l) / (omval * (1 + omval * d0val)));
