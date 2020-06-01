@@ -518,7 +518,7 @@ int FitTest(int argc, char **argv) {
       hnfail->Fill(nfail);
       hndiv->Fill(ndiv);
       auto const& fstat = kktrk.fitStatus();
-      chiprob_ = fstat.prob_; 
+      chiprob_ = fstat.prob_;
       ndof->Fill(fstat.ndof_);
       chisq->Fill(fstat.chisq_);
       chisqndof->Fill(fstat.chisq_/fstat.ndof_);

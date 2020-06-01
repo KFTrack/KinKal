@@ -1,5 +1,5 @@
 //
-// ToyMC test of hits 
+// ToyMC test of hits
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
@@ -225,7 +225,7 @@ int HitTest(int argc, char **argv) {
   rulers->Draw();
   hcan->Write();
 // test updating the hit residual and derivatives with different trajectories
-  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.005, 5.0}; // small parameter changes for derivative calcs
+  vector<double> delpars {0.5,0.01,0.00001,0.5,0.001,0.1}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(KTRAJ::NParams());
   for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){
@@ -243,26 +243,26 @@ int HitTest(int argc, char **argv) {
       double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
       // update the hits
       for(auto& thit : thits) {
-	KKHit kkhit(thit,tptraj);
-	RESIDUAL ores = kkhit.refResid(); // original residual
-      // modify the helix
-	KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
-	modktraj.params().parameters()[ipar] += dpar;
-	PKTRAJ modtptraj(modktraj);
-	ROOT::Math::SVector<double,6> dpvec;
-	dpvec[ipar] += dpar;
-	kkhit.update(modtptraj);// refer to moded helix
-	RESIDUAL mres = kkhit.refResid();
-	double dr = ores.value()-mres.value(); // this sign is confusing.  I think
-	// it means the fit needs to know how much to change the ref parameters, which is
-	// opposite from how much the ref parameters are different from the measurement
-	// compare the change with the expected from the derivatives
-	kkhit.update(tptraj);// refer back to original
-	auto pder = ores.dRdP();
-	double ddr = ROOT::Math::Dot(pder,dpvec);
-	hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-	if(dr*ddr < 0.0)cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit 
-	<< " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+        KKHit kkhit(thit,tptraj);
+        RESIDUAL ores = kkhit.refResid(); // original residual
+            // modify the helix
+        KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+        modktraj.params().parameters()[ipar] += dpar;
+        PKTRAJ modtptraj(modktraj);
+        ROOT::Math::SVector<double,6> dpvec;
+        dpvec[ipar] += dpar;
+        kkhit.update(modtptraj);// refer to moded helix
+        RESIDUAL mres = kkhit.refResid();
+        double dr = ores.value()-mres.value(); // this sign is confusing.  I think
+        // it means the fit needs to know how much to change the ref parameters, which is
+        // opposite from how much the ref parameters are different from the measurement
+        // compare the change with the expected from the derivatives
+        kkhit.update(tptraj);// refer back to original
+        auto pder = ores.dRdP();
+        double ddr = ROOT::Math::Dot(pder,dpvec);
+        hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+        if(dr*ddr < 0.0)cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit
+        << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
       }
     }
   }

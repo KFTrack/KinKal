@@ -9,11 +9,11 @@ using namespace ROOT::Math;
 
 namespace KinKal {
   vector<string> IPHelix::paramTitles_ = {
-    "Distance of closest approach",
-    "Angle in the xy plane at closest approach",
-    "xy plane curvature of the track",
-    "Distance from the closest approach to the origin",
-    "Tangent of the track dip angle in the rho-z projection",
+    "Distance of closest approach d_{0}",
+    "Angle in the xy plane at closest approach #phi_{0}",
+    "xy plane curvature of the track #omega",
+    "Distance from the closest approach to the origin z_{0}",
+    "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
   vector<string> IPHelix::paramNames_ = {
   "d0","phi0","omega","z0","tanDip","Time0"};
@@ -28,17 +28,27 @@ namespace KinKal {
   std::string const& IPHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
   string const& IPHelix::trajName() { return trajName_; }
 
-  IPHelix::IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
-                 TRange const &trange) : trange_(trange), mass_(mom.M()), charge_(charge), bnom_(bnom)
+  IPHelix::IPHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : IPHelix(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
+  IPHelix::IPHelix(Vec4 const &pos0, Mom4 const &mom0, int charge, Vec3 const &bnom,
+                 TRange const &trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom)
   {
-    double momToRad = 1000.0 / (charge_ * bnom_.R() * CLHEP::c_light);
+    // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
+    Vec4 pos(pos0);
+    Mom4 mom(mom0);
+    g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+    pos = g2l_(pos);
+    mom = g2l_(mom);
+    // create inverse rotation; this moves back into the original coordinate system
+    l2g_ = g2l_.Inverse();
+    double momToRad = 1.0/(BField::cbar()*charge_*bnom_.R());
     mbar_ = -mass_ * momToRad;
 
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
 
     double lambda = -mom.z()*momToRad;
-    double amsign = copysign(1.0, -charge * bnom_.R());
+    double amsign = copysign(1.0, mbar_);
 
     Vec3 center = Vec3(pos.x() + mom.y()*momToRad, pos.y() - mom.x()*momToRad, 0.0);
     double rcent = sqrt(center.perp2());
@@ -60,9 +70,15 @@ namespace KinKal {
     param(z0_) = dphi * tanDip() / omega();
 
     param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
-
     vt_ = CLHEP::c_light * pt / mom.E();
     vz_ = CLHEP::c_light * mom.z() / mom.E();
+    // test position and momentum function
+    Vec4 testpos(pos0);
+    position(testpos);
+    Mom4 testmom = momentum(testpos.T());
+    auto dp = testpos.Vect() - pos0.Vect();
+    auto dm = testmom.Vect() - mom0.Vect();
+    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
   double IPHelix::deltaPhi(double &phi, double refphi) const
@@ -157,13 +173,13 @@ namespace KinKal {
     double phival = phi(time);                   // azimuth at this point
     switch ( mdir ) {
       case LocalBasis::perpdir:
-	return Vec3(-sinval * cos(phival), -sinval * sin(phival), cosval);
+	return l2g_(Vec3(-sinval * cos(phival), -sinval * sin(phival), cosval));
 	break;
       case LocalBasis::phidir:
-	return Vec3(-sin(phival), cos(phival), 0.0);
+	return l2g_(Vec3(-sin(phival), cos(phival), 0.0));
 	break;
       case LocalBasis::momdir:
-	return momentum(time).Vect().Unit();
+	return l2g_(momentum(time).Vect().Unit());
 	break;
       default:
 	throw std::invalid_argument("Invalid direction");
@@ -172,7 +188,6 @@ namespace KinKal {
 
   IPHelix::DVEC IPHelix::momDeriv(double time, LocalBasis::LocDir mdir) const
   {
-    // FIXME: these formulas need to be verified
     // compute some useful quantities
     double tanval = tanDip();
     double cosval = cosDip();
@@ -183,27 +198,27 @@ namespace KinKal {
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
-	// polar bending: only momentum and position are unchanged
-	pder[d0_] = tanval*(1-cos(omval*l))/omval;
-	pder[phi0_] = -tanval * sin(omval * l) / (1 + omval * d0val);
-	pder[omega_] = omval * tanval;
-	pder[z0_] = -l - tanval * tanval * sin(omval * l) / (omval * (1 + omval * d0val));
-	pder[tanDip_] = 1 / (cosval * cosval);
-	pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
-	break;
+        // polar bending: only momentum and position are unchanged
+        pder[d0_] = tanval*(1-cos(omval*l))/omval;
+        pder[phi0_] = -tanval * sin(omval * l) / (1 + omval * d0val);
+        pder[omega_] = omval * tanval;
+        pder[z0_] = - l - tanval * tanval * sin(omval * l) / (omval * (1 + omval * d0val));
+        pder[tanDip_] = 1 / (cosval * cosval);
+        pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
+        break;
       case LocalBasis::phidir:
-	// Azimuthal bending: R, Lambda, t0 are unchanged
-	pder[d0_] = -sin(omval * l) / (omval * cosval);
-	pder[phi0_] = cos(omval * l) / (cosval * (1 + omval * d0val));
-	pder[omega_] = 0;
-	pder[z0_] = -tanval / (omval * cosval) * (1 - cos(omval * l) / (1 + omval * d0val));
-	pder[tanDip_] = 0;
-	pder[t0_] = pder[z0_] / vz();
-	break;
+        // Azimuthal bending: R, Lambda, t0 are unchanged
+        pder[d0_] = -sin(omval * l) / (omval * cosval);
+        pder[phi0_] = cos(omval * l) / (cosval * (1 + omval * d0val));
+        pder[omega_] = 0;
+        pder[z0_] = -tanval / (omval * cosval) * (1 - cos(omval * l) / (1 + omval * d0val));
+        pder[tanDip_] = 0;
+        pder[t0_] = pder[z0_] / vz();
+        break;
       case LocalBasis::momdir:
-	// fractional momentum change: position and direction are unchanged
-	pder[d0_] = -(1 - cos(omval * l)) / omval;
-	pder[phi0_] = sin(omval * l) / (1 + omval * d0val);
+        // fractional momentum change: position and direction are unchanged
+        pder[d0_] = -(1 - cos(omval * l)) / omval;
+        pder[phi0_] = sin(omval * l) / (1 + omval * d0val);
         pder[omega_] = -omval;
         pder[z0_] = -tanval * (l - sin(omval * l) / (omval * (1 + omval * d0val)));
         pder[tanDip_] = 0;
