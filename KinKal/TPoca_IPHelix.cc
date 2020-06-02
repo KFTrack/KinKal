@@ -78,7 +78,6 @@ namespace KinKal {
       partPoca_.SetE(htoca);
       sensPoca_.SetE(stoca);
       iphelix.position(partPoca_);
-      // std::cout << "Time " << partPoca_.T() << std::endl;
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector
       double lsign = tline.dir().Cross(iphelix.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());

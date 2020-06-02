@@ -74,6 +74,7 @@ namespace KinKal {
     vz_ = CLHEP::c_light * mom.z() / mom.E();
     // test position and momentum function
     Vec4 testpos(pos0);
+    // std::cout << "Testpos " << testpos << std::endl;
     position(testpos);
     Mom4 testmom = momentum(testpos.T());
     auto dp = testpos.Vect() - pos0.Vect();
@@ -116,27 +117,26 @@ namespace KinKal {
     return Vec4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
 
-  Vec3 IPHelix::position(double t) const
+  Vec3 IPHelix::position(double time) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
-    double l = CLHEP::c_light * beta() * (t - t0()) * cDip;
+    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
     double ang = phi00 + l * omega();
     double cang = cos(ang);
     double sang = sin(ang);
     double sphi0 = sin(phi00);
     double cphi0 = cos(phi00);
 
-    return Vec3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip());
+    return l2g_(Vec3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip()));
   }
 
-  Mom4 IPHelix::momentum(double tval) const
+  Mom4 IPHelix::momentum(double time) const
   {
-    double l = beta() * CLHEP::c_light * (tval - t0()) * cosDip();
-    return Mom4( Q() / omega() * cos(phi0() + omega() * l),
-	Q() / omega() * sin(phi0() + omega() * l),
-	Q() / omega() * tanDip(),
-	mass_);
+
+    Vec3 dir = direction(time);
+    double bgm = betaGamma()*mass_;
+    return Mom4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
   }
 
   void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
@@ -170,19 +170,19 @@ namespace KinKal {
   {
     double cosval = cosDip();
     double sinval = sinDip();
-    double phival = phi(time);                   // azimuth at this point
+    double phival = phi(time);
+
     switch ( mdir ) {
       case LocalBasis::perpdir:
-	return l2g_(Vec3(-sinval * cos(phival), -sinval * sin(phival), cosval));
-	break;
+        return l2g_(Vec3(-sinval * cos(phival), -sinval * sin(phival), cosval));
       case LocalBasis::phidir:
-	return l2g_(Vec3(-sin(phival), cos(phival), 0.0));
-	break;
+        return l2g_(Vec3(-sin(phival), cos(phival), 0.0));
       case LocalBasis::momdir:
-	return l2g_(momentum(time).Vect().Unit());
-	break;
+        return l2g_(Vec3(Q() / omega() * cos(phival),
+                         Q() / omega() * sin(phival),
+                         Q() / omega() * tanDip()).Unit());
       default:
-	throw std::invalid_argument("Invalid direction");
+        throw std::invalid_argument("Invalid direction");
     }
   }
 

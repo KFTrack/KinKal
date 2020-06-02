@@ -94,6 +94,7 @@ namespace KinKal {
       double Q() const { return mass_/mbar_; } // reduced charge
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
+      double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
       double dphi(double t) const { return omega()*vt()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double deltaPhi(double &phi, double refphi=0.) const;
