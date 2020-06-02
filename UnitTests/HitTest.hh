@@ -52,7 +52,7 @@ void print_usage() {
 }
 
 template <class KTRAJ>
-int HitTest(int argc, char **argv) {
+int HitTest(int argc, char **argv, const vector<double>& delpars) {
   typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
   typedef THit<KTRAJ> THIT;
   typedef std::shared_ptr<THIT> THITPTR;
@@ -128,7 +128,7 @@ int HitTest(int argc, char **argv) {
   }
 
   pmass = masses[imass];
-  TFile htfile("HitTest.root","RECREATE");
+  TFile htfile((KTRAJ::trajName()+"HitTest.root").c_str(),"RECREATE");
   // construct BField
   Vec3 bnom(0.0,By,1.0);
   BField* BF;
@@ -225,7 +225,6 @@ int HitTest(int argc, char **argv) {
   rulers->Draw();
   hcan->Write();
 // test updating the hit residual and derivatives with different trajectories
-  vector<double> delpars {0.5,0.01,0.00001,0.5,0.001,0.1}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(KTRAJ::NParams());
   for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){

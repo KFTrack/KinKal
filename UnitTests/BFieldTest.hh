@@ -168,7 +168,7 @@ int BFieldTest(int argc, char **argv) {
   cout << "Nominal " << start << " integral " << ndp << endl;
 
 // setup histograms
-  TFile tpfile("BField.root","RECREATE");
+  TFile tpfile((KTRAJ::trajName()+"BField.root").c_str(),"RECREATE");
   TH1F *dxmomt1, *dxmomt2, *dxmommd;
   TH1F *dlmomt1, *dlmomt2, *dlmommd;
   TH1F *dxpost1, *dxpost2, *dxposmd;

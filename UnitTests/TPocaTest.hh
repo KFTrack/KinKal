@@ -95,7 +95,7 @@ int TPocaTest(int argc, char **argv) {
   double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom);
-  TFile tpfile("TPoca.root","RECREATE");
+  TFile tpfile((KTRAJ::trajName()+"TPoca.root").c_str(),"RECREATE");
   TCanvas* ttpcan = new TCanvas("ttpcan","DToca",1200,800);
   ttpcan->Divide(3,2);
   TCanvas* dtpcan = new TCanvas("dtpcan","DDoca",1200,800);
