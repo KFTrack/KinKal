@@ -122,7 +122,7 @@ int test(int argc, char **argv) {
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
- std::string tfname = KTRAJ::trajName() + "Derivs.root";
+  std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);

@@ -292,7 +292,7 @@ int FitTest(int argc, char **argv) {
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
 //  kktrk.print(cout,detail);
-  TFile fitfile(tfname.c_str(),"RECREATE");
+  TFile fitfile((KTRAJ::trajName() + tfname).c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
   float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
@@ -457,7 +457,7 @@ int FitTest(int argc, char **argv) {
       KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
       KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
       KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
-      typename KTRAJ::PDATA ftpars, btpars; 
+      typename KTRAJ::PDATA ftpars, btpars;
       if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
 	ftpars = fftraj.params();
 	btpars = bftraj.params();
