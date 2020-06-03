@@ -106,7 +106,7 @@ int PKTrajTest(int argc, char **argv) {
 // use derivatives of last piece to define new piece
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    DVEC pder = back.momDeriv(tcomp,tdir);
+    DVEC pder(back.momDeriv(tcomp,tdir));
     // create modified helix
     DVEC dvec1(back.params().parameters() + delta*pder);
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
