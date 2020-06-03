@@ -16,7 +16,7 @@ namespace KinKal {
     "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
   vector<string> IPHelix::paramNames_ = {
-  "d0","phi0","omega","z0","tanDip","Time0"};
+  "d_{0}","#phi_{0}","#omega","z_{0}","tan#lambda","t_{0}"};
   vector<string> IPHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
   string IPHelix::trajName_("IPHelix");  
@@ -139,20 +139,38 @@ namespace KinKal {
     return Mom4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
   }
 
-  void IPHelix::rangeInTolerance(TRange &brange, BField const &bfield, double tol) const
+  void IPHelix::rangeInTolerance(TRange &drange, BField const &bfield, double tol) const
   {
-    // precompute some factors
-    double fact = 0.5 * sqrt(1./omega() * tol * bnom().R()) / CLHEP::c_light;
-    // Limit to this traj's range
-    brange.high() = std::min(brange.high(), range().high());
-    // compute the BField difference in the middle of the range
-    Vec3 midpos = position(brange.mid());
-    Vec3 bvec  = bfield.fieldVect(midpos);
-    auto db = bvec - bnom();
-    double dt = fact / sqrt(db.R());
-    // truncate the range if necessary
-    if (dt < brange.range())
-      brange.high() = brange.low() + dt;
+    // compute scaling factor
+    double bn = bnom_.R();
+    double spd = speed(drange.low());
+    double sfac = spd*spd/(bn*pbar());
+    // estimate step size from initial BField difference
+    Vec3 tpos = position(drange.low());
+    Vec3 bvec = bfield.fieldVect(tpos);
+    auto db = (bvec - bnom_).R();
+    double tstep(0.1);
+    // this next part should have the hard-coded numbers replaced by parameters.  Some calculations should move to BField FIXME!
+    if(db > 1e-4) tstep = 0.2*sqrt(tol/(sfac*db)); // step increment from difference from nominal
+    Vec3 dBdt = bfield.fieldDeriv(tpos,velocity(drange.low()));
+    tstep = std::min(tstep, 0.5*cbrt(tol/(sfac*dBdt.R())));
+    //
+    // loop over the trajectory in fixed steps to compute integrals and domains.
+    // step size is defined by momentum direction tolerance.
+    drange.high() = drange.low();
+    double dx(0.0);
+    // advance till spatial distortion exceeds position tolerance or we reach the range limit
+    do{
+      // increment the range
+      drange.high() += tstep;
+      tpos = position(drange.high());
+      bvec = bfield.fieldVect(tpos);
+      // BField diff with nominal
+      auto db = (bvec - bnom_).R();
+      // spatial distortion accumulation
+      dx += sfac*drange.range()*tstep*db;
+    } while(fabs(dx) < tol && drange.high() < range().high());
+    //    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
   }
 
   double IPHelix::angle(const double &f) const
