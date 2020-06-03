@@ -23,6 +23,7 @@ namespace KinKal {
     public:
       constexpr static ParamIndex t0Index() { return t0_; }
       typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type
+      typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
       static std::string const& trajName();
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
