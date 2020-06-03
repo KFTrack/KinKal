@@ -115,7 +115,7 @@ parameterization than that used for the helix case.
 
 // derivatives of momentum projected along the given basis WRT the 5 parameters
    KTLine::DVEC KTLine::momDeriv(double t, LocalBasis::LocDir mdir) const{
-    DVEC pder();
+    DVEC pder;
     pder[cost_] = 0;
       pder[d0_] = 0;
       pder[phi0_] = 0;
