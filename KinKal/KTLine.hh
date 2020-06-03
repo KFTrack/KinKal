@@ -92,7 +92,7 @@ namespace KinKal {
       Mom4 pos40_, mom_; // 4 momentum vector - px,py,pz,m
       double mass_; //mass in MeV/c2
       int charge_;
-      PDATA pars_;
+     // PDATA pars_;
       static std::string trajName_;
  };
 
