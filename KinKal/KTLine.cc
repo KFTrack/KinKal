@@ -35,7 +35,7 @@ namespace KinKal {
   : KTLine(pdata.parameters(),pdata.covariance(),mass,charge,bnom,range) {std::cout<<" KT Constructor 4 "<<range<<std::endl;}
   
   KTLine::KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &trange) : 
-    TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge), pars_(pvec, pcov){std::cout<<" KT Constructor 5 "<<std::endl;}
+    TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge) {std::cout<<" KT Constructor 5 "<<std::endl;}
 
 KTLine::KTLine( PDATA const& pdata, KTLine const& other) : KTLine(other) {
     pars_ = pdata;
