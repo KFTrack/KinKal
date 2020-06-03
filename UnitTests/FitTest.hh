@@ -459,8 +459,8 @@ int FitTest(int argc, char **argv) {
       KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
       typename KTRAJ::PDATA ftpars, btpars;
       if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
-	ftpars = fftraj.params();
-	btpars = bftraj.params();
+	ftpars = fttraj.params();
+	btpars = bttraj.params();
       } else {
 	Mom4 fmom, bmom;
 	Vec4 fpos, bpos;
