@@ -109,7 +109,7 @@ int PKTrajTest(int argc, char **argv) {
     DVEC pder(back.momDeriv(tcomp,tdir));
     // create modified helix
     DVEC dvec1 = back.params().parameters();
-    dvec1+= delta*pder;
+    dvec1 += delta*pder;
 
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
     PDATA pdata(dvec1,back.params().covariance());
@@ -143,7 +143,9 @@ int PKTrajTest(int argc, char **argv) {
     double tcomp = front.range().low();
     DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
-    DVEC dvec = front.params().parameters() + delta*pder;
+    DVEC dvec = front.params().parameters()
+    dvec += delta*pder;
+    
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
     PDATA pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front);
