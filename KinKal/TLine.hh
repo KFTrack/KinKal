@@ -83,9 +83,10 @@ namespace KinKal {
     
       bool inRange(double time) const { return trange_.inRange(time); }
 
-    private:
+    protected:
       TRange trange_;
       PDATA pars_; // parameters
+    
       double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       Vec3 pos0_, dir_; // caches
       bool forcerange_; // if set, strictly enforce the range
