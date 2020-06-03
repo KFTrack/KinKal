@@ -247,7 +247,7 @@ namespace KKTest {
 
     // now, randomize the parameters within those errors.  Don't include correlations
     if(smearseed_){
-      for(unsigned ipar=0;ipar < 6; ipar++){
+      for(unsigned ipar=0;ipar < KTRAJ::NParams(); ipar++){
 	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
 	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
       }
