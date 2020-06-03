@@ -82,9 +82,6 @@ namespace KinKal {
 
     
       bool inRange(double time) const { return trange_.inRange(time); }
-      
-      PDATA const& params() const { return pars_; }
-      PDATA& params() { return pars_; }
 
     private:
       TRange trange_;
