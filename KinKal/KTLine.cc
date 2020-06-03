@@ -119,7 +119,7 @@ parameterization than that used for the helix case.
     double dt = time-t0();
     double l = CLHEP::c_light * beta() * (dt);
 
-    DVEC pder;
+    KTLine::DVEC pder;
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
