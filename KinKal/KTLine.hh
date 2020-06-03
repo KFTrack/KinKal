@@ -21,8 +21,6 @@ namespace KinKal {
 
   class KTLine :  public TLine {
     public:
-      enum ParamIndex {d0_=0,phi0_=1,z0_=2,cost_=3,t0_=4,npars_=5};
-
       constexpr static ParamIndex t0Index() { return t0_; }
       typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
