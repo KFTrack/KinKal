@@ -29,7 +29,7 @@ namespace KinKal {
 
   TLine::TLine(Vec4 const& pos0, Vec3 const& svel, TRange const& range,bool forcerange) : TLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {    std::cout<<" TLine Constructor 1 "<<trange_<<std::endl;}
 
-  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range),speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange), _pars() {
+  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range),speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange), pars_() {
     static const Vec3 zdir(0.0,0.0,1.0);
   //  if(trange_.infinite()) setRange(TRange(-1,1));
     double zddot = zdir.Dot(dir_);
