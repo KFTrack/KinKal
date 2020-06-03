@@ -32,6 +32,7 @@ namespace KinKal {
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const &params() const { return pars_; }
       PDATA &params() { return pars_; }
+      PDATA params() { return pars_; }
       double d0() const { return paramVal(d0_); }
       double phi0() const { return paramVal(phi0_); }
       double z0() const { return paramVal(z0_); }
