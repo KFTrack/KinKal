@@ -115,12 +115,7 @@ parameterization than that used for the helix case.
 
 // derivatives of momentum projected along the given basis WRT the 5 parameters
    KTLine::DVEC KTLine::momDeriv(double t, LocalBasis::LocDir mdir) const{
-    DVEC pder;
-    pder[cost_] = 0;
-      pder[d0_] = 0;
-      pder[phi0_] = 0;
-      pder[z0_] = 0;
-      pder[t0_] = 0;
+    DVEC pder();
     // compute some useful quantities
     double dt = t-t0();
     double l = CLHEP::c_light * beta() * (dt);
@@ -153,8 +148,14 @@ parameterization than that used for the helix case.
 	      pder[t0_] = dt;
         
 	    break;
-          default:
-	    throw std::invalid_argument("Invalid direction");
+      
+      default:
+        pder[cost_] = 0;
+        pder[d0_] = 0;
+        pder[phi0_] = 0;
+        pder[z0_] = 0;
+        pder[t0_] = 0;
+        throw std::invalid_argument("Invalid direction");
         }
       return pder;
   }
