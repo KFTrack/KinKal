@@ -523,7 +523,7 @@ int FitTest(int argc, char **argv) {
       chisqprob->Fill(chiprob_);
       logchisqprob->Fill(log10(chiprob_));
       // fill tree
-      for(size_t ipar=0;ipar<6;ipar++){
+      for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
 	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
 	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
 	etpars_.pars_[ipar] = bttraj.params().parameters()[ipar];

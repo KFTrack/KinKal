@@ -20,7 +20,7 @@ namespace KinKal {
     */ 
 
   KTLine::KTLine(Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) :     
-  KTLine(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {    std::cout<<" KT Constructor 1 "<<std::endl;}
+    KTLine(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {    std::cout<<" KT Constructor 1 "<<std::endl;}
 
   KTLine::KTLine(Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range)
   : TLine(pos0.Vect(), (mom0.Vect()/mom0.E())*CLHEP::c_light, pos0.T(), range), bnom_(bnom), pos40_(pos0), mom_(mom0), charge_(charge) {
@@ -34,7 +34,8 @@ namespace KinKal {
   KTLine::KTLine( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range)
   : KTLine(pdata.parameters(),pdata.covariance(),mass,charge,bnom,range) {std::cout<<" KT Constructor 4 "<<range<<std::endl;}
   
-  KTLine::KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &trange) :  TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge), pars_(pvec, pcov){std::cout<<" KT Constructor 5 "<<std::endl;}
+  KTLine::KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &trange) : 
+    TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge) {std::cout<<" KT Constructor 5 "<<std::endl;}
 
 KTLine::KTLine( PDATA const& pdata, KTLine const& other) : KTLine(other) {
     pars_ = pdata;
@@ -113,12 +114,12 @@ parameterization than that used for the helix case.
   }
 
 // derivatives of momentum projected along the given basis WRT the 5 parameters
-   KTLine::DVEC KTLine::momDeriv(double t, LocalBasis::LocDir mdir) const{
-    DVEC pder;
+   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
     // compute some useful quantities
-    double dt = t-t0();
+    double dt = time-t0();
     double l = CLHEP::c_light * beta() * (dt);
 
+    KTLine::DVEC pder;
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
@@ -145,10 +146,10 @@ parameterization than that used for the helix case.
 	      pder[phi0_] = 1;
 	      pder[z0_] = 1;
 	      pder[t0_] = dt;
-        
 	    break;
-          default:
-	    throw std::invalid_argument("Invalid direction");
+      
+      default:
+        throw std::invalid_argument("Invalid direction");
         }
       return pder;
   }

@@ -106,11 +106,13 @@ int PKTrajTest(int argc, char **argv) {
 // use derivatives of last piece to define new piece
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().high();
-    DVEC pder = back.momDeriv(tcomp,tdir);
+    DVEC pder(back.momDeriv(tcomp,tdir));
     // create modified helix
-    DVEC dvec = back.params().parameters() + delta*pder;
+    DVEC dvec1 = back.params().parameters();
+    dvec1 += delta*pder;
+
     range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    PDATA pdata(dvec,back.params().covariance());
+    PDATA pdata(dvec1,back.params().covariance());
     KTRAJ endhel(pdata,back);
     endhel.range() = range;
     // test
@@ -141,7 +143,9 @@ int PKTrajTest(int argc, char **argv) {
     double tcomp = front.range().low();
     DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
-    DVEC dvec = front.params().parameters() + delta*pder;
+    DVEC dvec = front.params().parameters();
+    dvec += delta*pder;
+
     range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
     PDATA pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front);

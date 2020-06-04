@@ -21,10 +21,10 @@ namespace KinKal {
 
   class KTLine :  public TLine {
     public:
-
       constexpr static ParamIndex t0Index() { return t0_; }
-      typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type
-      typedef typename PDATA::DVEC DVEC; // derivative of parameters type
+      //typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of parameters type
+      //typedef PData<npars_> PDATA; // Data payload for this class
+      //typedef typename PDATA::DVEC DVEC; // derivative of parameters type
       static std::string const& trajName();
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       KTLine(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
@@ -92,7 +92,7 @@ namespace KinKal {
       Mom4 pos40_, mom_; // 4 momentum vector - px,py,pz,m
       double mass_; //mass in MeV/c2
       int charge_;
-      PDATA pars_;
+     // PDATA pars_;
       static std::string trajName_;
  };
 
