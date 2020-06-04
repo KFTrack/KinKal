@@ -1,16 +1,14 @@
+@@ -1,44 +1,46 @@
 #!/usr/bin/env python
 #
 # Script to build the files found in this directory.
 #
 # Original author Rob Kutschke.
 #
-
 import os
 Import('env')
 Import('build_helper')
-
 helper=build_helper(env);
-
 # key : value are name of executable : link list
 # If the required link list is empty, no entry is needed in this structure.
 linkLists = {
@@ -40,19 +38,16 @@ linkLists = {
 'KTLinePKTrajTest'      : [ 'KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
              'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
 'KTLineHitTest'      : [ 'KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
-             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ]
+             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
+'KTLineFitTest'      : [ 'KinKal', 'MatEnv', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
+             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
 }
-
 helper.make_unit_tests ( linkLists )
-
 helper.make_dict_and_map( [
     ] )
-
 if env['RUNTESTS']:
     print ("Running unit tests" )
     helper.run_unit_tests()
-
-
 # This tells emacs to view this file in python mode.
 # Local Variables:
 # mode:python
