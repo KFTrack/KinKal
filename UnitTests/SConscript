@@ -39,8 +39,8 @@ linkLists = {
  'TPocaKTLineTest' : [ 'KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree', 'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
 'KTLinePKTrajTest'      : [ 'KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
              'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
-'KTLineFitTest'      : [ 'KinKal', 'MatEnv', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
-             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ],
+'KTLineHitTest'      : [ 'KinKal', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
+             'Rint', 'Postscript', 'Matrix', 'Physics', 'MathCore', 'Thread', 'Gui', 'm', 'dl' ]
 }
 
 helper.make_unit_tests ( linkLists )

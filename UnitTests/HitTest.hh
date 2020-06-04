@@ -1,11 +1,12 @@
 //
-// ToyMC test of hits 
+// ToyMC test of hits
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/LHelix.hh"
 #include "KinKal/TLine.hh"
+#include "KinKal/KTLine.hh"
 #include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/ScintHit.hh"
@@ -175,7 +176,7 @@ int HitTest(int argc, char **argv) {
     thit->resid(tptraj,res);
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
-    STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
+    STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit);
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if(shptr.use_count() > 0){
       auto const& tline = shptr->wire();
