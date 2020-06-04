@@ -10,7 +10,7 @@ using namespace ROOT::Math;
 namespace KinKal {
   vector<string> LHelix::paramTitles_ = {
     "Transverse Radius",
-    "Longiduinal Wavelength",
+    "Longitudinal Wavelength",
     "Cylinder Center X",
     "Cylinder Center Y",
     "Azimuth at Z=0 Plane",
