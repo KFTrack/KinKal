@@ -15,6 +15,9 @@ foreach( testsourcefile ${TEST_APP_SOURCES} )
     get_filename_component(testname ${testnamenoext} NAME)
 
     add_executable( ${testname} ${testsourcefile} )
-    # Make sure YourLib is linked to each app
+
+    target_compile_options(${testname} PUBLIC "$<$<CONFIG:DEBUG>:${DBG_FLAGS}>")
+    target_compile_options(${testname} PUBLIC "$<$<CONFIG:RELEASE>:${PROF_FLAGS}>")
+
     target_link_libraries( ${testname} KinKal MatEnv ${ROOT_LIBRARIES} )
 endforeach( testsourcefile ${TEST_APP_SOURCES} )
