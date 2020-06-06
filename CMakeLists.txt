@@ -3,12 +3,17 @@ cmake_minimum_required(VERSION 3.9.0)
 # always use gcc
 set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
+# remove optimisations when in debug mode 
 
 if (NOT CMAKE_BUILD_TYPE)
     set (CMAKE_BUILD_TYPE Release)
 endif()
+set(CMAKE_CXX_FLAGS_DEBUG "-g -O0" CACHE STRING "" FORCE)
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" CACHE STRING "" FORCE) 
 
-project (KinKal)
+message( "Build Type: ${CMAKE_BUILD_TYPE}" )
+
+project (KinKal CXX)
 
 find_package(ROOT REQUIRED COMPONENTS Core RIO Net Hist Spectrum GenVector MLP Graf Graf3d Gpad Tree Rint Postscript Matrix Physics MathCore Thread Gui)
 
@@ -22,12 +27,11 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
-# remove optimisations when in debug mode 
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0")
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
 add_compile_options(-Wall -Wextra -Werror)
 
 add_subdirectory(MatEnv)
 add_subdirectory(KinKal)
 add_subdirectory(UnitTests)
+
+unset(CMAKE_BUILD_TYPE CACHE)
