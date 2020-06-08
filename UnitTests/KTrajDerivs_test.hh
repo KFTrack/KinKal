@@ -122,7 +122,7 @@ int test(int argc, char **argv) {
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
- std::string tfname = KTRAJ::trajName() + "Derivs.root";
+  std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
@@ -147,7 +147,7 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     for(int id=0;id<ndel;++id){
-      double delta = dmin + del*id; 
+      double delta = dmin + del*id;
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);

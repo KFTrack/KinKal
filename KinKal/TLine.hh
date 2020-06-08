@@ -80,7 +80,6 @@ namespace KinKal {
       TRange& range() { std::cout<<"Setting TRange "<<trange_<<std::endl; return trange_;  }
       virtual void setRange(TRange const& trange) { trange_ = trange; std::cout<<"Setting TRange from LH "<<trange_<<std::endl; }
 
-    
       bool inRange(double time) const { return trange_.inRange(time); }
 
     protected:
@@ -95,7 +94,7 @@ namespace KinKal {
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;
 
-    // nonconst accessors
+     // nonconst accessors
       double& param(size_t index)  { return pars_.parameters()[index]; }
 
   };

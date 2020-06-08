@@ -189,6 +189,7 @@ class build_helper:
     def non_plugin_cc(self):
         tmp = non_plugin_cc = self.env.Glob('*.cc', strings=True)
         for cc in self.plugin_cc(): tmp.remove(cc)
+        for cc in self.unittest_cc(): tmp.remove(cc)
         return tmp
 #
 #   Names need to build the _dict and _map libraries.
@@ -275,13 +276,23 @@ class build_helper:
                 self.env.SharedLibrary( self.prefixed_map_libname(),
                                         self.map_tmp_name()
                                     )
+    def make_dict( self ):
+      cmd = "  rootcling -f ../../KinKal/UnitTests/Dict.cc -c ../../KinKal/UnitTests/KKHitInfo.hh ../../KinKal/UnitTests/LinkDef.h; cp ../../KinKal/UnitTests/Dict_rdict.pcm ../lib"
+#      cmd = "pwd"
+      print ("\n\nRunning make_dict ...: ", cmd )
+      p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+      (output, err) = p.communicate()
+      p_status = p.wait()
+      print ( "   Status code: ", p_status)  # Fixme: modify to write to file
+      print ( "   cout: ", output)
+      print ( "   cerr: ", err)
+      return p_status
 
 #
 #   Build a list of the source filenames for unit tests to be built and run
 #
     def unittest_cc(self):
         return ( self.env.Glob('*_unit.cc',  strings=True) )
-
 
 #
 #   filename of executable to be made from the unit test source.

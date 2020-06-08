@@ -17,8 +17,7 @@ S Middleton 2020
 // specializations for TPoca
 using namespace std;
 namespace KinKal {
-//*************** KTLine Stuff ***************** //
-//The following code is copied from Helix instance and adapted to the KTLine case.
+
 //1) Specialization for KTLine:
   template<> TPoca<KTLine,TLine>::TPoca(KTLine const& ktline, TLine const& tline, TPocaHint const& hint, double precision) : TPocaBase(precision),ktraj_(&ktline), straj_(&tline) {
    cout<<"START"<<ktline.params()<<endl;
@@ -105,7 +104,7 @@ namespace KinKal {
       partPoca_.SetE(stoca);
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector (same as helix)
-      double lsign = tline.dir().Cross(ktdir).Dot(partPoca_.Vect()-partPoca_.Vect());
+      double lsign =   tline.dir().Cross(ktline.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
       double dsign = copysign(1.0,lsign);
       doca_ = doca*dsign;
 
@@ -116,17 +115,17 @@ namespace KinKal {
 //TODO - look at the BTrk version (TrkMomCalc)
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       // no t0 dependence, DOCA is purely geometric
-      cout<<"Getting TPOCA derivs"<<endl;
-      double d = sqrt((ktline.d0()*ktline.d0())+(ktline.z0()*ktline.z0()));
-      cout<<"d "<<d<<ktline.params()<<endl;
+
+ //     double l = CLHEP::c_light*ktline.beta()*(ktline.ztime(ktline.z0())-ktline.t0());
+
       //calculated these using BTrk instances - doc db ref ###
-      dDdP_[KTLine::d0_] = 1/(2*d);
-      dDdP_[KTLine::cost_] = 1;
-      dDdP_[KTLine::phi0_] = 1; //cos^2+sin^2 = 1 so phi0 factors out.
-      dDdP_[KTLine::z0_] = 1/(2*d);
+      dDdP_[KTLine::phi0_] = dsign*ktline.d0()*sin(ktline.phi0())*ddir.x()-ktline.d0()*cos(ktline.phi0())*ddir.y();
+      dDdP_[KTLine::cost_] = 0;
+      dDdP_[KTLine::d0_] = dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
+      dDdP_[KTLine::z0_] = dsign*ddir.z();
       cout<<"dDdP+ "<<dDdP_<<endl;
       // no spatial dependence, DT is purely temporal
-      dTdP_[KTLine::t0_] = 1.0; // time is 100% correlated
+      dTdP_[KTLine::t0_] = -1.0; // time is 100% correlated
 
       // propagate parameter covariance to variance on doca and toca
       docavar_ = ROOT::Math::Similarity(dDdP(),ktline.params().covariance());

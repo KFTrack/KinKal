@@ -65,8 +65,10 @@ namespace KinKal {
         return mass_;
       }
       double ztime(double zpos) const { 
+        std::cout<<"KTline ztime "<<(t0() + zpos/((speed()*dir()).z()))<<std::endl;
         return (t0() + zpos/((speed()*dir()).z())); 
       } //time to travel Z
+
       int charge() const { return charge_; }
       double beta() const { 
         return (speed()/CLHEP::c_light);
@@ -78,7 +80,7 @@ namespace KinKal {
         return beta()*gamma();
       }
       double energyBG(double time) const  { return (sqrt(mass_*mass_ + betaGamma()*betaGamma()* mass_*mass_)); }//in MeV 
-      Vec3 const& bnom() const { return bnom_; }
+            Vec3 const& bnom(double time=0.0) const { return bnom_; }
 
       void invertCT(){
         charge_ *=-1;

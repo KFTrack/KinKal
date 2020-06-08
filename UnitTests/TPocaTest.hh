@@ -1,4 +1,4 @@
-// 
+//
 // test basic functions of TPoca using KTraj and TLine
 //
 #include "KinKal/TLine.hh"
@@ -95,13 +95,13 @@ int TPocaTest(int argc, char **argv) {
   double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom);
-  TFile tpfile("TPoca.root","RECREATE");
+  TFile tpfile((KTRAJ::trajName()+"TPoca.root").c_str(),"RECREATE");
   TCanvas* ttpcan = new TCanvas("ttpcan","DToca",1200,800);
   ttpcan->Divide(3,2);
   TCanvas* dtpcan = new TCanvas("dtpcan","DDoca",1200,800);
   dtpcan->Divide(3,2);
   std::vector<TGraph*> dtpoca, ttpoca;
-  std::vector<double> pchange = {10.0,5.0,10.0,10.0,0.1,0.1};
+  std::vector<double> pchange = {10,0.1,0.0001,10,0.01,0.1};
   for(int ipar=0;ipar<lhel.npars_;ipar++){
     typename KTRAJ::ParamIndex parindex = static_cast<typename KTRAJ::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(nstep*ntstep));
@@ -133,35 +133,35 @@ int TPocaTest(int argc, char **argv) {
     TLine tline(ppos, pvel,time,prange);
     // create TPoca from these
     TPOCA tp(lhel,tline);
-//    cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+  //  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
     Vec3 thpos, tlpos;
     thpos = tp.particleTraj().position(tp.particlePoca().T());
     tlpos = tp.sensorTraj().position(tp.sensorPoca().T());
     double refd = tp.doca();
     double reft = tp.deltaT();
-//    cout << " Helix Pos " << pos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
-//    cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
-//    cout << "TPoca dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
+  //  cout << " Helix Pos " << pos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
+  //  cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
+  //  cout << "TPoca dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
     // test against numerical derivatives
     // range to change specific parameters; most are a few mm
     for(int ipar=0;ipar<lhel.npars_;ipar++){
       double dstep = pchange[ipar]/(nstep-1);
       double dstart = -0.5*pchange[ipar];
       for(unsigned istep=0;istep<nstep;istep++){
-	// compute exact change in DOCA 
-	auto dvec = lhel.params().parameters();
-	double dpar = dstart + dstep*istep;
-	dvec[ipar] += dpar; 
-	typename KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
-	KTRAJ dlhel(pdata,lhel);
-	TPOCA dtp(dlhel,tline);
-	double xd = dtp.doca();
-	double xt = dtp.deltaT();
-	// now derivatives
-	double dd = tp.dDdP()[ipar]*dpar;
-	double dt = tp.dTdP()[ipar]*dpar;
-	dtpoca[ipar]->SetPoint(istep,xd-refd,dd);
-	ttpoca[ipar]->SetPoint(istep,xt-reft,dt);
+        // compute exact change in DOCA
+        auto dvec = lhel.params().parameters();
+        double dpar = dstart + dstep*istep;
+        dvec[ipar] += dpar;
+        typename KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
+        KTRAJ dlhel(pdata,lhel);
+        TPOCA dtp(dlhel,tline);
+        double xd = dtp.doca();
+        double xt = dtp.deltaT();
+        // now derivatives
+        double dd = tp.dDdP()[ipar]*dpar;
+        double dt = tp.dTdP()[ipar]*dpar;
+        dtpoca[ipar]->SetPoint(istep,xd-refd,dd);
+        ttpoca[ipar]->SetPoint(istep,xt-reft,dt);
       }
     }
   }

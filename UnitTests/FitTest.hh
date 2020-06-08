@@ -84,6 +84,7 @@ int FitTest(int argc, char **argv) {
   typedef KKTrk<KTRAJ> KKTRK;
   typedef shared_ptr<KKConfig> KKCONFIGPTR;
   typedef THit<KTRAJ> THIT;
+  typedef KKHit<KTRAJ> KKHIT;
   typedef std::shared_ptr<THIT> THITPTR;
   typedef DXing<KTRAJ> DXING;
   typedef std::shared_ptr<DXING> DXINGPTR;
@@ -109,7 +110,7 @@ int FitTest(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   double dwt(1.0e6);
-  unsigned ntries(1000);
+  unsigned ntries(100);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(0), invert(0);
@@ -291,7 +292,7 @@ int FitTest(int argc, char **argv) {
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
 //  kktrk.print(cout,detail);
-  TFile fitfile(tfname.c_str(),"RECREATE");
+  TFile fitfile((KTRAJ::trajName() + tfname).c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
   float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
@@ -362,7 +363,7 @@ int FitTest(int argc, char **argv) {
 
   } else {
     TTree* ftree(0);
-    KKHIV hinfo;
+    KKHIV hinfovec;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -386,7 +387,7 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("maxgap", &maxgap_,"maxgap/F");
       ftree->Branch("avgap", &avgap_,"avgap/F");
       ftree->Branch("igap", &igap_,"igap/I");
-      ftree->Branch("hinfo",&hinfo);
+      ftree->Branch("hinfovec",&hinfovec);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdp(KTRAJ::NParams());
@@ -437,6 +438,7 @@ int FitTest(int argc, char **argv) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
+      hinfovec.clear();
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
@@ -455,10 +457,10 @@ int FitTest(int argc, char **argv) {
       KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
       KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
       KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
-      typename KTRAJ::PDATA ftpars, btpars; 
+      typename KTRAJ::PDATA ftpars, btpars;
       if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
-	ftpars = fftraj.params();
-	btpars = bftraj.params();
+	ftpars = fttraj.params();
+	btpars = bttraj.params();
       } else {
 	Mom4 fmom, bmom;
 	Vec4 fpos, bpos;
@@ -516,7 +518,7 @@ int FitTest(int argc, char **argv) {
       hnfail->Fill(nfail);
       hndiv->Fill(ndiv);
       auto const& fstat = kktrk.fitStatus();
-      chiprob_ = fstat.prob_; 
+      chiprob_ = fstat.prob_;
       ndof->Fill(fstat.ndof_);
       chisq->Fill(fstat.chisq_);
       chisqndof->Fill(fstat.chisq_/fstat.ndof_);
@@ -542,6 +544,18 @@ int FitTest(int argc, char **argv) {
       ndof_ = fstat.ndof_;
       niter_ = fstat.iter_;
       status_ = fstat.status_;
+      // fill hit information
+      for(auto const& eff: kktrk.effects()) {
+	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	if(kkhit != 0){
+	  KKHitInfo hinfo;
+	  hinfo.active_ = kkhit->isActive();
+	  hinfo.resid_ = kkhit->refResid().value();
+	  hinfo.residvar_ = kkhit->refResid().variance();
+	  hinfo.fitchi_ = kkhit->fitChi();
+	  hinfovec.push_back(hinfo);
+	}
+      }
 
       // test
       if(printbad && !kktrk.fitStatus().usable()){

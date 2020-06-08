@@ -179,7 +179,7 @@ int PKTrajTest(int argc, char **argv) {
 // draw each piece of the piecetraj
   char fname[100];
   snprintf(fname,100,"PKTraj_%s_%2.2f.root",LocalBasis::directionName(tdir).c_str(),delta);
-  TFile pkfile(fname,"RECREATE");
+  TFile pkfile((KTRAJ::trajName()+fname).c_str(),"RECREATE");
   TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
   std::vector<TPolyLine3D*> plhel;
   int icolor(kBlue);
