@@ -433,6 +433,8 @@ int FitTest(int argc, char **argv) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
+    TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
+    TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
     configptr->plevel_ = KKConfig::none;
     for(unsigned itry=0;itry<ntries;itry++){
@@ -548,6 +550,8 @@ int FitTest(int argc, char **argv) {
       ndof_ = fstat.ndof_;
       niter_ = fstat.iter_;
       status_ = fstat.status_;
+      fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
+      bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
       // fill hit information
       for(auto const& eff: kktrk.effects()) {
 	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
@@ -587,18 +591,22 @@ int FitTest(int argc, char **argv) {
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
-    fpullcan->Divide(3,2);
+    fpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
       fpull[ipar]->Fit("gaus","q");
     }
+    fpullcan->cd(KTRAJ::NParams()+1);
+    fmompull->Fit("gaus","q");
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
-    bpullcan->Divide(3,2);
+    bpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
       bpull[ipar]->Fit("gaus","q");
     }
+    bpullcan->cd(KTRAJ::NParams()+1);
+    bmompull->Fit("gaus","q");
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
