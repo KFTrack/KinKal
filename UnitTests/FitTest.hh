@@ -406,7 +406,7 @@ int FitTest(int argc, char **argv) {
     TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
     TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
     TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
-    TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
+    TH1F* logchisqprob = new TH1F("logchisqprob", "Log10 of Chisquared probability", 100,-10,0.0);
     string htitle, hname;
     TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",KTRAJ::NParams(),-0.5,KTRAJ::NParams()-0.5,KTRAJ::NParams(), -0.5,KTRAJ::NParams()-0.5);
     TAxis* xax = corravg->GetXaxis();
