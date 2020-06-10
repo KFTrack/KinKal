@@ -28,5 +28,5 @@ foreach( testsourcefile ${TEST_APP_SOURCES} )
     target_link_libraries( UnitTest_${testname} KinKal MatEnv ${ROOT_LIBRARIES} )
 
     # register the target as a test 
-    add_test (NAME ${testname}_test COMMAND ${testname} )
+    add_test (NAME ${testname} COMMAND UnitTest_${testname} )
 endforeach( testsourcefile ${TEST_APP_SOURCES} )
