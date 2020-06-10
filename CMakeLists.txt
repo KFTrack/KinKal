@@ -4,9 +4,7 @@ cmake_minimum_required(VERSION 3.9.0)
 set(CMAKE_C_COMPILER "gcc")
 
 set(CMAKE_CXX_COMPILER "g++")
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED on)
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter")
+set(CMAKE_CXX_FLAGS "-std=c++17 -Wall -Wextra -Wno-unused-parameter")
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Og")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG")
 
