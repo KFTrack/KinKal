@@ -29,4 +29,5 @@ foreach( testsourcefile ${TEST_APP_SOURCES} )
 
     # register the target as a test 
     add_test (NAME ${testname} COMMAND UnitTest_${testname} )
+    set_tests_properties(${testname} PROPERTIES TIMEOUT 5) 
 endforeach( testsourcefile ${TEST_APP_SOURCES} )
