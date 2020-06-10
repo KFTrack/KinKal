@@ -1,5 +1,4 @@
 
-include(CTest)
 
 # generate root dictionary
 ROOT_GENERATE_DICTIONARY(G__Dict KKHitInfo.hh NOINSTALL
@@ -29,5 +28,5 @@ foreach( testsourcefile ${TEST_APP_SOURCES} )
     target_link_libraries( UnitTest_${testname} KinKal MatEnv ${ROOT_LIBRARIES} )
 
     # register the target as a test 
-    add_test ( ${testname}_test UnitTest_${testname} )
+    add_test (NAME ${testname}_test COMMAND ${testname} )
 endforeach( testsourcefile ${TEST_APP_SOURCES} )
