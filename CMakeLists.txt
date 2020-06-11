@@ -5,14 +5,14 @@ set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 
 # enable c++17 standard
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wextra -Wno-unused-parameter"
+set(CMAKE_CXX_FLAGS "-Wall -Wno-unused-parameter -Wno-unused-local-typedefs -Werror -gdwarf-2 -Werror=return-type -Winit-self -Woverloaded-virtual -ftrapping-math"
     CACHE STRING "Flags (all configurations)" FORCE)
 set(CMAKE_CXX_FLAGS_DEBUG "-g -Og" 
     CACHE STRING "Debug flags" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG" 
+set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fno-omit-frame-pointer" 
     CACHE STRING "Release/Prof flags" FORCE)
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -31,12 +31,13 @@ include(${ROOT_USE_FILE})
 
 include_directories(${PROJECT_SOURCE_DIR})
 
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
 enable_testing()
 
 add_subdirectory(MatEnv)
 add_subdirectory(KinKal)
 add_subdirectory(UnitTests)
+

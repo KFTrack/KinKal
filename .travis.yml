@@ -1,0 +1,15 @@
+dist: bionic
+language: cpp
+compiler: gcc
+
+before_install:
+    - wget https://root.cern/download/root_v6.20.00.Linux-ubuntu18-x86_64-gcc7.4.tar.gz -O /tmp/root.tar.gz
+    - tar -xvf /tmp/root.tar.gz
+    - sudo apt-get -y install libzstd1 
+
+script:
+    - mv root ../root && . ../root/bin/thisroot.sh
+    - mkdir build && cd build
+    - cmake ..
+    - make
+
