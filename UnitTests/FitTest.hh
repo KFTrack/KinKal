@@ -294,8 +294,8 @@ int FitTest(int argc, char **argv) {
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + tfname).c_str(),"RECREATE");
   // tree variables
-  KTRAJPars ftpars_, etpars_, spars_, ffitpars_, ffiterrs_, efitpars_, efiterrs_;
-  float chisq_, etmom_, ftmom_, ffmom_, efmom_, chiprob_;
+  KTRAJPars ftpars_, btpars_, spars_, ffitpars_, ffiterrs_, bfitpars_, bfiterrs_;
+  float chisq_, btmom_, ftmom_, ffmom_, bfmom_, ffmomerr_, bfmomerr_, chiprob_;
   float fft_,eft_;
   int ndof_, niter_, status_, igap_;
   float maxgap_, avgap_;
@@ -367,21 +367,23 @@ int FitTest(int argc, char **argv) {
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
-      ftree->Branch("etpars.", &etpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("btpars.", &btpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("spars.", &spars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("ffpars.", &ffitpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("fferrs.", &ffiterrs_,KTRAJPars::leafnames().c_str());
-      ftree->Branch("efpars.", &efitpars_,KTRAJPars::leafnames().c_str());
-      ftree->Branch("eferrs.", &efiterrs_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("bfpars.", &bfitpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("bferrs.", &bfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
       ftree->Branch("status", &status_,"status/I");
       ftree->Branch("ftmom", &ftmom_,"ftmom/F");
-      ftree->Branch("etmom", &etmom_,"etmom/F");
+      ftree->Branch("btmom", &btmom_,"btmom/F");
       ftree->Branch("ffmom", &ffmom_,"ffmom/F");
-      ftree->Branch("efmom", &efmom_,"efmom/F");
+      ftree->Branch("bfmom", &bfmom_,"bfmom/F");
+      ftree->Branch("ffmomerr", &ffmomerr_,"ffmomerr/F");
+      ftree->Branch("bfmomerr", &bfmomerr_,"bfmomerr/F");
       ftree->Branch("fft", &fft_,"fft/F");
       ftree->Branch("eft", &eft_,"eft/F");
       ftree->Branch("maxgap", &maxgap_,"maxgap/F");
@@ -404,7 +406,7 @@ int FitTest(int argc, char **argv) {
     TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
     TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
     TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
-    TH1F* logchisqprob = new TH1F("logchisqprob", "Chisquared probability", 100,-10,0.0);
+    TH1F* logchisqprob = new TH1F("logchisqprob", "Log10 of Chisquared probability", 100,-10,0.0);
     string htitle, hname;
     TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",KTRAJ::NParams(),-0.5,KTRAJ::NParams()-0.5,KTRAJ::NParams(), -0.5,KTRAJ::NParams()-0.5);
     TAxis* xax = corravg->GetXaxis();
@@ -431,6 +433,8 @@ int FitTest(int argc, char **argv) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
+    TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
+    TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
     configptr->plevel_ = KKConfig::none;
     for(unsigned itry=0;itry<ntries;itry++){
@@ -487,22 +491,22 @@ int FitTest(int argc, char **argv) {
 
       // momentum
       // accumulate parameter difference and pull
-      vector<double> cerr(6,0.0), bcerr(6,0.0);
+      vector<double> fcerr(6,0.0), bcerr(6,0.0);
       for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
-	cerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
+	fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
 	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
 	fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
 	bdp[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
-	fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/cerr[ipar]);
+	fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/fcerr[ipar]);
 	bpull[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
-	fiterrh[ipar]->Fill(cerr[ipar]);
+	fiterrh[ipar]->Fill(fcerr[ipar]);
       }
       // accumulate average correlation matrix
       auto const& cov = ffpars.covariance();
       //    auto cormat = cov;
       for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
 	for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
-	  double corr = cov[ipar][jpar]/(cerr[ipar]*cerr[jpar]);
+	  double corr = cov[ipar][jpar]/(fcerr[ipar]*fcerr[jpar]);
 	  //	cormat[ipar][jpar] = corr;
 	  corravg->Fill(ipar,jpar,fabs(corr));
 	}
@@ -528,22 +532,26 @@ int FitTest(int argc, char **argv) {
       for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
 	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
 	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-	etpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
 	ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
-	efitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
+	bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
 	ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
-	efiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
+	bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
       }
       ftmom_ = fttraj.momentumMag(tptraj.range().low());
-      etmom_ = bttraj.momentumMag(tptraj.range().high());
+      btmom_ = bttraj.momentumMag(tptraj.range().high());
       ffmom_ = fftraj.momentumMag(tptraj.range().low());
-      efmom_ = bftraj.momentumMag(tptraj.range().high());
+      bfmom_ = bftraj.momentumMag(tptraj.range().high());
+      ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
+      bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
       fft_ = kktrk.fitTraj().range().low();
       eft_ = kktrk.fitTraj().range().high();
       chisq_ = fstat.chisq_;
       ndof_ = fstat.ndof_;
       niter_ = fstat.iter_;
       status_ = fstat.status_;
+      fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
+      bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
       // fill hit information
       for(auto const& eff: kktrk.effects()) {
 	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
@@ -583,18 +591,22 @@ int FitTest(int argc, char **argv) {
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
-    fpullcan->Divide(3,2);
+    fpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       fpullcan->cd(ipar+1);
       fpull[ipar]->Fit("gaus","q");
     }
+    fpullcan->cd(KTRAJ::NParams()+1);
+    fmompull->Fit("gaus","q");
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
-    bpullcan->Divide(3,2);
+    bpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
       bpullcan->cd(ipar+1);
       bpull[ipar]->Fit("gaus","q");
     }
+    bpullcan->cd(KTRAJ::NParams()+1);
+    bmompull->Fit("gaus","q");
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);

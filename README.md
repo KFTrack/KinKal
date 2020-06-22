@@ -47,7 +47,7 @@
   trajectory class, hits, etc), as well as test program with an embedded toy Monte Carlo simulation which exercises the fit,
   and verifies its performance.
 
-  The KinKal package is licensed under Adobe v2, and is hosted at [GitHub](https://github.com/KFTrack/KinKal.git)
+  The KinKal package is licensed under Apache v2, and is hosted at [GitHub](https://github.com/KFTrack/KinKal.git)
 
   David N. Brown, Lawrence Berkeley National Lab
 
