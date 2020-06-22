@@ -89,7 +89,7 @@ int TPocaTest(int argc, char **argv) {
     }
   }
   // create helix
-  Vec3 bnom(0.0,0.0,1.0);
+  Vec3 bnom(0.0,0.0,0.0);
   UniformBField BF(bnom); // 1 Tesla
   Vec4 origin(0.0,0.0,oz,ot);
   double sint = sqrt(1.0-cost*cost);

@@ -131,7 +131,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   pmass = masses[imass];
   TFile htfile((KTRAJ::trajName()+"HitTest.root").c_str(),"RECREATE");
   // construct BField
-  Vec3 bnom(0.0,By,1.0);
+  Vec3 bnom(0.0,By,0.0);
   BField* BF;
   if(Bgrad != 0){
     BF = new GradBField(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);

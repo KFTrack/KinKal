@@ -116,13 +116,11 @@ namespace KinKal {
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       // no t0 dependence, DOCA is purely geometric
 
- //     double l = CLHEP::c_light*ktline.beta()*(ktline.ztime(ktline.z0())-ktline.t0());
-
       //calculated these using BTrk instances - doc db ref ###
-      dDdP_[KTLine::phi0_] = dsign*ktline.d0()*sin(ktline.phi0())*ddir.x()-ktline.d0()*cos(ktline.phi0())*ddir.y();
+      dDdP_[KTLine::phi0_] = -dsign*ktline.d0()*sin(ktline.phi0())*ddir.x()-ktline.d0()*cos(ktline.phi0())*ddir.y();
       dDdP_[KTLine::cost_] = 0;
-      dDdP_[KTLine::d0_] = dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
-      dDdP_[KTLine::z0_] = dsign*ddir.z();
+      dDdP_[KTLine::d0_] = -dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
+      dDdP_[KTLine::z0_] = -dsign*ddir.z();
       cout<<"dDdP+ "<<dDdP_<<endl;
       // no spatial dependence, DT is purely temporal
       dTdP_[KTLine::t0_] = -1.0; // time is 100% correlated
