@@ -20,26 +20,34 @@ namespace KinKal {
     */ 
 
   KTLine::KTLine(Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) :     
-    KTLine(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {    std::cout<<" KT Constructor 1 "<<std::endl;}
+    KTLine(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {    
+//std::cout<<" KT Constructor 1 "<<std::endl;
+}
 
   KTLine::KTLine(Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range)
   : TLine(pos0.Vect(), (mom0.Vect()/mom0.E())*CLHEP::c_light, pos0.T(), range), bnom_(bnom), pos40_(pos0), mom_(mom0), charge_(charge) {
       mass_ = mom0.M();    
-      std::cout<<" KT Constructor 2 "<<this->range()<<std::endl;
+  //    std::cout<<" KT Constructor 2 "<<this->range()<<std::endl;
   }
 
   KTLine::KTLine( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range)
-  : KTLine(pdata,mass,charge,Vec3(0.0,0.0,bnom),range){    std::cout<<" KT Constructor 3 "<<std::endl;} 
+  : KTLine(pdata,mass,charge,Vec3(0.0,0.0,bnom),range){    
+//std::cout<<" KT Constructor 3 "<<std::endl;
+   } 
 
   KTLine::KTLine( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range)
-  : KTLine(pdata.parameters(),pdata.covariance(),mass,charge,bnom,range) {std::cout<<" KT Constructor 4 "<<range<<std::endl;}
+  : KTLine(pdata.parameters(),pdata.covariance(),mass,charge,bnom,range) {
+   // std::cout<<" KT Constructor 4 "<<range<<std::endl;
+   }
   
   KTLine::KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &trange) : 
-    TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge) {std::cout<<" KT Constructor 5 "<<std::endl;}
+    TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge) {
+  //std::cout<<" KT Constructor 5 "<<std::endl;
+}
 
 KTLine::KTLine( PDATA const& pdata, KTLine const& other) : KTLine(other) {
     pars_ = pdata;
-    std::cout<<" KT Constructor 6 "<<other.range()<<std::endl;
+  //  std::cout<<" KT Constructor 6 "<<other.range()<<std::endl;
   }
 
 
@@ -83,25 +91,25 @@ parameterization than that used for the helix case.
     switch ( mdir ) {
     case LocalBasis::perpdir: // purely polar change theta 1 = theta
 
-      u.SetX(-1*cosTheta()*sinPhi0());
-      u.SetY(-1*cosTheta()*cosPhi0());
-      u.SetZ(sinTheta());
-//      cout<<" Unit in perp "<<u<<endl;
+      u.SetX(cosTheta()*sinPhi0());
+      u.SetY(cosTheta()*cosPhi0());
+      u.SetZ(-1*sinTheta());
+      cout<<" Unit in perp "<<u<<endl;
       return u;
     break;
 //      cout<<"phi dir "<<endl;
       case LocalBasis::phidir: // purely transverse theta2 = -phi()*sin(theta)
-      u.SetX(-cosPhi0());
+      u.SetX(-1*cosPhi0());
       u.SetY(sinPhi0());
       u.SetZ(0.0);
-//      cout<<" Unit in phi "<<u<<endl;
+      cout<<" Unit in phi "<<u<<endl;
       return u;
     break;
       case LocalBasis::momdir: // along momentum: check.
       u.SetX(dir().x());
       u.SetY(dir().y());
       u.SetZ(dir().z());
-//      cout<<" Unit in mom "<<u<<endl;
+      cout<<" Unit in mom "<<u<<endl;
       return u;
     break;
       default:
@@ -116,36 +124,34 @@ parameterization than that used for the helix case.
 // derivatives of momentum projected along the given basis WRT the 5 parameters
    KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
     // compute some useful quantities
-    double dt = time-t0();
-    double l = CLHEP::c_light * beta() * (dt);
-
+    double l = speed()*time;
     KTLine::DVEC pder;
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
-	      // polar bending: only momentum and position are unchanged
-	      pder[cost_] = 1;
-	      pder[d0_] = 1;
+	      // polar bending: change in Theta
+	      pder[cost_] = -sinTheta();
+	      pder[d0_] = pder[d0_];
 	      pder[phi0_] = 0;
-	      pder[z0_] = (-1*l/sinTheta());
-	      pder[t0_] = dt;
-//        cout<<" deriv perpdir "<<pder <<endl;
+	      pder[z0_] = (-l/sinTheta());
+	      pder[t0_] = pder[z0_]/speed();
+        cout<<" deriv perpdir "<<pder <<endl;
 	      break;
       case LocalBasis::phidir:
 	      // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
 	      pder[cost_] = 0;
 	      pder[d0_] = l/sinTheta();
 	      pder[phi0_] = -1/sinTheta();
-	      pder[z0_] = d0()/(sinTheta()*tanTheta());
-	      pder[t0_] = dt;
-//        cout<<"deriv phi dir "<<pder<<endl;
+	      pder[z0_] = pder[d0_]/(sinTheta()*tanTheta());
+	      pder[t0_] = pder[z0_]/speed();
+        cout<<"deriv phi dir "<<pder<<endl;
 	      break;
       case LocalBasis::momdir:
-	      pder[cost_] = 1;
-	      pder[d0_] = 1;
-	      pder[phi0_] = 1;
-	      pder[z0_] = 1;
-	      pder[t0_] = dt;
+	      pder[cost_] = 0;
+	      pder[d0_] = 0;
+	      pder[phi0_] = 0;
+	      pder[z0_] = 0;
+	      pder[t0_] = pder[z0_]/speed();
 	    break;
       
       default:

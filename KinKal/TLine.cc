@@ -14,7 +14,7 @@ namespace KinKal {
     "Time at POCA"};
 
   vector<string> TLine::paramNames_ = {
-  "D0","Phi0","Z0","CTheta","Time0"};
+  "d_{0}","#phi_{0}","z_{0}","cos(#theta)","t_{0}"};
 
   vector<string> TLine::paramUnits_ = {
   "mm","radians","mm","","ns"};

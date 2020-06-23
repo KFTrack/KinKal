@@ -128,7 +128,7 @@ int test(int argc, char **argv) {
   double del = (dmax-dmin)/(ndel-1);
   for(int idir=0;idir<3;++idir){
     LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
-//    cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
+    cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
     // parameter change
     pgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -148,29 +148,32 @@ int test(int argc, char **argv) {
     // scan range of change
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id;
-//      cout << "Delta = " << delta << endl;
+      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
+      std::cout<<"dmomdir "<<dmomdir<<std::endl;
       DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
+      std::cout<<"new mom "<<newmom<<std::endl;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
-//      cout << "derivative vector" << pder << endl;
+      cout << "derivative vector" << pder << endl;
       DVEC dvec = refhel.params().parameters() + delta*pder;
       PDATA pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
+      cout<<"input to dhel "<<pdata<<endl;
       // test
-      Vec4 xpos, dpos;
+      Vec4 xpos, dpos, xdir;
       xpos.SetE(ttest);
       dpos.SetE(ttest);
       xhel.position(xpos);
       dhel.position(dpos);
-//      cout << " exa pos " << xpos << endl
-//      << " del pos " << dpos << endl;
+     cout << " exa pos " << xpos <<" dir "<<  xhel.direction(xhel.t0())<<endl
+      << " del pos " << dpos <<" dir "<< dhel.direction(xhel.t0())<<endl;
       Mom4 dmom = dhel.momentum(ttest);
-//      cout << "Exact change" << xhel << endl;
-//      cout << "Derivative  " << dhel << endl;
+      cout << "Exact change" << xhel << endl;
+      cout << "Derivative  " << dhel << endl;
       Vec4 gap = dpos - refpos4;
       // project along 3 directions
       for(int jdir=0;jdir < 3;jdir++){

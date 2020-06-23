@@ -178,8 +178,8 @@ namespace {
 0
     };
     static const char* includePaths[] = {
-"/cvmfs/mu2e.opensciencegrid.org/artexternals/root/v6_18_04c/Linux64bit+3.10-2.17-e19-prof/include",
-"/home/sophie/KF/KFTest/build_debug/UnitTests/",
+"/cvmfs/mu2e.opensciencegrid.org/artexternals/root/v6_18_04d/Linux64bit+3.10-2.17-e19-prof/include",
+"/home/sophie/KF/KFTest/build_debug_new/UnitTests/",
 0
     };
     static const char* fwdDeclCode = R"DICTFWDDCLS(
