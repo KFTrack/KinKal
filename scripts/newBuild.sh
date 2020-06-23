@@ -54,7 +54,9 @@ cat >> setup.sh <<EOF
 # ${package_source}/scripts/newBuild.sh
 #
 
-if [ "`basename $0 2>/dev/null`" = "setup.sh" ];then
+(return 0 2>/dev/null) && sourced=1 || sourced=0
+
+if [ "\$sourced" = "0" ];then
     echo "You should be sourcing this file, not executing it."
     exit 1
 fi
