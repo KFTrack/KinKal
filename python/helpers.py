@@ -277,7 +277,7 @@ class build_helper:
                                         self.map_tmp_name()
                                     )
     def make_dict( self ):
-      cmd = "  rootcling -f ../../KinKal/UnitTests/Dict.cc -c ../../KinKal/UnitTests/KKHitInfo.hh ../../KinKal/UnitTests/LinkDef.h; cp ../../KinKal/UnitTests/Dict_rdict.pcm ../lib"
+      cmd = "  rootcling -f ../../KinKal/UnitTests/Dict.cc -c ../../KinKal/UnitTests/KKHitInfo.hh ../../KinKal/UnitTests/LinkDef.h && mv ../../KinKal/UnitTests/Dict_rdict.pcm ../lib/Dict_rdict.pcm"
 #      cmd = "pwd"
       print ("\n\nRunning make_dict ...: ", cmd )
       p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
