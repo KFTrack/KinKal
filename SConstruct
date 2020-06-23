@@ -37,7 +37,7 @@ bindir = buildBase+'/bin/'
 includePath = [ sourceRoot,
                 os.environ['ROOT_INC'] ]
 
-linkPath    = [ os.environ['ROOTSYS'] + '/lib',
+linkPath    = [ os.environ['ROOT_LIB'],
                 '#/lib'
               ]
 
@@ -47,6 +47,7 @@ env = Environment( CPPPATH   = [ includePath, ],
                    ENV       = defineExportedOSEnvironment(),
                    BUILDOPTS = [debugLevel],
                    BINDIR    = bindir,
+                   toolpath  = [os.path.join(sourceRoot, 'site_scons/site_tools')]
                   )
 
 # Temporary hack to enable/disable running of tests.  To run the tests:
@@ -67,6 +68,14 @@ env.MergeFlags( defineMergeFlags(debugLevel) )
 # LIBTEXT is the library for the dict - not a target, only text for names
 #genreflex = Builder(action=Action("export HOME="+os.environ["HOME"]+"; "+"genreflex ${SOURCES[0]} -s ${SOURCES[1]} $_CPPINCFLAGS -l $LIBTEXT -o ${TARGETS[0]} --fail_on_warnings --rootmap-lib=$LIBTEXT  --rootmap=${TARGETS[1]} $DEBUG_FLAG",genreflexcomstr))
 #env.Append(BUILDERS = {'DictionarySource' : genreflex})
+
+env.Tool('compilation_db')
+
+# Generate a compile_commands.json
+compileCommands = env.CompilationDatabase('compile_commands.json')
+compileDb = env.Alias("compdb", compileCommands)
+
+os.makedirs('lib', exist_ok=True)
 
 # Make the environment visible to all SConscript files.
 Export('env')
