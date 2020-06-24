@@ -26,7 +26,7 @@ namespace KinKal {
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
       TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
     
-      TLine(PDATA const& pdata) : pars_(pdata){std::cout<<" T Constructor 3 "<<pdata<<std::endl;  };
+//      TLine(PDATA const& pdata) : pars_(pdata){std::cout<<" T Constructor 3 "<<pdata<<std::endl;  };
       TLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov){std::cout<<" T Constructor 4 "<<std::endl;  };
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
@@ -84,7 +84,6 @@ namespace KinKal {
     protected:
       TRange trange_;
       PDATA pars_; // parameters
-    
       double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       Vec3 pos0_, dir_; // caches
       bool forcerange_; // if set, strictly enforce the range

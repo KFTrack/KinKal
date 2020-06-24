@@ -64,7 +64,6 @@ namespace KinKal {
         return mass_;
       }
       double ztime(double zpos) const { 
-        std::cout<<"KTline ztime "<<(t0() + zpos/((speed()*dir()).z()))<<std::endl;
         return (t0() + zpos/((speed()*dir()).z())); 
       } //time to travel Z
 
@@ -79,7 +78,7 @@ namespace KinKal {
         return beta()*gamma();
       }
       double energyBG(double time) const  { return (sqrt(mass_*mass_ + betaGamma()*betaGamma()* mass_*mass_)); }//in MeV 
-            Vec3 const& bnom(double time=0.0) const { return bnom_; }
+      Vec3 const& bnom(double time=0.0) const { return bnom_; }
 
       void invertCT(){
         charge_ *=-1;
@@ -93,7 +92,7 @@ namespace KinKal {
       Mom4 pos40_, mom_; // 4 momentum vector - px,py,pz,m
       double mass_; //mass in MeV/c2
       int charge_;
-     // PDATA pars_;
+      ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
       static std::string trajName_;
  };
 

@@ -26,8 +26,8 @@ namespace KinKal {
   KTLine::KTLine(Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& range)
   : TLine(pos0.Vect(), (mom0.Vect()/mom0.E())*CLHEP::c_light, pos0.T(), range), bnom_(bnom), pos40_(pos0), mom_(mom0), charge_(charge) {
       mass_ = mom0.M();    
-      std::cout<<" KT Constructor 2 "<<"Mom "<<this->mom_<<" Pos "<<this->pos0_<<std::endl;
-      std::cout<<" KT Constructor 2 "<<"pdata "<<this->d0()<<" , "<<this->phi0()<<" , "<<this->z0()<<" , "<<this->cost()<<" , "<<this->t0()<<std::endl;
+      std::cout<<"Constructing KT : "<<"Mom "<<this->mom_<<" Pos "<<this->pos0_<<std::endl;
+      std::cout<<"Constructed with: "<<"pdata "<<pars_.parameters()<<std::endl;
   }
 
   KTLine::KTLine( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range)
@@ -42,9 +42,10 @@ namespace KinKal {
     TLine(pvec, pcov),  bnom_(bnom), mass_(mass), charge_(charge) {std::cout<<" KT Constructor 5 "<<endl;  
 }
 
-KTLine::KTLine( PDATA const& pdata, KTLine const& other) : KTLine(other) {  
+KTLine::KTLine(PDATA const& pdata, KTLine const& other) : KTLine(other) {  
     pars_ = pdata;
-    std::cout<<" KT Constructor 6 "<<"pdata "<<this->d0()<<" , "<<this->phi0()<<" , "<<this->z0()<<" , "<<this->cost()<<" , "<<this->t0()<<std::endl;
+    //TODO  in this constructor you save the pos0 and mom of the "other" yet you have aprameters from pdata - is this consistant??? Surely you will end up with unphysical results. 
+    std::cout<<"KT Constructor 6 "<<"pdata "<<pdata.parameters()<<std::endl;
   }
 
   string KTLine::trajName_("KTLine");  
@@ -56,17 +57,20 @@ KTLine::KTLine( PDATA const& pdata, KTLine const& other) : KTLine(other) {
   }
 
   void KTLine::momentum(double tval, Mom4& mom) const{
-    mom.SetPy(momentumMag(tval)*dir().y());
-    mom.SetPz(momentumMag(tval)*dir().z());
+    Vec3 dir = direction(tval);
+    mom.SetPx(momentumMag(tval)*dir.x());
+    mom.SetPy(momentumMag(tval)*dir.y());
+    mom.SetPz(momentumMag(tval)*dir.z());
     mom.SetM(mass_);
 
   }
 
   Mom4 KTLine::momentum(double tval) const{
     Mom4 mom;
-    mom.SetPx(momentumMag(tval)*dir().x());
-    mom.SetPy(momentumMag(tval)*dir().y());
-    mom.SetPz(momentumMag(tval)*dir().z());
+    Vec3 dir = direction(tval);
+    mom.SetPx(momentumMag(tval)*dir.x());
+    mom.SetPy(momentumMag(tval)*dir.y());
+    mom.SetPz(momentumMag(tval)*dir.z());
     mom.SetM(mass_);
     return mom_;
   }
@@ -79,38 +83,24 @@ are uncorrelated. These axes are track specific. as cosmics are not always
 coming along the same track direction it is necessary to have difference
 parameterization than that used for the helix case.
 
+alt dir = a test with the "BTrk parameterization" - just changes signs due to swithc in cos<->sin
 */
   Vec3  KTLine::direction(double t, LocalBasis::LocDir mdir) const {
-    Vec3 u;
+
     switch ( mdir ) {
     case LocalBasis::perpdir: // purely polar change theta 1 = theta
-
-      u.SetX(cosTheta()*sinPhi0());
-      u.SetY(cosTheta()*cosPhi0());
-      u.SetZ(-1*sinTheta());
-      cout<<" Unit in perp "<<u<<endl;
-      return u;
+      return l2g_(Vec3(cosTheta()*sinPhi0(),cosTheta()*cosPhi0(),-1*sinTheta()));
+// alt dir l2g_(Vec3(cosTheta()*cosPhi0(),cosTheta()*sinPhi0(),-1*sinTheta()));
     break;
       case LocalBasis::phidir: // purely transverse theta2 = -phi()*sin(theta)
-      u.SetX(-1*cosPhi0());
-      u.SetY(sinPhi0());
-      u.SetZ(0.0);
-      cout<<" Unit in phi "<<u<<endl;
-      return u;
+      return l2g_(Vec3(-cosPhi0(),sinPhi0(),0.0));
+//alt dir = l2g_(Vec3(-sinPhi0(),cosPhi0(),0.0));//;
     break;
       case LocalBasis::momdir: // along momentum: check.
-      u.SetX(dir().x());
-      u.SetY(dir().y());
-      u.SetZ(dir().z());
-      cout<<" Unit in mom "<<u<<endl;
-      return u;
+      return l2g_(Vec3(dir().x(),dir().y(),dir().z()));
     break;
       default:
       throw std::invalid_argument("Invalid direction");
-    }
-    if(needsrot_) {
-      u = brot_(u); 
-      return u;
     }
   }
 
@@ -119,30 +109,26 @@ parameterization than that used for the helix case.
     // compute some useful quantities
     double vz = CLHEP::c_light*mom().z()/mom().E();
     double l = speed()*time;
-    //double dotPerp = dir().x()*cosTheta()*sinPhi0()+dir().y()*cosTheta()*cosPhi0()+ dir().z()*(-sinTheta());
-    //double dotPhi = dir().x()*(-cosPhi0())+dir().y()*(sinTheta());
-    //double l_perp = l*dotPerp;
-    //double l_phi = l*dotPhi;
     KTLine::DVEC pder;
-    cout<<"Mom deriv start params "<<d0()<<" "<<z0()<<" "<<phi0()<<" "<<cost()<<" "<<t0()<<endl;
+    cout<<"Mom deriv start params "<<pder<<endl;
     // cases
     switch ( mdir ) {
       case LocalBasis::perpdir:
 	      // polar bending: change in Theta
 	      pder[cost_] = -sinTheta();
-	      pder[d0_] = d0();
+	      pder[d0_] = 0;
 	      pder[phi0_] = 0;
-	      pder[z0_] = l*cosTheta();
-	      pder[t0_] = z0()/vz;
-         cout<<"Mom deriv perpdir params "<<d0()<<" "<<z0()<<" "<<phi0()<<" "<<cost()<<" "<<t0()<<endl;
+	      pder[z0_] = l*cosTheta();//alt dir =-l*cosTheta();
+	      pder[t0_] = pder[z0_]/vz;
+         cout<<"Mom deriv perpdir params "<<pder<<endl;
 	      break;
       case LocalBasis::phidir:
 	      // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
 	      pder[cost_] = 0;
-	      pder[d0_] = l/sinTheta();
-	      pder[phi0_] = -1/sinTheta();
-	      pder[z0_] = d0()/(sinTheta()*tanTheta());
-	      pder[t0_] = z0()/vz;
+	      pder[d0_] = l;//alt dir = -l;
+	      pder[phi0_] = -1/sinTheta();//alt dir = -1/sinTheta();
+	      pder[z0_] = d0()/(sinTheta()*tanTheta());//alt dir = -d0()/(sinTheta()*tanTheta());
+	      pder[t0_] = pder[z0_] /vz;
          cout<<"Mom deriv phidir params "<<pder<<endl;
 	      break;
       case LocalBasis::momdir:
@@ -150,7 +136,7 @@ parameterization than that used for the helix case.
 	      pder[d0_] = 0;
 	      pder[phi0_] = 0;
 	      pder[z0_] = 0;
-	      pder[t0_] =z0()/vz;
+	      pder[t0_] = pder[z0_] /vz;
          cout<<"Mom deriv momdir params "<<pder<<endl;
 	    break;
       

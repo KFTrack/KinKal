@@ -7,11 +7,11 @@ using namespace ROOT::Math;
 
 namespace KinKal {
   vector<string> TLine::paramTitles_ = {
-    "Transverse DOCA to Z Axis",
-    "Azimuth of POCA"
-    "Z at POCA",
-    "Cos Theta",
-    "Time at POCA"};
+    "Transverse DOCA to Z Axis (d_{0})",
+    "Azimuth of POCA (#phi_{0})",
+    "Z at POCA (z_{0})",
+    "Cos #theta",
+    "Time at POCA (t_{0})"};
 
   vector<string> TLine::paramNames_ = {
   "d_{0}","#phi_{0}","z_{0}","cos(#theta)","t_{0}"};
@@ -37,7 +37,7 @@ namespace KinKal {
     param(phi0_) = atan2(pos0_.Y(),pos0_.X());
     param(z0_) = pos0_.Z();
     param(t0_) = tmeas;
-    cout<<"  In TLine "<<pars_<<endl;
+    cout<<"In TLine params set to: "<<pars_.parameters()<<endl;
   }
 
   void TLine::position(Vec4& pos) const {

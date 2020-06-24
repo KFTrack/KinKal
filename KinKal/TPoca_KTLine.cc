@@ -112,12 +112,12 @@ namespace KinKal {
       Vec3 ddir;
       ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to ktline)
       ktline.direction(particlePoca().T());//hidr
-//TODO - look at the BTrk version (TrkMomCalc)
+
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       // no t0 dependence, DOCA is purely geometric
 
       //calculated these using BTrk instances - doc db ref ###
-      dDdP_[KTLine::phi0_] = -dsign*ktline.d0()*sin(ktline.phi0())*ddir.x()-ktline.d0()*cos(ktline.phi0())*ddir.y();
+      dDdP_[KTLine::phi0_] = -dsign*(ktline.d0()*sin(ktline.phi0())*ddir.x()+ktline.d0()*cos(ktline.phi0())*ddir.y());
       dDdP_[KTLine::cost_] = 0;
       dDdP_[KTLine::d0_] = -dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
       dDdP_[KTLine::z0_] = -dsign*ddir.z();

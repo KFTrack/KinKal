@@ -108,7 +108,7 @@ int test(int argc, char **argv) {
   double sint = sqrt(1.0-cost*cost);
   // reference helix
   pmass = masses[imass];
-  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
+  Mom4 momv(mom*sint*sin(phi),mom*sint*cos(phi),mom*cost,pmass);
   KTRAJ refhel(origin,momv,icharge,bnom);
   cout << "Reference " << refhel << endl;
   Vec4 refpos4;
@@ -131,10 +131,9 @@ int test(int argc, char **argv) {
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
-  cout<<"DEL "<<del<<endl;
   for(int idir=0;idir<3;++idir){
     LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
-    cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
+    cout << "******************Testing direction : " << LocalBasis::directionName(tdir) <<" **********"<< endl;
     // parameter change
     pgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -153,36 +152,39 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     for(int id=0;id<ndel;++id){
-      cout<<"ID "<<id<<endl;
+      cout<<"==================Iteration===================="<<id<<endl;
       double delta = dmin + del*id;
-      cout << "Delta = " << delta << endl;
+      cout << "Delta (change on iteration) " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
-      std::cout<<"dmomdir "<<dmomdir<<std::endl;
+      std::cout<<"Chosen momdir "<<dmomdir<<std::endl;
       DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
-      std::cout<<"new mom "<<newmom<<std::endl;
+      std::cout<<"New Mom For iteration "<<newmom<<std::endl;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
+      cout<<"-------Calling Exact Constructor--------"<<endl;
       KTRAJ xhel(refpos4,momv,icharge,bnom);
-      cout<<"REFPOS4 XHEL "<<refpos4<<endl;
-      cout<<"MomV XHEL"<<momv<<endl;
-      cout<<"CHARGE i"<<icharge<<" BNOM "<<bnom<<endl;
-      cout << "derivative vector" << pder << endl;
+      cout<<"pos4 for Exact Track "<<refpos4<<endl;
+      cout<<"MomV for Exact"<<momv<<endl;
+      cout << "Mom Derivative vector" << pder << endl;
+      cout<<"Changes : REFPARAMS "<<refhel.params().parameters()<<endl;
+      cout<<"+  delta*pder "<<delta*pder<<endl;
       DVEC dvec = refhel.params().parameters() + delta*pder;
       PDATA pdata(dvec,refhel.params().covariance());
+      cout<<"Changed Params to "<<pdata.parameters()<<endl;
+      cout<<"--------Calling Deriv Constructor-----"<<endl;
       KTRAJ dhel(pdata,refhel);
-      cout<<"REFPOS4 DHEL "<<dhel.pos4(dhel.t0())<<endl;
-      cout<<"MomV DHEL"<<dhel.momentum(dhel.t0())<<endl;
-      cout<<"REFPARAMS "<<refhel.params()<<endl;
-      cout<<"input to dhel "<<pdata<<endl;
+      cout<<"pos4 Deriv Track  "<<dhel.pos4(dhel.t0())<<endl;
+      cout<<"MomV For Deriv Track"<<dhel.momentum(dhel.t0())<<endl;
+      cout<<" DPARAMS "<<dhel.params().parameters()<<endl;
       // test
       Vec4 xpos, dpos, xdir;
       xpos.SetE(ttest);
       dpos.SetE(ttest);
       xhel.position(xpos);
       dhel.position(dpos);
-     cout << " exa pos " << xpos <<" dir "<<  xhel.direction(xhel.t0())<<endl
+      cout << " exa pos " << xpos <<" dir "<<  xhel.direction(xhel.t0())<<endl
       << " del pos " << dpos <<" dir "<< dhel.direction(xhel.t0())<<endl;
       Mom4 dmom = dhel.momentum(ttest);
       cout << "Exact change" << xhel << endl;
@@ -205,6 +207,7 @@ int test(int argc, char **argv) {
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
       cout<<" DXMom "<<momv.Vect()<<" RefMom "<<refmom.Vect()<<" DMOM "<<dmom.Vect()<<endl;
+      cout<<"Plot x : "<<dxmom.Dot(dmomdir)<<" Plot y "<<ddmom.Dot(dmomdir)<<" "<<ddmom<<" "<<dxmom<<endl;
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
     char title[80];
