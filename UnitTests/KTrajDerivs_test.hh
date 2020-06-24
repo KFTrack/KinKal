@@ -160,16 +160,22 @@ int test(int argc, char **argv) {
       std::cout<<"Chosen momdir "<<dmomdir<<std::endl;
       DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
+      std::cout<<"Exact Mom changed from "<<refmom.Vect()<<" + "<<delta*dmomdir*mom<<std::endl;
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       std::cout<<"New Mom For iteration "<<newmom<<std::endl;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
+      static const Vec3 zdir(0.0,0.0,1.0);
+      double zddot = zdir.Dot(momv.Vect().Unit());
+      cout<<"Parameters Should Be : "<<endl;
+      std::cout<<"Cos Theta "<<zddot<<" D0 "<<refpos4.Rho()<<" Phi0 "<<atan2(refpos4.Y(),refpos4.X())<<" Z0 "<<refpos4.Z()<<" T0 "<<refpos4.T()<<std::endl;
       cout<<"-------Calling Exact Constructor--------"<<endl;
       KTRAJ xhel(refpos4,momv,icharge,bnom);
       cout<<"pos4 for Exact Track "<<refpos4<<endl;
-      cout<<"MomV for Exact"<<momv<<endl;
+      cout<<"MomV for Exact"<<momv<<" unit "<<momv.Vect().Unit()<<endl;
       cout << "Mom Derivative vector" << pder << endl;
       cout<<"Changes : REFPARAMS "<<refhel.params().parameters()<<endl;
       cout<<"+  delta*pder "<<delta*pder<<endl;
+      //TODO - alter directions not parameters?
       DVEC dvec = refhel.params().parameters() + delta*pder;
       PDATA pdata(dvec,refhel.params().covariance());
       cout<<"Changed Params to "<<pdata.parameters()<<endl;
@@ -206,8 +212,6 @@ int test(int argc, char **argv) {
       //
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
-      cout<<" DXMom "<<momv.Vect()<<" RefMom "<<refmom.Vect()<<" DMOM "<<dmom.Vect()<<endl;
-      cout<<"Plot x : "<<dxmom.Dot(dmomdir)<<" Plot y "<<ddmom.Dot(dmomdir)<<" "<<ddmom<<" "<<dxmom<<endl;
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
     char title[80];

@@ -101,7 +101,7 @@ namespace KinKal {
         // set the positions
       partPoca_.SetE(htoca);
       ktline.position(partPoca_);
-      partPoca_.SetE(stoca);
+      sensPoca_.SetE(stoca);
       tline.position(sensPoca_);
       // sign doca by angular momentum projected onto difference vector (same as helix)
       double lsign =   tline.dir().Cross(ktline.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
