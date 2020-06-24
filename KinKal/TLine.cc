@@ -31,14 +31,13 @@ namespace KinKal {
 
   TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range), pars_(), speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
     static const Vec3 zdir(0.0,0.0,1.0);
-  //  if(trange_.infinite()) setRange(TRange(-1,1));
     double zddot = zdir.Dot(dir_);
     param(cost_) = zddot;
     param(d0_) = pos0_.Rho();
     param(phi0_) = atan2(pos0_.Y(),pos0_.X());
     param(z0_) = pos0_.Z();
     param(t0_) = tmeas;
-    std::cout<<" TLine Constructor 2 "<<trange_<<std::endl;
+    cout<<"  In TLine "<<pars_<<endl;
   }
 
   void TLine::position(Vec4& pos) const {
@@ -49,7 +48,6 @@ namespace KinKal {
 
   Vec3 TLine::position(double time) const {
     if(forceRange()) range().forceRange(time);
-    std::cout<<" postion from time "<<(pos0() + ((time-t0())*speed())*dir())<<" pos0 "<<pos0()<<" dir "<<dir()<<" time "<<time<<" t0 "<<t0()<<std::endl;
     return (pos0() + ((time-t0())*speed())*dir());
   }
 

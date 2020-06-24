@@ -34,7 +34,6 @@ namespace KinKal {
       KTLine(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
 
       KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
-  
       
       KTLine(PDATA const& pdata, const KTLine& ktline); 
 

@@ -34,7 +34,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f \n");
+  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f --Bz f\n");
 }
 
 template <class KTRAJ>
@@ -50,6 +50,7 @@ int test(int argc, char **argv) {
   double pmass, oz(100.0), ot(0.0), ttest(5.0);
   double dmin(-5e-2), dmax(5e-2);
   double By(0.0);
+  double Bz(1.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -63,6 +64,7 @@ int test(int argc, char **argv) {
     {"dmax",     required_argument, 0, 'e'  },
     {"ttest",     required_argument, 0, 't'  },
     {"By",     required_argument, 0, 'y'  },
+    {"Bz",     required_argument, 0, 'b'  },
     {NULL, 0,0,0}
 
 
@@ -94,12 +96,14 @@ int test(int argc, char **argv) {
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
+      case 'b' : Bz = atof(optarg);
+		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
     }
   }
   // construct original helix from parameters
-  Vec3 bnom(0.0,By,1.0);
+  Vec3 bnom(0.0,By, Bz);
   Vec4 origin(0.0,0.0,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   // reference helix
@@ -112,6 +116,7 @@ int test(int argc, char **argv) {
   refhel.position(refpos4);
   cout << "origin position " << origin << " test position " << refpos4 << endl;
   Mom4 refmom = refhel.momentum(ttest);
+  cout<<"Ref Hel Mom "<<refmom<<endl;
   int ndel(50);
   // graphs to compare parameter change
   std::vector<TGraph*> pgraphs[3];
@@ -126,6 +131,7 @@ int test(int argc, char **argv) {
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
+  cout<<"DEL "<<del<<endl;
   for(int idir=0;idir<3;++idir){
     LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
     cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
@@ -147,6 +153,7 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     for(int id=0;id<ndel;++id){
+      cout<<"ID "<<id<<endl;
       double delta = dmin + del*id;
       cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
@@ -158,10 +165,16 @@ int test(int argc, char **argv) {
       std::cout<<"new mom "<<newmom<<std::endl;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
+      cout<<"REFPOS4 XHEL "<<refpos4<<endl;
+      cout<<"MomV XHEL"<<momv<<endl;
+      cout<<"CHARGE i"<<icharge<<" BNOM "<<bnom<<endl;
       cout << "derivative vector" << pder << endl;
       DVEC dvec = refhel.params().parameters() + delta*pder;
       PDATA pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
+      cout<<"REFPOS4 DHEL "<<dhel.pos4(dhel.t0())<<endl;
+      cout<<"MomV DHEL"<<dhel.momentum(dhel.t0())<<endl;
+      cout<<"REFPARAMS "<<refhel.params()<<endl;
       cout<<"input to dhel "<<pdata<<endl;
       // test
       Vec4 xpos, dpos, xdir;
@@ -177,19 +190,21 @@ int test(int argc, char **argv) {
       Vec4 gap = dpos - refpos4;
       // project along 3 directions
       for(int jdir=0;jdir < 3;jdir++){
-	LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
-	Vec3 jmomdir = refhel.direction(ttest,tjdir);
-	pder = refhel.momDeriv(ttest,tjdir);
-	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
+        LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
+        Vec3 jmomdir = refhel.direction(ttest,tjdir);
+        pder = refhel.momDeriv(ttest,tjdir);
+        gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
       }
       // parameter diff
       for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
-	pgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
+        pgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
+        cout<<" : xhel "<<xhel.paramVal(ipar)<<" ref "<<refhel.paramVal(ipar)<<" dhel "<<dhel.paramVal(ipar)<<endl;
       }
       // compare momenta after change
       //
       Vec3 dxmom = momv.Vect() - refmom.Vect();
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
+      cout<<" DXMom "<<momv.Vect()<<" RefMom "<<refmom.Vect()<<" DMOM "<<dmom.Vect()<<endl;
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
     char title[80];

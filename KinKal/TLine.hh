@@ -26,8 +26,8 @@ namespace KinKal {
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
       TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
     
-      TLine(PDATA const& pdata) : pars_(pdata){};
-      TLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov){};
+      TLine(PDATA const& pdata) : pars_(pdata){std::cout<<" T Constructor 3 "<<pdata<<std::endl;  };
+      TLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov){std::cout<<" T Constructor 4 "<<std::endl;  };
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const &params() const { return pars_; }
@@ -60,7 +60,6 @@ namespace KinKal {
 
       // geometric accessors
       void position(Vec4& pos) const ;
-
       Vec3 position(double time) const ;
       Vec3 velocity(double time) const ;
 
