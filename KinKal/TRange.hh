@@ -10,7 +10,7 @@ namespace KinKal {
     public:
       static constexpr double tbuff_ = 1.0e-10; // small buffer to prevent overlaps between adjacent trajs
       TRange() : range_{1.0,-1.0} {} // initialize to have infinite range
-      TRange(double low, double high) : range_{low,high} {std::cout<<"IN TRANGE"<<low<<" "<<high<<std::endl;}
+      TRange(double low, double high) : range_{low,high} {}
       bool inRange(double t) const { return (range_[0] > range_[1]) ||
 	(t >= range_[0] && t < range_[1]); }
       double low() const { return range_[0]; }

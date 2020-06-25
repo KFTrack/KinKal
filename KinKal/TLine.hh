@@ -26,8 +26,7 @@ namespace KinKal {
       TLine(Vec4 const& p0, Vec3 const& svel, TRange const& range=TRange(),bool forcerange=false);
       TLine(Vec3 const& p0, Vec3 const& svel, double tmeas, TRange const& range=TRange(),bool forcerange=false);
     
-//      TLine(PDATA const& pdata) : pars_(pdata){std::cout<<" T Constructor 3 "<<pdata<<std::endl;  };
-      TLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov){std::cout<<" T Constructor 4 "<<std::endl;  };
+      TLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov){};
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const &params() const { return pars_; }
@@ -76,8 +75,8 @@ namespace KinKal {
       void print(std::ostream& ost, int detail) const ;
 
       TRange const& range() const { return trange_; }
-      TRange& range() { std::cout<<"Setting TRange "<<trange_<<std::endl; return trange_;  }
-      virtual void setRange(TRange const& trange) { trange_ = trange; std::cout<<"Setting TRange from LH "<<trange_<<std::endl; }
+      TRange& range() { return trange_;  }
+      virtual void setRange(TRange const& trange) { trange_ = trange; }
 
       bool inRange(double time) const { return trange_.inRange(time); }
 

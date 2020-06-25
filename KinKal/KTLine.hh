@@ -67,7 +67,7 @@ namespace KinKal {
         return (t0() + zpos/((speed()*dir()).z())); 
       } //time to travel Z
 
-      int charge() const { std::cout<<charge_<<std::endl; return charge_; }
+      int charge() const { return charge_; }
       double beta() const { 
         return (speed()/CLHEP::c_light);
       }

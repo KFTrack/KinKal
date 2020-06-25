@@ -20,7 +20,6 @@ namespace KinKal {
 
 //1) Specialization for KTLine:
   template<> TPoca<KTLine,TLine>::TPoca(KTLine const& ktline, TLine const& tline, TPocaHint const& hint, double precision) : TPocaBase(precision),ktraj_(&ktline), straj_(&tline) {
-   cout<<"START"<<ktline.params()<<endl;
     // reset status
     reset();
      double htoca, stoca;
@@ -32,7 +31,7 @@ namespace KinKal {
     if(hint.sensorHint_)
       stoca = hint.sensorToca_;
     else
-      stoca= tline.t0();
+      stoca=  tline.t0();
 
     // use successive linear approximation until desired precision on DOCA is met.
     double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
@@ -43,23 +42,17 @@ namespace KinKal {
     unsigned niter(0);
     // ktline speed doesn't change
     double ktspeed = ktline.speed(ktline.t0());
-    cout<<"KTLineSpeed "<<ktspeed<<endl;
     Vec3 ktdir;
     while((fabs(dptoca) > precision_ || fabs(dptoca) > precision_  )&& niter++ < maxiter) {
       // find line's local position and direction
       Vec3 ktpos = ktline.position(htoca);
-      cout<<"KT Position TPOCA "<<ktpos<<endl;
       ktdir = ktline.direction(htoca);//,ktdir);
-      cout<<" KT Direction TPOCA "<<ktdir<<endl;
       auto dpos = tline.pos0()-ktpos;
-      cout<<" dpos "<<dpos<<endl;
       // dot products
       double ddot = tline.dir().Dot(ktdir);
       double denom = 1.0 - ddot*ddot;
-      cout<<" dnemo "<<ddot<<" "<<tline.dir()<<" "<<denom<<endl;
       // check for parallel
       if(denom<1.0e-5){
-        cout<<"Failed POCA "<<endl;
 	      status_ = TPoca::pocafailed;
 	      break;
       }
@@ -67,21 +60,15 @@ namespace KinKal {
       double ldd = dpos.Dot(tline.dir());
       // compute length from expansion point to POCA and convert to times
       dptoca = (ktdd-ldd*ddot)/(denom*ktspeed);
-      std::cout<<ktdd<<" "<<ldd<<" "<<ddot<<" "<<ktspeed<<" "<<denom<<" "<<(ktdd-ldd*ddot)/(denom*ktspeed)<<std::endl;
-      std::cout<<" dptoca "<<dptoca<<std::endl;
+
       dstoca = tline.t0() + (ktdd*ddot-ldd)/(denom*tline.speed(stoca)) - stoca;
       htoca += dptoca; // ktline time is iterative
       stoca += dstoca; // line time is always WRT t0, since it uses p0
-      std::cout<<" tocas "<<dstoca<<" "<<dptoca<<" "<<htoca<<" "<<stoca<<std::endl;
       // compute DOCA
-      cout<<" ktline "<<ktline.t0()<<endl;
       ktpos = ktline.position(htoca);
-      cout<<"line "<<tline.t0()<<endl;
       Vec3 lpos =  tline.position(stoca);
-      double dd2 = (ktpos-lpos).Mag2();
-      std::cout<<"dd2 "<<dd2<<std::endl;
+      double dd2 = (ktpos-lpos).Mag2();;
       if(dd2 < 0.0 ){
-        std::cout<<"tpoca failed 2 "<<std::endl;
 	      status_ = TPoca::pocafailed;
 	      break;
       }
@@ -121,7 +108,6 @@ namespace KinKal {
       dDdP_[KTLine::cost_] = 0;
       dDdP_[KTLine::d0_] = -dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
       dDdP_[KTLine::z0_] = -dsign*ddir.z();
-      cout<<"dDdP+ "<<dDdP_<<endl;
       // no spatial dependence, DT is purely temporal
       dTdP_[KTLine::t0_] = -1.0; // time is 100% correlated
 
@@ -131,7 +117,6 @@ namespace KinKal {
       // dot product between directions at POCA
   
       ddot_ = ktline.direction(particleToca()).Dot(tline.direction(sensorToca()));
-      cout<<"ddot END "<<ddot_<<endl;
 
     }
   }
@@ -148,8 +133,8 @@ namespace KinKal {
       index = pktline.nearestIndex(hint.particleToca_);
     }else{
       index = size_t(rint(oldindex/2.0));
-      status_ = converged; 
     }
+    status_ = converged; 
     while(status_ == converged && niter++ < maxiter && index != oldindex){
       // call down to KTLine TPoca
       // prepare for the next iteration

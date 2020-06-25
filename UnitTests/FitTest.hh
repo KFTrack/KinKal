@@ -118,7 +118,7 @@ int FitTest(int argc, char **argv) {
   bool addbf(false), fitmat(true);
   vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   BField *BF(0);
-  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(0.0);
+  double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
   double tol(0.1);
   int iseed(123421);

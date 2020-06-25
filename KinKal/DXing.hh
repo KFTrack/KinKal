@@ -18,7 +18,9 @@ namespace KinKal {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
       // construct from a time
-      DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
+      DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {
+      std::cout <<"dxing created with time " << time << std::endl;
+      }
       virtual ~DXing() {}
       virtual void update(PKTRAJ const& pktraj) =0;
       virtual void update(PKTRAJ const& pktraj, double xtime) =0; // update including an estimate of the xing time
