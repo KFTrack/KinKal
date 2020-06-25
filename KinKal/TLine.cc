@@ -7,29 +7,21 @@ using namespace ROOT::Math;
 
 namespace KinKal {
   vector<string> TLine::paramTitles_ = {
-    "Transverse DOCA to Z Axis (d_{0})",
-    "Azimuth of POCA (#phi_{0})",
-    "Z at POCA (z_{0})",
-    "Cos #theta",
-    "Time at POCA (t_{0})"};
-
+    "Transverse DOCA to Z Axis",
+    "Azimuth of POCA"
+    "Z at POCA",
+    "Cos Theta",
+    "Time at POCA"}; 
   vector<string> TLine::paramNames_ = {
-  "d_{0}","#phi_{0}","z_{0}","cos(#theta)","t_{0}"};
-
-  vector<string> TLine::paramUnits_ = {
-  "mm","radians","mm","","ns"};
-
-  std::vector<std::string> const& TLine::paramUnits() { return paramUnits_; }
+  "D0","Phi0","Z0","CTheta","Time0"};
   std::vector<std::string> const& TLine::paramNames() { return paramNames_; }
   std::vector<std::string> const& TLine::paramTitles() { return paramTitles_; }
-
   std::string const& TLine::paramName(ParamIndex index) { return paramNames_[static_cast<size_t>(index)];}
   std::string const& TLine::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
-  std::string const& TLine::paramUnit(ParamIndex index) { return paramUnits_[static_cast<size_t>(index)];}
 
   TLine::TLine(Vec4 const& pos0, Vec3 const& svel, TRange const& range,bool forcerange) : TLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {}
-
-  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range), pars_(), speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
+  TLine::TLine(Vec3 const& pos0, Vec3 const& svel, double tmeas, TRange const& range, bool forcerange)  : trange_(range), 
+  speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
     static const Vec3 zdir(0.0,0.0,1.0);
     double zddot = zdir.Dot(dir_);
     param(cost_) = zddot;
@@ -37,7 +29,6 @@ namespace KinKal {
     param(phi0_) = atan2(pos0_.Y(),pos0_.X());
     param(z0_) = pos0_.Z();
     param(t0_) = tmeas;
-    cout<<"In TLine params set to: "<<pars_.parameters()<<endl;
   }
 
   void TLine::position(Vec4& pos) const {
@@ -45,14 +36,13 @@ namespace KinKal {
     pos.SetXYZT(pos3.X(),pos3.Y(),pos3.Z(),pos.T());
   }
 
-
   Vec3 TLine::position(double time) const {
     if(forceRange()) range().forceRange(time);
-    return (pos0() + ((time-t0())*speed())*dir());
+    return pos0() + ((time-t0())*speed())*dir_;
   }
 
   Vec3 TLine::velocity(double time) const {
-   return dir_*speed();
+    return dir_*speed();
   }
 
   double TLine::speed(double time) const {
@@ -64,20 +54,18 @@ namespace KinKal {
     return s/speed_ - t0();
   }
 
-  void TLine::print(ostream& ost, int detail) const {
-    auto perr = params().diagonal(); 
-    ost << " TLine " << range() << " parameters: ";
+  void TLine::print(std::ostream& ost, int detail) const {
+    ost << " TLine " <<  range() << " parameters: ";
     for(size_t ipar=0;ipar < TLine::npars_;ipar++){
-      ost << TLine::paramName(static_cast<TLine::ParamIndex>(ipar) ) << " " << paramVal(ipar) << " +- " << perr(ipar);
-      if(ipar < TLine::npars_-1) ost << " ";
+      ost << TLine::paramName(static_cast<TLine::ParamIndex>(ipar) ) << " : " << param(ipar);
+      if(ipar < TLine::npars_-1) ost << " , ";
     }
-
+    ost << endl;
   }
 
-  ostream& operator <<(ostream& ost, TLine const& line) {
-    line.print(ost,0);
+  std::ostream& operator <<(std::ostream& ost, TLine const& tline) {
+    tline.print(ost,0);
     return ost;
   }
-
 
 }

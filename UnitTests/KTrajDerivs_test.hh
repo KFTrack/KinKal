@@ -34,7 +34,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f --Bz f\n");
+  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f --Bz f --xorigin f\n");
 }
 
 template <class KTRAJ>
@@ -47,10 +47,11 @@ int test(int argc, char **argv) {
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
-  double pmass, oz(100.0), ot(0.0), ttest(5.0);
+  double pmass, oz(100.0), ot(0.0),  ttest(5.0);
   double dmin(-5e-2), dmax(5e-2);
   double By(0.0);
   double Bz(1.0);
+  double ox(0.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -65,6 +66,7 @@ int test(int argc, char **argv) {
     {"ttest",     required_argument, 0, 't'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bz",     required_argument, 0, 'b'  },
+    {"xorigin",     required_argument, 0, 'x'  },
     {NULL, 0,0,0}
 
 
@@ -97,6 +99,8 @@ int test(int argc, char **argv) {
       case 'y' : By = atof(optarg);
 		 break;
       case 'b' : Bz = atof(optarg);
+     break;
+      case 'x' : ox = atof(optarg);
 		 break;
       default: print_usage(); 
 	       exit(EXIT_FAILURE);
@@ -104,7 +108,7 @@ int test(int argc, char **argv) {
   }
   // construct original helix from parameters
   Vec3 bnom(0.0,By, Bz);
-  Vec4 origin(0.0,0.0,oz,ot);
+  Vec4 origin(ox,0.0,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   // reference helix
   pmass = masses[imass];
