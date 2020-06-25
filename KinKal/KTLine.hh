@@ -1,10 +1,7 @@
 #ifndef KinKal_KTLine_hh
 #define KinKal_KTLine_hh
 /*
-  Class to join the TLine with KInter for momentum. Create fit using KTrk.
-  But before that we need to add in momentum interface here.
-  As KTLine inherits from TLine, there is no need to define
-  position and direction.
+  KTLine is the Linear Tracjectory specialization of the KTRAJ
   Original Author: S Middleton 2020
 */
 #include "CLHEP/Units/PhysicalConstants.h"
