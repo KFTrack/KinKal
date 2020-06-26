@@ -59,7 +59,7 @@ import os, re, string
 from timeit import default_timer as timer
 import sys
 import subprocess
-
+from pathlib import Path
 # Check that some of the required environment variables have been set.
 def validateEnvironment():
     if not 'PACKAGE_SOURCE' in os.environ:
@@ -120,11 +120,16 @@ def defineExportedOSEnvironment():
 # Walk the directory tree to locate all SConscript files.
 def locateSConscriptFiles(sourceRoot):
     ss=[]
-    for root,dirs,files in os.walk(sourceRoot):
-        for file in files:
-            if file == 'SConscript': ss.append('%s/%s'%(root,file))
-            pass
-        pass
+    build_dir = Path(os.environ['BUILD_BASE'])
+
+    for root, _, files in os.walk(sourceRoot):
+        candidate_path = os.path.join(root,'SConscript')
+        if build_dir in Path(candidate_path).parents:
+            # don't search the build directory
+            continue
+        if 'SConscript' in files:
+            ss.append(candidate_path)
+        
     return ss
 
 # Tell scons to do the work found in the set of SConscript files.
@@ -277,7 +282,7 @@ class build_helper:
                                         self.map_tmp_name()
                                     )
     def make_dict( self ):
-        cmd=self.env.Command('#/UnitTests/Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
+        cmd=self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
             'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(
                 src=os.environ['PACKAGE_SOURCE'], build=os.environ['BUILD_BASE']
             ))
