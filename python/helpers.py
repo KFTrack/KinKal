@@ -135,7 +135,7 @@ def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
         tokens.pop()
         sep = '/'
         objPath = build_base + '/' + sep.join(tokens)
-        env.SConscript ( sourceFile, variant_dir=objPath)
+        env.SConscript ( sourceFile, variant_dir=objPath,)
 
 # An instance of this class available to the SConscript files via the scons environment.
 class build_helper:
@@ -188,6 +188,7 @@ class build_helper:
 #
     def non_plugin_cc(self):
         tmp = non_plugin_cc = self.env.Glob('*.cc', strings=True)
+        print (tmp)
         for cc in self.plugin_cc(): tmp.remove(cc)
         for cc in self.unittest_cc(): tmp.remove(cc)
         return tmp
@@ -226,13 +227,13 @@ class build_helper:
             pass
         libs = []
         if non_plugin_cc:
-            self.env.SharedLibrary( self.prefixed_libname(),
+            libs = self.env.SharedLibrary( self.prefixed_libname(),
                                     non_plugin_cc,
                                     LIBS=[ userlibs ],
                                     CPPFLAGS=cppf,
                                     parse_flags=pf
                                 )
-            libs = [ self.libname() ]
+            #libs = [ self.libname() ]
             pass
         return libs
 #
@@ -277,8 +278,12 @@ class build_helper:
                                         self.map_tmp_name()
                                     )
     def make_dict( self ):
-        return self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
-            'rootcling -f UnitTests/Dict.cc -c UnitTests/KKHitInfo.hh UnitTests/LinkDef.h && mv UnitTests/Dict_rdict.pcm lib/Dict_rdict.pcm')
+        cmd=self.env.Command('#/UnitTests/Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
+            'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(
+                src=os.environ['PACKAGE_SOURCE'], build=os.environ['BUILD_BASE']
+            ))
+        #self.env.Depends('UnitTests', 'Dict.cc')
+        return cmd
 #
 #   Build a list of the source filenames for unit tests to be built and run
 #
@@ -299,7 +304,8 @@ class build_helper:
 
         test_alias = self.env.Alias('test', '', self.run_unit_tests())
         self.env.AlwaysBuild(test_alias)
-
+        
+        pgs = []
         for u in unitTests:
             exe = self.executable_name(u)
             libs  = linkLists.get(exe,[])
@@ -309,6 +315,8 @@ class build_helper:
                 LIBS   = libs
             )
             self.env.Depends(test_alias, pg)
+            pgs.append(pg[0])
+        return pgs
 #
 #   Run all unit tests.
 #
