@@ -276,18 +276,6 @@ class build_helper:
                 self.env.SharedLibrary( self.prefixed_map_libname(),
                                         self.map_tmp_name()
                                     )
-    def make_dict2( self ):
-      cmd = "  rootcling -f ../../KinKal/UnitTests/Dict.cc -c ../../KinKal/UnitTests/KKHitInfo.hh ../../KinKal/UnitTests/LinkDef.h && mv ../../KinKal/UnitTests/Dict_rdict.pcm ../lib/Dict_rdict.pcm"
-
-      print ("\n\nRunning make_dict ...: ", cmd )
-      p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-      (output, err) = p.communicate()
-      p_status = p.wait()
-      print ( "   Status code: ", p_status)  # Fixme: modify to write to file
-      print ( "   cout: ", output)
-      print ( "   cerr: ", err)
-      return p_status
-
     def make_dict( self ):
         return self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
             'rootcling -f UnitTests/Dict.cc -c UnitTests/KKHitInfo.hh UnitTests/LinkDef.h && mv UnitTests/Dict_rdict.pcm lib/Dict_rdict.pcm')
