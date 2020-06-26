@@ -304,33 +304,14 @@ class build_helper:
     def executable_name(self, name ):
        return name[:name.find('_unit.cc')]
 
-#
-#   Run one unit test - Fixme: still under development
-#
-    def run_unit_test( self, executable ):
-        cmd = "../bin/" + executable   # Fixme: use proper path not hard coded ../
-
-        #print ("\n\nRunning test: ", cmd )
-
-        p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        p_status = p.wait()
-
-        if output is not None:
-            print (output.decode())
-        if err is not None:
-            print (err.decode())
-
-        # print ( "   Status code: ", p_status)  # Fixme: modify to write to file
-        # print ( "   cout: ", output)
-        # print ( "   cerr: ", err)
-        return p_status, output, err
-
-#
 #   Build all unit test
 #
     def make_unit_tests( self, linkLists ):
         unitTests = self.unittest_cc()
+
+        test_alias = self.env.Alias('test', '', self.run_unit_tests())
+        self.env.AlwaysBuild(test_alias)
+
         for u in unitTests:
             exe = self.executable_name(u)
             libs  = linkLists.get(exe,[])
@@ -339,38 +320,60 @@ class build_helper:
                 source = [ u ],
                 LIBS   = libs
             )
-
-            test_alias = self.env.Alias("test", "", "./bin/"+exe, ENV=os.environ)
-            self.env.AlwaysBuild(test_alias)
-        
+            self.env.Depends(test_alias, pg)
 #
 #   Run all unit tests.
 #
 
-    def run_unit_tests( self ):
+    def run_unit_tests(self):
         unitTests = self.unittest_cc()
-        statuses = []
-        for u in unitTests:
 
-            exe = self.executable_name(u)
-            print( )
-            print("Running %s..." % exe)
+        def run_unit_test( executable, print_output=True):
+            cmd = "./bin/" + executable
 
-            start = timer()
-            rc, stdout, stderr = self.run_unit_test( exe )
-            end = timer()
+            p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            (output, err) = p.communicate()
+            p_status = p.wait()
 
-            status = ' %.2f s [ FAILED ]' % (end-start)
-            if rc == 0:
+            if print_output and output is not None:
+                print (output.decode())
+            if print_output and err is not None:
+                print (err.decode())
+
+            return p_status, output, err
+
+
+        def runner(*args,**kwargs):
+            statuses = []
+            tests_failing = 0
+            for u in unitTests:
+                exe = self.executable_name(u)
+                print( )
+                print("Running %s..." % exe)
+
+                start = timer()
+                rc, _, _ = run_unit_test( exe )
+                end = timer()
+
                 status = ' %.2f s [   OK   ]' % (end-start)
-            
-            statuses.append('- '+exe + ' ' * (30 - len('- '+exe)) + status)
+                if rc != 0:
+                    tests_failing += 1
+                    status = ' %.2f s [ FAILED ]' % (end-start)
+                
+                statuses.append('- '+exe + ' ' * (30 - len('- '+exe)) + status)
 
-            #print ( "   Done: ", exe, "  status: ", status)
-        print( )
-        print( )
-        print ("UNIT TEST SUMMARY")
-        print ('-' * (30 + len(' %.2f s [ ...... ]')))
-        for l in statuses:
-            print (l)
-        print( )
+                #print ( "   Done: ", exe, "  status: ", status)
+            print( )
+            print( )
+            print ("UNIT TEST SUMMARY")
+            print ('-' * (30 + len(' %.2f s [ ...... ]')))
+            for l in statuses:
+                print (l)
+            print( )
+            print ( '%2d / %2d tests passed.' % (len(unitTests)-tests_failing, len(unitTests)))
+            print( )
+            print( )
+
+            return tests_failing
+
+        return runner

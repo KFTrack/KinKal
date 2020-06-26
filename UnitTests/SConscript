@@ -33,10 +33,6 @@ helper.make_dict()
 
 mainlib = helper.make_mainlib ( ['Core' ] )
 
-if env['RUNTESTS']:
-    helper.run_unit_tests()
-
-
 # This tells emacs to view this file in python mode.
 # Local Variables:
 # mode:python
