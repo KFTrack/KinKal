@@ -21,15 +21,15 @@ from helpers import build_helper
 # Check that some important environment variables have been set; exit on failure.
 validateEnvironment()
 
+# check we're not building in the source tree
+if os.path.normpath(os.environ['PACKAGE_SOURCE']) == os.path.normpath(GetLaunchDir()):
+    sys.exit('In-source builds are not allowed.\nExiting.')
+
 # Get debug level from the environment and check its validity; exit on failure.
 debugLevel = validateDebugLevel()
 
 # Root directory of the source file tree.
 sourceRoot = os.environ['PACKAGE_SOURCE']
-
-# check we're not building in the source tree
-if os.path.normpath(sourceRoot) == os.path.normpath(GetLaunchDir()):
-    sys.exit('In-source builds are not allowed.\nExiting.')
 
 # Root of the temporary space to be used to hold object files and libraries.
 buildBase = os.environ['BUILD_BASE']
