@@ -188,7 +188,6 @@ class build_helper:
 #
     def non_plugin_cc(self):
         tmp = non_plugin_cc = self.env.Glob('*.cc', strings=True)
-        print (tmp)
         for cc in self.plugin_cc(): tmp.remove(cc)
         for cc in self.unittest_cc(): tmp.remove(cc)
         return tmp
