@@ -120,17 +120,31 @@ def defineExportedOSEnvironment():
 # Walk the directory tree to locate all SConscript files.
 def locateSConscriptFiles(sourceRoot):
     ss=[]
-    build_dir = Path(os.environ['BUILD_BASE'])
+    exclude = [Path(os.environ['BUILD_BASE'])]
 
     for root, _, files in os.walk(sourceRoot):
         candidate_path = os.path.join(root,'SConscript')
-        if build_dir in Path(candidate_path).parents:
-            # don't search the build directory
+
+        if 'SConstruct' in files and root != sourceRoot:
+            # exclude any SConscripts found under a build directory
+            rootp = Path(root)
+            if rootp not in exclude:
+                exclude.append(rootp)
             continue
+
         if 'SConscript' in files:
             ss.append(candidate_path)
-        
-    return ss
+
+    # remove SConscript paths found under any build directories
+    sconscripts = []
+    for cand_path in ss:
+        append = True
+        for ex in exclude:
+            if ex in Path(cand_path).parents:
+                append = False
+        if append:
+            sconscripts.append(cand_path)
+    return sconscripts
 
 # Tell scons to do the work found in the set of SConscript files.
 def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
