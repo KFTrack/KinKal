@@ -64,6 +64,10 @@ export PACKAGE_SOURCE=${package_source}
 export DEBUG_LEVEL=${debug_level}
 source \${PACKAGE_SOURCE}/setup.sh
 export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
+
+# MacOS:
+export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
+
 EOF
 
 unset debug_level
