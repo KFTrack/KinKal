@@ -53,28 +53,48 @@
 
 ## Installation
 
-To build, you must have ROOT (see https://root.cern.ch/) installed, and ROOTSYS defined to the base of that.
+To build, you must have ROOT (see https://root.cern.ch/) installed, and the `bin/` directory should be on your `PATH`.
 You must also have the python-based SCONS build tool installed (https://scons.org/).
 
-There are 2 build choices: debug or profile.  To build 
+There are 2 build configurations: *debug* or *prof*ile.  To build 
 
-1. Create an empty directory to hold the github clone; lets call it KFTrack
-2. cd to KFTrack, and clone the repo:
-`> cd KFTrack`
-`> git clone https://github.com/KFTrack/KinKal.git`
-3. make a build directory; lets say build_prof (for a profile build).  cd there.
-`> cd build_prof`
-4. create the setup and run it
-`> source ../KinKal/scripts/newBuild.sh prof`
-`> source setup.sh`
-5. run scons:
-`> scons`
+1. First, clone this repo
 
-Test programs will be built in the bin directory under `build_prof`. Run them with `--help` in the `build_prof` directory to get a list of run parameters.
+```bash
+git clone https://github.com/KFTrack/KinKal.git
 
-### Brew-specific instructions
-The `setup.sh` script will export the `ROOT_INC` environment variable which points to the ROOT includes needed for the compilation. If ROOT was installed with `brew` (https://brew.sh) on macOS, this line must be changed to:
-
+cd KinKal
 ```
-export ROOT_INC=${ROOTSYS}/root/include
+
+2. Set up a new build directory; lets say `build` (or `debug` for a debug build)
+```bash
+mkdir build 
+cd build
+
+source ../scripts/newBuild.sh prof
+
+source setup.sh
+```
+
+3. Run `scons` to compile the software
+
+```bash
+scons -j 4
+
+# (Optional) Run the unit tests to check everything is running correctly
+scons test
+```
+
+Test programs will be built in the bin directory under `build/`. Run them with `--help` in the `build` directory to get a list of run parameters.
+
+### Build FAQ
+#### (MacOS) Brew not working
+The build tries to find ROOT with the `root-config` executable. You should ensure before building that `brew` added the ROOT `bin/` directory correctly to the `$PATH` environment variable. Sometimes re-installing the package can fix the issue.
+
+#### Problems building against ROOT binaries or manually compiled release
+You should make sure to source the `<root_location>/bin/thisroot.sh` shell script before building. This sets all the necessary environment variables needed by KinKal.
+```bash
+
+source <ROOT>/bin/thisroot.sh
+
 ```
