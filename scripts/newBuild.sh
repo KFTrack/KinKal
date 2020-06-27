@@ -46,7 +46,7 @@ fi
 package_source=`cd "$(dirname ${BASH_SOURCE:-$0})" >/dev/null 2>&1 && /bin/pwd | sed -e 's|/scripts$||' `
 echo $package_source
 
-cp ${package_source}/SConstruct .
+ln -s ${package_source}/SConstruct SConstruct
 
 cat >> setup.sh <<EOF
 #
