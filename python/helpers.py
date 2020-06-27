@@ -345,7 +345,7 @@ class build_helper:
         def run_unit_test( executable, print_output=True):
             cmd = "./bin/" + executable
 
-            p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
+            p=subprocess.Popen(cmd, stdout=subprocess.PIPE, env={**os.environ}, shell=True)
             (output, err) = p.communicate()
             p_status = p.wait()
 
