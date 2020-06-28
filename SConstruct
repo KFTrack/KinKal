@@ -45,13 +45,22 @@ linkPath    = [ os.environ['ROOT_LIB'],
                 '#/lib'
               ]
 
+rPath = [os.environ['ROOT_LIB'], os.path.join(buildBase,'lib/')]
+
+if sys.platform.startswith('linux'):
+    # if Linux
+    rPath += [Literal("'$$ORIGIN'/../lib")]
+elif sys.platform == 'darwin':
+    # if MacOS, use macOS relative rpath
+    rPath += [Literal('@executable_path/../lib')]
+
 # Create and configure the scons environment that will be used during building.
 env = Environment( CPPPATH   = [ includePath, ],
                    LIBPATH   = [ linkPath, ],
                    ENV       = defineExportedOSEnvironment(),
                    BUILDOPTS = [debugLevel],
                    BINDIR    = bindir,
-                   RPATH     = [os.environ['ROOT_LIB'], os.path.join(buildBase,'lib/'),Literal("'$$ORIGIN'/../lib")],
+                   RPATH     = rPath,
                    toolpath  = [os.path.join(sourceRoot, 'site_scons/site_tools')]
                   )
 
