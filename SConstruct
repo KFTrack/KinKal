@@ -51,6 +51,7 @@ env = Environment( CPPPATH   = [ includePath, ],
                    ENV       = defineExportedOSEnvironment(),
                    BUILDOPTS = [debugLevel],
                    BINDIR    = bindir,
+                   RPATH     = [os.environ['ROOT_LIB'], os.path.join(buildBase,'lib/'),Literal("'$$ORIGIN'/../lib")],
                    toolpath  = [os.path.join(sourceRoot, 'site_scons/site_tools')]
                   )
 
