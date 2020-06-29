@@ -16,8 +16,8 @@ before_install:
 
   - sudo /etc/init.d/autofs stop
   - sudo mkdir -p /etc/cvmfs/
-  - sudo echo "CVMFS_REPOSITORIES=mu2e.opensciencegrid.org,fermilab.opensciencegrid.org" > default.local
-  - sudo echo "CVMFS_HTTP_PROXY=DIRECT" >> default.local
+  - echo "CVMFS_REPOSITORIES=mu2e.opensciencegrid.org,fermilab.opensciencegrid.org" > default.local
+  - echo "CVMFS_HTTP_PROXY=DIRECT" >> default.local
   - sudo mv default.local /etc/cvmfs/default.local
 
   - sudo cvmfs_config setup
