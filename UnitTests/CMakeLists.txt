@@ -24,11 +24,12 @@ foreach( testsourcefile ${TEST_APP_SOURCES} )
     set_target_properties( UnitTest_${testname} PROPERTIES OUTPUT_NAME ${testname})
 
     # link all unit tests to KinKal, MatEnv, and ROOT libraries.
-    target_link_libraries( UnitTest_${testname} KinKal MatEnv ${ROOT_LIBRARIES} )
+    target_link_libraries( UnitTest_${testname} KinKal MatEnv UnitTests ${ROOT_LIBRARIES} )
 
     # register the target as a test 
     add_test (NAME ${testname} COMMAND UnitTest_${testname} )
     set_tests_properties(${testname} PROPERTIES TIMEOUT 5) 
+    set_tests_properties(${testname} PROPERTIES ENVIRONMENT "PACKAGE_SOURCE=${CMAKE_SOURCE_DIR}")
 
     install( TARGETS UnitTest_${testname}
              RUNTIME DESTINATION bin/ )
