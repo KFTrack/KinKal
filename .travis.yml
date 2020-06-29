@@ -29,7 +29,7 @@ before_install:
   
 script:
   - docker pull scientificlinux/sl:7
-  - cd .. && docker run --name KinKalCI -it scientificlinux/sl:7 -d -v /cvmfs:/cvmfs:ro,shared -v KinKal:/KinKal /bin/bash
+  - cd .. && docker run --name KinKalCI -it -d scientificlinux/sl:7 -v /cvmfs:/cvmfs:ro,shared -v KinKal:/KinKal /bin/bash
   - docker exec -ti KinKalCI /bin/bash -c "cd /KinKal && source .ci-setup.sh"
 
   
