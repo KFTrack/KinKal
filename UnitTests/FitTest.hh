@@ -644,5 +644,11 @@ int FitTest(int argc, char **argv) {
   }
   fitfile.Write();
   fitfile.Close();
+
+  if (kktrk.fitStatus().status_ != KinKal::FitStatus::converged)
+  {
+    exit(1);
+  }
+
   exit(EXIT_SUCCESS);
 }

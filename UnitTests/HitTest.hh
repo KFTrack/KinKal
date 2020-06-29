@@ -68,6 +68,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   typedef vector<DXINGPTR> DXINGCOL;
   typedef Residual<KTRAJ::NParams()> RESIDUAL;
 
+  int failed = 0;
+
   int opt;
   double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -260,8 +262,11 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
         auto pder = ores.dRdP();
         double ddr = ROOT::Math::Dot(pder,dpvec);
         hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-        if(dr*ddr < 0.0)cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit
-        << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+        if(dr*ddr < 0.0){
+          cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit
+            << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+          failed += 1;
+        }
       }
     }
   }
@@ -292,5 +297,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 
   htfile.Write();
   htfile.Close();
-  exit(EXIT_SUCCESS);
+  
+  exit(failed);
 }

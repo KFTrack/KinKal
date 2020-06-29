@@ -1,0 +1,5 @@
+
+file( GLOB MATENV_LIB_SOURCES *.cc )
+file( GLOB MATENV_LIB_HEADERS *.hh )
+
+add_library(MatEnv SHARED ${MATENV_LIB_SOURCES} ${MATENV_LIB_HEADERS} )
