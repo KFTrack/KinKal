@@ -24,8 +24,8 @@ before_install:
   - sudo mkdir -p /cvmfs/mu2e.opensciencegrid.org
   - sudo mkdir -p /cvmfs/fermilab.opensciencegrid.org
 
-  - sudo mount -t cvmfs mu2e.opensciencegrid.org /cvmfs/mu2e.opensciencegrid.org
-  - sudo mount -t cvmfs fermilab.opensciencegrid.org /cvmfs/fermilab.opensciencegrid.org
+  - sudo mount -t cvmfs mu2e.opensciencegrid.org /cvmfs/mu2e.opensciencegrid.org || echo "mount may have failed, but will continue anyway"
+  - sudo mount -t cvmfs fermilab.opensciencegrid.org /cvmfs/fermilab.opensciencegrid.org || echo "mount may have failed, will continue anyway"
   
 script:
   - docker pull scientificlinux/sl:7
