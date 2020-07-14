@@ -40,17 +40,19 @@ namespace KinKal {
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
 
+      // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
-      // This also requires the BField
-      IPHelix(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      // construct from parameters
-      IPHelix(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
-      IPHelix(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &range = TRange());
+      // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
+      IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // copy and override parameters
+      IPHelix(PDATA const &pdata, IPHelix const& other); 
       // particle position and momentum as a function of time
-      void position(Vec4& pos) const ; // time is input
-      Vec3 position(double time) const ; // time is input
-      Mom4 momentum(double time) const ;
-      Vec3 velocity(double time) const ;
+      void position(Vec4& pos) const; // time is input
+      Vec4 pos4(double time) const;
+      Vec3 position(double time) const; // time is input
+      Mom4 momentum(double time) const;
+      Vec3 velocity(double time) const;
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       // scalar momentum and energy in MeV/c units
       double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
@@ -58,7 +60,7 @@ namespace KinKal {
       double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
       double speed(double time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const ;
+      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const;
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const  {} // FIXME!
       TRange const& range() const { return trange_; }
@@ -77,13 +79,14 @@ namespace KinKal {
       PDATA &params() { return pars_; }
       double d0() const { return paramVal(d0_); }
       double phi0() const { return paramVal(phi0_); }
-      double omega() const { return paramVal(omega_); }
+      double omega() const { return paramVal(omega_); } // rotational velocity, sign set by magnetic force
       double z0() const { return paramVal(z0_); }
       double tanDip() const { return paramVal(tanDip_); }
       double t0() const { return paramVal(t0_); }
 
       // simple functions
-      double pbar() const { return 1 / omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm
+      double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
+      double pbar() const { return 1./ omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm
       double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
@@ -91,8 +94,9 @@ namespace KinKal {
       double vt() const { return vt_; }
       double vz() const { return vz_; }
       double Q() const { return mass_/mbar_; } // reduced charge
-      double beta() const { return pbar()/ebar(); } // relativistic beta
+      double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
+      double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
       double dphi(double t) const { return omega()*vt()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double deltaPhi(double &phi, double refphi=0.) const;
@@ -121,6 +125,7 @@ namespace KinKal {
       int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       Vec3 bnom_;    // nominal BField
+      ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;
       static std::vector<std::string> paramUnits_;

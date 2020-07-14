@@ -46,7 +46,7 @@ fi
 package_source=`cd "$(dirname ${BASH_SOURCE:-$0})" >/dev/null 2>&1 && /bin/pwd | sed -e 's|/scripts$||' `
 echo $package_source
 
-cp ${package_source}/SConstruct .
+ln -s ${package_source}/SConstruct SConstruct
 
 cat >> setup.sh <<EOF
 #
@@ -54,7 +54,9 @@ cat >> setup.sh <<EOF
 # ${package_source}/scripts/newBuild.sh
 #
 
-if [ "`basename $0 2>/dev/null`" = "setup.sh" ];then
+(return 0 2>/dev/null) && sourced=1 || sourced=0
+
+if [ "\$sourced" = "0" ];then
     echo "You should be sourcing this file, not executing it."
     exit 1
 fi
@@ -62,6 +64,10 @@ export PACKAGE_SOURCE=${package_source}
 export DEBUG_LEVEL=${debug_level}
 source \${PACKAGE_SOURCE}/setup.sh
 export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
+
+# MacOS:
+export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
+
 EOF
 
 unset debug_level

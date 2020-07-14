@@ -8,7 +8,7 @@ namespace KinKal {
 	ost << " Update BField Correction";
       if(mconfig.updatehits_){
 	ost << " Update Hit Internals with ";
-	ost << mconfig.hitupdateparams_.size() << " Hit update parameters" << std::endl;
+	ost << mconfig.hitupdaters_.size() << " Hit updaters" << std::endl;
       }
       ost << " converge, diverge, oscillating dchisq " << mconfig.convdchisq_ 
       << " "<< mconfig.divdchisq_  

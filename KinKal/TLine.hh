@@ -44,13 +44,13 @@ namespace KinKal {
       double TOCA(Vec3 point) const;
 
       // geometric accessors
-      void position(Vec4& pos) const ;
-      Vec3 position(double time) const ;
-      Vec3 velocity(double time) const ;
+      void position(Vec4& pos) const;
+      Vec3 position(double time) const;
+      Vec3 velocity(double time) const;
       Vec3 const& direction(double time) const { return dir_; }
       Vec3 const& dir() const { return dir_; }
-      double speed(double time) const ;
-      void print(std::ostream& ost, int detail) const ;
+      double speed(double time) const;
+      void print(std::ostream& ost, int detail) const;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       virtual void setRange(TRange const& trange) { trange_ = trange; }

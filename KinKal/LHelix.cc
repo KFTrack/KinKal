@@ -11,7 +11,7 @@ namespace KinKal {
   typedef ROOT::Math::SVector<double,3> SVec3;
   vector<string> LHelix::paramTitles_ = {
     "Transverse Radius",
-    "Longiduinal Wavelength",
+    "Longitudinal Wavelength",
     "Cylinder Center X",
     "Cylinder Center Y",
     "Azimuth at Z=0 Plane",
@@ -72,13 +72,9 @@ namespace KinKal {
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
-  LHelix::LHelix( PDATA const& pdata, double mass, int charge, double bnom, TRange const& range) : LHelix(pdata,mass,charge,Vec3(0.0,0.0,bnom),range) {}
-  LHelix::LHelix( PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& trange) : 
-    trange_(trange), pars_(pdata), mass_(mass), charge_(charge), bnom_(bnom) {
-      double momToRad = 1000.0/(charge_*bnom_.R()*CLHEP::c_light);
-      // reduced mass; note sign convention!
-      mbar_ = -mass_*momToRad;
-    }
+  LHelix::LHelix( PDATA const& pdata, LHelix const& other) : LHelix(other) {
+    pars_ = pdata;
+  }
 
   double LHelix::momentumVar(double time) const {
     PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
@@ -174,8 +170,6 @@ namespace KinKal {
   
   LHelix::LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range) :
     LHelix(pos,mom,charge,bnom,range){} //TODO!
-  LHelix::  LHelix(PDATA const& pdata, DMAT const& pcov, double mass, int charge, double bnom, TRange const& range) :
-    LHelix(pdata,mass,charge,bnom,range){} //TODO!!
 
   VMAT LHelix::momCovar(double time) const {
     return VMAT(); //TODO!

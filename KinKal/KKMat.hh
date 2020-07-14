@@ -45,11 +45,12 @@ namespace KinKal {
       KTRAJ ref_; // reference to local trajectory
       PDATA mateff_; // parameter space description of this effect
       WDATA cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
+      double vscale_; // variance factor due to annealing 'temperature'
       bool active_;
   };
 
    template<class KTRAJ> KKMat<KTRAJ>::KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active) : dxing_(dxing), 
-   ref_(pktraj.nearestPiece(dxing->crossingTime())), active_(active) {
+   ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0), active_(active) {
      update(pktraj);
    }
 
@@ -79,6 +80,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void KKMat<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) {
+    vscale_ = mconfig.varianceScale();
     if(mconfig.updatemat_){
       // update the detector Xings for this effect
       dxing_->update(ref);
@@ -104,7 +106,7 @@ namespace KinKal {
 	mateff_.parameters() += pder*dmom[idir];
 	// now the variance: this doesn't depend on time direction
 	ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
-	MVar(0,0) = momvar[idir];
+	MVar(0,0) = momvar[idir]*vscale_;
 	mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
       }
     }
@@ -129,10 +131,10 @@ namespace KinKal {
   template<class KTRAJ> void KKMat<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "KKMat " << static_cast<KKEff<KTRAJ>const&>(*this);
     ost << " effect ";
-    effect().print(ost,detail);
+    effect().print(ost,detail-2);
     ost << " DXing ";
     dxing_->print(ost,detail);
-    if(detail >0){
+    if(detail >3){
       ost << " cache ";
       cache().print(ost,detail);
       ost << "Reference " << ref_ << std::endl;

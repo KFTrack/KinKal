@@ -5,7 +5,7 @@
 
 namespace KinKal {
   double StrawMat::gasPath(double doca, double ddoca, double adot) const {
-    doca = fabs(doca);
+    doca = std::min(fabs(doca),srad_);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     if(!isfinite(afac))throw std::runtime_error("Invalid angle");
 
@@ -28,7 +28,7 @@ namespace KinKal {
   }
 
   double StrawMat::wallPath(double doca, double ddoca, double adot) const{
-    doca = fabs(doca);
+    doca = std::min(fabs(doca),srad_);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     double retval(-1.0);
     if (ddoca < ddmax_) {  // small error: don't integrate

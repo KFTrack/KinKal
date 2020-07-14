@@ -5,8 +5,9 @@ namespace KinKal {
   struct KKHitInfo {
     KKHitInfo(){};
     ~KKHitInfo(){};
-    Float_t resid_, residvar_, chiref_, chifit_;
-    static std::string leafnames() { return std::string("resid/f:residvar/f:chiref/f:chifit/f"); }
+    Float_t resid_, residvar_, fitchi_;
+    Int_t active_;
+    static std::string leafnames() { return std::string("active/i:resid/f:residvar/f:fitchi/f"); }
   };
   typedef std::vector<KKHitInfo> KKHIV;
 }

@@ -1,5 +1,5 @@
 //
-// ToyMC test of hits 
+// ToyMC test of hits
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
@@ -52,7 +52,7 @@ void print_usage() {
 }
 
 template <class KTRAJ>
-int HitTest(int argc, char **argv) {
+int HitTest(int argc, char **argv, const vector<double>& delpars) {
   typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
   typedef THit<KTRAJ> THIT;
   typedef std::shared_ptr<THIT> THITPTR;
@@ -67,6 +67,8 @@ int HitTest(int argc, char **argv) {
   typedef std::vector<THITPTR> THITCOL;
   typedef vector<DXINGPTR> DXINGCOL;
   typedef Residual<KTRAJ::NParams()> RESIDUAL;
+
+  int failed = 0;
 
   int opt;
   double mom(105.0);
@@ -128,7 +130,7 @@ int HitTest(int argc, char **argv) {
   }
 
   pmass = masses[imass];
-  TFile htfile("HitTest.root","RECREATE");
+  TFile htfile((KTRAJ::trajName()+"HitTest.root").c_str(),"RECREATE");
   // construct BField
   Vec3 bnom(0.0,By,1.0);
   BField* BF;
@@ -225,7 +227,6 @@ int HitTest(int argc, char **argv) {
   rulers->Draw();
   hcan->Write();
 // test updating the hit residual and derivatives with different trajectories
-  vector<double> delpars { 0.5, 0.1, 0.5, 0.5, 0.005, 5.0}; // small parameter changes for derivative calcs
   unsigned nsteps(10);
   vector<TGraph*> hderivg(KTRAJ::NParams());
   for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){
@@ -243,26 +244,29 @@ int HitTest(int argc, char **argv) {
       double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
       // update the hits
       for(auto& thit : thits) {
-	KKHit kkhit(thit,tptraj);
-	RESIDUAL ores = kkhit.refResid(); // original residual
-      // modify the helix
-	KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
-	modktraj.params().parameters()[ipar] += dpar;
-	PKTRAJ modtptraj(modktraj);
-	ROOT::Math::SVector<double,6> dpvec;
-	dpvec[ipar] += dpar;
-	kkhit.update(modtptraj);// refer to moded helix
-	RESIDUAL mres = kkhit.refResid();
-	double dr = ores.value()-mres.value(); // this sign is confusing.  I think
-	// it means the fit needs to know how much to change the ref parameters, which is
-	// opposite from how much the ref parameters are different from the measurement
-	// compare the change with the expected from the derivatives
-	kkhit.update(tptraj);// refer back to original
-	auto pder = ores.dRdP();
-	double ddr = ROOT::Math::Dot(pder,dpvec);
-	hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-	if(dr*ddr < 0.0)cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit 
-	<< " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+        KKHit kkhit(thit,tptraj);
+        RESIDUAL ores = kkhit.refResid(); // original residual
+            // modify the helix
+        KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+        modktraj.params().parameters()[ipar] += dpar;
+        PKTRAJ modtptraj(modktraj);
+        ROOT::Math::SVector<double,6> dpvec;
+        dpvec[ipar] += dpar;
+        kkhit.update(modtptraj);// refer to moded helix
+        RESIDUAL mres = kkhit.refResid();
+        double dr = ores.value()-mres.value(); // this sign is confusing.  I think
+        // it means the fit needs to know how much to change the ref parameters, which is
+        // opposite from how much the ref parameters are different from the measurement
+        // compare the change with the expected from the derivatives
+        kkhit.update(tptraj);// refer back to original
+        auto pder = ores.dRdP();
+        double ddr = ROOT::Math::Dot(pder,dpvec);
+        hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+        if(dr*ddr < 0.0){
+          cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit
+            << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+          failed += 1;
+        }
       }
     }
   }
@@ -293,5 +297,6 @@ int HitTest(int argc, char **argv) {
 
   htfile.Write();
   htfile.Close();
-  exit(EXIT_SUCCESS);
+  
+  exit(failed);
 }

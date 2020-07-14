@@ -39,6 +39,8 @@ void print_usage() {
 
 template <class KTRAJ>
 int test(int argc, char **argv) {
+  typedef typename KTRAJ::PDATA PDATA;
+  typedef typename KTRAJ::DVEC DVEC;
   gROOT->SetBatch(kTRUE);
   // save canvases
   int opt;
@@ -120,7 +122,7 @@ int test(int argc, char **argv) {
   // canvases
   TCanvas* dhcan[3];
   TCanvas* dmomcan[3];
- std::string tfname = KTRAJ::trajName() + "Derivs.root";
+  std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
   double del = (dmax-dmin)/(ndel-1);
@@ -145,19 +147,19 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     for(int id=0;id<ndel;++id){
-      double delta = dmin + del*id; 
+      double delta = dmin + del*id;
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
-      typename KTRAJ::DVEC pder = refhel.momDeriv(ttest,tdir);
+      DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
-      auto dvec = refhel.params().parameters() + delta*pder;
-      typename KTRAJ::PDATA pdata(dvec,refhel.params().covariance());
-      KTRAJ dhel(pdata,refhel.mass(),refhel.charge(),bnom);
+      DVEC dvec = refhel.params().parameters() + delta*pder;
+      PDATA pdata(dvec,refhel.params().covariance());
+      KTRAJ dhel(pdata,refhel);
       // test
       Vec4 xpos, dpos;
       xpos.SetE(ttest);

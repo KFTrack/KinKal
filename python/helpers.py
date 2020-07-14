@@ -56,10 +56,10 @@
 
 from glob import glob
 import os, re, string
-
+from timeit import default_timer as timer
 import sys
 import subprocess
-
+from pathlib import Path
 # Check that some of the required environment variables have been set.
 def validateEnvironment():
     if not 'PACKAGE_SOURCE' in os.environ:
@@ -120,12 +120,31 @@ def defineExportedOSEnvironment():
 # Walk the directory tree to locate all SConscript files.
 def locateSConscriptFiles(sourceRoot):
     ss=[]
-    for root,dirs,files in os.walk(sourceRoot):
-        for file in files:
-            if file == 'SConscript': ss.append('%s/%s'%(root,file))
-            pass
-        pass
-    return ss
+    exclude = [Path(os.environ['BUILD_BASE'])]
+
+    for root, _, files in os.walk(sourceRoot):
+        candidate_path = os.path.join(root,'SConscript')
+
+        if 'SConstruct' in files and root != sourceRoot:
+            # exclude any SConscripts found under a build directory
+            rootp = Path(root)
+            if rootp not in exclude:
+                exclude.append(rootp)
+            continue
+
+        if 'SConscript' in files:
+            ss.append(candidate_path)
+
+    # remove SConscript paths found under any build directories
+    sconscripts = []
+    for cand_path in ss:
+        append = True
+        for ex in exclude:
+            if ex in Path(cand_path).parents:
+                append = False
+        if append:
+            sconscripts.append(cand_path)
+    return sconscripts
 
 # Tell scons to do the work found in the set of SConscript files.
 def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
@@ -135,7 +154,7 @@ def dispatchSConscriptFiles( env, ss, sourceRoot, build_base ):
         tokens.pop()
         sep = '/'
         objPath = build_base + '/' + sep.join(tokens)
-        env.SConscript ( sourceFile, variant_dir=objPath)
+        env.SConscript ( sourceFile, variant_dir=objPath,)
 
 # An instance of this class available to the SConscript files via the scons environment.
 class build_helper:
@@ -189,6 +208,7 @@ class build_helper:
     def non_plugin_cc(self):
         tmp = non_plugin_cc = self.env.Glob('*.cc', strings=True)
         for cc in self.plugin_cc(): tmp.remove(cc)
+        for cc in self.unittest_cc(): tmp.remove(cc)
         return tmp
 #
 #   Names need to build the _dict and _map libraries.
@@ -225,13 +245,13 @@ class build_helper:
             pass
         libs = []
         if non_plugin_cc:
-            self.env.SharedLibrary( self.prefixed_libname(),
+            libs = self.env.SharedLibrary( self.prefixed_libname(),
                                     non_plugin_cc,
                                     LIBS=[ userlibs ],
                                     CPPFLAGS=cppf,
                                     parse_flags=pf
                                 )
-            libs = [ self.libname() ]
+            #libs = [ self.libname() ]
             pass
         return libs
 #
@@ -275,13 +295,18 @@ class build_helper:
                 self.env.SharedLibrary( self.prefixed_map_libname(),
                                         self.map_tmp_name()
                                     )
-
+    def make_dict( self ):
+        cmd=self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
+            'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(
+                src=os.environ['PACKAGE_SOURCE'], build=os.environ['BUILD_BASE']
+            ))
+        #self.env.Depends('UnitTests', 'Dict.cc')
+        return cmd
 #
 #   Build a list of the source filenames for unit tests to be built and run
 #
     def unittest_cc(self):
         return ( self.env.Glob('*_unit.cc',  strings=True) )
-
 
 #
 #   filename of executable to be made from the unit test source.
@@ -290,40 +315,79 @@ class build_helper:
     def executable_name(self, name ):
        return name[:name.find('_unit.cc')]
 
-#
-#   Run one unit test - Fixme: still under development
-#
-    def run_unit_test( self, executable ):
-        cmd = "../bin/"+executable   # Fixme: use proper path not hard coded ../
-        print ("\n\nRunning unit test ...: ", cmd )
-        p=subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
-        (output, err) = p.communicate()
-        p_status = p.wait()
-        print ( "   Status code: ", p_status)  # Fixme: modify to write to file
-        print ( "   cout: ", output)
-        print ( "   cerr: ", err)
-        return p_status
-
-#
 #   Build all unit test
 #
     def make_unit_tests( self, linkLists ):
         unitTests = self.unittest_cc()
+
+        test_alias = self.env.Alias('test', '', self.run_unit_tests())
+        self.env.AlwaysBuild(test_alias)
+        
+        pgs = []
         for u in unitTests:
             exe = self.executable_name(u)
             libs  = linkLists.get(exe,[])
-            self.env.Program(
+            pg = self.env.Program(
                 target = "#/bin/"+exe,
                 source = [ u ],
                 LIBS   = libs
             )
-
+            self.env.Depends(test_alias, pg)
+            pgs.append(pg[0])
+        return pgs
 #
 #   Run all unit tests.
 #
-    def run_unit_tests( self ):
+
+    def run_unit_tests(self):
         unitTests = self.unittest_cc()
-        for u in unitTests:
-            exe = self.executable_name(u)
-            status = self.run_unit_test( exe )
-            print ( "   Done: ", exe, "  status: ", status)
+
+        def run_unit_test( executable, print_output=True):
+            cmd = "./bin/" + executable
+
+            p=subprocess.Popen(cmd, stdout=subprocess.PIPE, env={**os.environ}, shell=True)
+            (output, err) = p.communicate()
+            p_status = p.wait()
+
+            if print_output and output is not None:
+                print (output.decode())
+            if print_output and err is not None:
+                print (err.decode())
+
+            return p_status, output, err
+
+
+        def runner(*args,**kwargs):
+            statuses = []
+            tests_failing = 0
+            for u in unitTests:
+                exe = self.executable_name(u)
+                print( )
+                print("Running %s..." % exe)
+
+                start = timer()
+                rc, _, _ = run_unit_test( exe )
+                end = timer()
+
+                status = ' %.2f s [   OK   ]' % (end-start)
+                if rc != 0:
+                    tests_failing += 1
+                    status = ' %.2f s [ FAILED ]' % (end-start)
+                
+                statuses.append('- '+exe + ' ' * (30 - len('- '+exe)) + status)
+
+                #print ( "   Done: ", exe, "  status: ", status)
+            print( )
+            print( )
+            print ("UNIT TEST SUMMARY")
+            print ('-' * (30 + len(' %.2f s [ ...... ]')))
+            for l in statuses:
+                print (l)
+            print( )
+            print ( '%2d / %2d tests passed.' % (len(unitTests)-tests_failing, len(unitTests)))
+            print( )
+            print( )
+
+            return tests_failing
+
+        return runner

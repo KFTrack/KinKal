@@ -1,2 +1,1 @@
-#include "UnitTests/KKHitInfo.hh"
-
+#include "../KinKal/UnitTests/KKHitInfo.hh"

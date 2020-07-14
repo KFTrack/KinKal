@@ -48,11 +48,8 @@ namespace KinKal {
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
       // same, including covariance matrices for the 3-momentum and 3-vector position
       LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range=TRange());
-      // construct from parameters
-      LHelix(PDATA const& pdata, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      LHelix(PDATA const& pdata, double mass, int charge, double bnom, TRange const& range=TRange());
-      // Same, including the covariance matrix on the parameters
-      LHelix(PDATA const& pdata, DMAT const& pcov, double mass, int charge, double bnom, TRange const& range=TRange());
+      // copy and override the parameters  
+      LHelix(PDATA const& pdata, LHelix const& other);
       Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
