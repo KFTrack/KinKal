@@ -47,6 +47,7 @@ namespace KinKal {
   KTLine::KTLine(Vec3 const &pos0, Vec3 const &svel, double tmeas, TRange const &range, bool forcerange)
       : trange_(range), pars_(), speed_(sqrt(svel.Mag2())), pos0_(pos0),
         dir_(svel.Unit()), forcerange_(forcerange) {
+    //double d = abs((0-pos0.x())*dir_.x()+(0-pos0.y())*dir_.y()+(1-pos0.z())*dir_.z());
     static const Vec3 zdir(0.0, 0.0, 1.0);
     double zddot = zdir.Dot(dir_);
     param(cost_) = zddot;
