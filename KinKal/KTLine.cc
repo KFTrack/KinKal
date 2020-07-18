@@ -5,6 +5,7 @@
 
 #include "KinKal/KTLine.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/POCAUtil.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
@@ -49,9 +50,11 @@ namespace KinKal {
         dir_(svel.Unit()), forcerange_(forcerange) {
    
     static const Vec3 zdir(0.0, 0.0, 1.0);
+    static const Vec3 zpos(0.0, 0.0, 0.0);
     double zddot = zdir.Dot(dir_);
     param(cost_) = zddot;
-    param(d0_) = pos0_.Rho();
+    POCAUtil poca = new POCAUtil(pos0, pos0, zpos, zdir);
+    param(d0_) = poca.dca();
     param(phi0_) = atan2(pos0_.Y(), pos0_.X());
     param(z0_) = pos0_.Z();
     param(t0_) = tmeas;
