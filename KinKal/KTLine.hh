@@ -56,7 +56,8 @@ class KTLine {
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
     double momentumMag(double time) const {
       return gamma() * mass_ * beta();
-    } // in MeV/c
+    } 
+
     Mom4 mom() const { return mom_; }
     double momentumVar(double time) const { return -1.0; }
     double energy(double time) { return mom_.E(); }
@@ -70,7 +71,7 @@ class KTLine {
     double z0() const { return paramVal(z0_); }
     double cost() const { return paramVal(cost_); }
     double t0() const { return paramVal(t0_); }
-
+    double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
     double cosTheta() const { return cost(); }
     double sinTheta() const { return sqrt(1.0 - cost() * cost()); }
@@ -95,9 +96,8 @@ class KTLine {
     Vec3 position(double time) const;
 
     Vec3 velocity(double time) const { return dir_ * speed(); }
-    // speed in mm/ns
     void print(std::ostream &ost, int detail) const;
-    void rangeInTolerance(TRange &range, BField const &bfield, double tol) const {}; // infinity for striaght line
+    void rangeInTolerance(TRange &range, BField const &bfield, double tol) const {}; 
 
     // local momentum direction basis
     Vec3 direction(double time, LocalBasis::LocDir mdir = LocalBasis::momdir) const;
@@ -118,6 +118,7 @@ class KTLine {
                             (speed() / CLHEP::c_light))));
     }
     double betaGamma() const { return beta() * gamma(); }
+
     double energyBG(double time) const {
       return (sqrt(mass_ * mass_ + betaGamma() * betaGamma() * mass_ * mass_));
     } // in MeV

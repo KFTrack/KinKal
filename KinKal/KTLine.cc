@@ -154,23 +154,24 @@ namespace KinKal {
   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
     // compute some useful quantities
     double vz = CLHEP::c_light * mom().z() / mom().E();
-    double l = speed() * time;
+    //double l = speed() * time;
+    double l = translen(CLHEP::c_light * beta() * (time - t0()));
     KTLine::DVEC pder;
     //cout << "Mom deriv start params " << pder << endl;
     // cases
     switch (mdir) {
     case LocalBasis::perpdir:
       // polar bending: change in Theta
-      pder[cost_] = -sinTheta();
+      pder[cost_] = -1/(sinTheta());
       pder[d0_] = 0;
       pder[phi0_] = 0;
-      pder[z0_] = -l * cosTheta(); 
+      pder[z0_] = -l/(sinTheta()*sinTheta());
       pder[t0_] = pder[z0_] / vz + 1/tanTheta() * (time - t0()) * sinTheta()*sinTheta()*tanTheta();
       break;
     case LocalBasis::phidir:
       // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
       pder[cost_] = 0;
-      pder[d0_] = l;               
+      pder[d0_] = l/sinTheta();               
       pder[phi0_] = 1 / sinTheta();
       pder[z0_] = d0() / (sinTheta()*tanTheta()); 
       pder[t0_] = pder[z0_] / vz;
@@ -181,7 +182,6 @@ namespace KinKal {
       pder[phi0_] = 0;
       pder[z0_] = 0;
       pder[t0_] = pder[z0_] / vz;
-      //cout << "Mom deriv momdir params " << pder << endl;
       break;
 
     default:
