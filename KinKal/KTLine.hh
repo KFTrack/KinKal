@@ -38,36 +38,14 @@ class KTLine {
     static std::string const &paramUnit(ParamIndex index);
 
     constexpr static ParamIndex t0Index() { return t0_; }
-    // typedef ROOT::Math::SVector<double,npars_> PDER; // derivative of
-    // parameters type typedef PData<npars_> PDATA; // Data payload for this class
-    // typedef typename PDATA::DVEC DVEC; // derivative of parameters type
     static std::string const &trajName();
 
     // This also requires the nominal BField, which can be a vector (3d) or a
     // scalar (B along z)
-    KTLine(Vec4 const &pos, Mom4 const &mom, int charge, Vec3 const &bnom,
-           TRange const &range = TRange());
-    KTLine(Vec4 const &pos, Mom4 const &mom, int charge, double bnom,
-           TRange const &range = TRange());
-
-    KTLine(PDATA const &pdata, double mass, int charge, Vec3 const &bnom,
-           TRange const &range = TRange());
-    KTLine(PDATA const &pdata, double mass, int charge, double bnom,
-           TRange const &range = TRange());
-
-    KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass,
-           int charge, Vec3 const &bnom, TRange const &range = TRange());
-
-    KTLine(PDATA const &pdata, const KTLine &ktline);
-
-    KTLine(Vec4 const &p0, Vec3 const &svel, TRange const &range = TRange(),
-           bool forcerange = false);
-    KTLine(Vec3 const &p0, Vec3 const &svel, double tmeas,
-           TRange const &range = TRange(), bool forcerange = false);
-
-    //    TLine(PDATA const& pdata) : pars_(pdata){std::cout<<" T Constructor 3
-    //    "<<pdata<<std::endl;  };
-    KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov) : pars_(pvec, pcov) {};
+    KTLine(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
+    KTLine(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+    // copy and override parameters
+    KTLine(PDATA const &pdata, KTLine const& other); 
 
     virtual ~KTLine() {}
 
@@ -165,10 +143,11 @@ class KTLine {
     TRange trange_;
     PDATA pars_;      // parameters
     double speed_;    // signed linear velocity, translates time to distance along
-    // the trajectory (mm/nsec)
     Vec3 pos0_, dir_; // caches
     bool forcerange_; // if set, strictly enforce the range
-
+    double vt_; // transverse velocity
+    double vz_; // z velocity
+    double amsign_;
     static std::vector<std::string> paramTitles_;
     static std::vector<std::string> paramNames_;
     static std::vector<std::string> paramUnits_;

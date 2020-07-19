@@ -40,24 +40,41 @@ namespace KinKal {
   string KTLine::trajName_("KTLine");
   string const &KTLine::trajName() { return trajName_; }
 
-  KTLine::KTLine(Vec4 const &pos0, Vec3 const &svel, TRange const &range, bool forcerange)
-      : KTLine(pos0.Vect(), svel, pos0.T(), range, forcerange) {
-    std::cout << " KTLine Constructor 1 " << trange_ << std::endl;
-  }
+ KTLine::KTLine( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : KTLine(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
 
-  KTLine::KTLine(Vec3 const &pos0, Vec3 const &svel, double tmeas, TRange const &range, bool forcerange)
-      : trange_(range), pars_(), speed_(sqrt(svel.Mag2())), pos0_(pos0),
-        dir_(svel.Unit()), forcerange_(forcerange) {
-   
+  KTLine::KTLine(Vec4 const &pos0, Mom4 const &mom0, int charge, Vec3 const &bnom,
+  TRange const &trange) :  bnom_(bnom), mass_(mom0.M()), charge_(charge), trange_(trange)
+  {
+    pos40_ = pos0;
+    mom_ = mom0;
+    speed_ = (sqrt(((mom0.Vect() / mom0.E()) * CLHEP::c_light).Mag2()));
+    dir_ = ((mom0.Vect() / mom0.E()) * CLHEP::c_light).Unit();  
+    Vec4 pos(pos0);
+    Mom4 mom(mom0);
+    g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+    pos = g2l_(pos);
+    mom = g2l_(mom);
+    // create inverse rotation; this moves back into the original coordinate system
+    l2g_ = g2l_.Inverse();
+
+    double pt = sqrt(mom.perp2());
+    vt_ = CLHEP::c_light * pt / mom.E();
+    vz_ = CLHEP::c_light * mom.z() / mom.E();
     static const Vec3 zdir(0.0, 0.0, 1.0);
     static const Vec3 zpos(0.0, 0.0, 0.0);
+
+    const Vec3 pos3(pos0.x(), pos0.y(), pos0.z());
     double zddot = zdir.Dot(dir_);
+
+    POCAUtil *poca = new POCAUtil(pos3, dir_, zpos, zdir);
+    Vec3 const& p = poca->point1(); 
+    amsign_ = copysign(1.0, p.X());
+    param(d0_) = -amsign_*poca->dca();
+    param(phi0_) = atan2(-amsign_*p.X(), amsign_*p.Y());
+    param(z0_) = p.Z();
     param(cost_) = zddot;
-    POCAUtil poca = new POCAUtil(pos0, pos0, zpos, zdir);
-    param(d0_) = poca.dca();
-    param(phi0_) = atan2(pos0_.Y(), pos0_.X());
-    param(z0_) = pos0_.Z();
-    param(t0_) = tmeas;
+    param(t0_) = pos.T() - (p.Z() - param(z0_)) / (cosTheta() * CLHEP::c_light * beta());
     cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
   }
 
@@ -66,31 +83,6 @@ namespace KinKal {
   can initialize the line with an origin (pos0) or the trajectory parameters
   (pdata)
   */
-
-  KTLine::KTLine(Vec4 const &pos0, Mom4 const &mom0, int charge, double bnom,TRange const &range)
-      : KTLine(pos0, mom0, charge, Vec3(0.0, 0.0, bnom), range) {}
-
-  KTLine::KTLine(Vec4 const &pos40, Mom4 const &mom0, int charge, Vec3 const &bnom, TRange const &range)
-      : KTLine(pos40.Vect(), (mom0.Vect() / mom0.E()) * CLHEP::c_light, pos40.T(),range) {
-        bnom_ = bnom;
-        pos40_ = pos40;
-        mom_ = mom0;
-        charge_ = charge;
-        mass_ = mom0.M();
-  }
-
-  KTLine::KTLine(PDATA const &pdata, double mass, int charge, double bnom,TRange const &range)
-      : KTLine(pdata, mass, charge, Vec3(0.0, 0.0, bnom), range) {
-  }
-
-  KTLine::KTLine(PDATA const &pdata, double mass, int charge, Vec3 const &bnom, TRange const &range)
-      : KTLine(pdata.parameters(), pdata.covariance(), mass, charge, bnom, range) {}
-
-  KTLine::KTLine(PDATA::DVEC const &pvec, PDATA::DMAT const &pcov, double mass, int charge, Vec3 const &bnom, TRange const &trange) : KTLine(pvec, pcov) {
-    bnom_ = bnom;
-    mass_ = mass;
-    charge_ = charge;
-  }
 
   KTLine::KTLine(PDATA const &pdata, KTLine const &other) : KTLine(other) {
     pars_ = pdata;
@@ -146,12 +138,9 @@ namespace KinKal {
     case LocalBasis::perpdir: // purely polar change theta 1 = theta
       return l2g_(
           Vec3(cosTheta() * sinPhi0(), cosTheta() * cosPhi0(), -1 * sinTheta()));
-      // alt dir
-      // l2g_(Vec3(cosTheta()*cosPhi0(),cosTheta()*sinPhi0(),-1*sinTheta()));
       break;
     case LocalBasis::phidir: // purely transverse theta2 = -phi()*sin(theta)
       return l2g_(Vec3(-cosPhi0(), sinPhi0(), 0.0));
-      // alt dir = l2g_(Vec3(-sinPhi0(),cosPhi0(),0.0));//;
       break;
     case LocalBasis::momdir: // along momentum: check.
       return l2g_(Vec3(dir().x(), dir().y(), dir().z()));
@@ -175,19 +164,16 @@ namespace KinKal {
       pder[cost_] = -sinTheta();
       pder[d0_] = 0;
       pder[phi0_] = 0;
-      pder[z0_] = l * cosTheta(); // alt dir =-l*cosTheta();
-      pder[t0_] = pder[z0_] / vz;
-      //cout << "Mom deriv perpdir params " << pder << endl;
+      pder[z0_] = -l * cosTheta(); 
+      pder[t0_] = pder[z0_] / vz + 1/tanTheta() * (time - t0()) * sinTheta()*sinTheta()*tanTheta();
       break;
     case LocalBasis::phidir:
       // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
       pder[cost_] = 0;
-      pder[d0_] = l;                 // alt dir = -l;
-      pder[phi0_] = -1 / sinTheta(); // alt dir = -1/sinTheta();
-      pder[z0_] = d0() / (sinTheta() *
-                          tanTheta()); // alt dir = -d0()/(sinTheta()*tanTheta());
+      pder[d0_] = l;               
+      pder[phi0_] = 1 / sinTheta();
+      pder[z0_] = d0() / (sinTheta()*tanTheta()); 
       pder[t0_] = pder[z0_] / vz;
-      //cout << "Mom deriv phidir params " << pder << endl;
       break;
     case LocalBasis::momdir:
       pder[cost_] = 0;
