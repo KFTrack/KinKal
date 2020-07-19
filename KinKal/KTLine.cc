@@ -70,7 +70,7 @@ namespace KinKal {
     POCAUtil *poca = new POCAUtil(pos3, dir_, zpos, zdir);
     Vec3 const& p = poca->point1(); 
     amsign_ = copysign(1.0, p.X());
-    param(d0_) = -amsign_*poca->dca();
+    param(d0_) = amsign_*poca->dca();
     param(phi0_) = atan2(-amsign_*p.X(), amsign_*p.Y());
     param(z0_) = p.Z();
     param(cost_) = zddot;
@@ -152,28 +152,29 @@ namespace KinKal {
 
   // derivatives of momentum projected along the given basis WRT the 5 parameters
   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
-    // compute some useful quantities
+
     double vz = CLHEP::c_light * mom().z() / mom().E();
-    //double l = speed() * time;
     double l = translen(CLHEP::c_light * beta() * (time - t0()));
     KTLine::DVEC pder;
-    //cout << "Mom deriv start params " << pder << endl;
+    double sinT = sinTheta();
+    double tanT = tanTheta();
+    double cosT = cosTheta();
     // cases
     switch (mdir) {
     case LocalBasis::perpdir:
       // polar bending: change in Theta
-      pder[cost_] = -1/(sinTheta());
+      pder[cost_] = -sinT; //neut=1/sinT
       pder[d0_] = 0;
       pder[phi0_] = 0;
-      pder[z0_] = -l/(sinTheta()*sinTheta());
-      pder[t0_] = pder[z0_] / vz + 1/tanTheta() * (time - t0()) * sinTheta()*sinTheta()*tanTheta();
+      pder[z0_] = -l*cosT/sinT; //TODO - I think here is the issue!
+      pder[t0_] = pder[z0_] / vz + tanTheta() * (time - t0()) * sinT*sinT*tanT;
       break;
     case LocalBasis::phidir:
       // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
       pder[cost_] = 0;
-      pder[d0_] = l/sinTheta();               
-      pder[phi0_] = 1 / sinTheta();
-      pder[z0_] = d0() / (sinTheta()*tanTheta()); 
+      pder[d0_] = l/sinT;            
+      pder[phi0_] = -1 / sinT;
+      pder[z0_] = pder[d0_] / (sinT*tanT);  //TODO - I think this is wrong!
       pder[t0_] = pder[z0_] / vz;
       break;
     case LocalBasis::momdir:

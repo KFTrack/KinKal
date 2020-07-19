@@ -60,9 +60,10 @@ namespace KinKal {
     ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to ktline)
     ktline.direction(particlePoca().T());
 
-    dDdP_[KTLine::phi0_] = -dsign*(ktline.d0()*sin(ktline.phi0())*ddir.x()+ktline.d0()*cos(ktline.phi0())*ddir.y());
-    dDdP_[KTLine::cost_] = 0;
-    dDdP_[KTLine::d0_] = -dsign*(-1*cos(ktline.phi0())*ddir.x()+sin(ktline.phi0())*ddir.y());
+    double f = CLHEP::c_light * ktline.beta() * (particlePoca().T() - ktline.t0());
+    dDdP_[KTLine::phi0_] = -dsign*((ktline.d0()*sin(ktline.phi0()) + f*ktline.sinTheta()*ktline.sinPhi0())*ddir.x()+(ktline.d0()*cos(ktline.phi0()) - f*ktline.sinTheta()*ktline.sinPhi0())*ddir.y());
+    dDdP_[KTLine::cost_] = f*ddir.z();
+    dDdP_[KTLine::d0_] = -dsign*(-1*ktline.cosPhi0()*ddir.x()+ktline.sinPhi0()*ddir.y());
     dDdP_[KTLine::z0_] = -dsign*ddir.z();
     dTdP_[KTLine::t0_] = -1.0; 
 
