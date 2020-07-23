@@ -9,6 +9,7 @@ using namespace ROOT::Math;
 
 namespace KinKal {
   typedef ROOT::Math::SVector<double,3> SVec3;
+  typedef ROOT::Math::SMatrix<double,3,3,ROOT::Math::MatRepStd<double,3,3> > RMAT; // algebraic rotation matrix
   vector<string> LHelix::paramTitles_ = {
     "Transverse Radius",
     "Longitudinal Wavelength",
@@ -76,6 +77,19 @@ namespace KinKal {
     pars_ = pdata;
   }
 
+  LHelix::LHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+    LHelix(Vec4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
+	Mom4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
+	charge,bnom,range) 
+  {}
+
+  LHelix::LHelix(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+  LHelix(pstate.stateVector(),time,mass,charge,bnom,range) {
+  // derive the parameter space covariance from the global state space covariance
+    DPDS dpds = dPardState(time);
+    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+  }
+
   double LHelix::momentumVar(double time) const {
     PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
@@ -126,50 +140,12 @@ namespace KinKal {
 
   // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
   LHelix::DVEC LHelix::momDeriv(double time, LocalBasis::LocDir mdir) const {
-    // compute some useful quantities
-    double bval = beta();
-    double omval = omega();
-    double pb = pbar()*sign(); // need to sign
-    double dt = time-t0();
-    double phival = omval*dt + phi0();
-    DVEC pder;
-    // cases
-    switch ( mdir ) {
-      case LocalBasis::perpdir:
-	// polar bending: only momentum and position are unchanged
-	pder[rad_] = lam();
-	pder[lam_] = -rad();
-	pder[t0_] = -dt*rad()/lam();
-	pder[phi0_] = -omval*dt*rad()/lam();
-	pder[cx_] = -lam()*sin(phival);
-	pder[cy_] = lam()*cos(phival);
-	break;
-      case LocalBasis::phidir:
-	// Azimuthal bending: R, Lambda, t0 are unchanged
-	pder[rad_] = 0.0;
-	pder[lam_] = 0.0;
-	pder[t0_] = 0.0;
-	pder[phi0_] = pb/rad();
-	pder[cx_] = -pb*cos(phival);
-	pder[cy_] = -pb*sin(phival);
-	break;
-      case LocalBasis::momdir:
-	// fractional momentum change: position and direction are unchanged
-	pder[rad_] = rad();
-	pder[lam_] = lam();
-	pder[t0_] = dt*(1.0-bval*bval);
-	pder[phi0_] = omval*dt;
-	pder[cx_] = -rad()*sin(phival);
-	pder[cy_] = +rad()*cos(phival);
-	break;
-      default:
-	throw invalid_argument("Invalid direction");
-    }
-    return pder;
+    typedef ROOT::Math::SVector<double,3> SVec3;
+    DPDV dPdM = dPardM(time);
+    auto dir = direction(time,mdir);
+    double mommag = momentumMag(time);
+    return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z()));
   }
-  
-  LHelix::LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range) :
-    LHelix(pos,mom,charge,bnom,range){} //TODO!
 
   VMAT LHelix::momCovar(double time) const {
     return VMAT(); //TODO!
@@ -190,7 +166,10 @@ namespace KinKal {
     dPdX.Place_in_row(dCy_dX,cy_,0);
     dPdX.Place_in_row(dphi0_dX,phi0_,0);
     dPdX.Place_in_row(dt0_dX,t0_,0);
-    return dPdX;
+// now rotate these into local space
+    RMAT g2lmat;
+    g2l_.GetRotationMatrix(g2lmat);
+    return dPdX*g2lmat;
   }
 
   LHelix::DPDV LHelix::dPardM(double time) const {
@@ -220,10 +199,14 @@ namespace KinKal {
     dPdM.Place_in_row(dphi0_dM,phi0_,0);
     dPdM.Place_in_row(dt0_dM,t0_,0);
     dPdM *= 1.0/Q();
-    return dPdM;
+// now rotate these into local space
+    RMAT g2lmat;
+    g2l_.GetRotationMatrix(g2lmat);
+    return dPdM*g2lmat;
   }
 
   LHelix::DVDP LHelix::dXdPar(double time) const {
+    // first find the derivatives wrt local cartesian coordinates
     // euclidean space is row, parameter space is column
     double omval = omega();
     double dt = time-t0();
@@ -249,7 +232,10 @@ namespace KinKal {
     dXdP.Place_in_col(dX_dCy,0,cy_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
     dXdP.Place_in_col(dX_dt0,0,t0_);
-    return dXdP;
+// now rotate these into global space
+    RMAT l2gmat;
+    l2g_.GetRotationMatrix(l2gmat);
+    return l2gmat*dXdP;
   }
 
   LHelix::DVDP LHelix::dMdPar(double time) const {
@@ -263,17 +249,50 @@ namespace KinKal {
     SVec3 T2(-sphi,cphi,0.0);
     SVec3 T3(cphi,sphi,0.0);
     SVec3 zdir(0.0,0.0,1.0);
-    SVec3 dM_dR = T3 -rad()*rad()*dphi*inve2*T2;
-    SVec3 dM_dL = zdir  -rad()*lam()*dphi*inve2*T2;
     SVec3 dM_dphi0 = rad()*T2;
-    SVec3 dM_dt0 = -rad()*omval*T2;
+    SVec3 dM_dR = T3 -rad()*dphi*inve2*dM_dphi0;
+    SVec3 dM_dL = zdir  -lam()*dphi*inve2*dM_dphi0;
+    SVec3 dM_dt0 = -omval*dM_dphi0;
     LHelix::DVDP dMdP;
     dMdP.Place_in_col(dM_dR,0,rad_);
     dMdP.Place_in_col(dM_dL,0,lam_);
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
     dMdP.Place_in_col(dM_dt0,0,t0_);
     dMdP *= Q(); // scale to momentum
-    return dMdP;
+// now rotate these into global space
+    RMAT l2gmat;
+    l2g_.GetRotationMatrix(l2gmat);
+    return l2gmat*dMdP;
+  }
+
+  DSDP LHelix::dPardState(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    LHelix::DPDV dPdX = dPardX(time);
+    LHelix::DPDV dPdM = dPardM(time);
+    DPDS dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
+  }
+
+  DPDS LHelix::dStatedPar(double time) const {
+  // aggregate state from separate X and M derivatives; parameter space is column
+    LHelix::DVDP dXdP = dXdPar(time);
+    LHelix::DVDP dMdP = dMdPar(time);
+    DSDP dsdp;
+    dsdp.Place_at(dXdP,0,0);
+    dsdp.Place_at(dMdP,3,0);
+    return dsdp;
+  }
+
+  StateVector LHelix::state(double time) const {
+    return StateVector(position(time),momentum(time).Vect());
+  }
+
+  StateVectorMeasurement LHelix::measurementState(double time) const {
+  // express the parameter space covariance in global state space
+    DSDP dsdp = dStatedPar(time);
+    return StateVectorMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
   void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, double tol) const {

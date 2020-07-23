@@ -245,26 +245,17 @@ int test(int argc, char **argv) {
       if(fabs(mtest(irow,icol) - val) > 1e-9) cout <<"Error in momentum derivative test" << endl;
     }
   }
-
-  auto momderiv = refhel.momDeriv(ttest,LocalBasis::momdir);
-  auto phideriv = refhel.momDeriv(ttest,LocalBasis::phidir);
-  auto perpderiv = refhel.momDeriv(ttest,LocalBasis::perpdir);
-  auto momdir = refhel.direction(ttest,LocalBasis::momdir);
-  auto phidir = refhel.direction(ttest,LocalBasis::phidir);
-  auto perpdir = refhel.direction(ttest,LocalBasis::perpdir);
-  typename KTRAJ::DPDV dPdMtest;
+// test momentum projections
   typedef ROOT::Math::SVector<double,3> SVec3;
-  for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
-    SVec3 dvec;
-    dvec[0] =momdir.X()*momderiv[ipar]+phidir.X()*phideriv[ipar]+perpdir.X()*perpderiv[ipar];
-    dvec[1] =momdir.Y()*momderiv[ipar]+phidir.Y()*phideriv[ipar]+perpdir.Y()*perpderiv[ipar];
-    dvec[2] =momdir.Z()*momderiv[ipar]+phidir.Z()*phideriv[ipar]+perpdir.Z()*perpderiv[ipar];
-    dPdMtest.Place_in_row(dvec,ipar,0);
-  }
-  dPdMtest /= refhel.momentumMag(ttest);
-  for(size_t irow=0;irow<KTRAJ::NParams();irow++) {
-    for(size_t icol=0;icol<3;icol++) {
-      if(fabs(dPdM(irow,icol) - dPdMtest(irow,icol)) > 1e-9) cout <<"Error in dPdM test" << endl;
+  for(unsigned idir=0;idir<3;idir++){
+    auto mdir = static_cast<LocalBasis::LocDir>(idir);
+    DVEC momd = refhel.momDeriv(ttest,mdir);
+    auto dir = refhel.direction(ttest,mdir);
+    DVEC momt = dPdM*mom*SVec3(dir.X(), dir.Y(), dir.Z());
+//    cout << "momd " << momd << endl;
+//    cout << "momt " << momt << endl;
+    for(unsigned ipar=0;ipar<KTRAJ::NParams(); ipar++){
+      if(fabs(momd[ipar]-momt[ipar])>1e-9) cout <<"Error in momdir test" << endl;
     }
   }
 

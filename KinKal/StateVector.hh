@@ -6,34 +6,37 @@
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 namespace KinKal {
-  typedef ROOT::Math::SVector<double,6> SVec; // type for state vector payload
-  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepSym<double,6> > SVMat;  // matrix type for state vector covariance
+  typedef ROOT::Math::SVector<double,6> SVEC; // type for state vector payload
+  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepSym<double,6> > SMat;  // matrix type for state vector covariance
+  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6> > DSDP; // matrix for state derivatives WRT parameters and vice-versa
+  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6> > DPDS; // matrix for state derivatives WRT parameters and vice-versa
 
   class StateVector {
     public:
       // construct from position and momentum 3-vectors
       StateVector(Vec3 const& pos, Vec3 const& mom) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()) {}
       // construct from raw information
-      StateVector(SVec const& state) : state_(state) {}
+      StateVector(SVEC const& state) : state_(state) {}
       // direct accessor
-      SVec const& state() const { return state_; }
+      SVEC const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
       Vec3 position() const { return Vec3(state_[0],state_[1],state_[2]); }
       Vec3 momentum() const { return Vec3(state_[3],state_[4],state_[5]); }
     private:
-      SVec state_; // state vector payload of this particle
+      SVEC state_; // state vector payload of this particle
   };
 
   // the same, including covariance ( when used as a measurement with estimated errors)
   class StateVectorMeasurement  {
     public:
     // construct from from raw information
-      StateVectorMeasurement(SVec const& state, SVMat const& scovar) : state_(state), scovar_(scovar) {}
+      StateVectorMeasurement(StateVector const& state, SMat const& scovar) : state_(state.state()), scovar_(scovar) {}
+      StateVectorMeasurement(SVEC const& state, SMat const& scovar) : state_(state), scovar_(scovar) {}
       StateVector const& stateVector() const { return state_; }
-      SVMat const& stateCovariance() const { return scovar_; }
+      SMat const& stateCovariance() const { return scovar_; }
     private:
       StateVector state_; // state
-      SVMat scovar_; // covariance of state vector
+      SMat scovar_; // covariance of state vector
   };
 }
 #endif

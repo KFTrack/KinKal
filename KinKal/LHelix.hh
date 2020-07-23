@@ -11,6 +11,7 @@
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/LocalBasis.hh"
+#include "KinKal/StateVector.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
@@ -29,7 +30,6 @@ namespace KinKal {
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
-      typedef typename PDATA::DMAT DMAT; // parameter covariance matrix type
       static std::vector<std::string> const& paramNames(); 
       static std::vector<std::string> const& paramUnits(); 
       static std::vector<std::string> const& paramTitles();
@@ -45,10 +45,12 @@ namespace KinKal {
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
-      // same, including covariance matrices for the 3-momentum and 3-vector position
-      LHelix(Vec4 const& pos, VMAT pcov, Mom4 const& mom, VMAT MCOV, int charge, double bnom, TRange const& range=TRange());
-      // copy and override the parameters  
+      LHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange()); // do I really need this?
+      // construct from the particle state at a given time, plus mass and charge
+      LHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      // same, including covariance information
+      LHelix(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+      // copy payload and override the parameters; can I replace this with StateVector interface
       LHelix(PDATA const& pdata, LHelix const& other);
       Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
@@ -72,6 +74,9 @@ namespace KinKal {
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
+      // extract fit results at a given time as a state vector
+      StateVector state(double time) const;
+      StateVectorMeasurement measurementState(double time) const;
 
       // named parameter accessors
       double rad() const { return paramVal(rad_); }
@@ -113,6 +118,9 @@ namespace KinKal {
       DPDV dPardM(double time) const; // return the derivative of the parameters WRT the (global) momentum vector
       DVDP dXdPar(double time) const; // return the derivative of the (global) position vector WRT the parameters
       DVDP dMdPar(double time) const; // return the derivative of the (global) momentum vector WRT parameters
+      // package the above for full (global) state
+      DSDP dPardState(double time) const;
+      DPDS dStatedPar(double time) const;
     private :
       TRange trange_;
       PDATA pars_; // parameters
