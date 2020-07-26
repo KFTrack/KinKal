@@ -27,7 +27,7 @@ namespace KinKal {
     double stoca=  tline.t0();
     double doca(0.0);
     double ktspeed = ktline.speed(ktline.t0());
-    
+
     Vec3 ktpos = ktline.position(htoca); 
     Vec3 ktdir = ktline.direction(htoca); 
 
@@ -35,6 +35,7 @@ namespace KinKal {
     htoca = poca->s1()/ktspeed;
     stoca = tline.t0() - poca->s2()/tline.speed(stoca) - stoca;
     double dd2 = poca->dca(); 
+
     if(dd2 < 0.0 ){
       status_ = TPoca::pocafailed;
     }
@@ -47,23 +48,29 @@ namespace KinKal {
     }else{
       status_ = TPoca::unconverged;
     }
+
     partPoca_.SetE(htoca);
     ktline.position(partPoca_);
     sensPoca_.SetE(stoca);
     tline.position(sensPoca_);
+
     // sign doca by angular momentum projected onto difference vector (same as helix)
     double lsign =   tline.dir().Cross(ktline.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
     double dsign = copysign(1.0,lsign);
     doca_ = doca*dsign;
-
+    std::cout<<"DOCA: "<<doca<<std::endl;
     Vec3 ddir;
     ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to ktline)
     ktline.direction(particlePoca().T());
-
+    double d0 = ktline.d0();
+    double cosPhi0 = ktline.cosPhi0();
+    double sinPhi0 = ktline.sinPhi0();
+    double sinT = ktline.sinTheta();
+    std::cout << "In KTLine. Params set to: " <<ktline.params()<< std::endl;
     double f = CLHEP::c_light * ktline.beta() * (particlePoca().T() - ktline.t0());
-    dDdP_[KTLine::phi0_] = -dsign*((ktline.d0()*sin(ktline.phi0()) + f*ktline.sinTheta()*ktline.sinPhi0())*ddir.x()+(ktline.d0()*cos(ktline.phi0()) - f*ktline.sinTheta()*ktline.sinPhi0())*ddir.y());
+    dDdP_[KTLine::phi0_] = -dsign*((d0*sinPhi0) + f*sinT*sinPhi0)*ddir.x()+(d0*cosPhi0 - f*sinT*sinPhi0)*ddir.y();
     dDdP_[KTLine::cost_] = f*ddir.z();
-    dDdP_[KTLine::d0_] = -dsign*(-1*ktline.cosPhi0()*ddir.x()+ktline.sinPhi0()*ddir.y());
+    dDdP_[KTLine::d0_] = -dsign*(-1*cosPhi0*ddir.x()+sinPhi0*ddir.y());
     dDdP_[KTLine::z0_] = -dsign*ddir.z();
     dTdP_[KTLine::t0_] = -1.0; 
 
@@ -84,7 +91,7 @@ namespace KinKal {
     size_t index;
     index = size_t(rint(oldindex/2.0));
     status_ = converged; 
-    while(status_ == converged && niter++ < maxiter && index != oldindex){
+    while(status_ == converged and index != oldindex){
 
       KTLine const& piece = pktline.pieces()[index];
       TPoca<KTLine,TLine> tpoca(piece,tline,hint,precision);
@@ -99,8 +106,8 @@ namespace KinKal {
 	      tocavar_ = tpoca.tocaVar();
 	      ddot_ = tpoca.dirDot();
       }
-      oldindex = index;
-      index = pktline.nearestIndex(tpoca.particlePoca().T());
+     oldindex = index;
+     index = pktline.nearestIndex(tpoca.particlePoca().T());
     }
     if(status_ == converged && niter >= maxiter) status_ = unconverged;
   }

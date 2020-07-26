@@ -166,7 +166,7 @@ namespace KinKal {
     switch (mdir) {
     case LocalBasis::perpdir:
       // polar bending: change in Theta
-      pder[cost_] = -sinT; //neut=1/sinT
+      pder[cost_] = -sinT; 
       pder[d0_] = 0;
       pder[phi0_] = 0;
       pder[z0_] = -l*cosT/sinT; //TODO - I think here is the issue!
