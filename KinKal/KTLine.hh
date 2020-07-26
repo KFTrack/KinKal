@@ -149,6 +149,7 @@ class KTLine {
     double vt_; // transverse velocity
     double vz_; // z velocity
     double amsign_;
+    Vec3 poca_;
     static std::vector<std::string> paramTitles_;
     static std::vector<std::string> paramNames_;
     static std::vector<std::string> paramUnits_;
