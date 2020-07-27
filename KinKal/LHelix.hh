@@ -67,17 +67,15 @@ namespace KinKal {
       double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(double time) const;
       double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
-      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const;
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
-      // extract fit results at a given time as a state vector
+      // express fit results as a state vector (global coordinates)
       StateVector state(double time) const;
       StateVectorMeasurement measurementState(double time) const;
-
       // named parameter accessors
       double rad() const { return paramVal(rad_); }
       double lam() const { return paramVal(lam_); }
@@ -110,24 +108,33 @@ namespace KinKal {
 	charge_ *= -1;
 	pars_.parameters()[t0_] *= -1.0;
       }
-      // covariance of position and momentum
-      VMAT momCovar(double time) const;
-      VMAT posCovar(double time) const;
       // functions related to euclidean space to parameter space derivatives
       DPDV dPardX(double time) const; // return the derivative of the parameters WRT the (global) position vector
       DPDV dPardM(double time) const; // return the derivative of the parameters WRT the (global) momentum vector
       DVDP dXdPar(double time) const; // return the derivative of the (global) position vector WRT the parameters
       DVDP dMdPar(double time) const; // return the derivative of the (global) momentum vector WRT parameters
+      DSDP dPardState(double time) const; // derivative of parameters WRT global state
+      DPDS dStatedPar(double time) const; // derivative of global state WRT parameters
+      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
-      DSDP dPardState(double time) const;
-      DPDS dStatedPar(double time) const;
+      // Parameter derivatives given a change in BField
+      DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
+      DVEC dPardB(double time, Vec3 const& BPrime) const; // parameter change given a new BField vector
     private :
+// local coordinate system functions, used internally
+      Vec3 localDirection(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      Vec3 localMomentum(double time) const;
+      Vec3 localPosition(double time) const;
+      DPDV dPardXLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) position vector
+      DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
+      DSDP dPardStateLoc(double time) const; // derivative of parameters WRT local state
+
       TRange trange_;
       PDATA pars_; // parameters
       double mass_;  // in units of MeV/c^2
       int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
-      Vec3 bnom_; // nominal BField
+      Vec3 bnom_; // nominal BField, in global coordinate system
       ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
       static std::vector<std::string> paramTitles_;
       static std::vector<std::string> paramNames_;

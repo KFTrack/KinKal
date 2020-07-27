@@ -10,6 +10,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
+#include "KinKal/StateVector.hh"
 #include "KinKal/LocalBasis.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -110,6 +111,9 @@ namespace KinKal {
       DPDV dPardM(double time) const { return DPDV(); } // TODO
       DVDP dXdPar(double time) const { return DVDP(); } // TODO
       DVDP dMdPar(double time) const { return DVDP(); } // TODO
+      DSDP dPardState(double time) const { return DPDS(); } // TODO
+      DPDS dStatedPar(double time) const { return DSDP(); } // TODO
+ 
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()
       {

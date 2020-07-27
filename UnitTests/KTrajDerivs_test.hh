@@ -221,7 +221,9 @@ int test(int argc, char **argv) {
   auto dPdM = refhel.dPardM(ttest);  
   auto dXdP = refhel.dXdPar(ttest);  
   auto dMdP = refhel.dMdPar(ttest);  
-  auto ptest = dPdX*dXdP + dPdM*dMdP;
+  auto dPdS = refhel.dPardState(ttest);
+  auto dSdP = refhel.dStatedPar(ttest);
+  auto ptest = dPdS*dSdP;
   for(size_t irow=0;irow<KTRAJ::NParams();irow++) {
     for(size_t icol=0;icol<KTRAJ::NParams();icol++) {
       double val(0.0);
@@ -245,19 +247,11 @@ int test(int argc, char **argv) {
       if(fabs(mtest(irow,icol) - val) > 1e-9) cout <<"Error in momentum derivative test" << endl;
     }
   }
-// test momentum projections
-  typedef ROOT::Math::SVector<double,3> SVec3;
-  for(unsigned idir=0;idir<3;idir++){
-    auto mdir = static_cast<LocalBasis::LocDir>(idir);
-    DVEC momd = refhel.momDeriv(ttest,mdir);
-    auto dir = refhel.direction(ttest,mdir);
-    DVEC momt = dPdM*mom*SVec3(dir.X(), dir.Y(), dir.Z());
-//    cout << "momd " << momd << endl;
-//    cout << "momt " << momt << endl;
-    for(unsigned ipar=0;ipar<KTRAJ::NParams(); ipar++){
-      if(fabs(momd[ipar]-momt[ipar])>1e-9) cout <<"Error in momdir test" << endl;
-    }
+
+// test changes due to BField
+  for(int idir=0;idir<3;++idir){
   }
+ 
 
   lhderiv.Write();
   lhderiv.Close();

@@ -33,14 +33,16 @@ namespace KinKal {
   LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, double bnom, TRange const& range) : LHelix(pos0,mom0,charge,Vec3(0.0,0.0,bnom),range) {}
   LHelix::LHelix( Vec4 const& pos0, Mom4 const& mom0, int charge, Vec3 const& bnom, TRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom) {
     static double twopi = 2*M_PI;
-    // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
+    // Transform into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
+    // The transform is a pure rotation about the origin
     Vec4 pos(pos0);
     Mom4 mom(mom0);
     g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+    // to convert global vectors into parameters they must first be rotated into the local system.
     pos = g2l_(pos);
     mom = g2l_(mom);
-    // create inverse rotation; this moves back into the original coordinate system
+    // create inverse rotation; this moves back into the global coordinate system
     l2g_ = g2l_.Inverse();
     // compute some simple useful parameters
     double pt = mom.Pt(); 
@@ -122,21 +124,34 @@ namespace KinKal {
     return direction(time)*speed(time); 
   }
 
-  Vec3 LHelix::direction(double time, LocalBasis::LocDir mdir) const {
+  Vec3 LHelix::localDirection(double time, LocalBasis::LocDir mdir) const {
     double phival = phi(time);
     double invpb = sign()/pbar(); // need to sign
     switch ( mdir ) {
       case LocalBasis::perpdir:
-	return l2g_(Vec3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb));
+	return Vec3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
       case LocalBasis::phidir:
-	return l2g_(Vec3(-sin(phival),cos(phival),0.0));
+	return Vec3(-sin(phival),cos(phival),0.0);
       case LocalBasis::momdir:
-	return l2g_(Vec3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb));
+	return Vec3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
       default:
 	throw invalid_argument("Invalid direction");
     }
   }
 
+  Vec3 LHelix::localMomentum(double time) const{
+    return betaGamma()*mass_*localDirection(time);
+  }
+
+  Vec3 LHelix::localPosition(double time) const {
+    double df = dphi(time);
+    double phival = df + phi0();
+    return Vec3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam());
+  } 
+
+  Vec3 LHelix::direction(double time, LocalBasis::LocDir mdir) const {
+    return l2g_(localDirection(time,mdir));
+  }
 
   // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
   LHelix::DVEC LHelix::momDeriv(double time, LocalBasis::LocDir mdir) const {
@@ -147,13 +162,7 @@ namespace KinKal {
     return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z()));
   }
 
-  VMAT LHelix::momCovar(double time) const {
-    return VMAT(); //TODO!
-  }
-  VMAT LHelix::posCovar(double time) const {
-    return VMAT(); //TODO!
-  }
-  LHelix::DPDV LHelix::dPardX(double time) const {
+  LHelix::DPDV LHelix::dPardXLoc(double time) const {
     // euclidean space is column, parameter space is row
     double omval = omega();
     SVec3 zdir(0.0,0.0,1.0);
@@ -166,13 +175,10 @@ namespace KinKal {
     dPdX.Place_in_row(dCy_dX,cy_,0);
     dPdX.Place_in_row(dphi0_dX,phi0_,0);
     dPdX.Place_in_row(dt0_dX,t0_,0);
-// now rotate these into local space
-    RMAT g2lmat;
-    g2l_.GetRotationMatrix(g2lmat);
-    return dPdX*g2lmat;
+    return dPdX;
   }
 
-  LHelix::DPDV LHelix::dPardM(double time) const {
+  LHelix::DPDV LHelix::dPardMLoc(double time) const {
     // euclidean space is column, parameter space is row
     double omval = omega();
     double dt = time-t0();
@@ -199,10 +205,52 @@ namespace KinKal {
     dPdM.Place_in_row(dphi0_dM,phi0_,0);
     dPdM.Place_in_row(dt0_dM,t0_,0);
     dPdM *= 1.0/Q();
+    return dPdM;
+  }
+
+  LHelix::DPDV LHelix::dPardX(double time) const {
+// rotate into local space
+    RMAT g2lmat;
+    g2l_.GetRotationMatrix(g2lmat);
+    return dPardXLoc(time)*g2lmat;
+  }
+
+  LHelix::DPDV LHelix::dPardM(double time) const {
 // now rotate these into local space
     RMAT g2lmat;
     g2l_.GetRotationMatrix(g2lmat);
-    return dPdM*g2lmat;
+    return dPardMLoc(time)*g2lmat;
+  }
+
+  LHelix::DVEC LHelix::dPardB(double time) const {
+    double phival = phi(time);
+    DVEC retval;
+    retval[rad_] = -rad();
+    retval[lam_] = -lam();
+    retval[cx_] = rad()*sin(phival);
+    retval[cy_] = -rad()*cos(phival);
+    retval[phi0_] = dphi(time); 
+    retval[t0_] = 0.0;
+    return (1.0/bnom_.R())*retval;
+  }
+
+  LHelix::DVEC LHelix::dPardB(double time, Vec3 const& BPrime) const {
+  // rotate new B field difference into local coordinate system
+    Vec3 dB = g2l_(BPrime-bnom_);
+    // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
+    LHelix::DVEC retval = dPardB(time)*dB.Z();
+    // find the change in (local) position and momentum due to the rotation implied by the B direction change
+    // work in local coordinate system to avoid additional matrix mulitplications
+    auto xvec = localPosition(time);
+    auto mvec = localMomentum(time);
+    Vec3 BxdB =Vec3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    Vec3 dx = xvec.Cross(BxdB);
+    Vec3 dm = mvec.Cross(BxdB);
+    // convert these to a full state vector change
+    StateVector dstate(dx,dm);
+    // convert the change in (local) state due to rotation to parameter space
+    retval += dPardStateLoc(time)*dstate.state();
+    return retval;
   }
 
   LHelix::DVDP LHelix::dXdPar(double time) const {
@@ -263,6 +311,16 @@ namespace KinKal {
     RMAT l2gmat;
     l2g_.GetRotationMatrix(l2gmat);
     return l2gmat*dMdP;
+  }
+
+  DSDP LHelix::dPardStateLoc(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    LHelix::DPDV dPdX = dPardXLoc(time);
+    LHelix::DPDV dPdM = dPardMLoc(time);
+    DPDS dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
   }
 
   DSDP LHelix::dPardState(double time) const{
