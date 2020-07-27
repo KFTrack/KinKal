@@ -17,6 +17,7 @@ namespace KinKal {
       StateVector(Vec3 const& pos, Vec3 const& mom) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()) {}
       // construct from raw information
       StateVector(SVEC const& state) : state_(state) {}
+      StateVector() {}
       // direct accessor
       SVEC const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
@@ -32,6 +33,7 @@ namespace KinKal {
     // construct from from raw information
       StateVectorMeasurement(StateVector const& state, SMat const& scovar) : state_(state.state()), scovar_(scovar) {}
       StateVectorMeasurement(SVEC const& state, SMat const& scovar) : state_(state), scovar_(scovar) {}
+      StateVectorMeasurement() {}
       StateVector const& stateVector() const { return state_; }
       SMat const& stateCovariance() const { return scovar_; }
     private:

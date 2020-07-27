@@ -249,9 +249,44 @@ int test(int argc, char **argv) {
   }
 
 // test changes due to BField
+  TCanvas* dbcan[3]; // 3 directions
+  std::vector<TGraph*> bpgraphs[3];
+  std::array<Vec3,3> basis = {Vec3(1.0,0.0,0.0), Vec3(0.0,1.0,0.0), Vec3(0.0,0.0,1.0) };
+  std::array<std::string,3> anames = {"X", "Y", "Z"};
   for(int idir=0;idir<3;++idir){
+    bpgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
+    for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+      bpgraphs[idir][ipar] = new TGraph(ndel);
+      string title = KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar));
+      title += ";exact;1st derivative";
+      bpgraphs[idir][ipar]->SetTitle(title.c_str());
+    }
+    for(int id=0;id<ndel;++id){
+      // construct exact helix for this field and the corresponding exact parameter change
+      double delta = dmin + del*id;
+      Vec3 bf = bnom + basis[idir]*delta;
+      auto state = refhel.measurementState(ttest);
+      KTRAJ newbfhel(state,ttest,refhel.mass(),refhel.charge(),bf);
+      DVEC dpx = newbfhel.params().parameters() - refhel.params().parameters();
+      // compute the 1st order change
+      DVEC dpd = refhel.dPardB(ttest,bf);
+      for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpd[ipar]);
+      }
+    }
+    char title[80];
+    char name[80];
+    snprintf(name,80,"db%s",anames[idir].c_str());
+    snprintf(title,80,"BField Change %s",anames[idir].c_str());
+    dbcan[idir] = new TCanvas(name,title,1200,800);
+    dbcan[idir]->Divide(3,2);
+    for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+      dbcan[idir]->cd(ipar+1);
+      bpgraphs[idir][ipar]->Draw("AC*");
+    }
+    dbcan[idir]->Draw();
+    dbcan[idir]->Write();
   }
- 
 
   lhderiv.Write();
   lhderiv.Close();

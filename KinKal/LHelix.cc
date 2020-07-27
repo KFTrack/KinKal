@@ -229,7 +229,7 @@ namespace KinKal {
     retval[lam_] = -lam();
     retval[cx_] = rad()*sin(phival);
     retval[cy_] = -rad()*cos(phival);
-    retval[phi0_] = dphi(time); 
+    retval[phi0_] = -dphi(time); 
     retval[t0_] = 0.0;
     return (1.0/bnom_.R())*retval;
   }

@@ -103,6 +103,19 @@ namespace KinKal {
     pars_ = pdata;
   }
 
+  IPHelix::IPHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+    IPHelix(Vec4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
+	Mom4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
+	charge,bnom,range) 
+  {}
+
+  IPHelix::IPHelix(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+  IPHelix(pstate.stateVector(),time,mass,charge,bnom,range) {
+  // derive the parameter space covariance from the global state space covariance
+    DPDS dpds = dPardState(time);
+    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+  }
+
   void IPHelix::position(Vec4 &pos) const
  {
     Vec3 pos3 = position(pos.T());

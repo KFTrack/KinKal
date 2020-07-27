@@ -73,9 +73,6 @@ namespace KinKal {
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       PDATA const& params() const { return pars_; }
       PDATA& params() { return pars_; }
-      // express fit results as a state vector (global coordinates)
-      StateVector state(double time) const;
-      StateVectorMeasurement measurementState(double time) const;
       // named parameter accessors
       double rad() const { return paramVal(rad_); }
       double lam() const { return paramVal(lam_); }
@@ -83,6 +80,9 @@ namespace KinKal {
       double cy() const { return paramVal(cy_); }
       double phi0() const { return paramVal(phi0_); }
       double t0() const { return paramVal(t0_); }
+      // express fit results as a state vector (global coordinates)
+      StateVector state(double time) const;
+      StateVectorMeasurement measurementState(double time) const;
       
       // simple functions; these can be cached if they cause performance problems
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
