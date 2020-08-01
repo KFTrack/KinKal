@@ -57,7 +57,6 @@ namespace KinKal {
       Vec3 position(double time) const;
       Vec3 velocity(double time) const;
       double speed(double time) const  {  return CLHEP::c_light*beta(); }
-      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const;
       void print(std::ostream& ost, int detail) const;
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }

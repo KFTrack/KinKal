@@ -35,9 +35,6 @@ namespace KinKal {
       double energy(double time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
       double mass() const { return PTTRAJ::front().mass(); } // this will throw for empty
       double charge() const { return PTTRAJ::front().charge(); } // this will throw for empty 
-      void rangeInTolerance(TRange& range, BField const& bfield, double tol) const  {
-      // this could have a smarter implementation FIXME!
-	PTTRAJ::nearestPiece(range.low()).rangeInTolerance(range,bfield,tol); }
       Vec3 const& bnom(double time) const { return PTTRAJ::nearestPiece(time).bnom(); }
   };
 }

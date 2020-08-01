@@ -1,5 +1,6 @@
 #include "KinKal/IPHelix.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
@@ -41,7 +42,7 @@ namespace KinKal {
     mom = g2l_(mom);
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
-    double momToRad = 1.0/(BField::cbar()*charge_*bnom_.R());
+    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
     mbar_ = -mass_ * momToRad;
 
     double pt = sqrt(mom.perp2());
@@ -150,40 +151,6 @@ namespace KinKal {
     Vec3 dir = direction(time);
     double bgm = betaGamma()*mass_;
     return Mom4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
-  }
-
-  void IPHelix::rangeInTolerance(TRange &drange, BField const &bfield, double tol) const
-  {
-    // compute scaling factor
-    double bn = bnom_.R();
-    double spd = speed(drange.low());
-    double sfac = spd*spd/(bn*pbar());
-    // estimate step size from initial BField difference
-    Vec3 tpos = position(drange.low());
-    Vec3 bvec = bfield.fieldVect(tpos);
-    auto db = (bvec - bnom_).R();
-    double tstep(0.1);
-    // this next part should have the hard-coded numbers replaced by parameters.  Some calculations should move to BField FIXME!
-    if(db > 1e-4) tstep = 0.2*sqrt(tol/(sfac*db)); // step increment from difference from nominal
-    Vec3 dBdt = bfield.fieldDeriv(tpos,velocity(drange.low()));
-    tstep = std::min(tstep, 0.5*cbrt(tol/(sfac*dBdt.R())));
-    //
-    // loop over the trajectory in fixed steps to compute integrals and domains.
-    // step size is defined by momentum direction tolerance.
-    drange.high() = drange.low();
-    double dx(0.0);
-    // advance till spatial distortion exceeds position tolerance or we reach the range limit
-    do{
-      // increment the range
-      drange.high() += tstep;
-      tpos = position(drange.high());
-      bvec = bfield.fieldVect(tpos);
-      // BField diff with nominal
-      auto db = (bvec - bnom_).R();
-      // spatial distortion accumulation
-      dx += sfac*drange.range()*tstep*db;
-    } while(fabs(dx) < tol && drange.high() < range().high());
-    //    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
   }
 
   double IPHelix::angle(const double &f) const

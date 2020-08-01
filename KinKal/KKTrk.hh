@@ -49,6 +49,7 @@
 #include "KinKal/KKConfig.hh"
 #include "KinKal/FitStatus.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include "TMath.h"
 #include <set>
 #include <vector>
@@ -138,15 +139,13 @@ namespace KinKal {
 	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
 	}
       }
-      // preliminary sort
+      // preliminary sort; this makes sure the range is accurate when computing BField corrections
       std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
       // reset the range 
       reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config().tbuff_),
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config().tbuff_)));
-      // add BField inhomogeneity effects
-      if(kkconfig_->addbf_) {
-	createBFCorr();
-      }
+      // add corrections for BField inhomogeneity
+      createBFCorr();
       // create end effects; this should be last to avoid confusing the BField correction
       effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::forwards,config().dwt_));
       effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::backwards,config().dwt_));
@@ -270,24 +269,32 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::createBFCorr() {
-    // Should allow local field tracking option eventually FIXME!
-    // start at the low end of the range
-    TRange drange(reftraj_.range().low(),reftraj_.range().low());
-    // advance until the range is exhausted
-    while(drange.high() < reftraj_.range().high()){
-      // find how far we can advance within tolerance
-      reftraj_.rangeInTolerance(drange,kkconfig_->bfield_,kkconfig_->tol_);
-      // truncate if necessary
-      drange.high() = std::min(drange.high(),reftraj_.range().high());
-      // create the BField effect for this drange
-      effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange));
-      drange.low() = drange.high();
+    // configure the BFDomains based on fixed or floating BField in KTRAJ
+    if(kkconfig_->bfcorr_ == KKConfig::fixed) {
+    // define domains based on the difference betwen the actual field and the assumed (fixed) field.
+    // first, compute the fixed field (average over the full initial reference trajectory)
+
+      // start at the low end of the range
+      TRange drange(reftraj_.range().low(),reftraj_.range().low());
+      // advance until the range is exhausted
+      while(drange.high() < reftraj_.range().high()){
+	// find how far we can advance within tolerance
+	drange.high() = BFieldUtils::rangeInTolerance(drange.low(),kkconfig_->bfield_, reftraj_, kkconfig_->tol_);
+	// truncate if necessary
+	drange.high() = std::min(drange.high(),reftraj_.range().high());
+	// create the BField effect for this drange
+	effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange));
+	drange.low() = drange.high();
+      }
+    } else if (kkconfig_->bfcorr_ == KKConfig::variable) {
+// TODO
+
     }
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::print(std::ostream& ost, int detail) const {
     using std::endl;
-    if(detail == 0) 
+    if(detail == KKConfig::minimal) 
       ost <<  fitStatus();
     else {
       ost <<  "Fit History " << endl;
@@ -295,11 +302,11 @@ namespace KinKal {
     }
     ost << " Fit Result ";
     fitTraj().print(ost,detail);
-    if(detail > 1) {
+    if(detail > KKConfig::basic) {
       ost << " Reference ";
       refTraj().print(ost,detail-2);
     }
-    if(detail > 2) {
+    if(detail > KKConfig::complete) {
       ost << " Effects " << endl;
       for(auto const& eff : effects()) eff.get()->print(ost,detail-3);
     }

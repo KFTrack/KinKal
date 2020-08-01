@@ -65,7 +65,6 @@ namespace KinKal {
       double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
       double speed(double time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const;
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const  {} // TODO
       TRange const& range() const { return trange_; }

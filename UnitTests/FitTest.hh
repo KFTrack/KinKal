@@ -61,7 +61,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --addbf i --invert i --Schedule a\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a\n");
 }
 
 template <class KTRAJ>
@@ -113,9 +113,10 @@ int FitTest(int argc, char **argv) {
   unsigned ntries(100);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root"), sfile("Schedule.txt");
-  int detail(0), invert(0);
+  int detail(KKConfig::minimal), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
-  bool addbf(false), fitmat(true);
+  KKConfig::BFieldCorr bfcorr;
+  bool fitmat(true);
   vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   BField *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -152,7 +153,7 @@ int FitTest(int argc, char **argv) {
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
     {"UpdateHits",     required_argument, 0, 'U'  },
-    {"addbf",     required_argument, 0, 'B'  },
+    {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
     {NULL, 0,0,0}
@@ -186,7 +187,7 @@ int FitTest(int argc, char **argv) {
 		 break;
       case 'L' : lighthit = atoi(optarg);
 		 break;
-      case 'B' : addbf = atoi(optarg);
+      case 'B' : bfcorr = KKConfig::BFieldCorr(atoi(optarg));
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
@@ -263,7 +264,7 @@ int FitTest(int argc, char **argv) {
   KKCONFIGPTR configptr = make_shared<KKConfig>(*BF);
   configptr->dwt_ = dwt;
   configptr->maxniter_ = maxniter;
-  configptr->addbf_ = addbf;
+  configptr->bfcorr_ = bfcorr;
   configptr->addmat_ = fitmat;
   configptr->tol_ = tol;
   configptr->plevel_ = (KKConfig::printLevel)detail;
@@ -281,10 +282,12 @@ int FitTest(int argc, char **argv) {
   }
   std::ifstream ifs (fullfile, std::ifstream::in);
   string line;
+  unsigned nmiter(0);
   while (getline(ifs,line)){ 
     if(strncmp(line.c_str(),"#",1)!=0){
       istringstream ss(line);
       MConfig mconfig(ss);
+      mconfig.miter_ = nmiter++;
       configptr->schedule_.push_back(mconfig);
     }
   }

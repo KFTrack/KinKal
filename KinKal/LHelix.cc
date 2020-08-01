@@ -1,5 +1,6 @@
 #include "KinKal/LHelix.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
@@ -48,7 +49,7 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
-    double momToRad = 1.0/(BField::cbar()*charge_*bnom_.R());
+    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
     // reduced mass; note sign convention!
     mbar_ = -mass_*momToRad;
     // transverse radius of the helix
@@ -351,39 +352,6 @@ namespace KinKal {
   // express the parameter space covariance in global state space
     DSDP dsdp = dStatedPar(time);
     return StateVectorMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
-  }
-
-  void LHelix::rangeInTolerance(TRange& drange, BField const& bfield, double tol) const {
-    // compute scaling factor
-    double bn = bnom_.R();
-    double spd = speed(drange.low());
-    double sfac = spd*spd/(bn*pbar());
-    // estimate step size from initial BField difference
-    Vec3 tpos = position(drange.low());
-    Vec3 bvec = bfield.fieldVect(tpos);
-    auto db = (bvec - bnom_).R();
-    double tstep(0.1);
-    // this next part should have the hard-coded numbers replaced by parameters.  Some calculations should move to BField FIXME!
-    if(db > 1e-4) tstep = 0.2*sqrt(tol/(sfac*db)); // step increment from difference from nominal
-    Vec3 dBdt = bfield.fieldDeriv(tpos,velocity(drange.low()));
-    tstep = std::min(tstep, 0.5*cbrt(tol/(sfac*dBdt.R())));
-    //
-    // loop over the trajectory in fixed steps to compute integrals and domains.
-    // step size is defined by momentum direction tolerance.
-    drange.high() = drange.low();
-    double dx(0.0);
-    // advance till spatial distortion exceeds position tolerance or we reach the range limit
-    do{
-      // increment the range
-      drange.high() += tstep;
-      tpos = position(drange.high());
-      bvec = bfield.fieldVect(tpos);
-      // BField diff with nominal
-      auto db = (bvec - bnom_).R();
-      // spatial distortion accumulation
-      dx += sfac*drange.range()*tstep*db;
-    } while(fabs(dx) < tol && drange.high() < range().high());
-    //    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
   }
 
   void LHelix::print(ostream& ost, int detail) const {

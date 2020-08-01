@@ -6,6 +6,8 @@
 //
 #include "KinKal/KKEff.hh"
 #include "KinKal/TDir.hh"
+#include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>
@@ -42,7 +44,7 @@ namespace KinKal {
 
   template<class KTRAJ> void KKBField<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
     if(active_){
-      // forwards, set the cache AFTER processing this effect
+      // forwards; just append the effect's parameter change
       if(tdir == TDir::forwards) {
 	kkdata.append(bfeff_);
       } else {
@@ -75,8 +77,7 @@ namespace KinKal {
     if(mconfig.updatebfcorr_){
       active_ = true;
     // integrate the fractional momentum change
-      Vec3 dp;
-      bfield_.integrate(ref,drange_,dp);
+      Vec3 dp =  BFieldUtils::integrate(bfield_, ref,drange_);
       dpfrac_ = dp/ref.momentumMag(drange_.mid());
 //      std::cout << "Updating iteration " << mconfig.miter_ << " dP " << dp << std::endl;
     }

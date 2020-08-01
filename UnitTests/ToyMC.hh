@@ -11,6 +11,7 @@
 #include "KinKal/StrawMat.hh"
 #include "KinKal/ScintHit.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/D2T.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -262,13 +263,13 @@ namespace KKTest {
 //    std::cout << "end time " << pktraj.back().range().low() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
       TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
-      pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+      prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
       if(prange.high() > htime) {
 	return;
       } else {
 	prange.low() = prange.high();
 	do {
-	  pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+	  prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
 	  Vec4 pos; pos.SetE(prange.low());
 	  Mom4 mom =  pktraj.momentum(prange.low());
 	  pktraj.position(pos);
