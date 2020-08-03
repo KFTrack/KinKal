@@ -21,6 +21,10 @@ from helpers import build_helper
 # Check that some important environment variables have been set; exit on failure.
 validateEnvironment()
 
+# check we're not building in the source tree
+if os.path.normpath(os.environ['PACKAGE_SOURCE']) == os.path.normpath(GetLaunchDir()):
+    sys.exit('In-source builds are not allowed.\nExiting.')
+
 # Get debug level from the environment and check its validity; exit on failure.
 debugLevel = validateDebugLevel()
 
@@ -37,9 +41,18 @@ bindir = buildBase+'/bin/'
 includePath = [ sourceRoot,
                 os.environ['ROOT_INC'] ]
 
-linkPath    = [ os.environ['ROOTSYS'] + '/lib',
+linkPath    = [ os.environ['ROOT_LIB'],
                 '#/lib'
               ]
+
+rPath = [os.path.abspath(os.environ['ROOT_LIB']), os.path.join(buildBase,'lib/')]
+
+# if sys.platform.startswith('linux'):
+#     # if Linux
+#     rPath += [Literal("'$$ORIGIN'/../lib")]
+# elif sys.platform == 'darwin':
+#     # if MacOS, use macOS relative rpath
+#     rPath += [Literal('@executable_path/../lib')]
 
 # Create and configure the scons environment that will be used during building.
 env = Environment( CPPPATH   = [ includePath, ],
@@ -47,15 +60,9 @@ env = Environment( CPPPATH   = [ includePath, ],
                    ENV       = defineExportedOSEnvironment(),
                    BUILDOPTS = [debugLevel],
                    BINDIR    = bindir,
+                   RPATH     = rPath,
+                   toolpath  = [os.path.join(sourceRoot, 'site_scons/site_tools')]
                   )
-
-# Temporary hack to enable/disable running of tests.  To run the tests:
-#   scons --run-tests=True
-# Will be reimplemented with phony targets
-AddOption('--run-tests', dest='runTests',
-          nargs=1,default=False,
-          help='--run-tests=[True,False] enables/disables running tests')
-env['RUNTESTS'] = GetOption("runTests")
 
 # Modify the environment: set compile and link flags.
 SetOption('warn', 'no-fortran-cxx-mix')
@@ -67,6 +74,14 @@ env.MergeFlags( defineMergeFlags(debugLevel) )
 # LIBTEXT is the library for the dict - not a target, only text for names
 #genreflex = Builder(action=Action("export HOME="+os.environ["HOME"]+"; "+"genreflex ${SOURCES[0]} -s ${SOURCES[1]} $_CPPINCFLAGS -l $LIBTEXT -o ${TARGETS[0]} --fail_on_warnings --rootmap-lib=$LIBTEXT  --rootmap=${TARGETS[1]} $DEBUG_FLAG",genreflexcomstr))
 #env.Append(BUILDERS = {'DictionarySource' : genreflex})
+
+env.Tool('compilation_db')
+
+# Generate a compile_commands.json
+compileCommands = env.CompilationDatabase('compile_commands.json')
+compileDb = env.Alias("compdb", compileCommands)
+
+os.makedirs('lib', exist_ok=True)
 
 # Make the environment visible to all SConscript files.
 Export('env')
