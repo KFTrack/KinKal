@@ -13,6 +13,7 @@ namespace KinKal {
 
   class StateVector {
     public:
+      static unsigned constexpr dimension() { return 6; }
       // construct from position and momentum 3-vectors
       StateVector(Vec3 const& pos, Vec3 const& mom) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()) {}
       // construct from raw information

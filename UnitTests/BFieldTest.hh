@@ -269,6 +269,7 @@ int BFieldTest(int argc, char **argv) {
   hleg->AddEntry(tpx,"Exact Correction Trajectory","L");
   hleg->AddEntry(tpl,"Linear Correction Trajectory","L");
   hleg->Draw();
+  hcan->Draw();
   hcan->Write();
 
   TCanvas* dxcan = new TCanvas("dxcan","dxcan",800,1200);
@@ -304,7 +305,44 @@ int BFieldTest(int argc, char **argv) {
   dlmommd->Draw();
   dlcan->Draw();
   dlcan->Write();
- 
+
+
+// test the BField rotation by expressing a simple helix.  This doesn't simulate a true
+// particle path, it just tests mechanics
+// loop over the time ranges given by the 'sim' trajectory
+  KTRAJ const& sktraj = tptraj.front();
+  PKTRAJ rsktraj(sktraj);
+  for (auto const& piece : tptraj.pieces()) {
+    // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
+    KTRAJ newpiece(sktraj,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range());
+    rsktraj.append(newpiece);
+  }
+  // draw the trajs
+  TCanvas* hcandb = new TCanvas("hcandb","#Delta B Traj",1000,1000);
+  TPolyLine3D* original = new TPolyLine3D(200);
+  TPolyLine3D* rotated = new TPolyLine3D(200);
+  Vec3 opos, rpos;
+  tstep = tptraj.range().range()/200.0;
+  for(int istep=0;istep<201;++istep){
+    double tplot = sktraj.range().low()+tstep*istep;
+    opos = sktraj.position(tplot);
+    original->SetPoint(istep, opos.X(), opos.Y(), opos.Z());
+    rpos = rsktraj.position(tplot);
+    rotated->SetPoint(istep, rpos.X(), rpos.Y(), rpos.Z());
+  }
+  original->SetLineColor(kBlack);
+  original->SetLineStyle(9);
+  original->Draw();
+  rotated->SetLineColor(kRed);
+  rotated->SetLineStyle(6);
+  rotated->Draw();
+  TLegend* bleg = new TLegend(0.7,0.7,1.0,1.0);
+  bleg->AddEntry(original,"Original Trajectory","L");
+  bleg->AddEntry(rotated,"Rotated Trajectory","L");
+  bleg->Draw();
+  hcandb->Draw();
+  hcandb->Write();
+
   return 0;
 }
 

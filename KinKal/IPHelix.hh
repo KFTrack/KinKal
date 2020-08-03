@@ -46,6 +46,8 @@ namespace KinKal {
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // copy payload and adjust for a different BField and range 
+      IPHelix(IPHelix const& other, Vec3 const& bnom, TRange const& trange);
       // copy and override parameters
       IPHelix(PDATA const &pdata, IPHelix const& other); 
       // construct from the particle state at a given time, plus mass and charge

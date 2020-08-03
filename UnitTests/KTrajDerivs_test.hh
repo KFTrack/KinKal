@@ -48,7 +48,7 @@ int test(int argc, char **argv) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass, oz(100.0), ot(0.0), ttest(5.0);
-  double dmin(-5e-2), dmax(5e-2);
+  double dmin(-1e-2), dmax(1e-2);
   double By(0.0);
 
   static struct option long_options[] = {
@@ -142,7 +142,7 @@ int test(int argc, char **argv) {
     for(int jdir=0;jdir < 3;jdir++){
       LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
       gapgraph[idir][jdir] = new TGraph(ndel);
-      string title = "Gap in " + LocalBasis::directionName(tjdir) + ";change;gap value (mm)";
+      string title = "Gap in " + LocalBasis::directionName(tjdir) + ";Fractional change;Gap value (mm)";
       gapgraph[idir][jdir]->SetTitle(title.c_str());
     }
     // scan range of change
@@ -189,11 +189,11 @@ int test(int argc, char **argv) {
       Vec3 ddmom = dmom.Vect() - refmom.Vect();
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
-    char title[80];
-    char name[80];
-    snprintf(name,80,"dh%s",LocalBasis::directionName(tdir).c_str());
-    snprintf(title,80,"Helix Change %s",LocalBasis::directionName(tdir).c_str());
-    dhcan[idir] = new TCanvas(name,title,1200,800);
+    char gtitle[80];
+    char gname[80];
+    snprintf(gname,80,"dh%s",LocalBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"Helix Change %s",LocalBasis::directionName(tdir).c_str());
+    dhcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dhcan[idir]->Divide(3,2);
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
       dhcan[idir]->cd(ipar+1);
@@ -202,9 +202,9 @@ int test(int argc, char **argv) {
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
 
-    snprintf(name,80,"dm%s",LocalBasis::directionName(tdir).c_str());
-    snprintf(title,80,"Mom Change %s",LocalBasis::directionName(tdir).c_str());
-    dmomcan[idir] = new TCanvas(name,title,800,800);
+    snprintf(gname,80,"dm%s",LocalBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"Mom Change %s",LocalBasis::directionName(tdir).c_str());
+    dmomcan[idir] = new TCanvas(gname,gtitle,800,800);
     dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);
     momgraph[idir]->Draw("AC*");
@@ -253,6 +253,8 @@ int test(int argc, char **argv) {
   std::vector<TGraph*> bpgraphs[3];
   std::array<Vec3,3> basis = {Vec3(1.0,0.0,0.0), Vec3(0.0,1.0,0.0), Vec3(0.0,0.0,1.0) };
   std::array<std::string,3> anames = {"X", "Y", "Z"};
+  // gaps
+  TGraph* bgapgraph[3];
   for(int idir=0;idir<3;++idir){
     bpgraphs[idir] = std::vector<TGraph*>(KTRAJ::NParams(),0); 
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -261,24 +263,36 @@ int test(int argc, char **argv) {
       title += ";exact;1st derivative";
       bpgraphs[idir][ipar]->SetTitle(title.c_str());
     }
+    bgapgraph[idir] = new TGraph(ndel);
+    string title = "Gap for #Delta B in " + anames[idir] + ";Fractional change;Gap value (mm)";
+    bgapgraph[idir]->SetTitle(title.c_str());
     for(int id=0;id<ndel;++id){
       // construct exact helix for this field and the corresponding exact parameter change
       double delta = dmin + del*id;
       Vec3 bf = bnom + basis[idir]*delta;
       auto state = refhel.measurementState(ttest);
+      // exact traj given the full state
       KTRAJ newbfhel(state,ttest,refhel.mass(),refhel.charge(),bf);
-      DVEC dpx = newbfhel.params().parameters() - refhel.params().parameters();
-      // compute the 1st order change
-      DVEC dpd = refhel.dPardB(ttest,bf);
-      for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
-	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpd[ipar]);
+      auto newstate = newbfhel.measurementState(ttest);
+      for(size_t ipar=0;ipar < StateVector::dimension(); ipar++){
+	if(fabs(state.stateVector().state()[ipar] - newstate.stateVector().state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "
+	  << state.stateVector().state()[ipar] << " rotated " << newstate.stateVector().state()[ipar]  << endl;
       }
+      DVEC dpx = newbfhel.params().parameters() - refhel.params().parameters();
+      // 1st order change trajectory
+      TRange range(ttest,refhel.range().high());
+      KTRAJ dbtraj(refhel,bf,range);
+      DVEC dpdb = dbtraj.params().parameters() - refhel.params().parameters();
+      for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
+	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
+      }
+      bgapgraph[idir]->SetPoint(id,delta,(dbtraj.position(ttest)-newbfhel.position(ttest)).R());
     }
-    char title[80];
-    char name[80];
-    snprintf(name,80,"db%s",anames[idir].c_str());
-    snprintf(title,80,"BField Change %s",anames[idir].c_str());
-    dbcan[idir] = new TCanvas(name,title,1200,800);
+    char gtitle[80];
+    char gname[80];
+    snprintf(gname,80,"db%s",anames[idir].c_str());
+    snprintf(gtitle,80,"BField Change %s",anames[idir].c_str());
+    dbcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dbcan[idir]->Divide(3,2);
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
       dbcan[idir]->cd(ipar+1);
@@ -286,7 +300,16 @@ int test(int argc, char **argv) {
     }
     dbcan[idir]->Draw();
     dbcan[idir]->Write();
+
   }
+  TCanvas* dbgcan = new TCanvas("dbgcan","DB Gap",800,800);
+  dbgcan->Divide(2,2);
+  for(int idir=0;idir<3;++idir){
+    dbgcan->cd(idir+1);
+    bgapgraph[idir]->Draw("AC*");
+  }
+  dbgcan->Draw();
+  dbgcan->Write();
 
   lhderiv.Write();
   lhderiv.Close();

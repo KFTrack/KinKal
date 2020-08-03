@@ -76,6 +76,15 @@ namespace KinKal {
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
+  LHelix::LHelix(LHelix const& other, Vec3 const& bnom, TRange const& trange) : LHelix(other) {
+    bnom_ = bnom;
+    trange_ = trange;
+    pars_.parameters() += other.dPardB(range().low(),bnom);
+    g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
+  }
+  
+
   LHelix::LHelix( PDATA const& pdata, LHelix const& other) : LHelix(other) {
     pars_ = pdata;
   }

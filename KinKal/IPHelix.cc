@@ -100,6 +100,13 @@ namespace KinKal {
     return dphi;
   }
 
+  IPHelix::IPHelix(IPHelix const& other, Vec3 const& bnom, TRange const& trange) : IPHelix(other) {
+    trange_ = trange;
+    pars_.parameters() += other.dPardB(range().low(),bnom);
+    g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
+  }
+
   IPHelix::IPHelix(PDATA const &pdata, IPHelix const& other) : IPHelix(other) {
     pars_ = pdata;
   }
