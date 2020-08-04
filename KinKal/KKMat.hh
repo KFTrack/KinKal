@@ -124,7 +124,7 @@ namespace KinKal {
       if(time > fit.back().range().low()){
 	fit.append(newpiece);
       } else {
-	throw std::invalid_argument("Can't append piece");
+	throw std::invalid_argument("KKMat: Can't append piece");
       }
     }
   }

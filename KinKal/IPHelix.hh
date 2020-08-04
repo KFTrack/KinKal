@@ -72,6 +72,7 @@ namespace KinKal {
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
+      void setBNom(double time, Vec3 const& bnom) {} // TODO
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj

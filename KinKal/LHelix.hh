@@ -63,6 +63,8 @@ namespace KinKal {
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
+      // allow resetting the BField.  Note this is time-dependent
+      void setBNom(double time, Vec3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
       Mom4 momentum(double time) const;
       double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
