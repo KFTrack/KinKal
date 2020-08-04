@@ -176,6 +176,7 @@ namespace KinKal {
 	// record this status in the history
 	history_.push_back(fstat);
       }
+      if(!fstat.usable())break;
     }
   }
 
@@ -274,8 +275,8 @@ namespace KinKal {
     Vec3 bf;
     if(kkconfig_->bfcorr_ == KKConfig::variable) {
       // initialize BNom at the start of the range. it will change with each piece
-      bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tstart)); 
-      // recast the seed parameters so they give the same state vector with the field at this point
+      bf = kkconfig_->bfield_.fieldVect(seedtraj.position(tstart)); 
+      // recast the seed parameters so they give the same state vector with the field at the starting point
       KTRAJ piece(seedtraj,bf,tstart);
       reftraj_ = PKTRAJ(piece);
     } else {
@@ -295,17 +296,12 @@ namespace KinKal {
 	  double tdomain = drange.mid();
 	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tdomain));
 	  KTRAJ newpiece(reftraj_.back(),bf,tdomain);
-	  newpiece.range() = TRange(tdomain,reftraj_.range().high());
+	  newpiece.range() = TRange(tdomain,std::max(drange.high(),reftraj_.range().high()));
 	  reftraj_.append(newpiece);
 	}
 	// create the BField effect for integrated differences over this range
 	effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange,kkconfig_->bfcorr_));
 	drange.low() = drange.high(); // reset for next domain
-      }
-      // correct the range of the 1st piece to correspond to staggered domain transitions
-      if(kkconfig_->bfcorr_ == KKConfig::variable) {
-	reftraj_.front().range().low() -= reftraj_.front().range().range();
-	reftraj_.print(std::cout,2);
       }
     }
   }

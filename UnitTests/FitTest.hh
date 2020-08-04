@@ -441,6 +441,8 @@ int FitTest(int argc, char **argv) {
     TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
+    unsigned nfail(0), ndiv(0);
+
     configptr->plevel_ = KKConfig::none;
     for(unsigned itry=0;itry<ntries;itry++){
     // create a random true initial helix with hits and material interactions from this.  This also handles BField inhomogeneity truth tracking
@@ -461,125 +463,128 @@ int FitTest(int argc, char **argv) {
       KKTRK kktrk(configptr,seedtraj,thits,dxings);
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
-      // compare parameters at the first traj of both true and fit
-      // correct the true parameters in case the BField isn't nominal
-      KTRAJ const& fftraj = kktrk.fitTraj().nearestPiece(tptraj.range().low());
-      KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
-      KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
-      KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
-      typename KTRAJ::PDATA ftpars, btpars;
-      if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
-	ftpars = fttraj.params();
-	btpars = bttraj.params();
-      } else {
-	Mom4 fmom, bmom;
-	Vec4 fpos, bpos;
-	fftraj.position(fpos);
-	bftraj.position(bpos);
-	fpos.SetE(fttraj.range().mid());
-	bpos.SetE(bttraj.range().mid());
-	fmom = fttraj.momentum(fpos.T());
-	bmom = bttraj.momentum(bpos.T());
-	KTRAJ ft(fpos,fmom,tptraj.charge(),fftraj.bnom());
-	KTRAJ bt(bpos,bmom,tptraj.charge(),bftraj.bnom());
-	ftpars = ft.params();
-	btpars = bt.params();
-      }
-      // fit parameters
-      auto const& ffpars = fftraj.params();
-      auto const& bfpars = bftraj.params();
-      double maxgap, avgap;
-      size_t igap;
-      kktrk.fitTraj().gaps(maxgap, igap, avgap);
-      maxgap_ = maxgap;
-      avgap_ = avgap;
-      igap_ = igap;
-
-      // momentum
-      // accumulate parameter difference and pull
-      vector<double> fcerr(6,0.0), bcerr(6,0.0);
-      for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
-	fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
-	bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
-	fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
-	bdp[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
-	fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/fcerr[ipar]);
-	bpull[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
-	fiterrh[ipar]->Fill(fcerr[ipar]);
-      }
-      // accumulate average correlation matrix
-      auto const& cov = ffpars.covariance();
-      //    auto cormat = cov;
-      for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
-	for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
-	  double corr = cov[ipar][jpar]/(fcerr[ipar]*fcerr[jpar]);
-	  //	cormat[ipar][jpar] = corr;
-	  corravg->Fill(ipar,jpar,fabs(corr));
-	}
-      }
-      // accumulate chisquared info
-      unsigned niter(0), nfail(0), ndiv(0);
+      auto const& fstat = kktrk.fitStatus();
+      if(fstat.status_ == FitStatus::failed)nfail++;
+      if(fstat.status_ == FitStatus::diverged)ndiv++;
+      unsigned niter(0);
       for(auto const& fstat: kktrk.history()){
-	if(fstat.status_ != FitStatus::needsfit)niter++;
-	if(fstat.status_ == FitStatus::failed)nfail++;
-	if(fstat.status_ == FitStatus::diverged)ndiv++;
+	if(fstat.status_ != FitStatus::unfit)niter++;
       }
       hniter->Fill(niter);
-      hnfail->Fill(nfail);
-      hndiv->Fill(ndiv);
-      auto const& fstat = kktrk.fitStatus();
-      chiprob_ = fstat.prob_;
-      ndof->Fill(fstat.ndof_);
-      chisq->Fill(fstat.chisq_);
-      chisqndof->Fill(fstat.chisq_/fstat.ndof_);
-      chisqprob->Fill(chiprob_);
-      logchisqprob->Fill(log10(chiprob_));
-      // fill tree
-      for(size_t ipar=0;ipar<6;ipar++){
-	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
-	ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
-	bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
-	ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
-	bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
-      }
-      ftmom_ = fttraj.momentumMag(tptraj.range().low());
-      btmom_ = bttraj.momentumMag(tptraj.range().high());
-      ffmom_ = fftraj.momentumMag(tptraj.range().low());
-      bfmom_ = bftraj.momentumMag(tptraj.range().high());
-      ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
-      bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
-      fft_ = kktrk.fitTraj().range().low();
-      eft_ = kktrk.fitTraj().range().high();
-      chisq_ = fstat.chisq_;
-      ndof_ = fstat.ndof_;
-      niter_ = fstat.iter_;
-      status_ = fstat.status_;
-      fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
-      bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-      // fill hit information
-      for(auto const& eff: kktrk.effects()) {
-	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-	if(kkhit != 0){
-	  KKHitInfo hinfo;
-	  hinfo.active_ = kkhit->isActive();
-	  hinfo.resid_ = kkhit->refResid().value();
-	  hinfo.residvar_ = kkhit->refResid().variance();
-	  hinfo.fitchi_ = kkhit->fitChi();
-	  hinfovec.push_back(hinfo);
+      if(fstat.usable()){
+	// compare parameters at the first traj of both true and fit
+	// correct the true parameters in case the BField isn't nominal
+	KTRAJ const& fftraj = kktrk.fitTraj().nearestPiece(tptraj.range().low());
+	KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
+	KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
+	KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
+	typename KTRAJ::PDATA ftpars, btpars;
+	if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
+	  ftpars = fttraj.params();
+	  btpars = bttraj.params();
+	} else {
+	  Mom4 fmom, bmom;
+	  Vec4 fpos, bpos;
+	  fftraj.position(fpos);
+	  bftraj.position(bpos);
+	  fpos.SetE(fttraj.range().mid());
+	  bpos.SetE(bttraj.range().mid());
+	  fmom = fttraj.momentum(fpos.T());
+	  bmom = bttraj.momentum(bpos.T());
+	  KTRAJ ft(fpos,fmom,tptraj.charge(),fftraj.bnom());
+	  KTRAJ bt(bpos,bmom,tptraj.charge(),bftraj.bnom());
+	  ftpars = ft.params();
+	  btpars = bt.params();
 	}
-      }
+	// fit parameters
+	auto const& ffpars = fftraj.params();
+	auto const& bfpars = bftraj.params();
+	double maxgap, avgap;
+	size_t igap;
+	kktrk.fitTraj().gaps(maxgap, igap, avgap);
+	maxgap_ = maxgap;
+	avgap_ = avgap;
+	igap_ = igap;
 
-      // test
-      if(printbad && !kktrk.fitStatus().usable()){
-	cout << "Bad Fit try " << itry << endl;
-	cout << "True Traj " << tptraj << endl;
-	cout << "Seed Traj " << seedtraj << endl;
-	kktrk.print(cout,detail);
+	// momentum
+	// accumulate parameter difference and pull
+	vector<double> fcerr(6,0.0), bcerr(6,0.0);
+	for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
+	  fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
+	  bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
+	  fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
+	  bdp[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
+	  fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/fcerr[ipar]);
+	  bpull[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
+	  fiterrh[ipar]->Fill(fcerr[ipar]);
+	}
+	// accumulate average correlation matrix
+	auto const& cov = ffpars.covariance();
+	//    auto cormat = cov;
+	for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
+	  for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
+	    double corr = cov[ipar][jpar]/(fcerr[ipar]*fcerr[jpar]);
+	    //	cormat[ipar][jpar] = corr;
+	    corravg->Fill(ipar,jpar,fabs(corr));
+	  }
+	}
+	// accumulate chisquared info
+	chiprob_ = fstat.prob_;
+	ndof->Fill(fstat.ndof_);
+	chisq->Fill(fstat.chisq_);
+	chisqndof->Fill(fstat.chisq_/fstat.ndof_);
+	chisqprob->Fill(chiprob_);
+	logchisqprob->Fill(log10(chiprob_));
+	// fill tree
+	for(size_t ipar=0;ipar<6;ipar++){
+	  spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+	  ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+	  btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+	  ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
+	  bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
+	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
+	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
+	}
+	ftmom_ = fttraj.momentumMag(tptraj.range().low());
+	btmom_ = bttraj.momentumMag(tptraj.range().high());
+	ffmom_ = fftraj.momentumMag(tptraj.range().low());
+	bfmom_ = bftraj.momentumMag(tptraj.range().high());
+	ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
+	bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
+	fft_ = kktrk.fitTraj().range().low();
+	eft_ = kktrk.fitTraj().range().high();
+	chisq_ = fstat.chisq_;
+	ndof_ = fstat.ndof_;
+	niter_ = fstat.iter_;
+	status_ = fstat.status_;
+	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
+	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
+	// fill hit information
+	for(auto const& eff: kktrk.effects()) {
+	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	  if(kkhit != 0){
+	    KKHitInfo hinfo;
+	    hinfo.active_ = kkhit->isActive();
+	    hinfo.resid_ = kkhit->refResid().value();
+	    hinfo.residvar_ = kkhit->refResid().variance();
+	    hinfo.fitchi_ = kkhit->fitChi();
+	    hinfovec.push_back(hinfo);
+	  }
+	}
+
+	// test
+	if(printbad && !kktrk.fitStatus().usable()){
+	  cout << "Bad Fit try " << itry << endl;
+	  cout << "True Traj " << tptraj << endl;
+	  cout << "Seed Traj " << seedtraj << endl;
+	  kktrk.print(cout,detail);
+	}
+	if(ttree)ftree->Fill();
       }
-      if(ttree)ftree->Fill();
     }
+    cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
+    hnfail->Fill(nfail);
+    hndiv->Fill(ndiv);
     cout <<"Time/fit = " << duration/double(ntries) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
