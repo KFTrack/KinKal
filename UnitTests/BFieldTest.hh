@@ -314,7 +314,7 @@ int BFieldTest(int argc, char **argv) {
   PKTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
     // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
-    KTRAJ newpiece(sktraj,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range());
+    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range().low());
     rsktraj.append(newpiece);
   }
   // draw the trajs

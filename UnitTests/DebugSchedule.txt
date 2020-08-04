@@ -1,0 +1,5 @@
+#
+#  Configuration file for iteration schedule
+#  Order:
+#  updatematerial updatebfield updatehits temperature dchisquared_converge dchisquared_diverge dchisquared_oscillation
+0 0 0 1.0 1.0 100.0 1.0

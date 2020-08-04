@@ -85,10 +85,9 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LHelix::LHelix(LHelix const& other, Vec3 const& bnom, TRange const& trange) : LHelix(other) {
+  LHelix::LHelix(LHelix const& other, Vec3 const& bnom, double trot) : LHelix(other) {
     bnom_ = bnom;
-    trange_ = trange;
-    pars_.parameters() += other.dPardB(range().low(),bnom);
+    pars_.parameters() += other.dPardB(trot,bnom);
     g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();
   }

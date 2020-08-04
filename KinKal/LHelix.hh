@@ -50,8 +50,8 @@ namespace KinKal {
       LHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
       // same, including covariance information
       LHelix(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
-      // copy payload and adjust for a different BField and range 
-      LHelix(LHelix const& other, Vec3 const& bnom, TRange const& trange);
+      // copy payload and adjust parameters to correspond to a different BField at a particular time
+      LHelix(LHelix const& other, Vec3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
       LHelix(PDATA const& pdata, LHelix const& other);
       Vec4 pos4(double time) const;

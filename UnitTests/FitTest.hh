@@ -255,7 +255,9 @@ int FitTest(int argc, char **argv) {
   auto const& midhel = tptraj.nearestPiece(0.0);
   auto seedmom = midhel.momentum(0.0);
   seedmom.SetM(fitmass);
-  KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,midhel.range());
+  // buffer the seed range
+  TRange seedrange(tptraj.range().low()-0.5,tptraj.range().high()+0.5);
+  KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
   cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
@@ -451,7 +453,8 @@ int FitTest(int argc, char **argv) {
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum(tmid);
       seedmom.SetM(fitmass);
-      KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,midhel.range());
+      TRange seedrange(tptraj.range().low()-0.5,tptraj.range().high()+0.5);
+      KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
       auto start = Clock::now();

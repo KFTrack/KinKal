@@ -89,7 +89,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF> > KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      KKTrk(KKCONFIGPTR const& kkconfig, PKTRAJ const& reftraj, THITCOL& thits, DXINGCOL& dxings ); 
+      KKTrk(KKCONFIGPTR const& kkconfig, KTRAJ const& seedtraj, THITCOL& thits, DXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<FitStatus> const& history() const { return history_; }
@@ -107,7 +107,7 @@ namespace KinKal {
       void fitIteration(FitStatus& status, MConfig const& mconfig);
       bool canIterate() const;
       bool oscillating(FitStatus const& status, MConfig const& mconfig) const;
-      void createBFCorr();
+      void createRefTraj(KTRAJ const& seedtraj);
       // payload
       KKCONFIGPTR kkconfig_; // shared configuration
       std::vector<FitStatus> history_; // fit status history; records the current iteration
@@ -120,9 +120,11 @@ namespace KinKal {
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(KKCONFIGPTR const& kkconfig, PKTRAJ const& reftraj,  THITCOL& thits, DXINGCOL& dxings) : 
-    kkconfig_(kkconfig), reftraj_(reftraj), thits_(thits), dxings_(dxings) {
-    // create the effects.  First, loop over the hits
+  template <class KTRAJ> KKTrk<KTRAJ>::KKTrk(KKCONFIGPTR const& kkconfig, KTRAJ const& seedtraj,  THITCOL& thits, DXINGCOL& dxings) : 
+    kkconfig_(kkconfig), thits_(thits), dxings_(dxings) {
+      // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
+      createRefTraj(seedtraj);
+      // create the effects.  First, loop over the hits
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
 	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
@@ -144,11 +146,9 @@ namespace KinKal {
       // reset the range 
       reftraj_.setRange(TRange(std::min(reftraj_.range().low(),effects_.begin()->get()->time() - config().tbuff_),
 	    std::max(reftraj_.range().high(),effects_.rbegin()->get()->time() + config().tbuff_)));
-      // add corrections for BField inhomogeneity
-      createBFCorr();
-      // create end effects; this should be last to avoid confusing the BField correction
-      effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::forwards,config().dwt_));
-      effects_.emplace_back(std::make_unique<KKEND>(reftraj,TDir::backwards,config().dwt_));
+      // create the end effects: these help manage the fit
+      effects_.emplace_back(std::make_unique<KKEND>(reftraj_,TDir::forwards,config().dwt_));
+      effects_.emplace_back(std::make_unique<KKEND>(reftraj_,TDir::backwards,config().dwt_));
       // now fit the track
       fit();
       if(kkconfig_->plevel_ > KKConfig::none)print(std::cout, kkconfig_->plevel_);
@@ -156,7 +156,7 @@ namespace KinKal {
 
   // fit iteration management 
   template <class KTRAJ> void KKTrk<KTRAJ>::fit() {
-   // execute the schedule of meta-iterations
+    // execute the schedule of meta-iterations
     for(auto imconfig=config().schedule().begin(); imconfig != config().schedule().end(); imconfig++){
       auto mconfig  = *imconfig;
       mconfig.miter_  = std::distance(config().schedule().begin(),imconfig);
@@ -268,27 +268,45 @@ namespace KinKal {
     return false;
   }
 
-  template <class KTRAJ> void KKTrk<KTRAJ>::createBFCorr() {
-    // configure the BFDomains based on fixed or floating BField in KTRAJ
-    if(kkconfig_->bfcorr_ == KKConfig::fixed) {
-    // define domains based on the difference betwen the actual field and the assumed (fixed) field.
-    // first, compute the fixed field (average over the full initial reference trajectory)
-
-      // start at the low end of the range
-      TRange drange(reftraj_.range().low(),reftraj_.range().low());
-      // advance until the range is exhausted
-      while(drange.high() < reftraj_.range().high()){
-	// find how far we can advance within tolerance
+  template <class KTRAJ> void KKTrk<KTRAJ>::createRefTraj(KTRAJ const& seedtraj ) {
+  // initialize the reftraj
+    double tstart = seedtraj.range().low();
+    Vec3 bf;
+    if(kkconfig_->bfcorr_ == KKConfig::variable) {
+      // initialize BNom at the start of the range. it will change with each piece
+      bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tstart)); 
+      // recast the seed parameters so they give the same state vector with the field at this point
+      KTRAJ piece(seedtraj,bf,tstart);
+      reftraj_ = PKTRAJ(piece);
+    } else {
+      // use the seed BField, fixed for the whole fit
+      reftraj_ = PKTRAJ(seedtraj); // the initial ref traj is just the seed.
+      bf = reftraj_.bnom(tstart); // freeze the nominal BField to be the one from the seed
+    }
+    if(kkconfig_->bfcorr_ != KKConfig::nocorr) { 
+      // divide up this traj into domains.  The spatial trajectory remains the same, but the referance BField will vary with position
+      // start the field at the start of the seed trajectory
+      TRange drange(tstart,reftraj_.range().high());
+      while(drange.low() < reftraj_.range().high()){
+	// see how far we can go until the BField changes cause the traj to go out of tolerance
 	drange.high() = BFieldUtils::rangeInTolerance(drange.low(),kkconfig_->bfield_, reftraj_, kkconfig_->tol_);
-	// truncate if necessary
-	drange.high() = std::min(drange.high(),reftraj_.range().high());
-	// create the BField effect for this drange
+	if(kkconfig_->bfcorr_ == KKConfig::variable) {
+	  // create the next piece and append.  The domain transition is set to the middle of the integration range, so the effects coincide
+	  double tdomain = drange.mid();
+	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tdomain));
+	  KTRAJ newpiece(reftraj_.back(),bf,tdomain);
+	  newpiece.range() = TRange(tdomain,reftraj_.range().high());
+	  reftraj_.append(newpiece);
+	}
+	// create the BField effect for integrated differences over this range
 	effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange,kkconfig_->bfcorr_));
-	drange.low() = drange.high();
+	drange.low() = drange.high(); // reset for next domain
       }
-    } else if (kkconfig_->bfcorr_ == KKConfig::variable) {
-// TODO
-
+      // correct the range of the 1st piece to correspond to staggered domain transitions
+      if(kkconfig_->bfcorr_ == KKConfig::variable) {
+	reftraj_.front().range().low() -= reftraj_.front().range().range();
+	reftraj_.print(std::cout,2);
+      }
     }
   }
 

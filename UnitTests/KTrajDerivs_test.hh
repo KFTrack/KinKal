@@ -280,8 +280,7 @@ int test(int argc, char **argv) {
       }
       DVEC dpx = newbfhel.params().parameters() - refhel.params().parameters();
       // 1st order change trajectory
-      TRange range(ttest,refhel.range().high());
-      KTRAJ dbtraj(refhel,bf,range);
+      KTRAJ dbtraj(refhel,bf,ttest);
       DVEC dpdb = dbtraj.params().parameters() - refhel.params().parameters();
       for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
 	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
