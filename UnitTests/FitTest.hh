@@ -13,6 +13,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/KKConfig.hh"
 #include "KinKal/KKHit.hh"
+#include "KinKal/KKMHit.hh"
 #include "KinKal/DXing.hh"
 #include "KinKal/KKTrk.hh"
 #include "UnitTests/ToyMC.hh"
@@ -85,6 +86,9 @@ int FitTest(int argc, char **argv) {
   typedef shared_ptr<KKConfig> KKCONFIGPTR;
   typedef THit<KTRAJ> THIT;
   typedef KKHit<KTRAJ> KKHIT;
+  typedef KKMHit<KTRAJ> KKMHIT;
+  typedef KKMat<KTRAJ> KKMAT;
+  typedef KKBField<KTRAJ> KKBF;
   typedef std::shared_ptr<THIT> THITPTR;
   typedef DXing<KTRAJ> DXING;
   typedef std::shared_ptr<DXING> DXINGPTR;
@@ -302,7 +306,7 @@ int FitTest(int argc, char **argv) {
   KTRAJPars ftpars_, btpars_, spars_, ffitpars_, ffiterrs_, bfitpars_, bfiterrs_;
   float chisq_, btmom_, ftmom_, ffmom_, bfmom_, ffmomerr_, bfmomerr_, chiprob_;
   float fft_,eft_;
-  int ndof_, niter_, status_, igap_;
+  int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
   float maxgap_, avgap_;
 
   if(ntries <=0 ){
@@ -380,8 +384,12 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("bferrs.", &bfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
+      ftree->Branch("nkkbf", &nkkbf_,"nkkbf/I");
+      ftree->Branch("nkkmat", &nkkmat_,"nkkmat/I");
+      ftree->Branch("nkkhit", &nkkhit_,"nkkhit/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
+      ftree->Branch("nmeta", &nmeta_,"nmeta/I");
       ftree->Branch("status", &status_,"status/I");
       ftree->Branch("ftmom", &ftmom_,"ftmom/F");
       ftree->Branch("btmom", &btmom_,"btmom/F");
@@ -403,6 +411,7 @@ int FitTest(int argc, char **argv) {
     vector<TH1F*> bpull(KTRAJ::NParams());
     vector<TH1F*> fiterrh(KTRAJ::NParams());
     TH1F* hniter = new TH1F("niter", "Total Iterations", 50,-0.5,49.5);
+    TH1F* hnmeta = new TH1F("nmeta", "Meta Iterations", 10,-0.5,9.5);
     TH1F* hnfail = new TH1F("nfail", "Failed Iterations", 50,-0.5,49.5);
     TH1F* hndiv = new TH1F("ndiv", "Diverged Iterations", 50,-0.5,49.5);
     hnfail->SetLineColor(kRed);
@@ -466,18 +475,55 @@ int FitTest(int argc, char **argv) {
       auto const& fstat = kktrk.fitStatus();
       if(fstat.status_ == FitStatus::failed)nfail++;
       if(fstat.status_ == FitStatus::diverged)ndiv++;
-      unsigned niter(0);
+      niter_ = 0;
       for(auto const& fstat: kktrk.history()){
-	if(fstat.status_ != FitStatus::unfit)niter++;
+	if(fstat.status_ != FitStatus::unfit)niter_++;
       }
-      hniter->Fill(niter);
+      // accumulate chisquared info
+      chisq_ = fstat.chisq_;
+      ndof_ = fstat.ndof_;
+      niter_ = fstat.iter_;
+      nmeta_ = fstat.miter_;
+      status_ = fstat.status_;
+      chiprob_ = fstat.prob_;
+      ndof->Fill(fstat.ndof_);
+      chisq->Fill(fstat.chisq_);
+      chisqndof->Fill(fstat.chisq_/fstat.ndof_);
+      chisqprob->Fill(chiprob_);
+      if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
+      hniter->Fill(niter_);
+      hnmeta->Fill(nmeta_);
+      // truth parameters, ant front and back
+      KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
+      KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
+      for(size_t ipar=0;ipar<6;ipar++){
+	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+      }
+      ftmom_ = fttraj.momentumMag(tptraj.range().low());
+      btmom_ = bttraj.momentumMag(tptraj.range().high());
+      // reset some fit parameters, to signal failed filts
+      chiprob_ = -1.0;
+      maxgap_ = avgap_ = -1;
+      igap_ = -1;
       if(fstat.usable()){
 	// compare parameters at the first traj of both true and fit
 	// correct the true parameters in case the BField isn't nominal
-	KTRAJ const& fftraj = kktrk.fitTraj().nearestPiece(tptraj.range().low());
-	KTRAJ const& bftraj = kktrk.fitTraj().nearestPiece(tptraj.range().high());
-	KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
-	KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
+	double tlow = tptraj.range().low();
+	double thigh = tptraj.range().high();
+	KTRAJ fftraj = KTRAJ(kktrk.fitTraj().nearestPiece(tlow),tptraj.bnom(tlow),tlow);
+	KTRAJ bftraj = KTRAJ(kktrk.fitTraj().nearestPiece(thigh),tptraj.bnom(thigh),thigh);
+	// fit parameters
+	auto const& ffpars = fftraj.params();
+	auto const& bfpars = bftraj.params();
+	double maxgap, avgap;
+	size_t igap;
+	kktrk.fitTraj().gaps(maxgap, igap, avgap);
+	maxgap_ = maxgap;
+	avgap_ = avgap;
+	igap_ = igap;
+// rotate the parameters to use the same BField
 	typename KTRAJ::PDATA ftpars, btpars;
 	if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
 	  ftpars = fttraj.params();
@@ -496,15 +542,6 @@ int FitTest(int argc, char **argv) {
 	  ftpars = ft.params();
 	  btpars = bt.params();
 	}
-	// fit parameters
-	auto const& ffpars = fftraj.params();
-	auto const& bfpars = bftraj.params();
-	double maxgap, avgap;
-	size_t igap;
-	kktrk.fitTraj().gaps(maxgap, igap, avgap);
-	maxgap_ = maxgap;
-	avgap_ = avgap;
-	igap_ = igap;
 
 	// momentum
 	// accumulate parameter difference and pull
@@ -528,41 +565,27 @@ int FitTest(int argc, char **argv) {
 	    corravg->Fill(ipar,jpar,fabs(corr));
 	  }
 	}
-	// accumulate chisquared info
-	chiprob_ = fstat.prob_;
-	ndof->Fill(fstat.ndof_);
-	chisq->Fill(fstat.chisq_);
-	chisqndof->Fill(fstat.chisq_/fstat.ndof_);
-	chisqprob->Fill(chiprob_);
-	logchisqprob->Fill(log10(chiprob_));
-	// fill tree
+	// extract fit parameters and errors
 	for(size_t ipar=0;ipar<6;ipar++){
-	  spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-	  ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-	  btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
 	  ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
 	  bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
-	ftmom_ = fttraj.momentumMag(tptraj.range().low());
-	btmom_ = bttraj.momentumMag(tptraj.range().high());
 	ffmom_ = fftraj.momentumMag(tptraj.range().low());
 	bfmom_ = bftraj.momentumMag(tptraj.range().high());
 	ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
 	bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
 	fft_ = kktrk.fitTraj().range().low();
 	eft_ = kktrk.fitTraj().range().high();
-	chisq_ = fstat.chisq_;
-	ndof_ = fstat.ndof_;
-	niter_ = fstat.iter_;
-	status_ = fstat.status_;
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-	// fill hit information
+	// fill effect information
+	nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
 	for(auto const& eff: kktrk.effects()) {
 	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
 	  if(kkhit != 0){
+	    nkkhit_++;
 	    KKHitInfo hinfo;
 	    hinfo.active_ = kkhit->isActive();
 	    hinfo.resid_ = kkhit->refResid().value();
@@ -570,17 +593,34 @@ int FitTest(int argc, char **argv) {
 	    hinfo.fitchi_ = kkhit->fitChi();
 	    hinfovec.push_back(hinfo);
 	  }
+	  const KKMHIT* kkmhit = dynamic_cast<const KKMHIT*>(eff.get());
+	  if(kkmhit != 0){
+	    nkkmat_++;
+	    nkkhit_++;
+	    KKHitInfo hinfo;
+	    hinfo.active_ = kkmhit->hit().isActive();
+	    hinfo.resid_ = kkmhit->hit().refResid().value();
+	    hinfo.residvar_ = kkmhit->hit().refResid().variance();
+	    hinfo.fitchi_ = kkmhit->hit().fitChi();
+	    hinfovec.push_back(hinfo);
+	  }
+	  const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+	  if(kkbf != 0){
+	    nkkbf_++;
+	  }
+	  const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+	  if(kkmat != 0){
+	    nkkmat_++;
+	  }
 	}
-
 	// test
-	if(printbad && !kktrk.fitStatus().usable()){
-	  cout << "Bad Fit try " << itry << endl;
-	  cout << "True Traj " << tptraj << endl;
-	  cout << "Seed Traj " << seedtraj << endl;
-	  kktrk.print(cout,detail);
-	}
-	if(ttree)ftree->Fill();
+      } else if(printbad){
+	cout << "Bad Fit try " << itry << " status " << kktrk.fitStatus() << endl;
+	cout << "True Traj " << tptraj << endl;
+	cout << "Seed Traj " << seedtraj << endl;
+	kktrk.print(cout,detail);
       }
+      if(ttree)ftree->Fill();
     }
     cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
     hnfail->Fill(nfail);
