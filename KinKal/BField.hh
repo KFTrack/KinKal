@@ -8,6 +8,7 @@
 #include <vector>
 #include <algorithm>
 #include <cstdarg>
+#include <cmath>
 
 namespace KinKal {
   class BField {
@@ -19,13 +20,6 @@ namespace KinKal {
       virtual Grad fieldGrad(Vec3 const& position) const = 0;
       // return the BField derivative at a given point along a given velocity, WRT time
       virtual Vec3 fieldDeriv(Vec3 const& position, Vec3 const& velocity) const = 0;
-      // integrate the magentic force over the given trajectory and range, due to the DIFFERENCE
-      // between this field and the field vector referenced by the traj.  Returns the change in momentum
-      // ( = - integral of the 'external' force needed to keep the particle onto this trajectory);
-      template <class KTRAJ> void integrate(KTRAJ const& ktraj, TRange const& range, Vec3& dmom) const;
-      // speed of light in units to convert Tesla to mm (bending radius)
-      static double cbar() { static double retval = CLHEP::c_light/1000.0; return retval; }
-
       virtual ~BField(){}
   };
 
@@ -70,27 +64,6 @@ namespace KinKal {
       double grad_; // gradient in tesla/mm, computed from the fvec values
       Grad fgrad_;
   };
-
-  template<class KTRAJ> void BField::integrate(KTRAJ const& ktraj, TRange const& trange, Vec3& dmom) const {
-    dmom = Vec3();
-    // compare this field with the noiminal at a few points. only bother to integrate if this is outside tolerance.
-    std::vector<double> tvals = {trange.low(),trange.mid(),trange.high()};
-    std::vector<double> db;
-    for(auto tval :tvals){
-      Vec3 bf = fieldVect(ktraj.position(tval));
-      db.push_back( (bf - ktraj.bnom(tval)).R());
-    }
-    if(*std::max_element(db.begin(),db.end()) > 1e-6){ // tolerance should be a parameter FIXME!
-      unsigned nsteps(10); // this should be computed from field rate-of-change over this range FIXME!
-      double dt = trange.range()/double(nsteps);
-      for(unsigned istep=0; istep< nsteps; istep++){
-	double tstep = trange.low() + istep*dt;
-	Vec3 vel = ktraj.velocity(tstep);
-	Vec3 db = fieldVect(ktraj.position(tstep)) - ktraj.bnom(tstep);
-	dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);
-      }
-    }
-  }
 
 }
 #endif

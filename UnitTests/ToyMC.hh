@@ -11,6 +11,7 @@
 #include "KinKal/StrawMat.hh"
 #include "KinKal/ScintHit.hh"
 #include "KinKal/BField.hh"
+#include "KinKal/BFieldUtils.hh"
 #include "KinKal/Vectors.hh"
 #include "KinKal/D2T.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -241,12 +242,12 @@ namespace KKTest {
 	seedpar.covariance()[ipar][ipar] += cpars[ipar][ipar];
     }
     // smearing on T0 from momentum is too small
-    size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME!
-    seedpar.covariance()[it0][it0]*= 100;
+    size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME! this should be a constexpr
+    seedpar.covariance()[it0][it0]*= 100; // smear factor should be adjustable FIXME!
 
     // now, randomize the parameters within those errors.  Don't include correlations
     if(smearseed_){
-      for(unsigned ipar=0;ipar < 6; ipar++){
+      for(unsigned ipar=0;ipar < KTRAJ::NParams(); ipar++){
 	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
 	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
       }
@@ -262,13 +263,13 @@ namespace KKTest {
 //    std::cout << "end time " << pktraj.back().range().low() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
       TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
-      pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+      prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
       if(prange.high() > htime) {
 	return;
       } else {
 	prange.low() = prange.high();
 	do {
-	  pktraj.back().rangeInTolerance(prange,bfield_, tol_);
+	  prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
 	  Vec4 pos; pos.SetE(prange.low());
 	  Mom4 mom =  pktraj.momentum(prange.low());
 	  pktraj.position(pos);

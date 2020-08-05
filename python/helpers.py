@@ -48,11 +48,7 @@
 #     named after the path to the source file.
 #     This does not make the _dict and _map plugins.
 #
-#
-#  4) make_dict_and_map( self, userlibs ):
-#     Make the _dict and _map plugins for this directory. This looks for the files
-#     classes_def.xml and classes.h.
-#
+
 
 from glob import glob
 import os, re, string
@@ -282,19 +278,6 @@ class build_helper:
 #
 #   Make the dictionary and map plugins.
 #
-    def make_dict_and_map( self, userlibs ):
-        if os.path.exists('classes.h'):
-            if os.path.exists('classes_def.xml'):
-                self.env.DictionarySource([ self.dict_tmp_name(),
-                                            self.map_tmp_name() ],
-                                          [ 'classes.h', 'classes_def.xml'] )
-                self.env.SharedLibrary( self.prefixed_dict_libname(),
-                                        self.dict_tmp_name(),
-                                        LIBS=[ userlibs ]
-                                    )
-                self.env.SharedLibrary( self.prefixed_map_libname(),
-                                        self.map_tmp_name()
-                                    )
     def make_dict( self ):
         cmd=self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
             'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(

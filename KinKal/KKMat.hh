@@ -94,10 +94,11 @@ namespace KinKal {
     if(dxing_->matXings().size() > 0){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
+      dxing_->momEffects(ref_,TDir::forwards, dmom, momvar); // rename matEffects FIXME!
       for(int idir=0;idir<LocalBasis::ndir; idir++) {
 	auto mdir = static_cast<LocalBasis::LocDir>(idir);
 	// get the derivatives of the parameters WRT material effects
+	// should call dPardM directly once and then project FIXME!
 	DVEC pder = ref_.momDeriv(time(), mdir);
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
@@ -123,7 +124,7 @@ namespace KinKal {
       if(time > fit.back().range().low()){
 	fit.append(newpiece);
       } else {
-	throw std::invalid_argument("Can't append piece");
+	throw std::invalid_argument("KKMat: Can't append piece");
       }
     }
   }

@@ -3,8 +3,8 @@ namespace KinKal {
 
   std::string FitStatus::statusName(FitStatus::status stat) {
     switch(stat) {
-      case FitStatus::needsfit: default :
-	return "NeedsFit ";
+      case FitStatus::unfit: default :
+	return "Unfit ";
       case FitStatus::unconverged: 
 	return "Unconverged ";
       case FitStatus::converged: 
