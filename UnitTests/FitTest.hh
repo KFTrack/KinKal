@@ -61,7 +61,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::TLine;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tollerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i\n");
 }
 
 template <class KTRAJ>
@@ -124,7 +124,7 @@ int FitTest(int argc, char **argv) {
   double tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
-  bool simmat(true), lighthit(true);
+  bool simmat(true), lighthit(true), seedsmear(true);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -134,7 +134,6 @@ int FitTest(int argc, char **argv) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"escale",     required_argument, 0, 'e'  },
     {"maxniter",     required_argument, 0, 'i'  },
     {"deweight",     required_argument, 0, 'w'  },
     {"simmat",     required_argument, 0, 'b'  },
@@ -152,10 +151,10 @@ int FitTest(int argc, char **argv) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
-    {"UpdateHits",     required_argument, 0, 'U'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
+    {"seedsmear",     required_argument, 0, 'M' },
     {NULL, 0,0,0}
   };
 
@@ -192,6 +191,8 @@ int FitTest(int argc, char **argv) {
       case 'r' : ttree = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
+		 break;
+      case 'M' : seedsmear = atoi(optarg);
 		 break;
       case 'N' : ntries = atoi(optarg);
 		 break;
@@ -239,8 +240,7 @@ int FitTest(int argc, char **argv) {
   DXINGCOL dxings; // this program shares det xing ownership with KKTrk
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
-  // temporary FIXME!
-  toy.setSmearSeed(false);
+  toy.setSmearSeed(seedsmear);
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;

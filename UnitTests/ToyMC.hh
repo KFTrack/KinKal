@@ -242,12 +242,12 @@ namespace KKTest {
 	seedpar.covariance()[ipar][ipar] += cpars[ipar][ipar];
     }
     // smearing on T0 from momentum is too small
-    size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME!
-    seedpar.covariance()[it0][it0]*= 100;
+    size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME! this should be a constexpr
+    seedpar.covariance()[it0][it0]*= 100; // smear factor should be adjustable FIXME!
 
     // now, randomize the parameters within those errors.  Don't include correlations
     if(smearseed_){
-      for(unsigned ipar=0;ipar < 6; ipar++){
+      for(unsigned ipar=0;ipar < KTRAJ::NParams(); ipar++){
 	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
 	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
       }
