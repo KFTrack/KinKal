@@ -36,12 +36,16 @@ namespace KinKal {
       // create from the domain range, the effect, and the
       KKBField(BField const& bfield, PKTRAJ const& pktraj,TRange const& drange,KKConfig::BFieldCorr bfcorr) : 
 	bfield_(bfield), drange_(drange), active_(false), bfcorr_(bfcorr) {} // not active until updated
+	// accessors
+	Vec3 deltaP() const { return Vec3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
+	TRange const& range() const { return drange_; }
+
     private:
       BField const& bfield_; // bfield
       SVec3 dp_; // change in momentum due to BField approximation
       TRange drange_; // extent of this effect.  The middle is at the transition point between 2 bfield domains (domain transition)
       DVEC dbint_; // integral effect of using bnom vs the full field over this effects range 
-      PDATA dbeff_; // aggregate effect in parameter space of BField changes and differences
+      PDATA dbeff_; // aggregate effect in parameter space of BField change, including BNom change
       bool active_; // activity state
       KKConfig::BFieldCorr bfcorr_; // type of correction to apply
   };

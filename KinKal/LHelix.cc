@@ -2,7 +2,7 @@
 #include "KinKal/BField.hh"
 #include "KinKal/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
-#include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;

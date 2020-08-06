@@ -18,6 +18,9 @@
 #include "KinKal/KKTrk.hh"
 #include "UnitTests/ToyMC.hh"
 #include "UnitTests/KKHitInfo.hh"
+#include "UnitTests/KKMatInfo.hh"
+#include "UnitTests/KKBFieldInfo.hh"
+#include "UnitTests/KTrajInfo.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -373,6 +376,9 @@ int FitTest(int argc, char **argv) {
   } else {
     TTree* ftree(0);
     KKHIV hinfovec;
+    KKBFIV bfinfovec;
+    KKMIV minfovec;
+    KTIV tinfovec;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -403,6 +409,9 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("avgap", &avgap_,"avgap/F");
       ftree->Branch("igap", &igap_,"igap/I");
       ftree->Branch("hinfovec",&hinfovec);
+      ftree->Branch("bfinfovec",&bfinfovec);
+      ftree->Branch("minfovec",&minfovec);
+      ftree->Branch("tinfovec",&tinfovec);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdp(KTRAJ::NParams());
@@ -458,7 +467,6 @@ int FitTest(int argc, char **argv) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
-      hinfovec.clear();
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
@@ -507,6 +515,55 @@ int FitTest(int argc, char **argv) {
       chiprob_ = -1.0;
       maxgap_ = avgap_ = -1;
       igap_ = -1;
+      // fill effect information
+      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
+      hinfovec.clear();
+      bfinfovec.clear();
+      minfovec.clear();
+      tinfovec.clear();
+      for(auto const& eff: kktrk.effects()) {
+	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+	const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+	const KKMHIT* kkmhit = dynamic_cast<const KKMHIT*>(eff.get());
+	if(kkmhit != 0){
+	  kkhit = &kkmhit->hit();
+	  kkmat = &kkmhit->mat();
+	}
+	if(kkhit != 0){
+	  nkkhit_++;
+	  KKHitInfo hinfo;
+	  hinfo.active_ = kkhit->isActive();
+	  hinfo.time_ = kkhit->time();
+	  hinfo.resid_ = kkhit->refResid().value();
+	  hinfo.residvar_ = kkhit->refResid().variance();
+	  hinfo.fitchi_ = kkhit->fitChi();
+	  hinfovec.push_back(hinfo);
+	}
+	if(kkmat != 0){
+	  nkkmat_++;
+	  KKMatInfo minfo;
+	  minfo.time_ = kkmat->time();
+	  minfo.active_ = kkmat->isActive();
+	  minfo.nxing_ = kkmat->detXing()->matXings().size();
+	  std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+	  kkmat->detXing()->momEffects(kkmat->refKTraj(),TDir::forwards, dmom, momvar);
+	  minfo.dmomf_ = dmom[LocalBasis::momdir];
+	  minfo.momvar_ = momvar[LocalBasis::momdir];
+	  minfo.perpvar_ = momvar[LocalBasis::perpdir];
+	  minfovec.push_back(minfo);
+	}
+	if(kkbf != 0){
+	  nkkbf_++;
+	  KKBFieldInfo bfinfo;
+	  bfinfo.active_ = kkbf->isActive();
+	  bfinfo.dp_ = kkbf->time();
+	  bfinfo.dp_ = kkbf->deltaP().R();
+	  bfinfo.range_ = kkbf->range().range();
+	  bfinfovec.push_back(bfinfo);
+	}
+      }
+
       if(fstat.usable()){
 	// compare parameters at the first traj of both true and fit
 	// correct the true parameters in case the BField isn't nominal
@@ -523,27 +580,10 @@ int FitTest(int argc, char **argv) {
 	maxgap_ = maxgap;
 	avgap_ = avgap;
 	igap_ = igap;
-// rotate the parameters to use the same BField
 	typename KTRAJ::PDATA ftpars, btpars;
-	if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
-	  ftpars = fttraj.params();
-	  btpars = bttraj.params();
-	} else {
-	  Mom4 fmom, bmom;
-	  Vec4 fpos, bpos;
-	  fftraj.position(fpos);
-	  bftraj.position(bpos);
-	  fpos.SetE(fttraj.range().mid());
-	  bpos.SetE(bttraj.range().mid());
-	  fmom = fttraj.momentum(fpos.T());
-	  bmom = bttraj.momentum(bpos.T());
-	  KTRAJ ft(fpos,fmom,tptraj.charge(),fftraj.bnom());
-	  KTRAJ bt(bpos,bmom,tptraj.charge(),bftraj.bnom());
-	  ftpars = ft.params();
-	  btpars = bt.params();
-	}
+	ftpars = fttraj.params();
+	btpars = bttraj.params();
 
-	// momentum
 	// accumulate parameter difference and pull
 	vector<double> fcerr(6,0.0), bcerr(6,0.0);
 	for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
@@ -580,39 +620,12 @@ int FitTest(int argc, char **argv) {
 	eft_ = kktrk.fitTraj().range().high();
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-	// fill effect information
-	nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
-	for(auto const& eff: kktrk.effects()) {
-	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-	  if(kkhit != 0){
-	    nkkhit_++;
-	    KKHitInfo hinfo;
-	    hinfo.active_ = kkhit->isActive();
-	    hinfo.resid_ = kkhit->refResid().value();
-	    hinfo.residvar_ = kkhit->refResid().variance();
-	    hinfo.fitchi_ = kkhit->fitChi();
-	    hinfovec.push_back(hinfo);
-	  }
-	  const KKMHIT* kkmhit = dynamic_cast<const KKMHIT*>(eff.get());
-	  if(kkmhit != 0){
-	    nkkmat_++;
-	    nkkhit_++;
-	    KKHitInfo hinfo;
-	    hinfo.active_ = kkmhit->hit().isActive();
-	    hinfo.resid_ = kkmhit->hit().refResid().value();
-	    hinfo.residvar_ = kkmhit->hit().refResid().variance();
-	    hinfo.fitchi_ = kkmhit->hit().fitChi();
-	    hinfovec.push_back(hinfo);
-	  }
-	  const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
-	  if(kkbf != 0){
-	    nkkbf_++;
-	  }
-	  const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-	  if(kkmat != 0){
-	    nkkmat_++;
-	  }
-	}
+	// state space parameter difference and errors
+//	StateVectorMeasurement tslow = tptraj.state(tlow);
+//	StateVectorMeasurement tshigh = tptraj.state(thigh);
+//	StateVectorMeasurement slow = kktrk.fitTraj().measurementState(tlow);
+//	StateVectorMeasurement shigh = kktrk.fitTraj().measurementState(thigh);
+
 	// test
       } else if(printbad){
 	cout << "Bad Fit try " << itry << " status " << kktrk.fitStatus() << endl;

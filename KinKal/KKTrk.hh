@@ -270,7 +270,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void KKTrk<KTRAJ>::createRefTraj(KTRAJ const& seedtraj ) {
-  // initialize the reftraj
+  // initialize the reftraj.  Range is taken from the seed
     double tstart = seedtraj.range().low();
     Vec3 bf;
     if(kkconfig_->bfcorr_ == KKConfig::variable) {
@@ -285,16 +285,17 @@ namespace KinKal {
       bf = reftraj_.bnom(tstart); // freeze the nominal BField to be the one from the seed
     }
     if(kkconfig_->bfcorr_ != KKConfig::nocorr) { 
-      // divide up this traj into domains.  The spatial trajectory remains the same, but the referance BField will vary with position
-      // start the field at the start of the seed trajectory
+      // divide up this traj into domains.  start the field at the start of the seed trajectory
       TRange drange(tstart,reftraj_.range().high());
       while(drange.low() < reftraj_.range().high()){
-	// see how far we can go until the BField changes cause the traj to go out of tolerance
+	// see how far we can go before the BField change cause the traj to go out of tolerance
 	drange.high() = BFieldUtils::rangeInTolerance(drange.low(),kkconfig_->bfield_, reftraj_, kkconfig_->tol_);
 	if(kkconfig_->bfcorr_ == KKConfig::variable) {
 	  // create the next piece and append.  The domain transition is set to the middle of the integration range, so the effects coincide
 	  double tdomain = drange.mid();
 	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tdomain));
+	  // update the parameters to correspond to the same state but referencing the local field.
+	  // this allows the effects built on this traj to reference the correct parameterization
 	  KTRAJ newpiece(reftraj_.back(),bf,tdomain);
 	  newpiece.range() = TRange(tdomain,std::max(drange.high(),reftraj_.range().high()));
 	  reftraj_.append(newpiece);
