@@ -279,8 +279,8 @@ class build_helper:
 #   Make the dictionary and map plugins.
 #
     def make_dict( self ):
-        cmd=self.env.Command('Dict.cc',['KKHitInfo.hh','LinkDef.h'], 
-            'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(
+        cmd=self.env.Command('Dict.cc',['KKHitInfo.hh','KKBFieldInfo.hh','KKMatInfo.hh','KTrajInfo.hh','LinkDef.h'], 
+            'rootcling -f {build}/UnitTests/Dict.cc {src}/UnitTests/KKHitInfo.hh {src}/UnitTests/KKMatInfo.hh {src}/UnitTests/KTrajInfo.hh {src}/UnitTests/KKBFieldInfo.hh {src}/UnitTests/LinkDef.h && mv {build}/UnitTests/Dict_rdict.pcm {build}/lib/Dict_rdict.pcm'.format(
                 src=os.environ['PACKAGE_SOURCE'], build=os.environ['BUILD_BASE']
             ))
         #self.env.Depends('UnitTests', 'Dict.cc')
