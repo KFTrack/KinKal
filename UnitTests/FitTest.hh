@@ -119,7 +119,7 @@ int FitTest(int argc, char **argv) {
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(KKConfig::minimal), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
-  KKConfig::BFieldCorr bfcorr;
+  KKConfig::BFieldCorr bfcorr(KKConfig::nocorr);
   bool fitmat(true);
   vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   BField *BF(0);
