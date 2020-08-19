@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/KFTrack/KinKal.svg?branch=master)](https://travis-ci.org/KFTrack/KinKal)
+
 # Kinematic Kalman filter track fit code package
 
   KinKal implements a kinematic Kalman filter track fit (future ref to CTD/pub).
