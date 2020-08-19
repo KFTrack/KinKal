@@ -31,13 +31,15 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
-      PDATA const& effect() const { return mateff_; }
-      WDATA const& cache() const { return cache_; }
-      void setTime(double time) { dxing_->crossingTime() = time; }
+      void setTime(double time) { dxing_->crossingTime() = time; } // allow KKMHit to set the time (from the KKHit)
       virtual ~KKMat(){}
       // create from the material and a trajectory 
-      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true); 
+      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);
+      // accessors
+      PDATA const& effect() const { return mateff_; }
+      WDATA const& cache() const { return cache_; }
       DXINGPTR const& detXing() const { return dxing_; }
+      KTRAJ const& refKTraj() const { return ref_; }
     private:
       // update the local cache
       void updateCache();

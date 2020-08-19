@@ -101,6 +101,8 @@ namespace KinKal {
   }
 
   IPHelix::IPHelix(IPHelix const& other, Vec3 const& bnom, double trot) : IPHelix(other) {
+    mbar_ *= bnom_.R()/bnom.R();
+    bnom_ = bnom;
     pars_.parameters() += other.dPardB(trot,bnom);
     g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();

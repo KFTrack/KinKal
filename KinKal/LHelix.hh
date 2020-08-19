@@ -30,8 +30,8 @@ namespace KinKal {
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
-      static std::vector<std::string> const& paramNames(); 
-      static std::vector<std::string> const& paramUnits(); 
+      static std::vector<std::string> const& paramNames();
+      static std::vector<std::string> const& paramUnits();
       static std::vector<std::string> const& paramTitles();
       static std::string const& paramName(ParamIndex index);
       static std::string const& paramUnit(ParamIndex index);
@@ -86,7 +86,6 @@ namespace KinKal {
       // express fit results as a state vector (global coordinates)
       StateVector state(double time) const;
       StateVectorMeasurement measurementState(double time) const;
-      
       // simple functions; these can be cached if they cause performance problems
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 

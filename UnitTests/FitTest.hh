@@ -18,6 +18,9 @@
 #include "KinKal/KKTrk.hh"
 #include "UnitTests/ToyMC.hh"
 #include "UnitTests/KKHitInfo.hh"
+#include "UnitTests/KKMatInfo.hh"
+#include "UnitTests/KKBFieldInfo.hh"
+#include "UnitTests/KTrajInfo.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -55,6 +58,7 @@
 #include "TProfile.h"
 #include "TProfile2D.h"
 #include "Math/VectorUtil.h"
+#include <limits>
 
 using namespace MatEnv;
 using namespace KinKal;
@@ -63,6 +67,24 @@ using namespace std;
 using KinKal::TLine;
 void print_usage() {
   printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i\n");
+}
+
+// utility function to compute transverse distance between 2 similar trajectories.  Also
+// return the difference in time at the comparison point
+template <class KTRAJ>
+double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
+  double dt = numeric_limits<float>::max();
+  Vec3 pos1 = kt1.position(t1);
+  Vec3 dir1 = kt1.direction(t1);
+  t2 = t1;
+  Vec3 delta, v2;
+  while(fabs(dt) > 1e-5){
+    v2 = kt2.velocity(t2);
+    delta = kt2.position(t2) - pos1;
+    dt = delta.Dot(v2)/v2.Mag2();
+    t2 -= dt;
+  }
+  return (delta.Cross(dir1)).R();
 }
 
 template <class KTRAJ>
@@ -128,6 +150,7 @@ int FitTest(int argc, char **argv) {
   double tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
+  unsigned nsteps(200); // steps for traj comparison
   bool simmat(true), lighthit(true), seedsmear(true);
 
   static struct option long_options[] = {
@@ -373,6 +396,9 @@ int FitTest(int argc, char **argv) {
   } else {
     TTree* ftree(0);
     KKHIV hinfovec;
+    KKBFIV bfinfovec;
+    KKMIV minfovec;
+    KTIV tinfovec;
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
@@ -403,6 +429,9 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("avgap", &avgap_,"avgap/F");
       ftree->Branch("igap", &igap_,"igap/I");
       ftree->Branch("hinfovec",&hinfovec);
+      ftree->Branch("bfinfovec",&bfinfovec);
+      ftree->Branch("minfovec",&minfovec);
+      ftree->Branch("tinfovec",&tinfovec);
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdp(KTRAJ::NParams());
@@ -458,7 +487,6 @@ int FitTest(int argc, char **argv) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
-      hinfovec.clear();
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
@@ -493,27 +521,94 @@ int FitTest(int argc, char **argv) {
       if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
       hniter->Fill(niter_);
       hnmeta->Fill(nmeta_);
-      // truth parameters, ant front and back
-      KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
-      KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
+      // truth parameters, front and back
+      double ttlow = tptraj.range().low();
+      double tthigh = tptraj.range().high();
+      KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+      KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
       for(size_t ipar=0;ipar<6;ipar++){
 	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
 	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
 	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
       }
-      ftmom_ = fttraj.momentumMag(tptraj.range().low());
-      btmom_ = bttraj.momentumMag(tptraj.range().high());
+      ftmom_ = tptraj.momentumMag(ttlow);
+      btmom_ = tptraj.momentumMag(tthigh);
       // reset some fit parameters, to signal failed filts
       chiprob_ = -1.0;
       maxgap_ = avgap_ = -1;
       igap_ = -1;
+      // fill effect information
+      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
+      hinfovec.clear();
+      bfinfovec.clear();
+      minfovec.clear();
+      tinfovec.clear();
+      for(auto const& eff: kktrk.effects()) {
+	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+	const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+	const KKMHIT* kkmhit = dynamic_cast<const KKMHIT*>(eff.get());
+	if(kkmhit != 0){
+	  kkhit = &kkmhit->hit();
+	  kkmat = &kkmhit->mat();
+	}
+	if(kkhit != 0){
+	  nkkhit_++;
+	  KKHitInfo hinfo;
+	  hinfo.active_ = kkhit->isActive();
+	  hinfo.time_ = kkhit->time();
+	  hinfo.resid_ = kkhit->refResid().value();
+	  hinfo.residvar_ = kkhit->refResid().variance();
+	  hinfo.fitchi_ = kkhit->fitChi();
+	  hinfovec.push_back(hinfo);
+	}
+	if(kkmat != 0){
+	  nkkmat_++;
+	  KKMatInfo minfo;
+	  minfo.time_ = kkmat->time();
+	  minfo.active_ = kkmat->isActive();
+	  minfo.nxing_ = kkmat->detXing()->matXings().size();
+	  std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+	  kkmat->detXing()->momEffects(kkmat->refKTraj(),TDir::forwards, dmom, momvar);
+	  minfo.dmomf_ = dmom[LocalBasis::momdir];
+	  minfo.momvar_ = momvar[LocalBasis::momdir];
+	  minfo.perpvar_ = momvar[LocalBasis::perpdir];
+	  minfovec.push_back(minfo);
+	}
+	if(kkbf != 0){
+	  nkkbf_++;
+	  KKBFieldInfo bfinfo;
+	  bfinfo.active_ = kkbf->isActive();
+	  bfinfo.dp_ = kkbf->time();
+	  bfinfo.dp_ = kkbf->deltaP().R();
+	  bfinfo.range_ = kkbf->range().range();
+	  bfinfovec.push_back(bfinfo);
+	}
+      }
+
       if(fstat.usable()){
+	// step through the fit traj and compare to the truth
+	double deltat0(0.0);
+	double dt = kktrk.fitTraj().range().range()/nsteps;
+	for(unsigned istep=0;istep < nsteps;istep++){
+	  double tstep = kktrk.fitTraj().range().low()+dt*istep;
+	  double ttrue;
+	  double dperp = dTraj(kktrk.fitTraj(),tptraj,tstep,ttrue);
+	  KTrajInfo ktinfo;
+	  ktinfo.time_ = tstep;
+	  ktinfo.dperp_ = dperp;
+	  ktinfo.dt_= tstep-ttrue;
+	  tinfovec.push_back(ktinfo);
+	  deltat0 += tstep-ttrue;
+	}
+	deltat0/= float(nsteps);
 	// compare parameters at the first traj of both true and fit
 	// correct the true parameters in case the BField isn't nominal
-	double tlow = tptraj.range().low();
-	double thigh = tptraj.range().high();
-	KTRAJ fftraj = KTRAJ(kktrk.fitTraj().nearestPiece(tlow),tptraj.bnom(tlow),tlow);
-	KTRAJ bftraj = KTRAJ(kktrk.fitTraj().nearestPiece(thigh),tptraj.bnom(thigh),thigh);
+	// correct the sampling time for the t0 difference
+	double ftlow = ttlow - deltat0;
+	double fthigh = tthigh - deltat0;
+	KTRAJ fftraj = KTRAJ(kktrk.fitTraj().nearestPiece(ftlow),tptraj.bnom(ttlow),ftlow);
+	KTRAJ bftraj = KTRAJ(kktrk.fitTraj().nearestPiece(fthigh),tptraj.bnom(tthigh),fthigh);
 	// fit parameters
 	auto const& ffpars = fftraj.params();
 	auto const& bfpars = bftraj.params();
@@ -523,27 +618,11 @@ int FitTest(int argc, char **argv) {
 	maxgap_ = maxgap;
 	avgap_ = avgap;
 	igap_ = igap;
-// rotate the parameters to use the same BField
-	typename KTRAJ::PDATA ftpars, btpars;
-	if((fftraj.bnom() - fttraj.bnom()).R() < 1e-6){
-	  ftpars = fttraj.params();
-	  btpars = bttraj.params();
-	} else {
-	  Mom4 fmom, bmom;
-	  Vec4 fpos, bpos;
-	  fftraj.position(fpos);
-	  bftraj.position(bpos);
-	  fpos.SetE(fttraj.range().mid());
-	  bpos.SetE(bttraj.range().mid());
-	  fmom = fttraj.momentum(fpos.T());
-	  bmom = bttraj.momentum(bpos.T());
-	  KTRAJ ft(fpos,fmom,tptraj.charge(),fftraj.bnom());
-	  KTRAJ bt(bpos,bmom,tptraj.charge(),bftraj.bnom());
-	  ftpars = ft.params();
-	  btpars = bt.params();
-	}
 
-	// momentum
+	typename KTRAJ::PDATA ftpars, btpars;
+	ftpars = fttraj.params();
+	btpars = bttraj.params();
+
 	// accumulate parameter difference and pull
 	vector<double> fcerr(6,0.0), bcerr(6,0.0);
 	for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
@@ -572,47 +651,20 @@ int FitTest(int argc, char **argv) {
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
-	ffmom_ = fftraj.momentumMag(tptraj.range().low());
-	bfmom_ = bftraj.momentumMag(tptraj.range().high());
-	ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
-	bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
+	ffmom_ = kktrk.fitTraj().momentumMag(ftlow);
+	bfmom_ = kktrk.fitTraj().momentumMag(fthigh);
+	ffmomerr_ = sqrt(kktrk.fitTraj().momentumVar(ftlow));
+	bfmomerr_ = sqrt(kktrk.fitTraj().momentumVar(fthigh));
 	fft_ = kktrk.fitTraj().range().low();
 	eft_ = kktrk.fitTraj().range().high();
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-	// fill effect information
-	nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
-	for(auto const& eff: kktrk.effects()) {
-	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-	  if(kkhit != 0){
-	    nkkhit_++;
-	    KKHitInfo hinfo;
-	    hinfo.active_ = kkhit->isActive();
-	    hinfo.resid_ = kkhit->refResid().value();
-	    hinfo.residvar_ = kkhit->refResid().variance();
-	    hinfo.fitchi_ = kkhit->fitChi();
-	    hinfovec.push_back(hinfo);
-	  }
-	  const KKMHIT* kkmhit = dynamic_cast<const KKMHIT*>(eff.get());
-	  if(kkmhit != 0){
-	    nkkmat_++;
-	    nkkhit_++;
-	    KKHitInfo hinfo;
-	    hinfo.active_ = kkmhit->hit().isActive();
-	    hinfo.resid_ = kkmhit->hit().refResid().value();
-	    hinfo.residvar_ = kkmhit->hit().refResid().variance();
-	    hinfo.fitchi_ = kkmhit->hit().fitChi();
-	    hinfovec.push_back(hinfo);
-	  }
-	  const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
-	  if(kkbf != 0){
-	    nkkbf_++;
-	  }
-	  const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-	  if(kkmat != 0){
-	    nkkmat_++;
-	  }
-	}
+	// state space parameter difference and errors
+//	StateVectorMeasurement tslow = tptraj.state(tlow);
+//	StateVectorMeasurement tshigh = tptraj.state(thigh);
+//	StateVectorMeasurement slow = kktrk.fitTraj().measurementState(tlow);
+//	StateVectorMeasurement shigh = kktrk.fitTraj().measurementState(thigh);
+
 	// test
       } else if(printbad){
 	cout << "Bad Fit try " << itry << " status " << kktrk.fitStatus() << endl;

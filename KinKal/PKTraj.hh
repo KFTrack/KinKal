@@ -36,6 +36,8 @@ namespace KinKal {
       double mass() const { return PTTRAJ::front().mass(); } // this will throw for empty
       double charge() const { return PTTRAJ::front().charge(); } // this will throw for empty 
       Vec3 const& bnom(double time) const { return PTTRAJ::nearestPiece(time).bnom(); }
+      StateVector state(double time) const { return PTTRAJ::nearestPiece(time).state(time); }
+      StateVectorMeasurement measurementState(double time) const { return PTTRAJ::nearestPiece(time).measurementState(time); }
   };
 }
 #endif

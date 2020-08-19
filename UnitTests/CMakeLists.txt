@@ -1,7 +1,7 @@
 
 
 # generate root dictionary
-ROOT_GENERATE_DICTIONARY(G__Dict KKHitInfo.hh NOINSTALL
+ROOT_GENERATE_DICTIONARY(G__Dict KKHitInfo.hh KKBFieldInfo NOINSTALL
     LINKDEF LinkDef.h
 )
 add_library(UnitTests SHARED  G__Dict)

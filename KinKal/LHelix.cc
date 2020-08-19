@@ -2,7 +2,7 @@
 #include "KinKal/BField.hh"
 #include "KinKal/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
-#include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;
@@ -86,6 +86,7 @@ namespace KinKal {
   }
 
   LHelix::LHelix(LHelix const& other, Vec3 const& bnom, double trot) : LHelix(other) {
+    mbar_ *= bnom_.R()/bnom.R();
     bnom_ = bnom;
     pars_.parameters() += other.dPardB(trot,bnom);
     g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
