@@ -1,6 +1,7 @@
 #include "KinKal/TLine.hh"
 #include <iostream>
 #include <stdexcept>
+#include <vector>
 
 using namespace std;
 using namespace ROOT::Math;
