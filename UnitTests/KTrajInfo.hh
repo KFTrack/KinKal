@@ -6,8 +6,8 @@ namespace KinKal {
   struct KTrajInfo {
     KTrajInfo(){};
     ~KTrajInfo(){};
-    Float_t time_, gap_;
-    static std::string leafnames() { return std::string("time/f:gap/f"); }
+    Float_t time_, dperp_, dt_;
+    static std::string leafnames() { return std::string("time/f:dperp/f:dt/f"); }
   };
   typedef std::vector<KTrajInfo> KTIV;
 }

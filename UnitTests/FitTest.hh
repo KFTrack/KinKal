@@ -58,6 +58,7 @@
 #include "TProfile.h"
 #include "TProfile2D.h"
 #include "Math/VectorUtil.h"
+#include <limits>
 
 using namespace MatEnv;
 using namespace KinKal;
@@ -66,6 +67,24 @@ using namespace std;
 using KinKal::TLine;
 void print_usage() {
   printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i\n");
+}
+
+// utility function to compute transverse distance between 2 similar trajectories.  Also
+// return the difference in time at the comparison point
+template <class KTRAJ>
+double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
+  double dt = numeric_limits<float>::max();
+  Vec3 pos1 = kt1.position(t1);
+  Vec3 dir1 = kt1.direction(t1);
+  t2 = t1;
+  Vec3 delta, v2;
+  while(fabs(dt) > 1e-5){
+    v2 = kt2.velocity(t2);
+    delta = kt2.position(t2) - pos1;
+    dt = delta.Dot(v2)/v2.Mag2();
+    t2 -= dt;
+  }
+  return (delta.Cross(dir1)).R();
 }
 
 template <class KTRAJ>
@@ -131,6 +150,7 @@ int FitTest(int argc, char **argv) {
   double tol(0.1);
   int iseed(123421);
   unsigned nhits(40);
+  unsigned nsteps(200); // steps for traj comparison
   bool simmat(true), lighthit(true), seedsmear(true);
 
   static struct option long_options[] = {
@@ -501,16 +521,18 @@ int FitTest(int argc, char **argv) {
       if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
       hniter->Fill(niter_);
       hnmeta->Fill(nmeta_);
-      // truth parameters, ant front and back
-      KTRAJ const& fttraj = tptraj.nearestPiece(tptraj.range().low());
-      KTRAJ const& bttraj = tptraj.nearestPiece(tptraj.range().high());
+      // truth parameters, front and back
+      double ttlow = tptraj.range().low();
+      double tthigh = tptraj.range().high();
+      KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+      KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
       for(size_t ipar=0;ipar<6;ipar++){
 	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
 	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
 	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
       }
-      ftmom_ = fttraj.momentumMag(tptraj.range().low());
-      btmom_ = bttraj.momentumMag(tptraj.range().high());
+      ftmom_ = tptraj.momentumMag(ttlow);
+      btmom_ = tptraj.momentumMag(tthigh);
       // reset some fit parameters, to signal failed filts
       chiprob_ = -1.0;
       maxgap_ = avgap_ = -1;
@@ -565,12 +587,28 @@ int FitTest(int argc, char **argv) {
       }
 
       if(fstat.usable()){
+	// step through the fit traj and compare to the truth
+	double deltat0(0.0);
+	double dt = kktrk.fitTraj().range().range()/nsteps;
+	for(unsigned istep=0;istep < nsteps;istep++){
+	  double tstep = kktrk.fitTraj().range().low()+dt*istep;
+	  double ttrue;
+	  double dperp = dTraj(kktrk.fitTraj(),tptraj,tstep,ttrue);
+	  KTrajInfo ktinfo;
+	  ktinfo.time_ = tstep;
+	  ktinfo.dperp_ = dperp;
+	  ktinfo.dt_= tstep-ttrue;
+	  tinfovec.push_back(ktinfo);
+	  deltat0 += tstep-ttrue;
+	}
+	deltat0/= float(nsteps);
 	// compare parameters at the first traj of both true and fit
 	// correct the true parameters in case the BField isn't nominal
-	double tlow = tptraj.range().low();
-	double thigh = tptraj.range().high();
-	KTRAJ fftraj = KTRAJ(kktrk.fitTraj().nearestPiece(tlow),tptraj.bnom(tlow),tlow);
-	KTRAJ bftraj = KTRAJ(kktrk.fitTraj().nearestPiece(thigh),tptraj.bnom(thigh),thigh);
+	// correct the sampling time for the t0 difference
+	double ftlow = ttlow - deltat0;
+	double fthigh = tthigh - deltat0;
+	KTRAJ fftraj = KTRAJ(kktrk.fitTraj().nearestPiece(ftlow),tptraj.bnom(ttlow),ftlow);
+	KTRAJ bftraj = KTRAJ(kktrk.fitTraj().nearestPiece(fthigh),tptraj.bnom(tthigh),fthigh);
 	// fit parameters
 	auto const& ffpars = fftraj.params();
 	auto const& bfpars = bftraj.params();
@@ -580,6 +618,7 @@ int FitTest(int argc, char **argv) {
 	maxgap_ = maxgap;
 	avgap_ = avgap;
 	igap_ = igap;
+
 	typename KTRAJ::PDATA ftpars, btpars;
 	ftpars = fttraj.params();
 	btpars = bttraj.params();
@@ -612,10 +651,10 @@ int FitTest(int argc, char **argv) {
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
-	ffmom_ = fftraj.momentumMag(tptraj.range().low());
-	bfmom_ = bftraj.momentumMag(tptraj.range().high());
-	ffmomerr_ = sqrt(fftraj.momentumVar(tptraj.range().low()));
-	bfmomerr_ = sqrt(bftraj.momentumVar(tptraj.range().high()));
+	ffmom_ = kktrk.fitTraj().momentumMag(ftlow);
+	bfmom_ = kktrk.fitTraj().momentumMag(fthigh);
+	ffmomerr_ = sqrt(kktrk.fitTraj().momentumVar(ftlow));
+	bfmomerr_ = sqrt(kktrk.fitTraj().momentumVar(fthigh));
 	fft_ = kktrk.fitTraj().range().low();
 	eft_ = kktrk.fitTraj().range().high();
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
