@@ -24,11 +24,13 @@
 #include "TPolyMarker3D.h"
 #include "TLegend.h"
 #include "TGraph.h"
+#include "TF1.h"
 #include "TRandom3.h"
 #include "TH2F.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
+#include "TFitResult.h"
 
 using namespace KinKal;
 using namespace std;
@@ -146,12 +148,12 @@ int test(int argc, char **argv) {
       gapgraph[idir][jdir]->SetTitle(title.c_str());
     }
     // scan range of change
+    DVEC pder = refhel.momDeriv(ttest,tdir);
     for(int id=0;id<ndel;++id){
       double delta = dmin + del*id;
 //      cout << "Delta = " << delta << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
-      DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
       Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
@@ -176,7 +178,6 @@ int test(int argc, char **argv) {
       for(int jdir=0;jdir < 3;jdir++){
 	LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
 	Vec3 jmomdir = refhel.direction(ttest,tjdir);
-	pder = refhel.momDeriv(ttest,tjdir);
 	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
       }
       // parameter diff
@@ -192,12 +193,23 @@ int test(int argc, char **argv) {
     char gtitle[80];
     char gname[80];
     snprintf(gname,80,"dh%s",LocalBasis::directionName(tdir).c_str());
-    snprintf(gtitle,80,"Helix Change %s",LocalBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"KTraj Change %s",LocalBasis::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dhcan[idir]->Divide(3,2);
+    TF1* pline = new TF1("pline","[0]+[1]*x");
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
       dhcan[idir]->cd(ipar+1);
-      pgraphs[idir][ipar]->Draw("AC*");
+      // if this is non-trivial, fit
+      if(fabs(pder[ipar])>1e-15){
+	pline->SetParameters(0.0,1.0);
+	TFitResultPtr pfitr = pgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
+	pgraphs[idir][ipar]->Draw("AC*");
+	if(fabs(pfitr->Parameter(0))> 1e-3 || fabs(pfitr->Parameter(1)-1.0) > 1e-3)
+	  cout << "Parameter " 
+	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+	    << " in direction " << LocalBasis::directionName(tdir)
+	    << " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+      }
     }
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
@@ -207,10 +219,17 @@ int test(int argc, char **argv) {
     dmomcan[idir] = new TCanvas(gname,gtitle,800,800);
     dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);
+    pline->SetParameters(0.0,1.0);
+    TFitResultPtr pfitr = momgraph[idir]->Fit(pline,"SQ","AC*");
     momgraph[idir]->Draw("AC*");
+    if(fabs(pfitr->Parameter(0))> 1e-3 || fabs(pfitr->Parameter(1)-1.0) > 1e-3)
+      cout << "Momentum Direction " 
+	<< LocalBasis::directionName(tdir)
+	<< " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
     for(int jdir=0;jdir < 3;jdir++){
       dmomcan[idir]->cd(2+jdir);
       gapgraph[idir][jdir]->Draw("AC*");
+
     }
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();
