@@ -24,17 +24,19 @@
 #include "TPolyMarker3D.h"
 #include "TLegend.h"
 #include "TGraph.h"
+#include "TF1.h"
 #include "TRandom3.h"
 #include "TH2F.h"
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
+#include "TFitResult.h"
 
 using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --dmin f --dmax f --ttest f --By f \n");
+  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --delta f --ttest f --By f \n");
 }
 
 template <class KTRAJ>
@@ -48,7 +50,7 @@ int test(int argc, char **argv) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
   double pmass, oz(100.0), ot(0.0), ttest(5.0);
-  double dmin(-1e-2), dmax(1e-2);
+  double delta(1e-2);
   double By(0.0);
 
   static struct option long_options[] = {
@@ -59,8 +61,7 @@ int test(int argc, char **argv) {
     {"charge",     required_argument, 0, 'q'  },
     {"zorigin",     required_argument, 0, 'z'  },
     {"torigin",     required_argument, 0, 'o'  },
-    {"dmin",     required_argument, 0, 's'  },
-    {"dmax",     required_argument, 0, 'e'  },
+    {"delta",     required_argument, 0, 'd'  },
     {"ttest",     required_argument, 0, 't'  },
     {"By",     required_argument, 0, 'y'  },
     {NULL, 0,0,0}
@@ -86,9 +87,7 @@ int test(int argc, char **argv) {
 		 break;
       case 'o' : ot = atof(optarg);
 		 break;
-      case 's' : dmin = atof(optarg);
-		 break;
-      case 'e' : dmax = atof(optarg);
+      case 'd' : delta = atof(optarg);
 		 break;
       case 't' : ttest = atof(optarg);
 		 break;
@@ -125,7 +124,8 @@ int test(int argc, char **argv) {
   std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
   // loop over derivative directions
-  double del = (dmax-dmin)/(ndel-1);
+  double del = 2*delta/(ndel-1);
+  double dmin = -delta;
   for(int idir=0;idir<3;++idir){
     LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
 //    cout << "testing direction " << LocalBasis::directionName(tdir) << endl;
@@ -146,18 +146,18 @@ int test(int argc, char **argv) {
       gapgraph[idir][jdir]->SetTitle(title.c_str());
     }
     // scan range of change
+    DVEC pder = refhel.momDeriv(ttest,tdir);
     for(int id=0;id<ndel;++id){
-      double delta = dmin + del*id;
-//      cout << "Delta = " << delta << endl;
+      double dval = dmin + del*id;
+//      cout << "Delta = " << dval << endl;
       // compute 1st order change in parameters
       Vec3 dmomdir = refhel.direction(ttest,tdir);
-      DVEC pder = refhel.momDeriv(ttest,tdir);
       //  compute exact altered params
-      Vec3 newmom = refmom.Vect() + delta*dmomdir*mom;
+      Vec3 newmom = refmom.Vect() + dval*dmomdir*mom;
       Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
-      DVEC dvec = refhel.params().parameters() + delta*pder;
+      DVEC dvec = refhel.params().parameters() + dval*pder;
       PDATA pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
       // test
@@ -176,8 +176,7 @@ int test(int argc, char **argv) {
       for(int jdir=0;jdir < 3;jdir++){
 	LocalBasis::LocDir tjdir =static_cast<LocalBasis::LocDir>(jdir);
 	Vec3 jmomdir = refhel.direction(ttest,tjdir);
-	pder = refhel.momDeriv(ttest,tjdir);
-	gapgraph[idir][jdir]->SetPoint(id,delta,gap.Vect().Dot(jmomdir));
+	gapgraph[idir][jdir]->SetPoint(id,dval,gap.Vect().Dot(jmomdir));
       }
       // parameter diff
       for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
@@ -192,12 +191,23 @@ int test(int argc, char **argv) {
     char gtitle[80];
     char gname[80];
     snprintf(gname,80,"dh%s",LocalBasis::directionName(tdir).c_str());
-    snprintf(gtitle,80,"Helix Change %s",LocalBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"KTraj Change %s",LocalBasis::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dhcan[idir]->Divide(3,2);
+    TF1* pline = new TF1("pline","[0]+[1]*x");
     for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
       dhcan[idir]->cd(ipar+1);
-      pgraphs[idir][ipar]->Draw("AC*");
+      // if this is non-trivial, fit
+      if(fabs(pder[ipar])>1e-9){
+	pline->SetParameters(0.0,1.0);
+	TFitResultPtr pfitr = pgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
+	pgraphs[idir][ipar]->Draw("AC*");
+	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta)
+	  cout << "Parameter " 
+	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+	    << " in direction " << LocalBasis::directionName(tdir)
+	    << " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+      }
     }
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
@@ -207,10 +217,17 @@ int test(int argc, char **argv) {
     dmomcan[idir] = new TCanvas(gname,gtitle,800,800);
     dmomcan[idir]->Divide(2,2);
     dmomcan[idir]->cd(1);
+    pline->SetParameters(0.0,1.0);
+    TFitResultPtr pfitr = momgraph[idir]->Fit(pline,"SQ","AC*");
     momgraph[idir]->Draw("AC*");
+    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta)
+      cout << "Momentum Direction " 
+	<< LocalBasis::directionName(tdir)
+	<< " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
     for(int jdir=0;jdir < 3;jdir++){
       dmomcan[idir]->cd(2+jdir);
       gapgraph[idir][jdir]->Draw("AC*");
+
     }
     dmomcan[idir]->Draw();
     dmomcan[idir]->Write();
@@ -268,8 +285,8 @@ int test(int argc, char **argv) {
     bgapgraph[idir]->SetTitle(title.c_str());
     for(int id=0;id<ndel;++id){
       // construct exact helix for this field and the corresponding exact parameter change
-      double delta = dmin + del*id;
-      Vec3 bf = bnom + basis[idir]*delta;
+      double dval = dmin + del*id;
+      Vec3 bf = bnom + basis[idir]*dval;
       auto state = refhel.measurementState(ttest);
       // exact traj given the full state
       KTRAJ newbfhel(state,ttest,refhel.mass(),refhel.charge(),bf);
@@ -285,7 +302,7 @@ int test(int argc, char **argv) {
       for(size_t ipar = 0; ipar < KTRAJ::NParams(); ipar++){
 	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
-      bgapgraph[idir]->SetPoint(id,delta,(dbtraj.position(ttest)-newbfhel.position(ttest)).R());
+      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position(ttest)-newbfhel.position(ttest)).R());
     }
     char gtitle[80];
     char gname[80];
