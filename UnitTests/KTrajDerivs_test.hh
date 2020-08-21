@@ -45,6 +45,7 @@ int test(int argc, char **argv) {
   typedef typename KTRAJ::DVEC DVEC;
   gROOT->SetBatch(kTRUE);
   // save canvases
+  int status(0);
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -105,11 +106,11 @@ int test(int argc, char **argv) {
   pmass = masses[imass];
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ refhel(origin,momv,icharge,bnom);
-  cout << "Reference " << refhel << endl;
+  //cout << "Reference " << refhel << endl;
   Vec4 refpos4;
   refpos4.SetE(ttest);
   refhel.position(refpos4);
-  cout << "origin position " << origin << " test position " << refpos4 << endl;
+  //  cout << "origin position " << origin << " test position " << refpos4 << endl;
   Mom4 refmom = refhel.momentum(ttest);
   int ndel(50);
   // graphs to compare parameter change
@@ -202,11 +203,13 @@ int test(int argc, char **argv) {
 	pline->SetParameters(0.0,1.0);
 	TFitResultPtr pfitr = pgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
 	pgraphs[idir][ipar]->Draw("AC*");
-	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta)
+	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta){
 	  cout << "Parameter " 
 	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	    << " in direction " << LocalBasis::directionName(tdir)
 	    << " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+	  status = 1;
+	}
       }
     }
     dhcan[idir]->Draw();
@@ -220,10 +223,12 @@ int test(int argc, char **argv) {
     pline->SetParameters(0.0,1.0);
     TFitResultPtr pfitr = momgraph[idir]->Fit(pline,"SQ","AC*");
     momgraph[idir]->Draw("AC*");
-    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta)
+    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta){
       cout << "Momentum Direction " 
 	<< LocalBasis::directionName(tdir)
 	<< " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+      status = 1;
+    }
     for(int jdir=0;jdir < 3;jdir++){
       dmomcan[idir]->cd(2+jdir);
       gapgraph[idir][jdir]->Draw("AC*");
@@ -245,7 +250,10 @@ int test(int argc, char **argv) {
     for(size_t icol=0;icol<KTRAJ::NParams();icol++) {
       double val(0.0);
       if(irow==icol)val = 1.0;
-      if(fabs(ptest(irow,icol) - val) > 1e-9)  cout <<"Error in parameter derivative test" << endl;
+      if(fabs(ptest(irow,icol) - val) > 1e-9){
+	cout <<"Error in parameter derivative test" << endl;
+	status = 1;
+      }
     }
   }
   auto xtest = dXdP*dPdX;
@@ -253,7 +261,10 @@ int test(int argc, char **argv) {
     for(size_t icol=0;icol<3;icol++) {
       double val(0.0);
       if(irow==icol)val = 1.0;
-      if(fabs(xtest(irow,icol) - val) > 1e-9) cout <<"Error in position derivative test" << endl;
+      if(fabs(xtest(irow,icol) - val) > 1e-9){
+	cout <<"Error in position derivative test" << endl;
+	status = 1;
+      }
     }
   }
   auto mtest = dMdP*dPdM;
@@ -261,7 +272,10 @@ int test(int argc, char **argv) {
     for(size_t icol=0;icol<3;icol++) {
       double val(0.0);
       if(irow==icol)val = 1.0;
-      if(fabs(mtest(irow,icol) - val) > 1e-9) cout <<"Error in momentum derivative test" << endl;
+      if(fabs(mtest(irow,icol) - val) > 1e-9){
+	cout <<"Error in momentum derivative test" << endl;
+	status = 1;
+      }
     }
   }
 
@@ -329,6 +343,7 @@ int test(int argc, char **argv) {
 
   lhderiv.Write();
   lhderiv.Close();
-  return 0;
+  cout << "Returning status " << status << endl;
+  return status;
 }
 
