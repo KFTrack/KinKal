@@ -115,7 +115,7 @@ int test(int argc, char **argv) {
   Mom4 momv(mom*sint*sin(phi),mom*sint*cos(phi),mom*cost,pmass);
   KTRAJ refhel(origin,momv,icharge,bnom);
   cout << "Reference " << refhel << endl;
-  Vec4 refpos4;
+  Vec4 refpos4(origin);
   refpos4.SetE(ttest);
   refhel.position(refpos4);
   cout << "origin position " << origin << " test position " << refpos4 << endl;

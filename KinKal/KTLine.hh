@@ -24,7 +24,8 @@ class KTLine {
       z0_ = 2,
       cost_ = 3,
       t0_ = 4,
-      npars_ = 5
+      mom_ = 5,
+      npars_ = 6
     };
     constexpr static size_t NParams() { return npars_; }
     typedef PData<npars_> PDATA;       // Data payload for this class
@@ -54,13 +55,11 @@ class KTLine {
     void momentum(double t, Mom4 &mom) const;
 
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
-    double momentumMag(double time) const {
-      return gamma() * mass_ * beta();
-    } 
+    double momentumMag(double time) const { return mom(); }
 
-    Mom4 mom() const { return mom_; }
     double momentumVar(double time) const { return -1.0; }
-    double energy(double time) { return mom_.E(); }
+    double energy() const { double momval = mom(); return sqrt(momval*momval+mass_*mass_); }
+    double energy(double time) const { return energy(); }
 
     // named parameter accessors
     double paramVal(size_t index) const { return pars_.parameters()[index]; }
@@ -71,6 +70,7 @@ class KTLine {
     double z0() const { return paramVal(z0_); }
     double cost() const { return paramVal(cost_); }
     double t0() const { return paramVal(t0_); }
+    double mom() const { return paramVal(mom_); }
     double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
     double cosTheta() const { return cost(); }
@@ -79,23 +79,22 @@ class KTLine {
     double sinPhi0() const { return sin(phi0()); }
     double theta() const { return acos(cost()); }
     double tanTheta() const { return sqrt(1.0 - cost() * cost()) / cost(); }
-
-    Vec3 const &dir() const { return dir_; }
+    Vec3 pos0() const { return Vec3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
+    double flightLength(double t)const { return (t-t0())*speed(); }
+    Vec3 dir() const { double st = sinTheta(); return Vec3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
 
     TRange const &range() const { return trange_; }
     TRange &range() {return trange_; }
     virtual void setRange(TRange const &trange) { trange_ = trange; }
     bool inRange(double time) const { return trange_.inRange(time); }
 
-    // access position and direction
-    Vec3 const &pos0() const { return pos0_; }
-    double speed() const { return speed_; }
-    double speed(double t) const { return speed_; }
+    double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
+    double speed(double t) const { return speed(); }
 
     void position(Vec4 &pos) const;
     Vec3 position(double time) const;
 
-    Vec3 velocity(double time) const { return dir_ * speed(); }
+    Vec3 velocity(double time) const { return dir() * speed(); }
     void print(std::ostream &ost, int detail) const;
     void rangeInTolerance(TRange &range, BField const &bfield, double tol) const {}; 
 
@@ -113,43 +112,23 @@ class KTLine {
 
     int charge() const { return charge_; }
     double beta() const { return (speed() / CLHEP::c_light); }
-    double gamma() const {
-      return (1 / sqrt(1 - ((speed() / CLHEP::c_light) *
-                            (speed() / CLHEP::c_light))));
-    }
+    double gamma() const { return energy()/mass_; }
     double betaGamma() const { return beta() * gamma(); }
-
-    double energyBG(double time) const {
-      return (sqrt(mass_ * mass_ + betaGamma() * betaGamma() * mass_ * mass_));
-    } // in MeV
     Vec3 const &bnom(double time = 0.0) const { return bnom_; }
-
     void invertCT() {
       charge_ *= -1;
       pars_.parameters()[t0_] *= -1.0;
+      // need to invert direction vector too FIXME!
     }
 
   private:
-    Vec3 bnom_;     // should be 0,0,0
-    bool needsrot_; // logical flag if Bnom is parallel to global Z or not
-    ROOT::Math::Rotation3D brot_; // rotation from the internal coordinate system
-                // (along B) to the global
-    Mom4 pos40_, mom_;            // 4 momentum vector - px,py,pz,m
+    static std::string trajName_;
+  // non-parametric variables
+    Vec3 bnom_;
     double mass_;                 // mass in MeV/c2
     int charge_;
-    ROOT::Math::Rotation3D l2g_,
-    g2l_; // rotations between local and global coordinates
-    static std::string trajName_;
-
     TRange trange_;
     PDATA pars_;      // parameters
-    double speed_;    // signed linear velocity, translates time to distance along
-    Vec3 pos0_, dir_; // caches
-    bool forcerange_; // if set, strictly enforce the range
-    double vt_; // transverse velocity
-    double vz_; // z velocity
-    double amsign_;
-    Vec3 poca_;
     static std::vector<std::string> paramTitles_;
     static std::vector<std::string> paramNames_;
     static std::vector<std::string> paramUnits_;
