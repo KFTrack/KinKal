@@ -1,0 +1,26 @@
+
+language: cpp
+python: 3.7
+os: osx
+osx_image: xcode10
+
+cache:
+  directories:
+    - $HOME/Library/Caches/Homebrew
+
+before_install:
+  - brew install scons
+  - wget https://root.cern/download/root_v6.22.02.macosx64-10.13-clang100.pkg
+  - installer -pkg root_v6.22.02.macosx64-10.13-clang100.pkg -target CurrentUserHomeDirectory
+  - source ~/Applications/root_v6.22.02/bin/thisroot.sh
+  - cd KinKal
+  - mkdir build
+  - cd build
+  - source ../../scripts/newBuild.sh prof
+  - source setup.sh
+
+script:
+  - scons -j 4
+
+after_success:
+  - scons test

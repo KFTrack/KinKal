@@ -64,8 +64,8 @@ namespace KinKal {
     param(cost_) = dir.Z();
     param(t0_) = pos0.T() - flen/speed;
     param(mom_) = mommag;
-    cout << "In KTLine. poca=: " << poca.point1() << " " << poca.point2() << endl;
-    cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
+//    cout << "In KTLine. poca=: " << poca.point1() << " " << poca.point2() << endl;
+//    cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
   }
 
   /*
@@ -76,6 +76,24 @@ namespace KinKal {
 
   KTLine::KTLine(PDATA const &pdata, KTLine const &other) : KTLine(other) {
     pars_ = pdata;
+  }
+
+
+  KTLine::KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+    KTLine(Vec4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
+	Mom4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
+	charge,bnom,range) 
+  {}
+
+  KTLine::KTLine(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+  KTLine(pstate.stateVector(),time,mass,charge,bnom,range) {
+  // derive the parameter space covariance from the global state space covariance
+    DPDS dpds = dPardState(time);
+    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+  }
+
+  KTLine::KTLine(KTLine const& other, Vec3 const& bnom, double trot) : KTLine(other) {
+  // TODO
   }
 
   void KTLine::position(Vec4 &pos) const {

@@ -37,10 +37,11 @@ namespace KinKal {
   };
 
   struct KKConfig {
-    enum printLevel{none=-1, minimal, basic, complete, detailed, extreme};
+    enum printLevel{none=0, minimal, basic, complete, detailed, extreme};
+    enum BFieldCorr {nocorr=0, fixed, variable };
     typedef std::vector<MConfig> MConfigCol;
     KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
-    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), tol_(0.1), minndof_(5), addmat_(true), addbf_(true), plevel_(none) {} 
+    KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), tol_(0.1), minndof_(5), addmat_(true), bfcorr_(fixed), plevel_(none) {} 
     BField const& bfield() const { return bfield_; }
     MConfigCol const& schedule() const { return schedule_; }
     BField const& bfield_;
@@ -51,7 +52,7 @@ namespace KinKal {
     double tol_; // tolerance on position change in BField integration (mm)
     unsigned minndof_; // minimum number of DOFs to continue fit
     bool addmat_; // add material effects in the fit
-    bool addbf_; // add BField effects in the fit
+    BFieldCorr bfcorr_; // how to make BField corrections in the fit
     Vec3 origin_; // nominal origin for defining BNom
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
