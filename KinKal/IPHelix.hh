@@ -10,6 +10,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
+#include "KinKal/StateVector.hh"
 #include "KinKal/LocalBasis.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -30,6 +31,8 @@ namespace KinKal {
       constexpr static size_t NParams() { return npars_; }
       typedef PData<npars_> PDATA; // Data payload for this class
       typedef typename PDATA::DVEC DVEC; // derivative of parameters type
+      typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
+      typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -43,8 +46,14 @@ namespace KinKal {
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
       IPHelix(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+      // copy payload and adjust for a different BField and range 
+      IPHelix(IPHelix const& other, Vec3 const& bnom, double trot);
       // copy and override parameters
       IPHelix(PDATA const &pdata, IPHelix const& other); 
+      // construct from the particle state at a given time, plus mass and charge
+      IPHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange()); // TODO
+      // same, including covariance information
+      IPHelix(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange()); //TODO
       // particle position and momentum as a function of time
       void position(Vec4& pos) const; // time is input
       Vec4 pos4(double time) const;
@@ -54,16 +63,16 @@ namespace KinKal {
       Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
       // scalar momentum and energy in MeV/c units
       double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
-      double momentumVar(double time) const  { return -1.0; }//FIXME! 
+      double momentumVar(double time) const  { return -1.0; }//TODO
       double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
       double speed(double time) const  { return CLHEP::c_light * beta(); }
-      void rangeInTolerance(TRange &range, BField const &bfield, double tol) const;
       // local momentum direction basis
-      void print(std::ostream& ost, int detail) const  {} // FIXME!
+      void print(std::ostream& ost, int detail) const  {} // TODO
       TRange const& range() const { return trange_; }
       TRange& range() { return trange_; }
       void setRange(TRange const& trange) { trange_ = trange; }
+      void setBNom(double time, Vec3 const& bnom) {} // TODO
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
@@ -81,6 +90,9 @@ namespace KinKal {
       double z0() const { return paramVal(z0_); }
       double tanDip() const { return paramVal(tanDip_); }
       double t0() const { return paramVal(t0_); }
+      // express fit results as a state vector (global coordinates)
+      StateVector state(double time) const { return StateVector(); } // TODO
+      StateVectorMeasurement measurementState(double time) const { return StateVectorMeasurement(); } // TODO
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
@@ -104,6 +116,17 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos / vz(); }
       Vec3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
+      DPDV dPardX(double time) const { return DPDV(); } // TODO
+      DPDV dPardM(double time) const { return DPDV(); } // TODO
+      DVDP dXdPar(double time) const { return DVDP(); } // TODO
+      DVDP dMdPar(double time) const { return DVDP(); } // TODO
+      DSDP dPardState(double time) const { return DPDS(); } // TODO
+      DPDS dStatedPar(double time) const { return DSDP(); } // TODO
+      // package the above for full (global) state
+      // Parameter derivatives given a change in BField
+      DVEC dPardB(double time) const { return DVEC(); } // TODO
+      DVEC dPardB(double time, Vec3 const& BPrime) const { return DVEC(); } //TODO 
+ 
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()
       {

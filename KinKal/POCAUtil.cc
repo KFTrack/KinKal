@@ -28,8 +28,7 @@ namespace KinKal {
     _s2(0.),
     _dca(0.),
     _dca2d(0.),
-    _closeToParallel(false),
-    _cut(cut)
+    _closeToParallel(false)
     {
 
       double c(_t1.Dot(_t2));

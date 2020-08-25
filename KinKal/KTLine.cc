@@ -16,12 +16,12 @@ using namespace ROOT::Math;
 namespace KinKal {
   vector<string> KTLine::paramTitles_ = {
       "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
-      "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})"};
+      "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
 
   vector<string> KTLine::paramNames_ = {"d_{0}", "#phi_{0}", "z_{0}",
-                                       "cos(#theta)", "t_{0}"};
+                                       "cos(#theta)", "t_{0}", "mom"};
 
-  vector<string> KTLine::paramUnits_ = {"mm", "radians", "mm", "", "ns"};
+  vector<string> KTLine::paramUnits_ = {"mm", "radians", "mm", "", "ns","MeV/c"};
 
   std::vector<std::string> const &KTLine::paramUnits() { return paramUnits_; }
   std::vector<std::string> const &KTLine::paramNames() { return paramNames_; }
@@ -45,39 +45,27 @@ namespace KinKal {
   KTLine::KTLine(Vec4 const &pos0, Mom4 const &mom0, int charge, Vec3 const &bnom,
   TRange const &trange) :  bnom_(bnom), mass_(mom0.M()), charge_(charge), trange_(trange)
   {
-    pos40_ = pos0;
-    mom_ = mom0;
-    speed_ = (sqrt(((mom0.Vect() / mom0.E()) * CLHEP::c_light).Mag2()));
-    dir_ = ((mom0.Vect() / mom0.E()) * CLHEP::c_light).Unit();  
-    Vec4 pos(pos0);
-    Mom4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(Vec3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
-    pos = g2l_(pos);
-    mom = g2l_(mom);
-    // create inverse rotation; this moves back into the original coordinate system
-    l2g_ = g2l_.Inverse();
-
-    double pt = sqrt(mom.perp2());
-    vt_ = CLHEP::c_light * pt / mom.E();
-    vz_ = CLHEP::c_light * mom.z() / mom.E();
+    double mommag = mom0.R();
+    double speed = ( mommag/ mom0.E()) * CLHEP::c_light;
+    Vec3 dir = mom0.Vect().Unit();
+    
     static const Vec3 zdir(0.0, 0.0, 1.0);
     static const Vec3 zpos(0.0, 0.0, 0.0);
 
-    const Vec3 pos3(pos0.x(), pos0.y(), pos0.z());
-    double zddot = zdir.Dot(dir_);
-
-    POCAUtil *poca = new POCAUtil(pos3, dir_, zpos, zdir);
-    Vec3 const& p = poca->point1(); 
-
-    amsign_ = copysign(1.0, p.X());
-    poca_ = p;
-    param(d0_) = amsign_*poca->dca();
-    param(phi0_) = atan2(-amsign_*p.X(), amsign_*p.Y());
-    param(z0_) = p.Z();
-    param(cost_) = zddot;
-    param(t0_) = pos.T() - (p.Z() - param(z0_)) / (cosTheta() * CLHEP::c_light * beta());
-    cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
+// calculate POCA to the Z axis.  This is the reference for the parameters
+    POCAUtil poca(pos0.Vect(), dir, zpos, zdir);
+    double flen = dir.Dot(pos0.Vect()-poca.point1()); // flight length from reference to POCA
+    Vec3 pca = poca.point1()-poca.point2(); // vector from Z axis to POCA
+// doca is signed by the angular momentum around the Z axis
+    double amsign = copysign(1.0, -(zdir.Cross(pca)).Dot(dir));
+    param(d0_) = amsign*poca.dca(); // dca2d and dca are the same for POCA to the Z axis 
+    param(phi0_) = dir.Phi(); // same as at POCA
+    param(z0_) = poca.point1().Z();
+    param(cost_) = dir.Z();
+    param(t0_) = pos0.T() - flen/speed;
+    param(mom_) = mommag;
+//    cout << "In KTLine. poca=: " << poca.point1() << " " << poca.point2() << endl;
+//    cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
   }
 
   /*
@@ -90,16 +78,31 @@ namespace KinKal {
     pars_ = pdata;
   }
 
+
+  KTLine::KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+    KTLine(Vec4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
+	Mom4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
+	charge,bnom,range) 
+  {}
+
+  KTLine::KTLine(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
+  KTLine(pstate.stateVector(),time,mass,charge,bnom,range) {
+  // derive the parameter space covariance from the global state space covariance
+    DPDS dpds = dPardState(time);
+    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+  }
+
+  KTLine::KTLine(KTLine const& other, Vec3 const& bnom, double trot) : KTLine(other) {
+  // TODO
+  }
+
   void KTLine::position(Vec4 &pos) const {
     Vec3 pos3 = position(pos.T());
     pos.SetXYZT(pos3.X(), pos3.Y(), pos3.Z(), pos.T());
   }
 
   Vec3 KTLine::position(double time) const {
-    if (forcerange_){
-      range().forceRange(time);
-    }
-    return (pos0() + ((time - t0()) * speed()) * dir());
+    return (pos0() + flightLength(time) * dir());
   }
 
   Vec4 KTLine::pos4(double time) const {
@@ -107,22 +110,19 @@ namespace KinKal {
     return Vec4(temp.X(), temp.Y(), temp.Z(), time);
   }
 
-  void KTLine::momentum(double tval, Mom4 &mom) const {
+  void KTLine::momentum(double tval, Mom4 &mom4) const {
     Vec3 dir = direction(tval);
-    mom.SetPx(momentumMag(tval) * dir.x());
-    mom.SetPy(momentumMag(tval) * dir.y());
-    mom.SetPz(momentumMag(tval) * dir.z());
-    mom.SetM(mass_);
+    double momval = mom();
+    mom4.SetPx(momval * dir.x());
+    mom4.SetPy(momval * dir.y());
+    mom4.SetPz(momval * dir.z());
+    mom4.SetM(mass_);
   }
 
   Mom4 KTLine::momentum(double tval) const {
-    Mom4 mom;
-    Vec3 dir = direction(tval);
-    mom.SetPx(momentumMag(tval) * dir.x());
-    mom.SetPy(momentumMag(tval) * dir.y());
-    mom.SetPz(momentumMag(tval) * dir.z());
-    mom.SetM(mass_);
-    return mom_;
+    Mom4 momvec;
+    momentum(tval,momvec);
+    return momvec;
   }
 
   /*
@@ -138,14 +138,13 @@ namespace KinKal {
 
     switch (mdir) {
     case LocalBasis::perpdir: // purely polar change theta 1 = theta
-      return l2g_(
-          Vec3(cosTheta() * sinPhi0(), cosTheta() * cosPhi0(), -1 * sinTheta()));
+      return Vec3(cosTheta() * sinPhi0(), cosTheta() * cosPhi0(), -1 * sinTheta());
       break;
     case LocalBasis::phidir: // purely transverse theta2 = -phi()*sin(theta)
-      return l2g_(Vec3(-cosPhi0(), sinPhi0(), 0.0));
+      return Vec3(-cosPhi0(), sinPhi0(), 0.0);
       break;
-    case LocalBasis::momdir: // along momentum: check.
-      return l2g_(Vec3(dir().x(), dir().y(), dir().z()));
+    case LocalBasis::momdir: // along momentum
+      return dir();
       break;
     default:
       throw std::invalid_argument("Invalid direction");
@@ -154,10 +153,11 @@ namespace KinKal {
 
   // derivatives of momentum projected along the given basis WRT the 5 parameters
   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
-
-    double vz = CLHEP::c_light * mom().z() / mom().E();
-    //double vt = CLHEP::c_light *sqrt(mom().perp2()) / mom().E();
-    double l = translen(CLHEP::c_light * beta() * (time - t0()));
+    double momval = mom();
+    double gv = gamma();
+    double vz = speed()*dir().Z(); 
+    double deltat = time-t0();
+    double tlen = translen(CLHEP::c_light * beta() *deltat );
     KTLine::DVEC pder;
     double sinT = sinTheta();
     double tanT = tanTheta();
@@ -169,23 +169,26 @@ namespace KinKal {
       pder[cost_] = -sinT; 
       pder[d0_] = 0;
       pder[phi0_] = 0;
-      pder[z0_] = -l*cosT/sinT; //TODO - I think here is the issue!
+      pder[z0_] = tlen*cosT/sinT; //TODO - I think here is the issue!
       pder[t0_] = pder[z0_] / vz + 1/tanTheta() * (time - t0()) * sinT*sinT*tanT;
+      pder[mom_] = 0.0;
       break;
     case LocalBasis::phidir:
       // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
       pder[cost_] = 0;
-      pder[d0_] = l/sinT;            
-      pder[phi0_] = -1 / sinT;
+      pder[d0_] = -tlen/sinT;            
+      pder[phi0_] = 1.0/ sinT;
       pder[z0_] = 0;
       pder[t0_] = pder[z0_] / vz;
+      pder[mom_] = 0.0;
       break;
     case LocalBasis::momdir:
       pder[cost_] = 0;
       pder[d0_] = 0;
       pder[phi0_] = 0;
       pder[z0_] = 0;
-      pder[t0_] = pder[z0_] / vz;
+      pder[t0_] = deltat/(gv*gv);
+      pder[mom_] = 1.0*momval;
       break;
 
     default:
@@ -193,7 +196,6 @@ namespace KinKal {
     }
     return pder;
   }
-
   void KTLine::print(ostream &ost, int detail) const {
     auto perr = params().diagonal();
     ost << " KTLine " << range() << " parameters: ";

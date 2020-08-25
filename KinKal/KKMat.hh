@@ -31,13 +31,15 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual void process(KKDATA& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
-      PDATA const& effect() const { return mateff_; }
-      WDATA const& cache() const { return cache_; }
-      void setTime(double time) { dxing_->crossingTime() = time; }
+      void setTime(double time) { dxing_->crossingTime() = time; } // allow KKMHit to set the time (from the KKHit)
       virtual ~KKMat(){}
       // create from the material and a trajectory 
-      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true); 
+      KKMat(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);
+      // accessors
+      PDATA const& effect() const { return mateff_; }
+      WDATA const& cache() const { return cache_; }
       DXINGPTR const& detXing() const { return dxing_; }
+      KTRAJ const& refKTraj() const { return ref_; }
     private:
       // update the local cache
       void updateCache();
@@ -94,10 +96,11 @@ namespace KinKal {
     if(dxing_->matXings().size() > 0){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      dxing_->momEffects(ref_,TDir::forwards, dmom, momvar);
+      dxing_->momEffects(ref_,TDir::forwards, dmom, momvar); // rename matEffects FIXME!
       for(int idir=0;idir<LocalBasis::ndir; idir++) {
 	auto mdir = static_cast<LocalBasis::LocDir>(idir);
 	// get the derivatives of the parameters WRT material effects
+	// should call dPardM directly once and then project FIXME!
 	DVEC pder = ref_.momDeriv(time(), mdir);
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
@@ -123,7 +126,7 @@ namespace KinKal {
       if(time > fit.back().range().low()){
 	fit.append(newpiece);
       } else {
-	throw std::invalid_argument("Can't append piece");
+	throw std::invalid_argument("KKMat: Can't append piece");
       }
     }
   }

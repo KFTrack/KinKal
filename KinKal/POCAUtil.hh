@@ -33,7 +33,6 @@ namespace KinKal {
 
       bool _closeToParallel;
 
-      double _cut;
     };
 }
 #endif

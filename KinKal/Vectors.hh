@@ -5,6 +5,7 @@
 #include "Math/Vector3D.h"
 #include "Math/Vector4D.h"
 #include "Math/Vector2D.h"
+#include "Math/SMatrix.h"
 #include <stdexcept>
 namespace KinKal {
   typedef ROOT::Math::XYZVector Vec3; // spatial only vector
@@ -13,5 +14,6 @@ namespace KinKal {
   typedef ROOT::Math::XYZTVector Vec4; // double precision spacetime vector, 4th component = time or energy
   typedef ROOT::Math::PxPyPzMVector Mom4; // 4-momentum with 4th component = mass
   typedef ROOT::Math::Polar2D<double> Pol2; // 2D polar vector.  Context-dependent z axis definition
+  typedef ROOT::Math::SMatrix<double,3,3,ROOT::Math::MatRepSym<double,3> > VMAT;  // matrix type for spatial vector covariance
 }
 #endif
