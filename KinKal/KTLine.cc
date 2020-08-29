@@ -7,6 +7,7 @@
 #include "KinKal/BField.hh"
 #include "KinKal/POCAUtil.hh"
 #include "Math/AxisAngle.h"
+#include "Math/VectorUtil.h"
 #include <math.h>
 #include <stdexcept>
 
@@ -14,6 +15,7 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
+  typedef ROOT::Math::SVector<double,3> SVec3;
   vector<string> KTLine::paramTitles_ = {
       "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
       "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
@@ -64,8 +66,6 @@ namespace KinKal {
     param(cost_) = dir.Z();
     param(t0_) = pos0.T() - flen/speed;
     param(mom_) = mommag;
-//    cout << "In KTLine. poca=: " << poca.point1() << " " << poca.point2() << endl;
-//    cout << "In KTLine. Params set to: " << pars_.parameters() << endl;
   }
 
   /*
@@ -77,7 +77,6 @@ namespace KinKal {
   KTLine::KTLine(PDATA const &pdata, KTLine const &other) : KTLine(other) {
     pars_ = pdata;
   }
-
 
   KTLine::KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range) :
     KTLine(Vec4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
@@ -93,7 +92,6 @@ namespace KinKal {
   }
 
   KTLine::KTLine(KTLine const& other, Vec3 const& bnom, double trot) : KTLine(other) {
-  // TODO
   }
 
   void KTLine::position(Vec4 &pos) const {
@@ -124,10 +122,19 @@ namespace KinKal {
     momentum(tval,momvec);
     return momvec;
   }
+  StateVector KTLine::state(double time) const {
+    return StateVector(position(time),momentum(time).Vect());
+  }
+
+  StateVectorMeasurement KTLine::measurementState(double time) const {
+    // express the parameter space covariance in global state space
+    DSDP dsdp = dStatedPar(time);
+    return StateVectorMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
+  }
 
   /*
-  The effects for changes in 2 perpendicular directions (theta1 = theta and
-  theta2 = phi()*sin(theta) can sometimes be added, as scattering in these
+     The effects for changes in 2 perpendicular directions (theta1 = theta and
+     theta2 = phi()*sin(theta) can sometimes be added, as scattering in these
   are uncorrelated. These axes are track specific. as cosmics are not always
   coming along the same track direction it is necessary to have difference
   parameterization than that used for the helix case.
@@ -138,10 +145,10 @@ namespace KinKal {
 
     switch (mdir) {
     case LocalBasis::perpdir: // purely polar change theta 1 = theta
-      return Vec3(cosTheta() * sinPhi0(), cosTheta() * cosPhi0(), -1 * sinTheta());
+      return Vec3(cosTheta() * cosPhi0(), cosTheta() * sinPhi0(), -1 * sinTheta());
       break;
     case LocalBasis::phidir: // purely transverse theta2 = -phi()*sin(theta)
-      return Vec3(-cosPhi0(), sinPhi0(), 0.0);
+      return Vec3(-sinPhi0(), cosPhi0(), 0.0);
       break;
     case LocalBasis::momdir: // along momentum
       return dir();
@@ -151,51 +158,130 @@ namespace KinKal {
     }
   }
 
+  DSDP KTLine::dPardState(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    KTLine::KTLine::DPDV dPdX = dPardX(time);
+    KTLine::KTLine::DPDV dPdM = dPardM(time);
+    DPDS dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
+  }
+
+  DPDS KTLine::dStatedPar(double time) const {
+  // aggregate state from separate X and M derivatives; parameter space is column
+    KTLine::KTLine::DVDP dXdP = dXdPar(time);
+    KTLine::KTLine::DVDP dMdP = dMdPar(time);
+    DSDP dsdp;
+    dsdp.Place_at(dXdP,0,0);
+    dsdp.Place_at(dMdP,3,0);
+    return dsdp;
+  }
+
+  KTLine::DVDP KTLine::dXdPar(double time) const { 
+    double deltat = time-t0();
+    double sinT = sinTheta();
+    double cotT = 1.0/tanTheta();
+    double cosT = cosTheta();
+    double sinF = sin(phi0());
+    double cosF = cos(phi0());
+    double spd = speed();
+    double gam = gamma();
+    SVec3 dX_dd0(-sinF, cosF, 0.0);
+    SVec3 dX_dphi0 = (sinT*spd*deltat)*dX_dd0 - d0()*SVec3(cosF,sinF,0.0);
+    SVec3 dX_dz0 (0.0,0.0,1.0);
+    SVec3 dX_dcost = (spd*deltat)*SVec3(-cotT*cosF,-cotT*sinF,1.0);
+    SVec3 dX_dt0 = -spd*SVec3(sinT*cosF,sinT*sinF,cosT);
+    SVec3 dX_dmom = (deltat/(gam*gam*mom()))*dX_dt0;
+
+    KTLine::KTLine::DVDP dXdP;
+    dXdP.Place_in_col(dX_dd0,0,d0_);
+    dXdP.Place_in_col(dX_dphi0,0,phi0_);
+    dXdP.Place_in_col(dX_dz0,0,z0_);
+    dXdP.Place_in_col(dX_dcost,0,cost_);
+    dXdP.Place_in_col(dX_dt0,0,t0_);
+    dXdP.Place_in_col(dX_dmom,0,mom_);
+    return dXdP;
+  }
+  KTLine::DVDP KTLine::dMdPar(double time) const {
+    double sinT = sinTheta();
+    double cotT = 1.0/tanTheta();
+    double cosT = cosTheta();
+    double sinF = sin(phi0());
+    double cosF = cos(phi0());
+
+// note: dMdd0 = dMdz0 = dMdt0 = 0
+    SVec3 dM_dphi0 = (mom()*sinT)*SVec3(-sinF,cosF,0);
+    SVec3 dM_dcost = mom()*SVec3(-cotT*cosF,-cotT*sinF,1.0);
+    SVec3 dM_dmom = SVec3(sinT*cosF,sinT*sinF,cosT);
+
+    KTLine::KTLine::DVDP dMdP;
+    dMdP.Place_in_col(dM_dphi0,0,phi0_);
+    dMdP.Place_in_col(dM_dcost,0,cost_);
+    dMdP.Place_in_col(dM_dmom,0,mom_);
+    return dMdP;
+  }
+
+  KTLine::DPDV KTLine::dPardX(double time) const {
+    double sinT = sinTheta();
+    double cotT = 1.0/tanTheta();
+    double sinF = sin(phi0());
+    double cosF = cos(phi0());
+    double E = energy();
+// note: dCosTdX = dPhi0dX = dmom_dX = 0
+    SVec3 dd0_dX = SVec3(-sinF,cosF,0.0);
+    SVec3 dz0_dX = SVec3(-cotT*cosF,-cotT*sinF,1.0);
+    SVec3 dt0_dX = E*SVec3(cosF,sinF,0.0)/(mom()*sinT*CLHEP::c_light);
+    KTLine::DPDV dPdX;
+    dPdX.Place_in_row(dd0_dX,d0_,0);
+    dPdX.Place_in_row(dz0_dX,z0_,0);
+    dPdX.Place_in_row(dt0_dX,t0_,0);
+
+    return dPdX;
+  }
+
+  KTLine::DPDV KTLine::dPardM(double time) const { 
+    double sinT = sinTheta();
+    double cosT = cosTheta();
+    double cotT = 1.0/tanTheta();
+    double sinF = sin(phi0());
+    double cosF = cos(phi0());
+    double cos2F = cosF*cosF-sinF*sinF;
+    double sin2F = 2*cosF*sinF;
+    Vec3 momv = momentum(time).Vect();
+    Vec3 pos = position(time);
+    static Vec3 zdir(0.0,0.0,1.0);
+    Vec3 momt = VectorUtil::PerpVector(momv,zdir);
+    double momt2 = momt.Mag2();
+    double xmt = pos.Dot(momt);
+    double E = energy();
+    SVec3 dmom_dM(sinT*cosF, sinT*sinF, cosT);
+    SVec3 dcost_dM = (1.0/mom())*(SVec3(0.0,0.0,1.0) - cosT*dmom_dM);
+    SVec3 dphi0_dM = (1.0/(mom()*sinT))*SVec3(-sinF,cosF,0.0);
+    SVec3 dt0_dM = (1.0/(momt2*CLHEP::c_light))*(
+	  E*SVec3(pos.X(),pos.Y(),0.0)
+	+ (xmt/E)*SVec3(momv.X(),momv.Y(),momv.Z())
+	- (2.0*xmt/momt2)*SVec3(momv.X(),momv.Y(),0.0) );
+    SVec3 dz0_dM = (1.0/(mom()*sinT))*(SVec3(cotT*(cos2F*pos.X() + sin2F*pos.Y()),cotT*(sin2F*pos.X()-cos2F*pos.Y()),-cosF*pos.X()-sinF*pos.Y()));
+    SVec3 dd0_dM  = ( xmt/momt2 )* SVec3(sinF, -cosF, 0.0);
+    KTLine::DPDV dPdM;
+    dPdM.Place_in_row(dmom_dM,mom_,0);
+    dPdM.Place_in_row(dcost_dM,cost_,0);
+    dPdM.Place_in_row(dphi0_dM,phi0_,0);
+    dPdM.Place_in_row(dz0_dM,z0_,0);
+    dPdM.Place_in_row(dt0_dM,t0_,0);
+    dPdM.Place_in_row(dd0_dM,d0_,0);
+    return dPdM;
+  }
+
   // derivatives of momentum projected along the given basis WRT the 5 parameters
   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
-    double momval = mom();
-    double gv = gamma();
-    double vz = speed()*dir().Z(); 
-    double deltat = time-t0();
-    double tlen = translen(CLHEP::c_light * beta() *deltat );
-    KTLine::DVEC pder;
-    double sinT = sinTheta();
-    double tanT = tanTheta();
-    double cosT = cosTheta();
-    // cases
-    switch (mdir) {
-    case LocalBasis::perpdir:
-      // polar bending: change in Theta
-      pder[cost_] = -sinT; 
-      pder[d0_] = 0;
-      pder[phi0_] = 0;
-      pder[z0_] = tlen*cosT/sinT; //TODO - I think here is the issue!
-      pder[t0_] = pder[z0_] / vz + 1/tanTheta() * (time - t0()) * sinT*sinT*tanT;
-      pder[mom_] = 0.0;
-      break;
-    case LocalBasis::phidir:
-      // change in dP/dtheta1 = dP/dphi0*(-1/sintheta)
-      pder[cost_] = 0;
-      pder[d0_] = -tlen/sinT;            
-      pder[phi0_] = 1.0/ sinT;
-      pder[z0_] = 0;
-      pder[t0_] = pder[z0_] / vz;
-      pder[mom_] = 0.0;
-      break;
-    case LocalBasis::momdir:
-      pder[cost_] = 0;
-      pder[d0_] = 0;
-      pder[phi0_] = 0;
-      pder[z0_] = 0;
-      pder[t0_] = deltat/(gv*gv);
-      pder[mom_] = 1.0*momval;
-      break;
-
-    default:
-      throw std::invalid_argument("Invalid direction");
-    }
-    return pder;
+    KTLine::DPDV dPdM = dPardM(time);
+    auto dir = direction(time,mdir);
+    double mommag = momentumMag(time);
+    return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z()));
   }
+
   void KTLine::print(ostream &ost, int detail) const {
     auto perr = params().diagonal();
     ost << " KTLine " << range() << " parameters: ";

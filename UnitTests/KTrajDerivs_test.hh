@@ -251,7 +251,10 @@ int test(int argc, char **argv) {
       double val(0.0);
       if(irow==icol)val = 1.0;
       if(fabs(ptest(irow,icol) - val) > 1e-9){
-	cout <<"Error in parameter derivative test" << endl;
+	cout <<"Error in parameter derivative test, row col = " << KTRAJ::paramName(typename KTRAJ::ParamIndex(irow))
+	  << " " << KTRAJ::paramName(typename KTRAJ::ParamIndex(icol)) 
+	  << " diff = " << ptest(irow,icol) - val << endl;
+
 	status = 1;
       }
     }
@@ -262,7 +265,9 @@ int test(int argc, char **argv) {
       double val(0.0);
       if(irow==icol)val = 1.0;
       if(fabs(xtest(irow,icol) - val) > 1e-9){
-	cout <<"Error in position derivative test" << endl;
+	cout <<"Error in position derivative test, row col = " << KTRAJ::paramName(typename KTRAJ::ParamIndex(irow))
+	  << " " << KTRAJ::paramName(typename KTRAJ::ParamIndex(icol))
+	  << " diff = " << xtest(irow,icol) - val << endl;
 	status = 1;
       }
     }
