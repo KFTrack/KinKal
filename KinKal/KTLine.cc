@@ -192,7 +192,7 @@ namespace KinKal {
     SVec3 dX_dz0 (0.0,0.0,1.0);
     SVec3 dX_dcost = (spd*deltat)*SVec3(-cotT*cosF,-cotT*sinF,1.0);
     SVec3 dX_dt0 = -spd*SVec3(sinT*cosF,sinT*sinF,cosT);
-    SVec3 dX_dmom = (deltat/(gam*gam*mom()))*dX_dt0;
+    SVec3 dX_dmom = -(deltat/(gam*gam*mom()))*dX_dt0;
 
     KTLine::KTLine::DVDP dXdP;
     dXdP.Place_in_col(dX_dd0,0,d0_);
@@ -231,7 +231,7 @@ namespace KinKal {
 // note: dCosTdX = dPhi0dX = dmom_dX = 0
     SVec3 dd0_dX = SVec3(-sinF,cosF,0.0);
     SVec3 dz0_dX = SVec3(-cotT*cosF,-cotT*sinF,1.0);
-    SVec3 dt0_dX = E*SVec3(cosF,sinF,0.0)/(mom()*sinT*CLHEP::c_light);
+    SVec3 dt0_dX = -E*SVec3(cosF,sinF,0.0)/(mom()*sinT*CLHEP::c_light);
     KTLine::DPDV dPdX;
     dPdX.Place_in_row(dd0_dX,d0_,0);
     dPdX.Place_in_row(dz0_dX,z0_,0);
@@ -259,9 +259,9 @@ namespace KinKal {
     SVec3 dcost_dM = (1.0/mom())*(SVec3(0.0,0.0,1.0) - cosT*dmom_dM);
     SVec3 dphi0_dM = (1.0/(mom()*sinT))*SVec3(-sinF,cosF,0.0);
     SVec3 dt0_dM = (1.0/(momt2*CLHEP::c_light))*(
-	  E*SVec3(pos.X(),pos.Y(),0.0)
-	+ (xmt/E)*SVec3(momv.X(),momv.Y(),momv.Z())
-	- (2.0*xmt/momt2)*SVec3(momv.X(),momv.Y(),0.0) );
+	xmt*( (2.0*E/momt2)*SVec3(momv.X(),momv.Y(),0.0) 
+	  - (1.0/E)*( SVec3(momv.X(),momv.Y(),momv.Z())) )
+	-  E*SVec3(pos.X(),pos.Y(),0.0));
     SVec3 dz0_dM = (1.0/(mom()*sinT))*(SVec3(cotT*(cos2F*pos.X() + sin2F*pos.Y()),cotT*(sin2F*pos.X()-cos2F*pos.Y()),-cosF*pos.X()-sinF*pos.Y()));
     SVec3 dd0_dM  = ( xmt/momt2 )* SVec3(sinF, -cosF, 0.0);
     KTLine::DPDV dPdM;
@@ -274,7 +274,7 @@ namespace KinKal {
     return dPdM;
   }
 
-  // derivatives of momentum projected along the given basis WRT the 5 parameters
+  // derivatives of momentum projected along the given basis WRT the parameters
   KTLine::DVEC KTLine::momDeriv(double time, LocalBasis::LocDir mdir) const {
     KTLine::DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);

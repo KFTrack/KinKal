@@ -223,7 +223,7 @@ int test(int argc, char **argv) {
     pline->SetParameters(0.0,1.0);
     TFitResultPtr pfitr = momgraph[idir]->Fit(pline,"SQ","AC*");
     momgraph[idir]->Draw("AC*");
-    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta){
+    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.01*delta){
       cout << "Momentum Direction " 
 	<< LocalBasis::directionName(tdir)
 	<< " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
