@@ -53,9 +53,9 @@ class KTLine {
 
     // copy and override parameters
     KTLine(PDATA const &pdata, KTLine const& other); 
-    KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange()); // TODO
+    KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
     // same, including covariance information
-    KTLine(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange()); //TODO
+    KTLine(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
 
     virtual ~KTLine() {}
 
@@ -82,9 +82,8 @@ class KTLine {
     double mom() const { return paramVal(mom_); }
 
     // express fit results as a state vector (global coordinates)
-    StateVector state(double time) const { return StateVector(); } // TODO
-    StateVectorMeasurement measurementState(double time) const { return StateVectorMeasurement(); } // TODO
-
+    StateVector state(double time) const;
+    StateVectorMeasurement measurementState(double time) const;
 
     double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
@@ -101,7 +100,7 @@ class KTLine {
     TRange const &range() const { return trange_; }
     TRange &range() {return trange_; }
     virtual void setRange(TRange const &trange) { trange_ = trange; }
-    void setBNom(double time, Vec3 const& bnom) {} // TODO
+    void setBNom(double time, Vec3 const& bnom) { bnom_ = bnom; }
     bool inRange(double time) const { return trange_.inRange(time); }
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
@@ -132,17 +131,16 @@ class KTLine {
     double betaGamma() const { return beta() * gamma(); }
     Vec3 const &bnom(double time = 0.0) const { return bnom_; }
 
-    DPDV dPardX(double time) const { return DPDV(); } // TODO
-    DPDV dPardM(double time) const { return DPDV(); } // TODO
-    DVDP dXdPar(double time) const { return DVDP(); } // TODO
-    DVDP dMdPar(double time) const { return DVDP(); } // TODO
-    DSDP dPardState(double time) const { return DPDS(); } // TODO
-    DPDS dStatedPar(double time) const { return DSDP(); } // TODO
+    DPDV dPardX(double time) const;
+    DPDV dPardM(double time) const;
+    DVDP dXdPar(double time) const;
+    DVDP dMdPar(double time) const;
+    DSDP dPardState(double time) const;
+    DPDS dStatedPar(double time) const;
     // package the above for full (global) state
-    // Parameter derivatives given a change in BField
-    DVEC dPardB(double time) const { return DVEC(); } // TODO
-    DVEC dPardB(double time, Vec3 const& BPrime) const { return DVEC(); } //TODO 
-
+    // Parameter derivatives given a change in BField.  These return null for KTLine
+    DVEC dPardB(double time) const { return DVEC(); }
+    DVEC dPardB(double time, Vec3 const& BPrime) const { return DVEC(); }
 
     void invertCT() {
       charge_ *= -1;
@@ -153,10 +151,10 @@ class KTLine {
   private:
     static std::string trajName_;
   // non-parametric variables
-    Vec3 bnom_;
-    double mass_;                 // mass in MeV/c2
-    int charge_;
-    TRange trange_;
+    Vec3 bnom_; // nominal BField: not used by this parameterization 
+    double mass_;   // mass in MeV/c2
+    int charge_; // charge in proton charge unites
+    TRange trange_;  // valid range
     PDATA pars_;      // parameters
     static std::vector<std::string> paramTitles_;
     static std::vector<std::string> paramNames_;

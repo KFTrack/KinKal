@@ -17,10 +17,8 @@ namespace KinKal {
   template <class KTRAJ> class DXing {
     public:
       typedef PKTraj<KTRAJ> PKTRAJ;
-      // construct from a time
-      DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {
-      std::cout <<"dxing created with time " << time << std::endl;
-      }
+      // construct from a time (empty xings)
+      DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
       virtual ~DXing() {}
       virtual void update(PKTRAJ const& pktraj) =0;
       virtual void update(PKTRAJ const& pktraj, double xtime) =0; // update including an estimate of the xing time

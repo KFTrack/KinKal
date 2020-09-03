@@ -173,8 +173,7 @@ namespace KinKal {
 
   // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
   LHelix::DVEC LHelix::momDeriv(double time, LocalBasis::LocDir mdir) const {
-    typedef ROOT::Math::SVector<double,3> SVec3;
-    DPDV dPdM = dPardM(time);
+    LHelix::DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
     double mommag = momentumMag(time);
     return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z()));

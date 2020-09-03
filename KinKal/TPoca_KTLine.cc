@@ -58,7 +58,7 @@ namespace KinKal {
     double lsign =   tline.dir().Cross(ktline.direction(partPoca_.T())).Dot(sensPoca_.Vect()-partPoca_.Vect());
     double dsign = copysign(1.0,lsign);
     doca_ = doca*dsign;
-    std::cout<<"DOCA: "<<doca<<std::endl;
+//    std::cout<<"DOCA: "<<doca<<std::endl;
     Vec3 ddir;
     ddir = delta().Vect().Unit();// direction vector along D(POCA) from traj 2 to 1 (line to ktline)
     ktline.direction(particlePoca().T());
@@ -66,7 +66,7 @@ namespace KinKal {
     double cosPhi0 = ktline.cosPhi0();
     double sinPhi0 = ktline.sinPhi0();
     double sinT = ktline.sinTheta();
-    std::cout << "In KTLine. Params set to: " <<ktline.params()<< std::endl;
+//    std::cout << "In KTLine TPoca. Params set to: " <<ktline.params()<< std::endl;
     double f = CLHEP::c_light * ktline.beta() * (particlePoca().T() - ktline.t0());
     dDdP_[KTLine::phi0_] = -dsign*((d0*sinPhi0) + f*sinT*sinPhi0)*ddir.x()+(d0*cosPhi0 - f*sinT*sinPhi0)*ddir.y();
     dDdP_[KTLine::cost_] = f*ddir.z();
