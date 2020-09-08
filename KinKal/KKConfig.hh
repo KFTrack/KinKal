@@ -18,7 +18,7 @@
 #include <istream>
 
 namespace KinKal {
-  struct MConfig {
+  struct MIConfig {
     bool updatemat_; // update material effects
     bool updatebfcorr_; // update magnetic field inhomogeneity effects
     bool updatehits_; // update the internal state of the hits (activity, LR ambiguity) 
@@ -29,8 +29,8 @@ namespace KinKal {
     int miter_; // count of meta-iteration
     // payload for hit updating; specific hit classes should find their particular payload inside the vector
     std::vector<std::any> hitupdaters_;
-    MConfig() : updatemat_(false), updatebfcorr_(false), updatehits_(false), temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), miter_(-1) {}
-    MConfig(std::istream& is) : miter_(-1) {
+    MIConfig() : updatemat_(false), updatebfcorr_(false), updatehits_(false), temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), miter_(-1) {}
+    MIConfig(std::istream& is) : miter_(-1) {
       is >> updatemat_ >> updatebfcorr_ >> updatehits_ >> temp_ >> convdchisq_ >> divdchisq_ >> oscdchisq_;
     }
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
@@ -39,11 +39,11 @@ namespace KinKal {
   struct KKConfig {
     enum printLevel{none=0, minimal, basic, complete, detailed, extreme};
     enum BFieldCorr {nocorr=0, fixed, variable };
-    typedef std::vector<MConfig> MConfigCol;
-    KKConfig(BField const& bfield,std::vector<MConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
+    typedef std::vector<MIConfig> MIConfigCol;
+    KKConfig(BField const& bfield,std::vector<MIConfig>const& schedule) : KKConfig(bfield) { schedule_ = schedule; }
     KKConfig(BField const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(0.5), tol_(0.1), minndof_(5), addmat_(true), bfcorr_(fixed), plevel_(none) {} 
     BField const& bfield() const { return bfield_; }
-    MConfigCol const& schedule() const { return schedule_; }
+    MIConfigCol const& schedule() const { return schedule_; }
     BField const& bfield_;
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
@@ -56,9 +56,9 @@ namespace KinKal {
     Vec3 origin_; // nominal origin for defining BNom
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
-    MConfigCol schedule_; 
+    MIConfigCol schedule_; 
   };
   std::ostream& operator <<(std::ostream& os, KKConfig kkconfig );
-  std::ostream& operator <<(std::ostream& os, MConfig mconfig );
+  std::ostream& operator <<(std::ostream& os, MIConfig miconfig );
 }
 #endif

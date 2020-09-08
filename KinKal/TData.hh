@@ -2,25 +2,23 @@
 #define KinKal_TData_hh
 //
 //  Data object describing fit parameters or weights
-//  templated on the parameter vector dimension
+//  dimension is always 6 for kinematic parameterizations
 //  used as part of the kinematic kalman fit
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
+#include "KinKal/Vectors.hh"
 #include <stdexcept>
 
 namespace KinKal {
-  template <size_t DDIM> class TData {
+  class TData {
     public:
-      // define the parameter types
-      typedef ROOT::Math::SVector<double,DDIM> DVEC; // data vector
-      typedef ROOT::Math::SMatrix<double,DDIM,DDIM,ROOT::Math::MatRepSym<double,DDIM> > DMAT;  // associated matrix
       // construct from vector and matrix
       TData(DVEC const& vec, DMAT const& mat) : vec_(vec), mat_(mat) {}
       TData(DVEC const& vec) : vec_(vec)  {}
       TData() {}
       // copy with optional inversion
-      TData(TData const& tdata, bool inv) : TData(tdata) { if (inv) invert(); }
+      TData(TData const& tdata, bool inv=false) : vec_(tdata.vec_), mat_(tdata.mat_) { if (inv) invert(); }
       // accessors
       DVEC const& vec() const { return vec_; }
       DMAT const& mat() const { return mat_; }

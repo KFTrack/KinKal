@@ -108,7 +108,7 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  IPHelix::IPHelix(PDATA const &pdata, IPHelix const& other) : IPHelix(other) {
+  IPHelix::IPHelix(PData const &pdata, IPHelix const& other) : IPHelix(other) {
     pars_ = pdata;
   }
 
@@ -172,18 +172,18 @@ namespace KinKal {
     return mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
-  Vec3 IPHelix::direction(double time,LocalBasis::LocDir mdir) const
+  Vec3 IPHelix::direction(double time,MomBasis::Direction mdir) const
   {
     double cosval = cosDip();
     double sinval = sinDip();
     double phival = phi(time);
 
     switch ( mdir ) {
-      case LocalBasis::perpdir:
+      case MomBasis::perpdir_:
         return l2g_(Vec3(-sinval * cos(phival), -sinval * sin(phival), cosval));
-      case LocalBasis::phidir:
+      case MomBasis::phidir_:
         return l2g_(Vec3(-sin(phival), cos(phival), 0.0));
-      case LocalBasis::momdir:
+      case MomBasis::momdir_:
         return l2g_(Vec3(Q() / omega() * cos(phival),
                          Q() / omega() * sin(phival),
                          Q() / omega() * tanDip()).Unit());
@@ -192,7 +192,7 @@ namespace KinKal {
     }
   }
 
-  IPHelix::DVEC IPHelix::momDeriv(double time, LocalBasis::LocDir mdir) const
+  DVEC IPHelix::momDeriv(double time, MomBasis::Direction mdir) const
   {
     // compute some useful quantities
     double tanval = tanDip();
@@ -203,7 +203,7 @@ namespace KinKal {
     DVEC pder;
     // cases
     switch ( mdir ) {
-      case LocalBasis::perpdir:
+      case MomBasis::perpdir_:
         // polar bending: only momentum and position are unchanged
         pder[d0_] = tanval*(1-cos(omval*l))/omval;
         pder[phi0_] = -tanval * sin(omval * l) / (1 + omval * d0val);
@@ -212,7 +212,7 @@ namespace KinKal {
         pder[tanDip_] = 1 / (cosval * cosval);
         pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
         break;
-      case LocalBasis::phidir:
+      case MomBasis::phidir_:
         // Azimuthal bending: R, Lambda, t0 are unchanged
         pder[d0_] = -sin(omval * l) / (omval * cosval);
         pder[phi0_] = cos(omval * l) / (cosval * (1 + omval * d0val));
@@ -221,7 +221,7 @@ namespace KinKal {
         pder[tanDip_] = 0;
         pder[t0_] = pder[z0_] / vz();
         break;
-      case LocalBasis::momdir:
+      case MomBasis::momdir_:
         // fractional momentum change: position and direction are unchanged
         pder[d0_] = -(1 - cos(omval * l)) / omval;
         pder[phi0_] = sin(omval * l) / (1 + omval * d0val);

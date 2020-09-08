@@ -3,7 +3,7 @@
 //
 #include "KinKal/PKTraj.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPoca.hh"
+#include "KinKal/PTPoca.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
@@ -42,9 +42,8 @@ void print_usage() {
 
 template <class KTRAJ>
 int PKTrajTest(int argc, char **argv) {
-  typedef PKTraj<KTRAJ> PKTRAJ;
-  typedef typename KTRAJ::DVEC DVEC;
-  typedef typename KTRAJ::PDATA PDATA; 
+  using PKTRAJ = PKTraj<KTRAJ>;
+  using PTPOCA = PTPoca<KTRAJ,TLine>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);
@@ -84,9 +83,9 @@ int PKTrajTest(int argc, char **argv) {
 	exit(EXIT_FAILURE);
     }
   }
-  LocalBasis::LocDir tdir =static_cast<LocalBasis::LocDir>(idir);
+  MomBasis::Direction tdir =static_cast<MomBasis::Direction>(idir);
   cout << "Testing PKTraj with "
-    << nsteps << " kinks in " << LocalBasis::directionName(tdir) << " direction of size "
+    << nsteps << " kinks in " << MomBasis::directionName(tdir) << " direction of size "
     << delta << endl;
 
   // create a helix
@@ -105,12 +104,12 @@ int PKTrajTest(int argc, char **argv) {
   for(int istep=0;istep < nsteps; istep++){
 // use derivatives of last piece to define new piece
     KTRAJ const& back = ptraj.pieces().back();
-    double tcomp = back.range().high();
+    double tcomp = back.range().end();
     DVEC pder = back.momDeriv(tcomp,tdir);
     // create modified helix
     DVEC dvec = back.params().parameters() + delta*pder;
-    range = TRange(ptraj.range().high(),ptraj.range().high()+tstep);
-    PDATA pdata(dvec,back.params().covariance());
+    range = TRange(ptraj.range().end(),ptraj.range().end()+tstep);
+    PData pdata(dvec,back.params().covariance());
     KTRAJ endhel(pdata,back);
     endhel.range() = range;
     // test
@@ -138,12 +137,12 @@ int PKTrajTest(int argc, char **argv) {
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
     KTRAJ const& front = ptraj.pieces().front();
-    double tcomp = front.range().low();
+    double tcomp = front.range().begin();
     DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
     DVEC dvec = front.params().parameters() + delta*pder;
-    range = TRange(ptraj.range().low()-tstep,ptraj.range().low());
-    PDATA pdata(dvec,front.params().covariance());
+    range = TRange(ptraj.range().begin()-tstep,ptraj.range().begin());
+    PData pdata(dvec,front.params().covariance());
     KTRAJ endhel(pdata,front);
     endhel.range() = range;
     // test
@@ -174,7 +173,7 @@ int PKTrajTest(int argc, char **argv) {
 
 // draw each piece of the piecetraj
   char fname[100];
-  snprintf(fname,100,"PKTraj_%s_%2.2f.root",LocalBasis::directionName(tdir).c_str(),delta);
+  snprintf(fname,100,"PKTraj_%s_%2.2f.root",MomBasis::directionName(tdir).c_str(),delta);
   TFile pkfile((KTRAJ::trajName()+fname).c_str(),"RECREATE");
   TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
   std::vector<TPolyLine3D*> plhel;
@@ -186,8 +185,8 @@ int PKTrajTest(int argc, char **argv) {
       icolor = kRed;
     else if(icolor == kRed)
       icolor = kBlue;
-    double tstart = piece.range().low();
-    double ts = (piece.range().high()-piece.range().low())/(npts-1);
+    double tstart = piece.range().begin();
+    double ts = (piece.range().end()-piece.range().begin())/(npts-1);
     Vec3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
       double t = tstart + ipt*ts;
@@ -201,9 +200,9 @@ int PKTrajTest(int argc, char **argv) {
   TPolyLine3D* all = new TPolyLine3D(np);
   all->SetLineColor(kYellow);
   all->SetLineStyle(kDotted);
-  double ts = (ptraj.range().high()-ptraj.range().low())/(np-1);
+  double ts = (ptraj.range().end()-ptraj.range().begin())/(np-1);
   for(unsigned ip=0;ip<np;ip++){
-  double tp = ptraj.range().low() + ip*ts;
+  double tp = ptraj.range().begin() + ip*ts;
     Vec3 ppos = ptraj.position(tp);
       all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
   }
@@ -234,20 +233,21 @@ int PKTrajTest(int argc, char **argv) {
   Vec3 lpos = midpos + gap*rdir;
   TLine tline(lpos, pvel,ptraj.range().mid(),prange);
   // create TPoca from these
-  TPoca<PKTRAJ,TLine> tp(ptraj,tline);
+  TPocaHint tphint(ptraj.range().mid(),0.0);
+  PTPOCA tp(ptraj,tline, tphint);
   cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   Vec3 thpos, tlpos;
-  thpos = tp.particleTraj().position(tp.particleToca());
-  tlpos = tp.sensorTraj().position(tp.sensorToca());
+  thpos = tp.particlePoca().Vect();
+  tlpos = tp.sensorPoca().Vect();
   double refd = tp.doca();
   cout << " Helix Pos " << midpos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
   cout << " TPoca particlePoca " << tp.particlePoca() << " TPoca sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
-  if(tp.status() == TPocaBase::converged) {
+  if(tp.status() == TPocaData::converged) {
     // draw the line and TPoca
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
-    plow = tline.position(tline.range().low());
-    phigh = tline.position(tline.range().high());
+    plow = tline.position(tline.range().begin());
+    phigh = tline.position(tline.range().end());
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);
@@ -259,9 +259,7 @@ int PKTrajTest(int argc, char **argv) {
     poca->Draw();
   }
 
-  // now derivatives
-  TPoca<PKTRAJ,TLine> tdp(tp);
-  cout << "TPoca dDdP" << tdp.dDdP() << " dTdP " << tdp.dTdP() << endl;
+  cout << "TPoca dDdP" << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
  
   pttcan->Write();
 

@@ -6,7 +6,7 @@
 //
 #include "KinKal/TDir.hh"
 #include "KinKal/Vectors.hh"
-#include "KinKal/LocalBasis.hh"
+#include "KinKal/MomBasis.hh"
 #include "KinKal/TRange.hh"
 #include <deque>
 #include <ostream>
@@ -16,15 +16,14 @@
 namespace KinKal {
   template <class TTRAJ> class PTTraj {
     public:
-      constexpr static size_t NParams() { return TTRAJ::NParams(); }
-      typedef typename std::deque<TTRAJ> DTTRAJ;
+      using DTTRAJ = std::deque<TTRAJ>;
       // forward calls to the pieces 
       void position(Vec4& pos) const {nearestPiece(pos.T()).position(pos); }
       Vec3 position(double time) const { return nearestPiece(time).position(time); }
       Vec3 velocity(double time) const { return nearestPiece(time).velocity(time); }
       double speed(double time) const { return nearestPiece(time).speed(time); }
-      Vec3 direction(double time, LocalBasis::LocDir mdir=LocalBasis::momdir) const { return nearestPiece(time).direction(time,mdir); }
-      TRange range() const { return TRange(pieces_.front().range().low(),pieces_.back().range().high()); }
+      Vec3 direction(double time, MomBasis::Direction mdir=MomBasis::momdir_) const { return nearestPiece(time).direction(time,mdir); }
+      TRange range() const { return TRange(pieces_.front().range().begin(),pieces_.back().range().end()); }
       void setRange(TRange const& trange, bool trim=false);
 // construct without any content.  Any functions except append or prepend will throw in this state
       PTTraj() {}
@@ -39,6 +38,7 @@ namespace KinKal {
       void add(TTRAJ const& newpiece, TDir tdir=TDir::forwards, bool allowremove=false);
 // Find the piece associated with a particular time
       TTRAJ const& nearestPiece(double time) const { return pieces_[nearestIndex(time)]; }
+      TTRAJ const& piece(size_t index) const { return pieces_[index]; }
       TTRAJ const& front() const { return pieces_.front(); }
       TTRAJ const& back() const { return pieces_.back(); }
       TTRAJ& front() { return pieces_.front(); }
@@ -56,13 +56,13 @@ namespace KinKal {
   template <class TTRAJ> void PTTraj<TTRAJ>::setRange(TRange const& trange, bool trim) {
 // trim pieces as necessary
     if(trim){
-      while(pieces_.size() > 1 && trange.low() > pieces_.front().range().high() ) pieces_.pop_front();
-      while(pieces_.size() > 1 && trange.high() < pieces_.back().range().low() ) pieces_.pop_back();
-    } else if(trange.low() > pieces_.front().range().high() || trange.high() < pieces_.back().range().low())
+      while(pieces_.size() > 1 && trange.begin() > pieces_.front().range().end() ) pieces_.pop_front();
+      while(pieces_.size() > 1 && trange.end() < pieces_.back().range().begin() ) pieces_.pop_back();
+    } else if(trange.begin() > pieces_.front().range().end() || trange.end() < pieces_.back().range().begin())
       throw std::invalid_argument("Invalid Range");
     // update piece range
-    pieces_.front().setRange(TRange(trange.low(),pieces_.front().range().high()));
-    pieces_.back().setRange(TRange(pieces_.front().range().low(),trange.high()));
+    pieces_.front().setRange(TRange(trange.begin(),pieces_.front().range().end()));
+    pieces_.back().setRange(TRange(pieces_.front().range().begin(),trange.end()));
   }
 
   template <class TTRAJ> PTTraj<TTRAJ>::PTTraj(TTRAJ const& piece) : pieces_(1,piece)
@@ -95,7 +95,7 @@ namespace KinKal {
 	  throw std::invalid_argument("range overlap");
       } else {
 	// find the piece that needs to be modified
-	size_t ipiece = nearestIndex(newpiece.range().high());
+	size_t ipiece = nearestIndex(newpiece.range().end());
 	// see if truncation is needed
 	if( allowremove){
 	  while(ipiece >0 ) 
@@ -105,10 +105,10 @@ namespace KinKal {
 	// if we're at the start, prepend
 	if(ipiece == 0){
 	  // update ranges and add the piece
-	  double tmin = std::min(newpiece.range().low(),pieces_.front().range().low());
-	  pieces_.front().range().low() = newpiece.range().high() +TRange::tbuff_; 
+	  double tmin = std::min(newpiece.range().begin(),pieces_.front().range().begin());
+	  pieces_.front().range().begin() = newpiece.range().end() +TRange::tbuff_; 
 	  pieces_.push_front(newpiece);
-	  pieces_.front().range().low() = tmin;
+	  pieces_.front().range().begin() = tmin;
 	} else {
 	  throw std::invalid_argument("range error");
 	}
@@ -123,14 +123,14 @@ namespace KinKal {
       pieces_.push_back(newpiece);
     } else {
       // if the new piece completely contains the existing pieces, overwrite or fail
-      if(newpiece.range().low() < range().low()){
+      if(newpiece.range().begin() < range().begin()){
 	if(allowremove)
 	  *this = PTTraj(newpiece);
 	else
 	  throw std::invalid_argument("range overlap");
       } else {
 	// find the piece that needs to be modified
-	size_t ipiece = nearestIndex(newpiece.range().low());
+	size_t ipiece = nearestIndex(newpiece.range().begin());
 	// see if truncation is needed
 	if( allowremove){
 	  while(ipiece < pieces_.size()-1) {
@@ -141,11 +141,11 @@ namespace KinKal {
 	if(ipiece == pieces_.size()-1){
 	  // update ranges and add the piece.
 	  // first, make sure we don't loose range
-	  double tmax = std::max(newpiece.range().high(),pieces_.back().range().high());
+	  double tmax = std::max(newpiece.range().end(),pieces_.back().range().end());
 	  // truncate the range of the current back to match with the start of the new piece.  Leave a buffer on the upper range to prevent overlap
-	  pieces_.back().range().high() = newpiece.range().low()-TRange::tbuff_;
+	  pieces_.back().range().end() = newpiece.range().begin()-TRange::tbuff_;
 	  pieces_.push_back(newpiece);
-	  pieces_.back().range().high() = tmax;
+	  pieces_.back().range().end() = tmax;
 	} else {
 	  throw std::invalid_argument("range error");
 	}
@@ -156,14 +156,14 @@ namespace KinKal {
   template <class TTRAJ> size_t PTTraj<TTRAJ>::nearestIndex(double time) const {
     size_t retval;
     if(pieces_.empty())throw std::length_error("Empty PTTraj!");
-    if(time <= range().low()){
+    if(time <= range().begin()){
       retval = 0;
-    } else if(time >= range().high()){
+    } else if(time >= range().end()){
       retval = pieces_.size()-1;
     } else {
       // scan
       retval = 0;
-      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time) && time > pieces_[retval].range().high()){
+      while(retval < pieces_.size() && !pieces_[retval].range().inRange(time) && time > pieces_[retval].range().end()){
 	retval++;
       }
       if(retval == pieces_.size())throw std::range_error("Failed PTraj range search");
@@ -174,7 +174,7 @@ namespace KinKal {
   template <class TTRAJ> double PTTraj<TTRAJ>::gap(size_t ihigh) const {
     double retval(0.0);
     if(ihigh>0 && ihigh < pieces_.size()){
-      double jtime = pieces_[ihigh].range().low(); // time of the junction of this piece with its preceeding piece
+      double jtime = pieces_[ihigh].range().begin(); // time of the junction of this piece with its preceeding piece
       Vec3 p0,p1;
       p0 = pieces_[ihigh].position(jtime);
       p1 = pieces_[ihigh-1].position(jtime);

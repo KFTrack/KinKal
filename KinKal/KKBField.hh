@@ -17,19 +17,15 @@
 namespace KinKal {
   template<class KTRAJ> class KKBField : public KKEff<KTRAJ> {
     public:
-      typedef KKEff<KTRAJ> KKEFF;
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef ROOT::Math::SVector<double,3> SVec3;
-      typedef typename KKEFF::PDATA PDATA; // forward the typedef
-      typedef typename KKEFF::WDATA WDATA; // forward the typedef
-      typedef KKData<PDATA::PDim()> KKDATA;
-      typedef typename KTRAJ::DVEC DVEC; // forward the typedef
+      using KKEFF = KKEff<KTRAJ>;
+      using PKTRAJ = PKTraj<KTRAJ>;
+      
       virtual double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       virtual bool isActive() const override { return active_ && bfcorr_ != KKConfig::nocorr; }
       virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
+      virtual void update(PKTRAJ const& ref, MIConfig const& miconfig) override;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
-      virtual void process(KKDATA& kkdata,TDir tdir) override;
+      virtual void process(KKData& kkdata,TDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
       DVEC const& effect() const { return dbeff_; }
       virtual ~KKBField(){}
@@ -45,19 +41,19 @@ namespace KinKal {
       SVec3 dp_; // change in momentum due to BField approximation
       TRange drange_; // extent of this effect.  The middle is at the transition point between 2 bfield domains (domain transition)
       DVEC dbint_; // integral effect of using bnom vs the full field over this effects range 
-      PDATA dbeff_; // aggregate effect in parameter space of BField change, including BNom change
+      PData dbeff_; // aggregate effect in parameter space of BField change, including BNom change
       bool active_; // activity state
       KKConfig::BFieldCorr bfcorr_; // type of correction to apply
   };
 
-  template<class KTRAJ> void KKBField<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
+  template<class KTRAJ> void KKBField<KTRAJ>::process(KKData& kkdata,TDir tdir) {
     if(active_){
       // forwards; just append the effect's parameter change
       if(tdir == TDir::forwards) {
 	kkdata.append(dbeff_);
       } else {
 	// SUBTRACT the effect going backwards: covariance change is sign-independent
-	PDATA reverse(dbeff_);
+	PData reverse(dbeff_);
 	reverse.parameters() *= -1.0;
       	kkdata.append(reverse);
       }
@@ -73,21 +69,21 @@ namespace KinKal {
     dbeff_.parameters() = dbint_;
     // add in the effect of changing BNom across this domain transition to parameters 
     if(bfcorr_ == KKConfig::variable){
-      auto const& begtraj = ref.nearestPiece(drange_.low());
-      auto const& endtraj = ref.nearestPiece(drange_.high());
+      auto const& begtraj = ref.nearestPiece(drange_.begin());
+      auto const& endtraj = ref.nearestPiece(drange_.end());
       dbeff_.parameters() += begtraj.dPardB(etime,endtraj.bnom()); // check sign FIXME!
     }
     // eventually include field map uncertainties in dbeff_ covariance TODO!
     KKEffBase::updateStatus();
   }
 
-  template<class KTRAJ> void KKBField<KTRAJ>::update(PKTRAJ const& ref, MConfig const& mconfig) {
-    if(mconfig.updatebfcorr_){
+  template<class KTRAJ> void KKBField<KTRAJ>::update(PKTRAJ const& ref, MIConfig const& miconfig) {
+    if(miconfig.updatebfcorr_){
       active_ = true;
       // integrate the fractional momentum change WRT this reference trajectory
       Vec3 dp =  BFieldUtils::integrate(bfield_, ref, drange_);
       dp_ = SVec3(dp.X(),dp.Y(),dp.Z()); //translate to SVec; this should be supported by SVector and GenVector
-      //      std::cout << "Updating iteration " << mconfig.miter_ << " dP " << dp << std::endl;
+      //      std::cout << "Updating iteration " << miconfig.miter_ << " dP " << dp << std::endl;
     }
     update(ref);
   }
@@ -95,16 +91,16 @@ namespace KinKal {
   template<class KTRAJ> void KKBField<KTRAJ>::append(PKTRAJ& fit) {
     if(active_){
       // make sure the piece is appendable
-      if(fit.back().range().low() > drange_.high()) throw std::invalid_argument("KKBField: Can't append piece");
+      if(fit.back().range().begin() > drange_.end()) throw std::invalid_argument("KKBField: Can't append piece");
       // adjust time if necessary
       double time = this->time()+ 1.0e-5; // slight buffer to make local piece selection more consistent
-      double tlow = std::max(time,fit.back().range().low() + 1.0e-5);
-      TRange newrange(tlow,fit.range().high());
+      double tlow = std::max(time,fit.back().range().begin() + 1.0e-5);
+      TRange newrange(tlow,fit.range().end());
       KTRAJ newpiece(fit.back());
       newpiece.range() = newrange;
       // if we are using variable BField, update the parameters accordingly
       if(bfcorr_ == KKConfig::variable){
-	Vec3 newbnom = bfield_.fieldVect(fit.position(drange_.high()));
+	Vec3 newbnom = bfield_.fieldVect(fit.position(drange_.end()));
 	newpiece.setBNom(time,newbnom);
       }
       // adjust for the residual parameter change due to difference in bnom

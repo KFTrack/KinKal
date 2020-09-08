@@ -16,22 +16,20 @@
 namespace KinKal {
   template <class KTRAJ> class THit {
     public:
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef DXing<KTRAJ> DXING;
-      typedef Residual<KTRAJ::NParams()> RESIDUAL;
-      typedef std::shared_ptr<DXING> DXINGPTR;
-      typedef typename KTRAJ::DVEC DVEC; // forward derivative type from the particle trajectory
+      using PKTRAJ = PKTraj<KTRAJ>;
+      using DXING = DXing<KTRAJ>;
+      using DXINGPTR = std::shared_ptr<DXING>;
      // default
       THit(bool active=true) : active_(active) {}
       // optionally create with an associated detector material crossing
       THit(DXINGPTR const& dxing,bool active=true) : dxing_(dxing), active_(active) {}
       virtual ~THit(){}
       // compute residual and errors WRT a predicted trajectory
-      virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const =0;
+      virtual void resid(PKTRAJ const& pktraj, Residual& resid) const =0;
       // count number of degrees of freedom constrained by this measurement (typically 1)
       virtual unsigned nDOF() const = 0;
       // update, and compute residual
-      virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) = 0;
+      virtual void update(PKTRAJ const& pktraj, MIConfig const& config, Residual& resid) = 0;
       // consistency of ancillary information not used in the residual computation
       // return value is the dimensionless number of sigma outside range, 0.0 = perfectly consistent, 1.0 is '1 sigma' tension
       virtual double tension() const = 0;
@@ -39,8 +37,9 @@ namespace KinKal {
       bool isActive() const { return active_; }
       bool setActivity(bool newstate) { bool retval = newstate == active_; active_ = newstate; return retval; }
       // associated material information; null use_count means no material
-      DXINGPTR const& detCrossing() const { return dxing_; }
-      bool hasMaterial() const { return dxing_.use_count() > 0; }
+      DXING const& detXing() const { return *dxing_; }
+      DXINGPTR const& detXingPtr() const { return dxing_; }
+      bool hasMaterial() const { return (bool)dxing_; }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
     private:
       DXINGPTR dxing_;

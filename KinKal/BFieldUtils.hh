@@ -32,7 +32,7 @@ namespace KinKal {
     // now integrate
     Vec3 dmom;
     for(unsigned istep=0; istep< nsteps; istep++){
-      double tstep = trange.low() + istep*dt;
+      double tstep = trange.begin() + istep*dt;
       Vec3 vel = ktraj.velocity(tstep);
       Vec3 db = bfield.fieldVect(ktraj.position(tstep)) - ktraj.bnom(tstep);
       dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);
@@ -72,7 +72,7 @@ namespace KinKal {
       auto db = (bvec - ktraj.bnom(tend)).R();
       // spatial distortion accumulation; this goes as the square of the time times the field difference
       dx += sfac*(tend-tstart)*tstep*db;
-    } while(fabs(dx) < tol && tend < ktraj.range().high());
+    } while(fabs(dx) < tol && tend < ktraj.range().end());
     //    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
     return tend;
   }

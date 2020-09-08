@@ -4,8 +4,9 @@
 //  Describe the material effects of a kinematic trajectory crossing a piece of physical detector (material)
 //  Used in the kinematic Kalman fit
 //
-#include "KinKal/LocalBasis.hh"
+#include "KinKal/MomBasis.hh"
 #include "KinKal/MatXing.hh"
+#include "KinKal/PKTraj.hh"
 #include "KinKal/TDir.hh"
 #include <vector>
 #include <stdexcept>
@@ -16,7 +17,7 @@
 namespace KinKal {
   template <class KTRAJ> class DXing {
     public:
-      typedef PKTraj<KTRAJ> PKTRAJ;
+      using PKTRAJ = PKTraj<KTRAJ>;
       // construct from a time
       DXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
       virtual ~DXing() {}
@@ -28,13 +29,13 @@ namespace KinKal {
       double& crossingTime() { return xtime_; }
       std::vector<MatXing>const&  matXings() const { return mxings_; }
       // calculate the cumulative material effect from these crossings
-      void momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
+      void materialEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
     protected:
       double xtime_; // time on the reference trajectory when the xing occured
       std::vector<MatXing> mxings_; // material crossings for this detector piece on this trajectory
   };
 
-  template <class KTRAJ> void DXing<KTRAJ>::momEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
+  template <class KTRAJ> void DXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
     double mom = pktraj.momentumMag(xtime_);
     double mass = pktraj.mass();
@@ -43,12 +44,12 @@ namespace KinKal {
     // loop over crossings for this detector piece
     for(auto const& mxing : mxings_){
       // compute FRACTIONAL momentum change and variance on that in the given direction
-      momvar[LocalBasis::momdir] += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass)*dmFdE*dmFdE;
-      dmom [LocalBasis::momdir]+= mxing.dmat_.energyLoss(mom,mxing.plen_,mass)*dmFdE;
+      momvar[MomBasis::momdir_] += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass)*dmFdE*dmFdE;
+      dmom [MomBasis::momdir_]+= mxing.dmat_.energyLoss(mom,mxing.plen_,mass)*dmFdE;
       double scatvar = mxing.dmat_.scatterAngleVar(mom,mxing.plen_,mass);
       // scattering is the same in each direction and has no net effect, it only adds noise
-      momvar[LocalBasis::perpdir] += scatvar;
-      momvar[LocalBasis::phidir] += scatvar;
+      momvar[MomBasis::perpdir_] += scatvar;
+      momvar[MomBasis::phidir_] += scatvar;
     }
     // correct for time direction
   }

@@ -4,7 +4,7 @@ namespace KinKal {
     if(trange.infinite())
       ost << " Infinite Range ";
     else
-      ost << " Range [" << trange.low() << "," << trange.high() << "]";
+      ost << " Range [" << trange.begin() << "," << trange.end() << "]";
     return ost;
   }
 }

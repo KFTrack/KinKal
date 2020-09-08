@@ -10,7 +10,7 @@
 #include "KinKal/Vectors.hh"
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
-#include "KinKal/LocalBasis.hh"
+#include "KinKal/MomBasis.hh"
 #include "KinKal/StateVector.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -27,9 +27,8 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
-      constexpr static size_t NParams() { return npars_; }
-      typedef PData<npars_> PDATA; // Data payload for this class
-      typedef typename PDATA::DVEC DVEC; // derivative of parameters type
+      constexpr static ParamIndex t0Index() { return t0_; }
+      
       static std::vector<std::string> const& paramNames();
       static std::vector<std::string> const& paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -37,9 +36,6 @@ namespace KinKal {
       static std::string const& paramUnit(ParamIndex index);
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
-
-      typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
-      typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
 
       // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
@@ -53,7 +49,7 @@ namespace KinKal {
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LHelix(LHelix const& other, Vec3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
-      LHelix(PDATA const& pdata, LHelix const& other);
+      LHelix(PData const& pdata, LHelix const& other);
       Vec4 pos4(double time) const;
       void position(Vec4& pos) const; // time of pos is input 
       Vec3 position(double time) const;
@@ -70,12 +66,12 @@ namespace KinKal {
       double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(double time) const;
       double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
-      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      Vec3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
-      PDATA const& params() const { return pars_; }
-      PDATA& params() { return pars_; }
+      PData const& params() const { return pars_; }
+      PData& params() { return pars_; }
       // named parameter accessors
       double rad() const { return paramVal(rad_); }
       double lam() const { return paramVal(lam_); }
@@ -117,14 +113,14 @@ namespace KinKal {
       DVDP dMdPar(double time) const; // return the derivative of the (global) momentum vector WRT parameters
       DSDP dPardState(double time) const; // derivative of parameters WRT global state
       DPDS dStatedPar(double time) const; // derivative of global state WRT parameters
-      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const; // projection of M derivatives onto direction basis
+      DVEC momDeriv(double time, MomBasis::Direction mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
       // Parameter derivatives given a change in BField
       DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
       DVEC dPardB(double time, Vec3 const& BPrime) const; // parameter change given a new BField vector
     private :
 // local coordinate system functions, used internally
-      Vec3 localDirection(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      Vec3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       Vec3 localMomentum(double time) const;
       Vec3 localPosition(double time) const;
       DPDV dPardXLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) position vector
@@ -132,7 +128,7 @@ namespace KinKal {
       DSDP dPardStateLoc(double time) const; // derivative of parameters WRT local state
 
       TRange trange_;
-      PDATA pars_; // parameters
+      PData pars_; // parameters
       double mass_;  // in units of MeV/c^2
       int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field

@@ -28,6 +28,8 @@
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TFile.h"
+#include "TF1.h"
+#include "TFitResult.h"
 #include "TAxis3D.h"
 #include "TCanvas.h"
 #include "TStyle.h"
@@ -48,31 +50,31 @@ using namespace std;
 using KinKal::TLine;
 
 void print_usage() {
-  printf("Usage: HitTest  --momentum f --costheta f --azimuth f --particle i --charge i --lighthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i\n");
+  printf("Usage: HitTest  --momentum f --particle i --charge i --lighthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i\n");
 }
 
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
-  typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
-  typedef THit<KTRAJ> THIT;
-  typedef std::shared_ptr<THIT> THITPTR;
-  typedef DXing<KTRAJ> DXING;
-  typedef std::shared_ptr<DXING> DXINGPTR;
-  typedef StrawHit<KTRAJ> STRAWHIT;
-  typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-  typedef ScintHit<KTRAJ> SCINTHIT;
-  typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
-  typedef StrawXing<KTRAJ> STRAWXING;
-  typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-  typedef std::vector<THITPTR> THITCOL;
-  typedef vector<DXINGPTR> DXINGCOL;
-  typedef Residual<KTRAJ::NParams()> RESIDUAL;
+  using PKTRAJ = PKTraj<KTRAJ>;
+  using THIT = THit<KTRAJ>;
+  using THITPTR = std::shared_ptr<THIT>;
+  using THITCOL = vector<THITPTR>;
+  using DXING = DXing<KTRAJ>;
+  using DXINGPTR = std::shared_ptr<DXING>;
+  using DXINGCOL = std::vector<DXINGPTR>;
+  using STRAWHIT = StrawHit<KTRAJ>;
+  using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+  using SCINTHIT = ScintHit<KTRAJ>;
+  using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
+  using STRAWXING = StrawXing<KTRAJ>;
+  using STRAWXINGPTR = shared_ptr<STRAWXING>;
 
-  int failed = 0;
+  int status = 0;
 
   int opt;
   double mom(105.0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
+  double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   int imass(0), icharge(-1);
   double pmass;
   unsigned nhits(40);
@@ -91,6 +93,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"lighthit",     required_argument, 0, 'l'  },
+    {"ambigdoca",     required_argument, 0, 'd'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"ddoca",     required_argument, 0, 'x'  },
     {"By",     required_argument, 0, 'y'  },
@@ -113,6 +116,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       case 'n' : nhits = atoi(optarg);
 		 break;
       case 'l' : lighthit = atoi(optarg);
+		 break;
+      case 'd' : ambigdoca = atof(optarg);
 		 break;
       case 'b' : simmat = atoi(optarg);
 		 break;
@@ -140,7 +145,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   } else {
     BF = new UniformBField(bnom);
   }
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, -1.0, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, pmass );
+  toy.setInefficiency(0.0);
   PKTRAJ tptraj;
 //  cout << "True " << tptraj << endl;
   StrawMat const& smat = toy.strawMaterial();
@@ -162,7 +168,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   double tstep = tptraj.range().range()/100.0;
   for(int istep=0;istep<101;++istep){
   // compute the position from the time
-    hpos.SetE(tptraj.range().low() + tstep*istep);
+    hpos.SetE(tptraj.range().begin() + tstep*istep);
     tptraj.position(hpos);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
@@ -173,21 +179,21 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ihit(0);
   for(auto const& thit : thits) {
    // compute residual
-    RESIDUAL  res;
+    Residual  res;
     thit->resid(tptraj,res);
     TPolyLine3D* line = new TPolyLine3D(2);
     Vec3 plow, phigh;
     STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
-    if(shptr.use_count() > 0){
+    if((bool)shptr){
       auto const& tline = shptr->wire();
-      plow = tline.position(tline.range().low());
-      phigh = tline.position(tline.range().high());
+      plow = tline.position(tline.range().begin());
+      phigh = tline.position(tline.range().end());
       line->SetLineColor(kRed);
-    } else if (lhptr.use_count() > 0){
+    } else if ((bool)lhptr){
       auto const& tline = lhptr->sensorAxis();
-      plow = tline.position(tline.range().low());
-      phigh = tline.position(tline.range().high());
+      plow = tline.position(tline.range().begin());
+      phigh = tline.position(tline.range().end());
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -228,8 +234,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   hcan->Write();
 // test updating the hit residual and derivatives with different trajectories
   unsigned nsteps(10);
-  vector<TGraph*> hderivg(KTRAJ::NParams());
-  for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){
+  vector<TGraph*> hderivg(NParams());
+  for(size_t ipar=0;ipar < NParams();ipar++){
     auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
     hderivg[ipar] = new TGraph(thits.size()*nsteps);
     std::string title = KTRAJ::paramTitle(tpar) + " Residual Derivative Test;"
@@ -238,45 +244,56 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);
-  for(size_t istep=0;istep<nsteps; istep++){
-    for(size_t ipar=0;ipar < KTRAJ::NParams();ipar++){
+  cout << "PKTTRJ " << tptraj << endl;
+  for(auto& thit : thits) {
+    KKHit kkhit(thit,tptraj);
+    Residual ores = kkhit.refResid(); // original residual
+    auto pder = ores.dRdP();
+    for(size_t ipar=0;ipar < NParams();ipar++){
       auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-      double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
-      // update the hits
-      for(auto& thit : thits) {
-        KKHit kkhit(thit,tptraj);
-        RESIDUAL ores = kkhit.refResid(); // original residual
-            // modify the helix
+    // update the hits
+      for(size_t istep=0;istep<nsteps; istep++){
+	double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
+	// modify the helix
         KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
         modktraj.params().parameters()[ipar] += dpar;
         PKTRAJ modtptraj(modktraj);
-        ROOT::Math::SVector<double,6> dpvec;
-        dpvec[ipar] += dpar;
+        KinKal::DVEC dpvec;
+        dpvec[ipar] = dpar;
         kkhit.update(modtptraj);// refer to moded helix
-        RESIDUAL mres = kkhit.refResid();
+        Residual mres = kkhit.refResid();
         double dr = ores.value()-mres.value(); // this sign is confusing.  I think
         // it means the fit needs to know how much to change the ref parameters, which is
         // opposite from how much the ref parameters are different from the measurement
         // compare the change with the expected from the derivatives
-        kkhit.update(tptraj);// refer back to original
-        auto pder = ores.dRdP();
         double ddr = ROOT::Math::Dot(pder,dpvec);
         hderivg[ipar]->SetPoint(ipt++,dr,ddr);
         if(dr*ddr < 0.0){
           cout << "Sign error " << KTRAJ::paramName(tpar) << " hit " << *thit
             << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
-          failed += 1;
+          status = 2;
         }
       }
     }
   }
+  // test
+  TF1* pline = new TF1("pline","[0]+[1]*x");
+
   TCanvas* hderivgc = new TCanvas("hderiv","hderiv",800,600);
   hderivgc->Divide(3,2);
   for(size_t ipar=0;ipar<6;++ipar){
+    pline->SetParameters(0.0,1.0);
     hderivgc->cd(ipar+1);
-    hderivg[ipar]->Draw("A*");
-  };
-  hderivgc->Write();
+    TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
+    hderivg[ipar]->Draw("AC*");
+    if(fabs(pfitr->Parameter(0))> delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 0.01*delpars[ipar]){
+      cout << "Parameter " 
+	<< KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+	<< " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+      status = 1;
+    };
+    hderivgc->Write();
+  }
 
   TCanvas* mateff = new TCanvas("mateff","mateff",800,600);
   mateff->Divide(3,2);
@@ -297,6 +314,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 
   htfile.Write();
   htfile.Close();
-  
-  exit(failed);
+  cout << "Return status = " << status << endl;  
+  exit(status);
 }

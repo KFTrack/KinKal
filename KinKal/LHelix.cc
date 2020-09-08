@@ -9,9 +9,7 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-  typedef ROOT::Math::SVector<double,3> SVec3;
-  typedef ROOT::Math::SMatrix<double,3,3,ROOT::Math::MatRepStd<double,3,3> > RMAT; // algebraic rotation matrix
-  vector<string> LHelix::paramTitles_ = {
+    vector<string> LHelix::paramTitles_ = {
     "Transverse Radius",
     "Longitudinal Wavelength",
     "Cylinder Center X",
@@ -93,7 +91,7 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LHelix::LHelix( PDATA const& pdata, LHelix const& other) : LHelix(other) {
+  LHelix::LHelix( PData const& pdata, LHelix const& other) : LHelix(other) {
     pars_ = pdata;
   }
 
@@ -111,7 +109,7 @@ namespace KinKal {
   }
 
   double LHelix::momentumVar(double time) const {
-    PDATA::DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
+    DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
@@ -142,15 +140,15 @@ namespace KinKal {
     return direction(time)*speed(time); 
   }
 
-  Vec3 LHelix::localDirection(double time, LocalBasis::LocDir mdir) const {
+  Vec3 LHelix::localDirection(double time, MomBasis::Direction mdir) const {
     double phival = phi(time);
     double invpb = sign()/pbar(); // need to sign
     switch ( mdir ) {
-      case LocalBasis::perpdir:
+      case MomBasis::perpdir_:
 	return Vec3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
-      case LocalBasis::phidir:
+      case MomBasis::phidir_:
 	return Vec3(-sin(phival),cos(phival),0.0);
-      case LocalBasis::momdir:
+      case MomBasis::momdir_:
 	return Vec3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
       default:
 	throw invalid_argument("Invalid direction");
@@ -167,20 +165,19 @@ namespace KinKal {
     return Vec3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam());
   } 
 
-  Vec3 LHelix::direction(double time, LocalBasis::LocDir mdir) const {
+  Vec3 LHelix::direction(double time, MomBasis::Direction mdir) const {
     return l2g_(localDirection(time,mdir));
   }
 
-  // derivatives of momentum projected along the given basis WRT the 6 parameters, and the physical direction associated with that
-  LHelix::DVEC LHelix::momDeriv(double time, LocalBasis::LocDir mdir) const {
-    typedef ROOT::Math::SVector<double,3> SVec3;
+  // derivatives of parameters WRT momentum projected along the given momentum basis direction 
+  DVEC LHelix::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
     double mommag = momentumMag(time);
-    return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z()));
+    return mommag*(dPdM*SVec3(dir.X(), dir.Y(), dir.Z())); // normalize to fractional change
   }
 
-  LHelix::DPDV LHelix::dPardXLoc(double time) const {
+  DPDV LHelix::dPardXLoc(double time) const {
     // euclidean space is column, parameter space is row
     double omval = omega();
     SVec3 zdir(0.0,0.0,1.0);
@@ -188,7 +185,7 @@ namespace KinKal {
     SVec3 dCy_dX (0.0,1.0,0.0);
     SVec3 dphi0_dX = -zdir/lam();
     SVec3 dt0_dX = -zdir/(omval*lam());
-    LHelix::DPDV dPdX;
+    DPDV dPdX;
     dPdX.Place_in_row(dCx_dX,cx_,0);
     dPdX.Place_in_row(dCy_dX,cy_,0);
     dPdX.Place_in_row(dphi0_dX,phi0_,0);
@@ -196,7 +193,7 @@ namespace KinKal {
     return dPdX;
   }
 
-  LHelix::DPDV LHelix::dPardMLoc(double time) const {
+  DPDV LHelix::dPardMLoc(double time) const {
     // euclidean space is column, parameter space is row
     double omval = omega();
     double dt = time-t0();
@@ -215,7 +212,7 @@ namespace KinKal {
     SVec3 dCy_dM (1.0,0.0,0.0);
     SVec3 dphi0_dM = T2/rad() + (dphi/lam())*zdir;
     SVec3 dt0_dM = -dt*(inve2*mdir - zdir/lam());
-    LHelix::DPDV dPdM;
+    DPDV dPdM;
     dPdM.Place_in_row(dR_dM,rad_,0);
     dPdM.Place_in_row(dL_dM,lam_,0);
     dPdM.Place_in_row(dCx_dM,cx_,0);
@@ -226,21 +223,21 @@ namespace KinKal {
     return dPdM;
   }
 
-  LHelix::DPDV LHelix::dPardX(double time) const {
+  DPDV LHelix::dPardX(double time) const {
 // rotate into local space
     RMAT g2lmat;
     g2l_.GetRotationMatrix(g2lmat);
     return dPardXLoc(time)*g2lmat;
   }
 
-  LHelix::DPDV LHelix::dPardM(double time) const {
+  DPDV LHelix::dPardM(double time) const {
 // now rotate these into local space
     RMAT g2lmat;
     g2l_.GetRotationMatrix(g2lmat);
     return dPardMLoc(time)*g2lmat;
   }
 
-  LHelix::DVEC LHelix::dPardB(double time) const {
+  DVEC LHelix::dPardB(double time) const {
     double phival = phi(time);
     DVEC retval;
     retval[rad_] = -rad();
@@ -252,11 +249,11 @@ namespace KinKal {
     return (1.0/bnom_.R())*retval;
   }
 
-  LHelix::DVEC LHelix::dPardB(double time, Vec3 const& BPrime) const {
+  DVEC LHelix::dPardB(double time, Vec3 const& BPrime) const {
   // rotate new B field difference into local coordinate system
     Vec3 dB = g2l_(BPrime-bnom_);
     // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
-    LHelix::DVEC retval = dPardB(time)*dB.Z();
+    DVEC retval = dPardB(time)*dB.Z();
     // find the change in (local) position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);
@@ -271,7 +268,7 @@ namespace KinKal {
     return retval;
   }
 
-  LHelix::DVDP LHelix::dXdPar(double time) const {
+  DVDP LHelix::dXdPar(double time) const {
     // first find the derivatives wrt local cartesian coordinates
     // euclidean space is row, parameter space is column
     double omval = omega();
@@ -284,14 +281,14 @@ namespace KinKal {
     SVec3 T2(-sphi,cphi,0.0);
     SVec3 T3(cphi,sphi,0.0);
     SVec3 zdir(0.0,0.0,1.0);
-    SVec3 mdir = rad()*T3 + lam()*zdir; 
+    SVec3 mdir = rad()*T3 + lam()*zdir;
     SVec3 dX_dR = -T2  -rad()*dphi*inve2*mdir;
     SVec3 dX_dL = dphi*zdir  -lam()*dphi*inve2*mdir;
     SVec3 dX_dCx (1.0,0.0,0.0); // along X
     SVec3 dX_dCy (0.0,1.0,0.0); // along Y
     SVec3 dX_dphi0 = rad()*T3;
     SVec3 dX_dt0 = -omval*mdir;
-    LHelix::DVDP dXdP;
+    DVDP dXdP;
     dXdP.Place_in_col(dX_dR,0,rad_);
     dXdP.Place_in_col(dX_dL,0,lam_);
     dXdP.Place_in_col(dX_dCx,0,cx_);
@@ -304,7 +301,7 @@ namespace KinKal {
     return l2gmat*dXdP;
   }
 
-  LHelix::DVDP LHelix::dMdPar(double time) const {
+  DVDP LHelix::dMdPar(double time) const {
     double omval = omega();
     double dt = time-t0();
     double dphi = omval*dt;
@@ -319,7 +316,7 @@ namespace KinKal {
     SVec3 dM_dR = T3 -rad()*dphi*inve2*dM_dphi0;
     SVec3 dM_dL = zdir  -lam()*dphi*inve2*dM_dphi0;
     SVec3 dM_dt0 = -omval*dM_dphi0;
-    LHelix::DVDP dMdP;
+    DVDP dMdP;
     dMdP.Place_in_col(dM_dR,0,rad_);
     dMdP.Place_in_col(dM_dL,0,lam_);
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
@@ -333,8 +330,8 @@ namespace KinKal {
 
   DSDP LHelix::dPardStateLoc(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
-    LHelix::DPDV dPdX = dPardXLoc(time);
-    LHelix::DPDV dPdM = dPardMLoc(time);
+    DPDV dPdX = dPardXLoc(time);
+    DPDV dPdM = dPardMLoc(time);
     DPDS dpds;
     dpds.Place_at(dPdX,0,0);
     dpds.Place_at(dPdM,0,3);
@@ -343,8 +340,8 @@ namespace KinKal {
 
   DSDP LHelix::dPardState(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
-    LHelix::DPDV dPdX = dPardX(time);
-    LHelix::DPDV dPdM = dPardM(time);
+    DPDV dPdX = dPardX(time);
+    DPDV dPdM = dPardM(time);
     DPDS dpds;
     dpds.Place_at(dPdX,0,0);
     dpds.Place_at(dPdM,0,3);
@@ -353,8 +350,8 @@ namespace KinKal {
 
   DPDS LHelix::dStatedPar(double time) const {
   // aggregate state from separate X and M derivatives; parameter space is column
-    LHelix::DVDP dXdP = dXdPar(time);
-    LHelix::DVDP dMdP = dMdPar(time);
+    DVDP dXdP = dXdPar(time);
+    DVDP dMdP = dMdPar(time);
     DSDP dsdp;
     dsdp.Place_at(dXdP,0,0);
     dsdp.Place_at(dMdP,3,0);
@@ -372,10 +369,10 @@ namespace KinKal {
   }
 
   void LHelix::print(ostream& ost, int detail) const {
-    auto perr = params().diagonal(); 
+    auto pvar = params().covariance().Diagonal();
     ost << " LHelix " << range() << " parameters: ";
     for(size_t ipar=0;ipar < LHelix::npars_;ipar++){
-      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << paramVal(ipar) << " +- " << perr(ipar);
+      ost << LHelix::paramName(static_cast<LHelix::ParamIndex>(ipar) ) << " " << paramVal(ipar) << " +- " << sqrt(pvar(ipar));
       if(ipar < LHelix::npars_-1) ost << " ";
     }
     ost << " with rotation around Bnom " << bnom_ << endl;

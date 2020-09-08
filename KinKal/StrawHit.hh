@@ -11,11 +11,11 @@
 namespace KinKal {
   template <class KTRAJ> class StrawHit : public WireHit<KTRAJ> {
     public:
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef WireHit<KTRAJ> WHIT;
-      typedef THit<KTRAJ> THIT;
-      typedef StrawXing<KTRAJ> STRAWXING;
-      typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
+      using PKTRAJ = PKTraj<KTRAJ>;
+      using THIT = THit<KTRAJ>;
+      using WHIT = WireHit<KTRAJ>;
+      using STRAWXING = StrawXing<KTRAJ>;
+      using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       StrawHit(BField const& bfield, TLine const& straj, D2T const& d2t, STRAWXINGPTR const& sxing,LRAmbig ambig=LRAmbig::null) :
 	WHIT(sxing, bfield,straj,d2t,sxing->strawMat().strawRadius(),ambig) {}
       virtual double tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!

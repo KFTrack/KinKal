@@ -45,14 +45,13 @@ void print_usage() {
 
 template <class KTRAJ>
 int BFieldTest(int argc, char **argv) {
-  typedef KinKal::PKTraj<KTRAJ> PKTRAJ;
-  typedef THit<KTRAJ> THIT;
-  typedef std::shared_ptr<THIT> THITPTR;
-  typedef DXing<KTRAJ> DXING;
-  typedef std::shared_ptr<DXING> DXINGPTR;
-  typedef std::vector<THITPTR> THITCOL;
-  typedef vector<DXINGPTR> DXINGCOL;
-  typedef typename KTRAJ::PDATA::DVEC DVEC;
+  using PKTRAJ = PKTraj<KTRAJ>;
+  using THIT = THit<KTRAJ>;
+  using THITPTR = std::shared_ptr<THIT>;
+  using DXING = DXing<KTRAJ>;
+  using DXINGPTR = std::shared_ptr<DXING>;
+  using DXINGCOL = std::vector<DXINGPTR>;
+  using THITCOL = std::vector<THITPTR>;
   double mom(105.0);
   int icharge(-1);
   int iseed(124223);
@@ -112,7 +111,7 @@ int BFieldTest(int argc, char **argv) {
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,
-  Vec4 pos; pos.SetE(tptraj.range().low());
+  Vec4 pos; pos.SetE(tptraj.range().begin());
   tptraj.position(pos);
   Mom4 momv = tptraj.momentum(pos.T());
   KTRAJ start(pos,momv,icharge,bnom,tptraj.range());
@@ -122,17 +121,17 @@ int BFieldTest(int argc, char **argv) {
   TRange prange = start.range();
   do {
     auto const& piece = xptraj.back();
-    prange.high() = BFieldUtils::rangeInTolerance(prange.low(),*BF,piece, tol);
+    prange.end() = BFieldUtils::rangeInTolerance(prange.begin(),*BF,piece, tol);
 // integrate the momentum change over this range
     Vec3 dp = BFieldUtils::integrate(*BF,piece,prange);
     // approximate change in position
 //    Vec3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
-    pos.SetE(prange.high());
+    pos.SetE(prange.end());
     piece.position(pos);
     momv = piece.momentum(pos.T());
 //    cout << "BField integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
-    prange = TRange(prange.high(),std::max(prange.high()+double(0.1),xptraj.range().high()));
+    prange = TRange(prange.end(),std::max(prange.end()+double(0.1),xptraj.range().end()));
     // clumsy code to modify a vector
     Vec3 mom = momv.Vect();
     mom += dp;
@@ -143,10 +142,10 @@ int BFieldTest(int argc, char **argv) {
     double gap = xptraj.gap(xptraj.pieces().size()-1);
     if(gap > 1e-6) cout << "Apended traj gap " << gap << endl;
     // same thing, but using the linear parameter corrections
-    Vec3 t1hat = lptraj.back().direction(pos.T(),LocalBasis::perpdir);
-    Vec3 t2hat = lptraj.back().direction(pos.T(),LocalBasis::phidir);
-    DVEC dpdt1 = lptraj.back().momDeriv(pos.T(),LocalBasis::perpdir);
-    DVEC dpdt2 = lptraj.back().momDeriv(pos.T(),LocalBasis::phidir);
+    Vec3 t1hat = lptraj.back().direction(pos.T(),MomBasis::perpdir_);
+    Vec3 t2hat = lptraj.back().direction(pos.T(),MomBasis::phidir_);
+    DVEC dpdt1 = lptraj.back().momDeriv(pos.T(),MomBasis::perpdir_);
+    DVEC dpdt2 = lptraj.back().momDeriv(pos.T(),MomBasis::phidir_);
     auto dpfrac = dp/mom.R();
     DVEC dpars = dpfrac.Dot(t1hat)*dpdt1 + dpfrac.Dot(t2hat)*dpdt2;
     KTRAJ lnew = lptraj.back();
@@ -155,7 +154,7 @@ int BFieldTest(int argc, char **argv) {
     lptraj.append(lnew);
     gap = xptraj.gap(xptraj.pieces().size()-1);
     if(gap > 1e-6) cout << "Apended traj gap " << gap << endl;
-  }  while(prange.low() < tptraj.range().high());
+  }  while(prange.begin() < tptraj.range().end());
   // test integrating the field over the corrected trajectories: this should be small
   Vec3 tdp, xdp, ldp, ndp;
   tdp = BFieldUtils::integrate(*BF, tptraj, tptraj.range());
@@ -202,20 +201,20 @@ int BFieldTest(int argc, char **argv) {
   double tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
   // compute the position from the time
-    tpos.SetE(tptraj.range().low() + tstep*istep);
+    tpos.SetE(tptraj.range().begin() + tstep*istep);
     tptraj.position(tpos);
-    t1dir = tptraj.direction(tpos.T(),LocalBasis::perpdir);
-    t2dir = tptraj.direction(tpos.T(),LocalBasis::phidir);
-    mdir = tptraj.direction(tpos.T(),LocalBasis::momdir);
+    t1dir = tptraj.direction(tpos.T(),MomBasis::perpdir_);
+    t2dir = tptraj.direction(tpos.T(),MomBasis::phidir_);
+    mdir = tptraj.direction(tpos.T(),MomBasis::momdir_);
  
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
-    xpos.SetE(tptraj.range().low() + tstep*istep);
+    xpos.SetE(tptraj.range().begin() + tstep*istep);
     xptraj.position(xpos);
     tpx->SetPoint(istep, xpos.X(), xpos.Y(), xpos.Z());
-    lpos.SetE(tptraj.range().low() + tstep*istep);
+    lpos.SetE(tptraj.range().begin() + tstep*istep);
     lptraj.position(lpos);
     tpl->SetPoint(istep, lpos.X(), lpos.Y(), lpos.Z());
-    npos.SetE(tptraj.range().low() + tstep*istep);
+    npos.SetE(tptraj.range().begin() + tstep*istep);
     start.position(npos);
     tnom->SetPoint(istep, npos.X(), npos.Y(), npos.Z());
 
@@ -314,7 +313,7 @@ int BFieldTest(int argc, char **argv) {
   PKTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
     // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
-    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range().low());
+    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range().begin());
     rsktraj.append(newpiece);
   }
   // draw the trajs
@@ -324,7 +323,7 @@ int BFieldTest(int argc, char **argv) {
   Vec3 opos, rpos;
   tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
-    double tplot = sktraj.range().low()+tstep*istep;
+    double tplot = sktraj.range().begin()+tstep*istep;
     opos = sktraj.position(tplot);
     original->SetPoint(istep, opos.X(), opos.Y(), opos.Z());
     rpos = rsktraj.position(tplot);

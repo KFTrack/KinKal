@@ -6,8 +6,9 @@
 #include "TRandom3.h"
 #include "KinKal/TLine.hh"
 #include "KinKal/PKTraj.hh"
-#include "KinKal/TPoca.hh"
+#include "KinKal/PTPoca.hh"
 #include "KinKal/StrawHit.hh"
+#include "KinKal/StrawXing.hh"
 #include "KinKal/StrawMat.hh"
 #include "KinKal/ScintHit.hh"
 #include "KinKal/BField.hh"
@@ -20,21 +21,20 @@ namespace KKTest {
   using namespace KinKal;
   template <class KTRAJ> class ToyMC {
     public:
-      typedef THit<KTRAJ> THIT;
-      typedef std::shared_ptr<THIT> THITPTR;
-      typedef DXing<KTRAJ> DXING;
-      typedef std::shared_ptr<DXING> DXINGPTR;
-      typedef StrawHit<KTRAJ> STRAWHIT;
-      typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-      typedef ScintHit<KTRAJ> SCINTHIT;
-      typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
-      typedef StrawXing<KTRAJ> STRAWXING;
-      typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-      typedef std::vector<THITPTR> THITCOL;
-      typedef std::vector<DXINGPTR> DXINGCOL;
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef TPoca<PKTRAJ,TLine> TPOCA;
-      typedef typename KTRAJ::DVEC DVEC;     
+      using PKTRAJ = PKTraj<KTRAJ>;
+      using THIT = THit<KTRAJ>;
+      using THITPTR = std::shared_ptr<THIT>;
+      using THITCOL = std::vector<THITPTR>;
+      using DXING = DXing<KTRAJ>;
+      using DXINGPTR = std::shared_ptr<DXING>;
+      using DXINGCOL = std::vector<DXINGPTR>;
+      using STRAWHIT = StrawHit<KTRAJ>;
+      using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+      using SCINTHIT = ScintHit<KTRAJ>;
+      using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
+      using STRAWXING = StrawXing<KTRAJ>;
+      using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
+      using PTPOCA = PTPoca<KTRAJ,TLine>;
       // create from aseed
       ToyMC(BField const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) : 
 	bfield_(bfield), mom_(mom), icharge_(icharge),
@@ -42,7 +42,7 @@ namespace KKTest {
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
 	momvar_(1.0), ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.1), tol_(0.01),
+	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(0.01),
 	smat_(matdb_,rstraw_, wthick_,rwire_),
 	d2t_(sdrift_,sigt_*sigt_,rstraw_) {}
 
@@ -58,6 +58,7 @@ namespace KKTest {
       // set functions, for special purposes
       void setSeedVar(double momvar) { momvar_ = momvar; }
       void setSmearSeed(bool smear) { smearseed_ = smear; }
+      void setInefficiency(double ineff) { ineff_ = ineff; }
       // accessors
       double shVar() const {return sigt_*sigt_;}
       double chVar() const {return ttsig_*ttsig_;}
@@ -125,12 +126,13 @@ namespace KKTest {
     Vec3 bsim;
     // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
-      double htime = tbuff_ + pktraj.range().low() + ihit*dt;
+      double htime = tbuff_ + pktraj.range().begin() + ihit*dt;
       // extend the trajectory in the BField to this time
       extendTraj(pktraj,htime);
       // create the hit at this time
       auto tline = generateStraw(pktraj,htime);
-      TPOCA tp(pktraj,tline);
+      TPocaHint tphint(htime,htime);
+      PTPOCA tp(pktraj,tline,tphint);
       LRAmbig ambig(LRAmbig::null);
       if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
       // construct the hit from this trajectory
@@ -151,7 +153,7 @@ namespace KKTest {
       createScintHit(pktraj,thits);
     }
     // extend if there are no hits
-    if(thits.size() == 0) extendTraj(pktraj,pktraj.range().high());
+    if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
   }
 
   template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing) {
@@ -163,30 +165,30 @@ namespace KKTest {
     Vec4 endpos; endpos.SetE(tstraw);
     endpiece.position(endpos);
     std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing.momEffects(pktraj,TDir::forwards, dmom, momvar);
-    for(int idir=0;idir<=LocalBasis::phidir; idir++) {
-      auto mdir = static_cast<LocalBasis::LocDir>(idir);
+    sxing.materialEffects(pktraj,TDir::forwards, dmom, momvar);
+    for(int idir=0;idir<=MomBasis::phidir_; idir++) {
+      auto mdir = static_cast<MomBasis::Direction>(idir);
       double momsig = sqrt(momvar[idir]);
       double dm;
       // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
       switch( mdir ) {
-	case KinKal::LocalBasis::perpdir: case KinKal::LocalBasis::phidir :
+	case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
 	  dm = tr_.Gaus(dmom[idir],momsig);
 	  break;
-	case KinKal::LocalBasis::momdir :
+	case KinKal::MomBasis::momdir_ :
 	  dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
 	  desum += dm*mom;
 	  break;
 	default:
 	  throw std::invalid_argument("Invalid direction");
       }
-      //	cout << "mom change dir " << LocalBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
+      //	cout << "mom change dir " << MomBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
       Vec3 dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
     // generate a new piece and append
-    KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TRange(tstraw,pktraj.range().high()));
+    KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TRange(tstraw,pktraj.range().end()));
     //      newend.print(cout,1);
     pktraj.append(newend);
     return desum/mom;
@@ -196,7 +198,7 @@ namespace KKTest {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
     Vec3 shmpos, hend, lmeas;
-    double cstart = pktraj.range().high() + tbuff_;
+    double cstart = pktraj.range().end() + tbuff_;
     hend = pktraj.position(cstart);
     double ltime = cstart + shmax_/pktraj.speed(cstart);
     shmpos = pktraj.position(ltime); // true position at shower-max
@@ -219,35 +221,35 @@ namespace KKTest {
     //    Vec3 lhpos;
     //    lline.position(tmeas,lhpos);
     //    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
-    //    RESIDUAL lres;
+    //    Residual lres;
     //    thits.back()->resid(pktraj,lres);
     //    cout << "ScintHit " << lres << endl;
-    //    TPOCA tpl(pktraj,lline);
-    //    cout <<"Light TPOCA ";
+    //    PTPOCA tpl(pktraj,lline);
+    //    cout <<"Light PTPOCA ";
     //    tpl.print(cout,2);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed){
     auto& seedpar = seed.params();
     // propagate the momentum and position variances to parameter variances
-    for(int idir=0;idir<LocalBasis::ndir;idir++){
-      DVEC pder = seed.momDeriv(seed.range().mid(),LocalBasis::LocDir(idir));
+    for(int idir=0;idir<MomBasis::ndir;idir++){
+      DVEC pder = seed.momDeriv(seed.range().mid(),MomBasis::Direction(idir));
       // convert derivative vector to a Nx1 matrix
-      ROOT::Math::SMatrix<double,KTRAJ::NParams(),1> dPdm;
+      ROOT::Math::SMatrix<double,NParams(),1> dPdm;
       dPdm.Place_in_col(pder,0,0);
       ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
       MVar(0,0) = momvar_/(mom_*mom_);
       auto cpars =ROOT::Math::Similarity(dPdm,MVar);
-      for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++)
+      for(size_t ipar=0;ipar<NParams();ipar++)
 	seedpar.covariance()[ipar][ipar] += cpars[ipar][ipar];
     }
     // smearing on T0 from momentum is too small
-    size_t it0 = KTRAJ::NParams()-1; // assumed t0 is the last index FIXME! this should be a constexpr
+    size_t it0 = NParams()-1; // assumed t0 is the last index FIXME! this should be a constexpr
     seedpar.covariance()[it0][it0]*= 100; // smear factor should be adjustable FIXME!
 
     // now, randomize the parameters within those errors.  Don't include correlations
     if(smearseed_){
-      for(unsigned ipar=0;ipar < KTRAJ::NParams(); ipar++){
+      for(unsigned ipar=0;ipar < NParams(); ipar++){
 	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
 	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
       }
@@ -260,24 +262,24 @@ namespace KKTest {
     pos = pktraj.position(htime);
     vel = pktraj.velocity(htime);
     dBdt = bfield_.fieldDeriv(pos,vel);
-//    std::cout << "end time " << pktraj.back().range().low() << " hit time " << htime << std::endl;
+//    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
-      TRange prange(pktraj.back().range().low(),pktraj.back().range().low());
-      prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
-      if(prange.high() > htime) {
+      TRange prange(pktraj.back().range().begin(),pktraj.back().range().begin());
+      prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+      if(prange.end() > htime) {
 	return;
       } else {
-	prange.low() = prange.high();
+	prange.begin() = prange.end();
 	do {
-	  prange.high() = BFieldUtils::rangeInTolerance(prange.low(), bfield_, pktraj.back(), tol_);
-	  Vec4 pos; pos.SetE(prange.low());
-	  Mom4 mom =  pktraj.momentum(prange.low());
+	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+	  Vec4 pos; pos.SetE(prange.begin());
+	  Mom4 mom =  pktraj.momentum(prange.begin());
 	  pktraj.position(pos);
 	  Vec3 bf = bfield_.fieldVect(pos.Vect());
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
 	  pktraj.append(newend);
-	  prange.low() = prange.high();
-	} while(prange.high() < htime);
+	  prange.begin() = prange.end();
+	} while(prange.end() < htime);
       }
     }
   }

@@ -10,13 +10,11 @@
 namespace KinKal {
   template<class KTRAJ> class KKCons : public KKWEff<KTRAJ> {
     public:
-      typedef std::array<bool,KTRAJ::PDATA::PDim()> PMASK; // parameter mask
-      typedef typename KKEff::WDATA WDATA; // forward the typedef
+      using PMASK = std::array<bool,KTRAJ::PData::PDim()>; // parameter mask
       // process this effect given the adjacent effect
       virtual bool process(KKEff const& other,TDir tdir) override;
-
       // construct from (masked) parameters
-      KKCons(double time, PDATA const& params, PMASK CONST& pmask);
+      KKCons(double time, PData const& params, PMASK CONST& pmask);
       virtual ~KKCons(){}
   };
 

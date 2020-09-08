@@ -5,40 +5,25 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/TData.hh"
-#include "KinKal/WData.hh"
 #include <ostream>
 namespace KinKal {
-  template <size_t DDIM> class WData;
-  template <size_t DDIM> class PData {
+  class WData;
+  class PData {
     public:
-      constexpr static size_t PDim() { return DDIM; }
-    // forward the typedefs
-      typedef TData<DDIM> TDATA;
-      typedef WData<DDIM> WDATA;
-      typedef typename TDATA::DVEC DVEC;
-      typedef typename TDATA::DMAT DMAT;
       // construct from vector and matrix
       PData(DVEC const& pars, DMAT const& pcov) : tdata_(pars,pcov) {}
       PData(DVEC const& pars) : tdata_(pars) {}
-      PData(WDATA const& wdata) : tdata_(wdata.tData(),true) {}
+      PData(WData const& wdata);
       PData() {}
       // accessors; just re-interpret the base class accessors
       DVEC const& parameters() const { return tdata_.vec(); }
       DMAT const& covariance() const { return tdata_.mat(); }
       DVEC& parameters() { return tdata_.vec(); }
       DMAT& covariance() { return tdata_.mat(); }
-      TDATA const& tData() const { return tdata_; }
-      TDATA& tData() { return tdata_; }
+      TData const& tData() const { return tdata_; }
+      TData& tData() { return tdata_; }
       // scale the matrix
       void scale(double sfac) { tdata_.scale(sfac); }
-      // diagnostic access to diagonal vector
-      DVEC diagonal() const { 
-	DVEC retval;
-	for(size_t idim=0;idim < DDIM; idim++){
-	  retval(idim) = sqrt(tdata_.mat()(idim,idim));
-	}
-	return retval;
-      }
 // addition: only works for other parameters
       PData & operator +=(PData const& other) {
 	tdata_ += other.tdata_;
@@ -50,12 +35,9 @@ namespace KinKal {
 	  ost << "covariance " << covariance() << std::endl;
       }
     private:
-      TDATA tdata_; // data payload
+      TData tdata_; // data payload
   };
+  std::ostream& operator << (std::ostream& ost, PData const& pdata);
 
-  template<size_t DDIM> std::ostream& operator << (std::ostream& ost, PData<DDIM> const& pdata) {
-    pdata.print(ost,0);
-    return ost;
-  }
 }
 #endif

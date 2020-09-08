@@ -7,51 +7,48 @@
 //
 #include "KinKal/WData.hh"
 #include "KinKal/PData.hh"
-#include <array>
 namespace KinKal {
-  template <size_t DDIM> class KKData {
+  class KKData {
     public:
-      typedef PData<DDIM> PDATA; // forward the type declarations
-      typedef WData<DDIM> WDATA; 
       KKData() : hasPData_(false), hasWData_(false) {}
-      KKData(PDATA const& pdata) : pdata_(pdata), hasPData_(true), hasWData_(false) {}
-      KKData(WDATA const& wdata) : wdata_(wdata), hasPData_(false), hasWData_(true) {}
+      KKData(PData const& pdata) : pdata_(pdata), hasPData_(true), hasWData_(false) {}
+      KKData(WData const& wdata) : wdata_(wdata), hasPData_(false), hasWData_(true) {}
       // accessors
       bool hasPData() const { return hasPData_; }
       bool hasWData() const { return hasWData_; }
       // add to either parameters or weights
-      void append(PDATA const& pdata) {
+      void append(PData const& pdata) {
 	pData() += pdata;
 	// this invalidates the weight information
 	hasPData_ = true;
 	hasWData_ = false;
       }
-      void append(WDATA const& wdata) {
+      void append(WData const& wdata) {
 	wData() += wdata;
 	// this invalidates the parameter information
 	hasWData_ = true;
 	hasPData_ = false;
       }
-      PDATA& pData() { 
+      PData& pData() { 
 	if(!hasPData_ && hasWData_ ){
 	  // invert the weight
-	  pdata_ = PDATA(wdata_);
+	  pdata_ = PData(wdata_);
 	  hasPData_ = true;
 	}
 	return pdata_;
       }
-      WDATA& wData() { 
+      WData& wData() { 
 	if(!hasWData_ && hasPData_ ){
 	  // invert the parameters
-	  wdata_ = WDATA(pdata_);
+	  wdata_ = WData(pdata_);
 	  hasWData_ = true;
 	}
 	return wdata_;
       }
     private:
-      PDATA pdata_; // parameters space representation of (intermediate) fit data
-      WDATA wdata_; // weight space representation of fit data
-      bool hasPData_, hasWData_;  // keep track of validity for lazy evaluation
+      PData pdata_; // parameters space representation of (intermediate) fit data
+      WData wdata_; // weight space representation of fit data
+      bool hasPData_, hasWData_;  // keep track of validity for lazy evaluation (cache coherence)
   };
 }
 #endif

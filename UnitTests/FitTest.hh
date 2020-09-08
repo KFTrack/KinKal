@@ -5,7 +5,6 @@
 #include "MatEnv/DetMaterial.hh"
 #include "KinKal/PKTraj.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPoca.hh"
 #include "KinKal/StrawHit.hh"
 #include "KinKal/StrawMat.hh"
 #include "KinKal/ScintHit.hh"
@@ -90,41 +89,38 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
 template <class KTRAJ>
 int FitTest(int argc, char **argv) {
   struct KTRAJPars{
-    Float_t pars_[KTRAJ::NParams()];
+    Float_t pars_[NParams()];
     static std::string leafnames() {
       std::string names;
-      for(size_t ipar=0;ipar<KTRAJ::NParams();ipar++){
+      for(size_t ipar=0;ipar<NParams();ipar++){
 	names +=KTRAJ::paramName(static_cast<typename KTRAJ::ParamIndex>(ipar)) + string("/f");
-	if(ipar < KTRAJ::NParams()-1)names += ":";
+	if(ipar < NParams()-1)names += ":";
       }
       return names;
     }
   };
 
-
-  // define the typedefs: to change to a different trajectory implementation, just change this line
-  typedef PKTraj<KTRAJ> PKTRAJ;
-  typedef KKTrk<KTRAJ> KKTRK;
-  typedef shared_ptr<KKConfig> KKCONFIGPTR;
-  typedef THit<KTRAJ> THIT;
-  typedef KKHit<KTRAJ> KKHIT;
-  typedef KKMHit<KTRAJ> KKMHIT;
-  typedef KKMat<KTRAJ> KKMAT;
-  typedef KKBField<KTRAJ> KKBF;
-  typedef std::shared_ptr<THIT> THITPTR;
-  typedef DXing<KTRAJ> DXING;
-  typedef std::shared_ptr<DXING> DXINGPTR;
-  typedef StrawHit<KTRAJ> STRAWHIT;
-  typedef std::shared_ptr<STRAWHIT> STRAWHITPTR;
-  typedef ScintHit<KTRAJ> SCINTHIT;
-  typedef std::shared_ptr<SCINTHIT> SCINTHITPTR;
-  typedef StrawXing<KTRAJ> STRAWXING;
-  typedef shared_ptr<STRAWXING> STRAWXINGPTR;
-  typedef vector<THITPTR> THITCOL;
-  typedef vector<DXINGPTR> DXINGCOL;
-  typedef Residual<KTRAJ::NParams()> RESIDUAL;
-  typedef TPoca<PKTRAJ,TLine> TPOCA;
-  typedef std::chrono::high_resolution_clock Clock;
+  using KKEFF = KKEff<KTRAJ>;
+  using KKHIT = KKHit<KTRAJ>;
+  using KKMAT = KKMat<KTRAJ>;
+  using KKMHIT = KKMHit<KTRAJ>;
+  using KKBF = KKBField<KTRAJ>;
+  using KKEND = KKEnd<KTRAJ>;
+  using PKTRAJ = PKTraj<KTRAJ>;
+  using THIT = THit<KTRAJ>;
+  using THITPTR = std::shared_ptr<THIT>;
+  using THITCOL = std::vector<THITPTR>;
+  using DXING = DXing<KTRAJ>;
+  using DXINGPTR = std::shared_ptr<DXING>;
+  using DXINGCOL = std::vector<DXINGPTR>;
+  using KKBFIELD = KKBField<KTRAJ>;
+  using KKTRK = KKTrk<KTRAJ>;
+  using KKCONFIGPTR = std::shared_ptr<KKConfig>;
+  using STRAWHIT = StrawHit<KTRAJ>;
+  using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+  using SCINTHIT = ScintHit<KTRAJ>;
+  using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
+  using Clock = std::chrono::high_resolution_clock;
 
   // enable throw on FPE; not working with clang!
   fetestexcept(FE_ALL_EXCEPT );
@@ -271,11 +267,11 @@ int FitTest(int argc, char **argv) {
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentumMag(tptraj.range().low());
-  double endmom = tptraj.momentumMag(tptraj.range().high());
+  double startmom = tptraj.momentumMag(tptraj.range().begin());
+  double endmom = tptraj.momentumMag(tptraj.range().end());
   Vec3 end, bend;
-  bend = tptraj.front().direction(tptraj.range().high());
-  end = tptraj.back().direction(tptraj.range().high());
+  bend = tptraj.front().direction(tptraj.range().end());
+  end = tptraj.back().direction(tptraj.range().end());
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BField
@@ -283,7 +279,7 @@ int FitTest(int argc, char **argv) {
   auto seedmom = midhel.momentum(0.0);
   seedmom.SetM(fitmass);
   // buffer the seed range
-  TRange seedrange(tptraj.range().low()-0.5,tptraj.range().high()+0.5);
+  TRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
   KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
@@ -315,7 +311,7 @@ int FitTest(int argc, char **argv) {
   while (getline(ifs,line)){ 
     if(strncmp(line.c_str(),"#",1)!=0){
       istringstream ss(line);
-      MConfig mconfig(ss);
+      MIConfig mconfig(ss);
       mconfig.miter_ = nmiter++;
       configptr->schedule_.push_back(mconfig);
     }
@@ -342,7 +338,7 @@ int FitTest(int argc, char **argv) {
     fitpl->SetLineStyle(kSolid);
     double ts = fithel.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
-      double tp = fithel.range().low() + ip*ts;
+      double tp = fithel.range().begin() + ip*ts;
       Vec3 ppos = fithel.position(tp);
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
@@ -353,7 +349,7 @@ int FitTest(int argc, char **argv) {
     ttpl->SetLineStyle(kDashDotted);
     ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
-      double tp = tptraj.range().low() + ip*ts;
+      double tp = tptraj.range().begin() + ip*ts;
       Vec3 ppos = tptraj.position(tp);
       ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
@@ -367,13 +363,13 @@ int FitTest(int argc, char **argv) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
-	plow = tline.position(tline.range().low());
-	phigh = tline.position(tline.range().high());
+	plow = tline.position(tline.range().begin());
+	phigh = tline.position(tline.range().end());
 	line->SetLineColor(kRed);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
-	plow = tline.position(tline.range().low());
-	phigh = tline.position(tline.range().high());
+	plow = tline.position(tline.range().begin());
+	phigh = tline.position(tline.range().end());
 	line->SetLineColor(kCyan);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -434,11 +430,11 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("tinfovec",&tinfovec);
     }
     // now repeat this to gain statistics
-    vector<TH1F*> fdp(KTRAJ::NParams());
-    vector<TH1F*> bdp(KTRAJ::NParams());
-    vector<TH1F*> fpull(KTRAJ::NParams());
-    vector<TH1F*> bpull(KTRAJ::NParams());
-    vector<TH1F*> fiterrh(KTRAJ::NParams());
+    vector<TH1F*> fdp(NParams());
+    vector<TH1F*> bdp(NParams());
+    vector<TH1F*> fpull(NParams());
+    vector<TH1F*> bpull(NParams());
+    vector<TH1F*> fiterrh(NParams());
     TH1F* hniter = new TH1F("niter", "Total Iterations", 50,-0.5,49.5);
     TH1F* hnmeta = new TH1F("nmeta", "Meta Iterations", 10,-0.5,9.5);
     TH1F* hnfail = new TH1F("nfail", "Failed Iterations", 50,-0.5,49.5);
@@ -451,12 +447,12 @@ int FitTest(int argc, char **argv) {
     TH1F* chisqprob = new TH1F("chisqprob", "Chisquared probability", 100,0,1.0);
     TH1F* logchisqprob = new TH1F("logchisqprob", "Log10 of Chisquared probability", 100,-10,0.0);
     string htitle, hname;
-    TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",KTRAJ::NParams(),-0.5,KTRAJ::NParams()-0.5,KTRAJ::NParams(), -0.5,KTRAJ::NParams()-0.5);
+    TH2F* corravg = new TH2F("corravg","Average correlation matrix magnitudes",NParams(),-0.5,NParams()-0.5,NParams(), -0.5,NParams()-0.5);
     TAxis* xax = corravg->GetXaxis();
     TAxis* yax = corravg->GetYaxis();
     double nsig(10.0);
     double pscale = nsig/sqrt(nhits);
-    for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
+    for(size_t ipar=0;ipar< NParams(); ipar++){
       auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
       hname = string("fd") + KTRAJ::paramName(tpar);
       htitle = string("Front #Delta ") + KTRAJ::paramTitle(tpar);
@@ -492,7 +488,7 @@ int FitTest(int argc, char **argv) {
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum(tmid);
       seedmom.SetM(fitmass);
-      TRange seedrange(tptraj.range().low()-0.5,tptraj.range().high()+0.5);
+      TRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
       KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
@@ -522,8 +518,8 @@ int FitTest(int argc, char **argv) {
       hniter->Fill(niter_);
       hnmeta->Fill(nmeta_);
       // truth parameters, front and back
-      double ttlow = tptraj.range().low();
-      double tthigh = tptraj.range().high();
+      double ttlow = tptraj.range().begin();
+      double tthigh = tptraj.range().end();
       KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
       KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
       for(size_t ipar=0;ipar<6;ipar++){
@@ -567,12 +563,12 @@ int FitTest(int argc, char **argv) {
 	  KKMatInfo minfo;
 	  minfo.time_ = kkmat->time();
 	  minfo.active_ = kkmat->isActive();
-	  minfo.nxing_ = kkmat->detXing()->matXings().size();
+	  minfo.nxing_ = kkmat->detXing().matXings().size();
 	  std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-	  kkmat->detXing()->momEffects(kkmat->refKTraj(),TDir::forwards, dmom, momvar);
-	  minfo.dmomf_ = dmom[LocalBasis::momdir];
-	  minfo.momvar_ = momvar[LocalBasis::momdir];
-	  minfo.perpvar_ = momvar[LocalBasis::perpdir];
+	  kkmat->detXing().materialEffects(kkmat->refKTraj(),TDir::forwards, dmom, momvar);
+	  minfo.dmomf_ = dmom[MomBasis::momdir_];
+	  minfo.momvar_ = momvar[MomBasis::momdir_];
+	  minfo.perpvar_ = momvar[MomBasis::perpdir_];
 	  minfovec.push_back(minfo);
 	}
 	if(kkbf != 0){
@@ -591,7 +587,7 @@ int FitTest(int argc, char **argv) {
 	double deltat0(0.0);
 	double dt = kktrk.fitTraj().range().range()/nsteps;
 	for(unsigned istep=0;istep < nsteps;istep++){
-	  double tstep = kktrk.fitTraj().range().low()+dt*istep;
+	  double tstep = kktrk.fitTraj().range().begin()+dt*istep;
 	  double ttrue;
 	  double dperp = dTraj(kktrk.fitTraj(),tptraj,tstep,ttrue);
 	  KTrajInfo ktinfo;
@@ -619,13 +615,13 @@ int FitTest(int argc, char **argv) {
 	avgap_ = avgap;
 	igap_ = igap;
 
-	typename KTRAJ::PDATA ftpars, btpars;
+	PData ftpars, btpars;
 	ftpars = fttraj.params();
 	btpars = bttraj.params();
 
 	// accumulate parameter difference and pull
 	vector<double> fcerr(6,0.0), bcerr(6,0.0);
-	for(size_t ipar=0;ipar< KTRAJ::NParams(); ipar++){
+	for(size_t ipar=0;ipar< NParams(); ipar++){
 	  fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
 	  bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
 	  fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
@@ -637,8 +633,8 @@ int FitTest(int argc, char **argv) {
 	// accumulate average correlation matrix
 	auto const& cov = ffpars.covariance();
 	//    auto cormat = cov;
-	for(unsigned ipar=0; ipar <KTRAJ::NParams();ipar++){
-	  for(unsigned jpar=ipar;jpar < KTRAJ::NParams(); jpar++){
+	for(unsigned ipar=0; ipar <NParams();ipar++){
+	  for(unsigned jpar=ipar;jpar < NParams(); jpar++){
 	    double corr = cov[ipar][jpar]/(fcerr[ipar]*fcerr[jpar]);
 	    //	cormat[ipar][jpar] = corr;
 	    corravg->Fill(ipar,jpar,fabs(corr));
@@ -655,8 +651,8 @@ int FitTest(int argc, char **argv) {
 	bfmom_ = kktrk.fitTraj().momentumMag(fthigh);
 	ffmomerr_ = sqrt(kktrk.fitTraj().momentumVar(ftlow));
 	bfmomerr_ = sqrt(kktrk.fitTraj().momentumVar(fthigh));
-	fft_ = kktrk.fitTraj().range().low();
-	eft_ = kktrk.fitTraj().range().high();
+	fft_ = kktrk.fitTraj().range().begin();
+	eft_ = kktrk.fitTraj().range().end();
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
 	// state space parameter difference and errors
@@ -681,39 +677,39 @@ int FitTest(int argc, char **argv) {
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);
-    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
+    for(size_t ipar=0;ipar<NParams();++ipar){
       fdpcan->cd(ipar+1);
       fdp[ipar]->Fit("gaus","q");
     }
     fdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
-    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
+    for(size_t ipar=0;ipar<NParams();++ipar){
       bdpcan->cd(ipar+1);
       bdp[ipar]->Fit("gaus","q");
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
     fpullcan->Divide(3,3);
-    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
+    for(size_t ipar=0;ipar<NParams();++ipar){
       fpullcan->cd(ipar+1);
       fpull[ipar]->Fit("gaus","q");
     }
-    fpullcan->cd(KTRAJ::NParams()+1);
+    fpullcan->cd(NParams()+1);
     fmompull->Fit("gaus","q");
     fpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,3);
-    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
+    for(size_t ipar=0;ipar<NParams();++ipar){
       bpullcan->cd(ipar+1);
       bpull[ipar]->Fit("gaus","q");
     }
-    bpullcan->cd(KTRAJ::NParams()+1);
+    bpullcan->cd(NParams()+1);
     bmompull->Fit("gaus","q");
     bpullcan->Write();
     TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
     perrcan->Divide(3,2);
-    for(size_t ipar=0;ipar<KTRAJ::NParams();++ipar){
+    for(size_t ipar=0;ipar<NParams();++ipar){
       perrcan->cd(ipar+1);
       fiterrh[ipar]->Draw();
     }

@@ -13,7 +13,7 @@
 namespace KinKal {
   class BField {
     public:
-      typedef ROOT::Math::SMatrix<double,3> Grad; // field gradient: ie dBi/d(x,y,z)
+      using Grad = ROOT::Math::SMatrix<double,3>; // field gradient: ie dBi/d(x,y,z)
       // return value of the field at a point
       virtual Vec3 fieldVect(Vec3 const& position) const = 0; 
       // return BField gradient = dB_i/dx_j, at a given point

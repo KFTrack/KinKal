@@ -3,6 +3,8 @@
 //
 #include "KinKal/TLine.hh"
 #include "KinKal/TPoca.hh"
+#include "KinKal/PTPoca.hh"
+#include "KinKal/PKTraj.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
@@ -41,7 +43,9 @@ void print_usage() {
 
 template <class KTRAJ>
 int TPocaTest(int argc, char **argv) {
-  typedef TPoca<KTRAJ,TLine> TPOCA;
+  using TPOCA = TPoca<KTRAJ,TLine>;
+  using PTPOCA = PTPoca<KTRAJ,TLine>;
+  using PKTRAJ = PKTraj<KTRAJ>;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   int icharge(-1);
@@ -94,7 +98,7 @@ int TPocaTest(int argc, char **argv) {
   Vec4 origin(0.0,0.0,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom);
+  KTRAJ ktraj(origin,momv,icharge,bnom);
   TFile tpfile((KTRAJ::trajName()+"TPoca.root").c_str(),"RECREATE");
   TCanvas* ttpcan = new TCanvas("ttpcan","DToca",1200,800);
   ttpcan->Divide(3,2);
@@ -102,7 +106,7 @@ int TPocaTest(int argc, char **argv) {
   dtpcan->Divide(3,2);
   std::vector<TGraph*> dtpoca, ttpoca;
   std::vector<double> pchange = {10,0.1,0.0001,10,0.01,0.1};
-  for(int ipar=0;ipar<lhel.npars_;ipar++){
+  for(int ipar=0;ipar<NParams();ipar++){
     typename KTRAJ::ParamIndex parindex = static_cast<typename KTRAJ::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(nstep*ntstep));
     string ts = KTRAJ::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
@@ -115,10 +119,10 @@ int TPocaTest(int argc, char **argv) {
     double time = tmin + itime*(tmax-tmin)/(ntstep-1);
     // create tline perp to trajectory at the specified time, separated by the specified gap
     Vec3 pos, dir;
-    pos = lhel.position(time);
-    dir = lhel.direction(time);
-    Vec3 perp1 = lhel.direction(time,LocalBasis::perpdir);
-    Vec3 perp2 = lhel.direction(time,LocalBasis::phidir);
+    pos = ktraj.position(time);
+    dir = ktraj.direction(time);
+    Vec3 perp1 = ktraj.direction(time,MomBasis::perpdir_);
+    Vec3 perp2 = ktraj.direction(time,MomBasis::phidir_);
     // choose a specific direction for DOCA
     // the line traj must be perp. to this and perp to the track
     Vec3 docadir = cos(eta)*perp1 + sin(eta)*perp2;
@@ -132,11 +136,25 @@ int TPocaTest(int argc, char **argv) {
     // create the TLine
     TLine tline(ppos, pvel,time,prange);
     // create TPoca from these
-    TPOCA tp(lhel,tline);
-  //  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+    TPocaHint tphint(time,time);
+    TPOCA tp(ktraj,tline,tphint);
+    // test: delta vector should be perpendicular to both trajs
+    Vec3 del = tp.delta().Vect();
+    auto pd = tp.particleDirection();
+    auto sd = tp.sensorDirection();
+    double dp = del.Dot(pd);
+    if(dp>1e-9) cout << "POCA delta not perpendicular to particle direction" << endl;
+    double ds = del.Dot(sd);
+    if(ds>1e-9) cout << "POCA delta not perpendicular to sensor direction" << endl;
+
+    // test against a piece-traj
+    PKTRAJ pktraj(ktraj);
+    PTPOCA ptp(pktraj,tline,tphint);
+    if(tp.status() != TPocaData::converged)cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+    if(ptp.status() != TPocaData::converged)cout << "PTPoca status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
     Vec3 thpos, tlpos;
-    thpos = tp.particleTraj().position(tp.particlePoca().T());
-    tlpos = tp.sensorTraj().position(tp.sensorPoca().T());
+    thpos = tp.particlePoca().Vect();
+    tlpos = tp.sensorPoca().Vect();
     double refd = tp.doca();
     double reft = tp.deltaT();
   //  cout << " Helix Pos " << pos << " TPoca KTRAJ pos " << thpos << " TPoca TLine pos " << tlpos << endl;
@@ -144,17 +162,17 @@ int TPocaTest(int argc, char **argv) {
   //  cout << "TPoca dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
     // test against numerical derivatives
     // range to change specific parameters; most are a few mm
-    for(int ipar=0;ipar<lhel.npars_;ipar++){
+    for(int ipar=0;ipar<NParams();ipar++){
       double dstep = pchange[ipar]/(nstep-1);
       double dstart = -0.5*pchange[ipar];
       for(unsigned istep=0;istep<nstep;istep++){
         // compute exact change in DOCA
-        auto dvec = lhel.params().parameters();
+        auto dvec = ktraj.params().parameters();
         double dpar = dstart + dstep*istep;
         dvec[ipar] += dpar;
-        typename KTRAJ::PDATA pdata(dvec,lhel.params().covariance());
-        KTRAJ dlhel(pdata,lhel);
-        TPOCA dtp(dlhel,tline);
+        PData pdata(dvec,ktraj.params().covariance());
+        KTRAJ dktraj(pdata,ktraj);
+        TPOCA dtp(dktraj,tline,tphint);
         double xd = dtp.doca();
         double xt = dtp.deltaT();
         // now derivatives
@@ -165,11 +183,11 @@ int TPocaTest(int argc, char **argv) {
       }
     }
   }
-  for(int ipar=0;ipar<lhel.npars_;ipar++){
+  for(int ipar=0;ipar<NParams();ipar++){
     dtpcan->cd(ipar+1);
     dtpoca[ipar]->Draw("A*");
   }
-  for(int ipar=0;ipar<lhel.npars_;ipar++){
+  for(int ipar=0;ipar<NParams();ipar++){
     ttpcan->cd(ipar+1);
     ttpoca[ipar]->Draw("A*");
   }

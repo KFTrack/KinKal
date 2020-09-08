@@ -11,7 +11,7 @@
 #include "KinKal/TRange.hh"
 #include "KinKal/PData.hh"
 #include "KinKal/StateVector.hh"
-#include "KinKal/LocalBasis.hh"
+#include "KinKal/MomBasis.hh"
 #include "KinKal/BField.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
@@ -28,11 +28,7 @@ namespace KinKal {
       // define the indices and names of the parameters
       enum ParamIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
       constexpr static ParamIndex t0Index() { return t0_; }
-      constexpr static size_t NParams() { return npars_; }
-      typedef PData<npars_> PDATA; // Data payload for this class
-      typedef typename PDATA::DVEC DVEC; // derivative of parameters type
-      typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
-      typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
+      
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -49,7 +45,7 @@ namespace KinKal {
       // copy payload and adjust for a different BField and range 
       IPHelix(IPHelix const& other, Vec3 const& bnom, double trot);
       // copy and override parameters
-      IPHelix(PDATA const &pdata, IPHelix const& other); 
+      IPHelix(PData const &pdata, IPHelix const& other); 
       // construct from the particle state at a given time, plus mass and charge
       IPHelix(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange()); // TODO
       // same, including covariance information
@@ -60,7 +56,7 @@ namespace KinKal {
       Vec3 position(double time) const; // time is input
       Mom4 momentum(double time) const;
       Vec3 velocity(double time) const;
-      Vec3 direction(double time, LocalBasis::LocDir mdir= LocalBasis::momdir) const;
+      Vec3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
       double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
       double momentumVar(double time) const  { return -1.0; }//TODO
@@ -76,14 +72,14 @@ namespace KinKal {
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
-      DVEC momDeriv(double time, LocalBasis::LocDir mdir) const;
+      DVEC momDeriv(double time, MomBasis::Direction mdir) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
 
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
-      PDATA const &params() const { return pars_; }
-      PDATA &params() { return pars_; }
+      PData const &params() const { return pars_; }
+      PData &params() { return pars_; }
       double d0() const { return paramVal(d0_); }
       double phi0() const { return paramVal(phi0_); }
       double omega() const { return paramVal(omega_); } // rotational velocity, sign set by magnetic force
@@ -137,7 +133,7 @@ namespace KinKal {
       //
     private :
       TRange trange_;
-      PDATA pars_; // parameters
+      PData pars_; // parameters
       double mass_;  // in units of MeV/c^2
       int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field

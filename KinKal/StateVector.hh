@@ -9,10 +9,10 @@
 #include <string>
 
 namespace KinKal {
-  typedef ROOT::Math::SVector<double,6> SVEC; // type for state vector payload
-  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepSym<double,6> > SMat;  // matrix type for state vector covariance
-  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6> > DSDP; // matrix for state derivatives WRT parameters and vice-versa
-  typedef ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6> > DPDS; // matrix for state derivatives WRT parameters and vice-versa
+  using SVEC = ROOT::Math::SVector<double,6>; // type for state vector payload
+  using SMat = ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepSym<double,6>>;  // matrix type for state vector covariance
+  using DSDP = ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6>>; // matrix for state derivatives WRT parameters and vice-versa
+  using DPDS = ROOT::Math::SMatrix<double,6,6,ROOT::Math::MatRepStd<double,6,6>>; // matrix for state derivatives WRT parameters and vice-versa
 
   class StateVector {
     public:

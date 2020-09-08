@@ -11,9 +11,8 @@ namespace KinKal {
 
   template <class KTRAJ> class PKTraj : public PTTraj<KTRAJ> {
     public:
-      typedef PTTraj<KTRAJ> PTTRAJ;
-      typedef typename KTRAJ::DVEC DVEC; // forward derivative type from the ktraj parameters
-      constexpr static size_t NParams() { return KTRAJ::NParams(); } // forward the parameter space dimension
+      using PTTRAJ = PTTraj<KTRAJ>;
+      
       // base class implementation
       // construct from an initial piece, which also provides kinematic information
       PKTraj(KTRAJ const& piece) : PTTRAJ(piece) {}

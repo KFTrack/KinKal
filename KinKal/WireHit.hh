@@ -1,13 +1,13 @@
 #ifndef KinKal_WireHit_hh
 #define KinKal_WireHit_hh
 //
-//  class representing a drift wire measurement.  Implemented using TPOCA between the particle traj and the wire
+//  class representing a drift wire measurement.  Implemented using PTPOCA between the particle traj and the wire
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/THit.hh"
 #include "KinKal/D2T.hh"
 #include "KinKal/TLine.hh"
-#include "KinKal/TPoca.hh"
+#include "KinKal/PTPoca.hh"
 #include "KinKal/LRAmbig.hh"
 #include "KinKal/BField.hh"
 #include <stdexcept>
@@ -21,17 +21,16 @@ namespace KinKal {
 
   template <class KTRAJ> class WireHit : public THit<KTRAJ> {
     public:
-      typedef THit<KTRAJ> THIT;
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef TPoca<PKTRAJ,TLine> TPOCA;
-      typedef Residual<KTRAJ::NParams()> RESIDUAL;
-      typedef DXing<KTRAJ> DXING;
-      typedef std::shared_ptr<DXING> DXINGPTR;
-      typedef typename KTRAJ::DVEC DVEC;
+      using THIT = THit<KTRAJ>;
+      using PKTRAJ = PKTraj<KTRAJ>;
+      using PTPOCA = PTPoca<KTRAJ,TLine>;
+      using DXING = DXing<KTRAJ>;
+      using DXINGPTR = std::shared_ptr<DXING>;
+      
       // THit interface overrrides
-      virtual void resid(PKTRAJ const& pktraj, RESIDUAL& resid) const override;
-      void resid(TPOCA const& tpoca, RESIDUAL& resid) const; // actual implementation of resid uses TPOCA
-      virtual void update(PKTRAJ const& pktraj, MConfig const& config, RESIDUAL& resid) override;
+      virtual void resid(PKTRAJ const& pktraj, Residual& resid) const override;
+      void resid(PTPOCA const& tpoca, Residual& resid) const; // actual implementation of resid uses PTPOCA
+      virtual void update(PKTRAJ const& pktraj, MIConfig const& config, Residual& resid) override;
       virtual unsigned nDOF() const override { return 1; }
       double cellSize() const { return csize_; } // approximate transverse cell size, used to set null variance
 // construct from a D2T relationship; BField is needed to compute ExB effects
@@ -53,18 +52,22 @@ namespace KinKal {
       BField const& bfield_;
   };
 
-  template <class KTRAJ> void WireHit<KTRAJ>::resid(PKTRAJ const& pktraj, RESIDUAL& residual) const {
-    // compute TPOCA.  wire hit measurement time is too crude to provide a good hint
-    TPOCA tpoca(pktraj,wire_);
+  template <class KTRAJ> void WireHit<KTRAJ>::resid(PKTRAJ const& pktraj, Residual& residual) const {
+    // compute PTPOCA.  Use the wire middle as hint
+    TPocaHint tphint(wire_.range().mid(),wire_.range().mid());
+    PTPOCA tpoca(pktraj,wire_,tphint);
     resid(tpoca,residual);
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig, RESIDUAL& residual ) {
-    // find TPOCA
-    TPOCA tpoca(pktraj,wire());
+  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj, MIConfig const& miconfig, Residual& residual ) {
+    // find PTPOCA, using previous residual as hint, or the wire itself if not
+    TPocaHint tphint(wire_.range().mid(),wire_.range().mid());
+    if(residual.tPoca().usable())
+      tphint = TPocaHint(residual.tPoca().particleToca(),residual.tPoca().sensorToca());
+    PTPOCA tpoca(pktraj,wire(),tphint);
     // find the wire hit updater in the update params.  If there are more than 1 throw 
     const WireHitUpdater* whupdater(0);
-    for(auto const& uparams : mconfig.hitupdaters_){
+    for(auto const& uparams : miconfig.hitupdaters_){
       auto const* whu = std::any_cast<WireHitUpdater>(&uparams);
       if(whu != 0){
 	if(whupdater !=0) throw std::invalid_argument("Multiple WireHitUpdaters found");
@@ -88,9 +91,9 @@ namespace KinKal {
     resid(tpoca,residual);
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::resid(TPOCA const& tpoca, RESIDUAL& resid) const {
+  template <class KTRAJ> void WireHit<KTRAJ>::resid(PTPOCA const& tpoca, Residual& resid) const {
     if(tpoca.usable()){
-      // translate TPOCA to residual
+      // translate PTPOCA to residual
       if(ambig_ != LRAmbig::null){ 
 	auto iambig = static_cast<std::underlying_type<LRAmbig>::type>(ambig_);
 	// convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
@@ -104,14 +107,14 @@ namespace KinKal {
 	d2T().distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
 	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
-	resid = RESIDUAL(RESIDUAL::dtime,tpoca,tpoca.deltaT()-tdrift,tdvar,dRdP);
+	resid = Residual(Residual::dtime,tpoca.tpData(),tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
 	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
 	// residual is in space, so unit dependendence on distance, none on time
-	resid = RESIDUAL(RESIDUAL::distance,tpoca,-tpoca.doca(),nullvar_,tpoca.dDdP());
+	resid = Residual(Residual::distance,tpoca.tpData(),-tpoca.doca(),nullvar_,tpoca.dDdP());
       }
     } else
-      throw std::runtime_error("POCA failure");
+      throw std::runtime_error("TPOCA failure");
   }
 
 }

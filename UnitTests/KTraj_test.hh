@@ -135,7 +135,7 @@ int test(int argc, char **argv) {
   double ttime;
   double tstp = lhel.range().range()/9;
   for(int istep=0;istep<10;istep++){
-    ttime = lhel.range().low() + istep*tstp;
+    ttime = lhel.range().begin() + istep*tstp;
     tvel = lhel.velocity(ttime);
     tdir = lhel.direction(ttime);
     testmom = lhel.momentum(ttime);
@@ -271,12 +271,12 @@ int test(int argc, char **argv) {
 // find TPoca
 //  TPoca<KTRAJ,TLine> tp(lhel,tline);
 //  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-//  if(tp.status() == TPocaBase::converged) {
+//  if(tp.status() == TPocaData::converged) {
 //    // draw the line and TPoca
 //    TPolyLine3D* line = new TPolyLine3D(2);
 //    Vec3 plow, phigh;
-//    tline.position(tline.range().low(),plow);
-//    tline.position(tline.range().high(),phigh);
+//    tline.position(tline.range().begin(),plow);
+//    tline.position(tline.range().end(),phigh);
 //    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
 //    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
 //    line->SetLineColor(kOrange);

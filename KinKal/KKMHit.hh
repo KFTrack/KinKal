@@ -13,25 +13,23 @@
 namespace KinKal {
   template <class KTRAJ> class KKMHit : public KKEff<KTRAJ> {
     public:
-      typedef KKEff<KTRAJ> KKEFF;
-      typedef KKHit<KTRAJ> KKHIT;
-      typedef KKMat<KTRAJ> KKMAT;
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef THit<KTRAJ> THIT;
-      typedef std::shared_ptr<THIT> THITPTR;
-      typedef typename KTRAJ::PDATA PDATA;
-      typedef KKData<PDATA::PDim()> KKDATA;
+      using KKEFF = KKEff<KTRAJ>;
+      using KKHIT = KKHit<KTRAJ>;
+      using KKMAT = KKMat<KTRAJ>;
+      using PKTRAJ = PKTraj<KTRAJ>;
+      using THIT = THit<KTRAJ>;
+      using THITPTR = std::shared_ptr<THIT>;
       KKMHit(KKHIT& kkhit, KKMAT& kkmat) : kkhit_(kkhit), kkmat_(kkmat) {}
       KKMHit(THITPTR const& thit, PKTRAJ const& reftraj);
       // override the interface
       virtual double time() const override { return kkhit_.time(); }
       virtual unsigned nDOF() const override { return kkhit_.nDOF(); }
       virtual bool isActive() const override { return kkhit_.isActive(); }
-      virtual void process(KKDATA& kkdata,TDir tdir) override;
+      virtual void process(KKData& kkdata,TDir tdir) override;
       virtual double fitChi() const override { return kkhit_.fitChi(); }
-      virtual double chisq(PDATA const& pdata) const override { return kkhit_.chisq(pdata); }
+      virtual double chisq(PData const& pdata) const override { return kkhit_.chisq(pdata); }
       virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MConfig const& mconfig) override;
+      virtual void update(PKTRAJ const& ref, MIConfig const& miconfig) override;
       virtual void append(PKTRAJ& fit) override { return kkmat_.append(fit); }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
@@ -43,9 +41,9 @@ namespace KinKal {
   };
 
   template <class KTRAJ> KKMHit<KTRAJ>::KKMHit(THITPTR const& thit, PKTRAJ const& pktraj) : kkhit_(thit,pktraj),
-    kkmat_(thit->detCrossing(), pktraj, thit->isActive()) { update(pktraj); }
+    kkmat_(thit->detXingPtr(), pktraj, thit->isActive()) { update(pktraj); }
 
-  template <class KTRAJ> void KKMHit<KTRAJ>::process(KKDATA& kkdata,TDir tdir) {
+  template <class KTRAJ> void KKMHit<KTRAJ>::process(KKData& kkdata,TDir tdir) {
     // process in a fixed order to make material caching work
     bool hitfirst = (tdir == TDir::forwards && kkhit_.time() < kkmat_.time()) ||
       (tdir == TDir::backwards && kkhit_.time() > kkmat_.time());
@@ -68,11 +66,11 @@ namespace KinKal {
     kkmat_.update(pktraj);
   }
   
-  template <class KTRAJ> void KKMHit<KTRAJ>::update(PKTRAJ const& pktraj, MConfig const& mconfig) {
+  template <class KTRAJ> void KKMHit<KTRAJ>::update(PKTRAJ const& pktraj, MIConfig const& miconfig) {
     KKEffBase::updateStatus();
-    kkhit_.update(pktraj,mconfig);
+    kkhit_.update(pktraj,miconfig);
     kkmat_.setTime(kkhit_.time());
-    kkmat_.update(pktraj,mconfig);
+    kkmat_.update(pktraj,miconfig);
   }
 
   template <class KTRAJ> void KKMHit<KTRAJ>::print(std::ostream& ost, int detail) const {
