@@ -4,28 +4,23 @@
 //  Describe the material effects of a kinematic trajectory crossing a straw
 //  Used in the kinematic Kalman fit
 //
-#include "KinKal/DXing.hh"
+#include "KinKal/DetectorXing.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/TLine.hh"
-#include "KinKal/PTPoca.hh"
+#include "KinKal/Line.hh"
+#include "KinKal/PieceClosestApproach.hh"
 
 namespace KinKal {
-  template <class KTRAJ> class StrawXing : public DXing<KTRAJ> {
+  template <class KTRAJ> class StrawXing : public DetectorXing<KTRAJ> {
     public:
-      using PKTRAJ = PKTraj<KTRAJ>;
-      using DXING = DXing<KTRAJ>;
-      using PTPOCA = PTPoca<KTRAJ,TLine>;
-
-      // construct from a trajectory and a time:
-      StrawXing(PKTRAJ const& pktraj,double xtime, StrawMat const& smat, TLine const& axis) : DXING(xtime), smat_(smat), axis_(axis) {
-	update(pktraj); } 
+      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using DXING = DetectorXing<KTRAJ>;
+      using PTPOCA = PieceClosestApproach<KTRAJ,Line>;
       // construct from PTPOCA (for use with hits)
       StrawXing(PTPOCA const& tpoca, StrawMat const& smat) : DXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
-      // DXing interface
-      virtual void update(PKTRAJ const& pktraj) override;
-      virtual void update(PKTRAJ const& pktraj, double xtime) override;
+      // DetectorXing interface
+      virtual void update(PKTRAJ const& pktraj,double precision) override;
       // specific interface: this xing is based on PTPOCA
       void update(PTPOCA const& tpoca);
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -33,7 +28,7 @@ namespace KinKal {
       StrawMat const& strawMat() const { return smat_; }
     private:
       StrawMat const& smat_;
-      TLine axis_; // straw axis, expressed as a timeline
+      Line axis_; // straw axis, expressed as a timeline
   };
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PTPOCA const& tpoca) {
@@ -45,16 +40,10 @@ namespace KinKal {
       throw std::runtime_error("POCA failure");
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj, double xtime) {
-  // update the time to use the current estimate
-    DXING::xtime_ = xtime;
-    update(pktraj);
-  }
-
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,double precision) {
     // use current xing time create a hint to the POCA calculation: this speeds it up
-    TPocaHint tphint(DXING::xtime_, DXING::xtime_);
-    PTPOCA tpoca(pktraj,axis_,tphint);
+    CAHint tphint(DXING::xtime_, DXING::xtime_);
+    PTPOCA tpoca(pktraj,axis_,tphint,precision);
     update(tpoca);
   }
 

@@ -1,7 +1,7 @@
 // 
 // test derivatives of Traj class
 //
-#include "KinKal/TPoca.hh"
+#include "KinKal/ClosestApproach.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -97,19 +97,19 @@ int test(int argc, char **argv) {
     }
   }
   // construct original helix from parameters
-  Vec3 bnom(0.0,By,1.0);
-  Vec4 origin(0.0,0.0,oz,ot);
+  VEC3 bnom(0.0,By,1.0);
+  VEC4 origin(0.0,0.0,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   // reference helix
   pmass = masses[imass];
-  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
+  MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ refhel(origin,momv,icharge,bnom);
   //cout << "Reference " << refhel << endl;
-  Vec4 refpos4;
+  VEC4 refpos4;
   refpos4.SetE(ttest);
   refhel.position(refpos4);
   //  cout << "origin position " << origin << " test position " << refpos4 << endl;
-  Mom4 refmom = refhel.momentum(ttest);
+  MOM4 refmom = refhel.momentum(ttest);
   int ndel(50);
   // graphs to compare parameter change
   std::vector<TGraph*> pgraphs[3];
@@ -150,31 +150,31 @@ int test(int argc, char **argv) {
       double dval = dmin + del*id;
 //      cout << "Delta = " << dval << endl;
       // compute 1st order change in parameters
-      Vec3 dmomdir = refhel.direction(ttest,tdir);
+      VEC3 dmomdir = refhel.direction(ttest,tdir);
       //  compute exact altered params
-      Vec3 newmom = refmom.Vect() + dval*dmomdir*mom;
-      Mom4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
+      VEC3 newmom = refmom.Vect() + dval*dmomdir*mom;
+      MOM4 momv(newmom.X(),newmom.Y(),newmom.Z(),pmass);
       KTRAJ xhel(refpos4,momv,icharge,bnom);
 //      cout << "derivative vector" << pder << endl;
       DVEC dvec = refhel.params().parameters() + dval*pder;
-      PData pdata(dvec,refhel.params().covariance());
+      Parameters pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
       // test
-      Vec4 xpos, dpos;
+      VEC4 xpos, dpos;
       xpos.SetE(ttest);
       dpos.SetE(ttest);
       xhel.position(xpos);
       dhel.position(dpos);
 //      cout << " exa pos " << xpos << endl
 //      << " del pos " << dpos << endl;
-      Mom4 dmom = dhel.momentum(ttest);
+      MOM4 dmom = dhel.momentum(ttest);
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
-      Vec4 gap = dpos - refpos4;
+      VEC4 gap = dpos - refpos4;
       // project along 3 directions
       for(int jdir=0;jdir < 3;jdir++){
 	MomBasis::Direction tjdir =static_cast<MomBasis::Direction>(jdir);
-	Vec3 jmomdir = refhel.direction(ttest,tjdir);
+	VEC3 jmomdir = refhel.direction(ttest,tjdir);
 	gapgraph[idir][jdir]->SetPoint(id,dval,gap.Vect().Dot(jmomdir));
       }
       // parameter diff
@@ -183,8 +183,8 @@ int test(int argc, char **argv) {
       }
       // compare momenta after change
       //
-      Vec3 dxmom = momv.Vect() - refmom.Vect();
-      Vec3 ddmom = dmom.Vect() - refmom.Vect();
+      VEC3 dxmom = momv.Vect() - refmom.Vect();
+      VEC3 ddmom = dmom.Vect() - refmom.Vect();
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
     }
     char gtitle[80];
@@ -201,7 +201,7 @@ int test(int argc, char **argv) {
 	pline->SetParameters(0.0,1.0);
 	TFitResultPtr pfitr = pgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
 	pgraphs[idir][ipar]->Draw("AC*");
-	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta){
+	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
 	  cout << "Parameter " 
 	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	    << " in direction " << MomBasis::directionName(tdir)
@@ -277,10 +277,10 @@ int test(int argc, char **argv) {
     }
   }
 
-// test changes due to BField
+// test changes due to BFieldMap
   TCanvas* dbcan[3]; // 3 directions
   std::vector<TGraph*> bpgraphs[3];
-  std::array<Vec3,3> basis = {Vec3(1.0,0.0,0.0), Vec3(0.0,1.0,0.0), Vec3(0.0,0.0,1.0) };
+  std::array<VEC3,3> basis = {VEC3(1.0,0.0,0.0), VEC3(0.0,1.0,0.0), VEC3(0.0,0.0,1.0) };
   std::array<std::string,3> anames = {"X", "Y", "Z"};
   // gaps
   TGraph* bgapgraph[3];
@@ -298,12 +298,12 @@ int test(int argc, char **argv) {
     for(int id=0;id<ndel;++id){
       // construct exact helix for this field and the corresponding exact parameter change
       double dval = dmin + del*id;
-      Vec3 bf = bnom + basis[idir]*dval;
+      VEC3 bf = bnom + basis[idir]*dval;
       auto state = refhel.measurementState(ttest);
       // exact traj given the full state
       KTRAJ newbfhel(state,ttest,refhel.mass(),refhel.charge(),bf);
       auto newstate = newbfhel.measurementState(ttest);
-      for(size_t ipar=0;ipar < StateVector::dimension(); ipar++){
+      for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
 	if(fabs(state.stateVector().state()[ipar] - newstate.stateVector().state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "
 	  << state.stateVector().state()[ipar] << " rotated " << newstate.stateVector().state()[ipar]  << endl;
       }
@@ -319,7 +319,7 @@ int test(int argc, char **argv) {
     char gtitle[80];
     char gname[80];
     snprintf(gname,80,"db%s",anames[idir].c_str());
-    snprintf(gtitle,80,"BField Change %s",anames[idir].c_str());
+    snprintf(gtitle,80,"BFieldMap Change %s",anames[idir].c_str());
     dbcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dbcan[idir]->Divide(3,2);
     for(size_t ipar = 0; ipar < NParams(); ipar++){
@@ -341,7 +341,7 @@ int test(int argc, char **argv) {
 
   lhderiv.Write();
   lhderiv.Close();
-  cout << "Returning status " << status << endl;
+  cout << "Return status = " << status << endl;  
   return status;
 }
 

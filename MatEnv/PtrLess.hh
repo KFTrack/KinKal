@@ -41,16 +41,7 @@ namespace babar {
       }
     };
     
-    struct DeleteArray{
-      
-      // Sun does not like typename, have to use class
-      // template< typename T >
-      template< class T >
-      void operator()(const T array[]) const {
-	delete[] array;
-      }
-    };
-    
+   
     /**
      *  Determines the offset of the first occurrence of a specified
      *  value in a container.  This is _not_ an STL-ish way to work;

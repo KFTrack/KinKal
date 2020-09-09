@@ -47,14 +47,14 @@ namespace KinKal {
     return retval;
   }
 
-  void StrawMat::findXings(double doca, double ddoca, double adot, std::vector<MatXing>& mxings) const {
+  void StrawMat::findXings(double doca, double ddoca, double adot, std::vector<MaterialXing>& mxings) const {
     mxings.clear();
     double wpath = wallPath(doca,ddoca,adot);
-    if(wpath > 0.0) mxings.push_back(MatXing(*wallmat_,wpath));
+    if(wpath > 0.0) mxings.push_back(MaterialXing(*wallmat_,wpath));
     double gpath = gasPath(doca,ddoca,adot);
-    if(gpath > 0.0) mxings.push_back(MatXing(*gasmat_,gpath));
+    if(gpath > 0.0) mxings.push_back(MaterialXing(*gasmat_,gpath));
 // for now, ignore the wire: this should be based on the probability that the wire was hit given doca and ddoca FIXME!
-    if(wrad_<0.0) mxings.push_back(MatXing(*wiremat_,0.0));
+    if(wrad_<0.0) mxings.push_back(MaterialXing(*wiremat_,0.0));
   }
 
 }

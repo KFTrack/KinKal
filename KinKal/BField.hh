@@ -1,69 +1,125 @@
 #ifndef KinKal_BField_hh
 #define KinKal_BField_hh
-// class defining a BField Map interface for use in KinKal.
-#include "KinKal/Vectors.hh"
-#include "KinKal/TRange.hh"
-#include "CLHEP/Units/PhysicalConstants.h"
-#include "Math/SMatrix.h"
-#include <vector>
-#include <algorithm>
-#include <cstdarg>
-#include <cmath>
+//
+// Class to correct for BFieldMap inhomogenity; adjust the parameters for the BFieldMap and momentum change
+// The effect is located at a domain boundary
+// This effect adds no information content or noise (presently), just transports the parameters 
+//
+#include "KinKal/Effect.hh"
+#include "KinKal/TimeDir.hh"
+#include "KinKal/BFieldMap.hh"
+#include "KinKal/BFieldUtils.hh"
+#include <iostream>
+#include <stdexcept>
+#include <array>
+#include <ostream>
 
 namespace KinKal {
-  class BField {
+  template<class KTRAJ> class BField : public Effect<KTRAJ> {
     public:
-      using Grad = ROOT::Math::SMatrix<double,3>; // field gradient: ie dBi/d(x,y,z)
-      // return value of the field at a point
-      virtual Vec3 fieldVect(Vec3 const& position) const = 0; 
-      // return BField gradient = dB_i/dx_j, at a given point
-      virtual Grad fieldGrad(Vec3 const& position) const = 0;
-      // return the BField derivative at a given point along a given velocity, WRT time
-      virtual Vec3 fieldDeriv(Vec3 const& position, Vec3 const& velocity) const = 0;
+      using KKEFF = Effect<KTRAJ>;
+      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      
+      virtual double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
+      virtual bool isActive() const override { return active_ && bfcorr_ != Config::nocorr; }
+      virtual void update(PKTRAJ const& ref) override;
+      virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
+      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      virtual void process(FitData& kkdata,TimeDir tdir) override;
+      virtual void append(PKTRAJ& fit) override;
+      DVEC const& effect() const { return dbeff_; }
       virtual ~BField(){}
+      // create from the domain range, the effect, and the
+      BField(BFieldMap const& bfield, PKTRAJ const& pktraj,TimeRange const& drange,Config::BFCorr bfcorr) : 
+	bfield_(bfield), drange_(drange), active_(false), bfcorr_(bfcorr) {} // not active until updated
+	// accessors
+	VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
+	TimeRange const& range() const { return drange_; }
+
+    private:
+      BFieldMap const& bfield_; // bfield
+      SVEC3 dp_; // change in momentum due to BFieldMap approximation
+      TimeRange drange_; // extent of this effect.  The middle is at the transition point between 2 bfield domains (domain transition)
+      DVEC dbint_; // integral effect of using bnom vs the full field over this effects range 
+      Parameters dbeff_; // aggregate effect in parameter space of BFieldMap change, including BNom change
+      bool active_; // activity state
+      Config::BFCorr bfcorr_; // type of BFieldMap map correction to apply
   };
 
-  // trivial instance of the above, used for testing
-  class UniformBField : public BField {
-    public:
-      virtual Vec3 fieldVect(Vec3 const& position) const override { return fvec_; }
-      virtual Grad fieldGrad(Vec3 const& position) const override { return Grad(); }
-      virtual Vec3 fieldDeriv(Vec3 const& position, Vec3 const& velocity) const override { return Vec3(); }
-      UniformBField(Vec3 const& bnom) : fvec_(bnom) {}
-      UniformBField(double BZ) : UniformBField(Vec3(0.0,0.0,BZ)) {}
-      virtual ~UniformBField(){}
-    private:
-      Vec3 fvec_; // constant field
-  };
+  template<class KTRAJ> void BField<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+    if(active_){
+      // forwards; just append the effect's parameter change
+      if(tdir == TimeDir::forwards) {
+	kkdata.append(dbeff_);
+      } else {
+	// SUBTRACT the effect going backwards: covariance change is sign-independent
+	Parameters reverse(dbeff_);
+	reverse.parameters() *= -1.0;
+      	kkdata.append(reverse);
+      }
+    }
+    KKEFF::setStatus(tdir,KKEFF::processed);
+  }
 
-// use superposition to create a composite field
-  class CompositeBField : public BField {
-    public:
-      virtual Vec3 fieldVect(Vec3 const& position) const override;
-      virtual Grad fieldGrad(Vec3 const& position) const override;
-      virtual Vec3 fieldDeriv(Vec3 const& position, Vec3 const& velocity) const override;
-      CompositeBField () {}
-      CompositeBField(int fcount, ...);
-      void addField(BField const& field) { fields_.push_back(&field); }
-      virtual ~CompositeBField() {}
-    private:
-      std::vector<const BField*> fields_; // fields
-  };
+  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref) {
+    double etime = this->time();
+    auto const& midtraj = ref.nearestPiece(etime);
+    // compute parameter change due to integral of difference in BFieldMap vs BNom
+    dbint_ = midtraj.dPardM(etime)*dp_;
+    dbeff_.parameters() = dbint_;
+    // add in the effect of changing BNom across this domain transition to parameters 
+    if(bfcorr_ == Config::variable){
+      auto const& begtraj = ref.nearestPiece(drange_.begin());
+      auto const& endtraj = ref.nearestPiece(drange_.end());
+      dbeff_.parameters() += begtraj.dPardB(etime,endtraj.bnom()); // check sign FIXME!
+    }
+    // eventually include field map uncertainties in dbeff_ covariance TODO!
+    KKEFF::updateStatus();
+  }
 
-  // simple Z gradient field, used to test Field corrections
-  class GradBField : public BField {
-    public:
-      GradBField(double b0, double b1, double zg0, double zg1);
-      virtual Vec3 fieldVect(Vec3 const& position) const override;
-      virtual Grad fieldGrad(Vec3 const& position) const override { return fgrad_; }
-      virtual Vec3 fieldDeriv(Vec3 const& position, Vec3 const& velocity) const override;
-      virtual ~GradBField(){}
-    private:
-      double b0_, b1_;
-      double z0_; 
-      double grad_; // gradient in tesla/mm, computed from the fvec values
-      Grad fgrad_;
-  };
+  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
+    if(miconfig.updatebfcorr_){
+      active_ = true;
+      // integrate the fractional momentum change WRT this reference trajectory
+      VEC3 dp =  BFieldUtils::integrate(bfield_, ref, drange_);
+      dp_ = SVEC3(dp.X(),dp.Y(),dp.Z()); //translate to SVec; this should be supported by SVector and GenVector
+      //      std::cout << "Updating iteration " << miconfig.miter_ << " dP " << dp << std::endl;
+    }
+    update(ref);
+  }
+
+  template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& fit) {
+    if(active_){
+      // make sure the piece is appendable
+      if(fit.back().range().begin() > drange_.end()) throw std::invalid_argument("BField: Can't append piece");
+      // adjust time if necessary
+      double time = this->time()+ 1.0e-5; // slight buffer to make local piece selection more consistent
+      double tlow = std::max(time,fit.back().range().begin() + 1.0e-5);
+      TimeRange newrange(tlow,fit.range().end());
+      KTRAJ newpiece(fit.back());
+      newpiece.range() = newrange;
+      // if we are using variable BFieldMap, update the parameters accordingly
+      if(bfcorr_ == Config::variable){
+	VEC3 newbnom = bfield_.fieldVect(fit.position(drange_.end()));
+	newpiece.setBNom(time,newbnom);
+      }
+      // adjust for the residual parameter change due to difference in bnom
+      // don't double-count the effect due to bnom change; here we want just
+      // the effect of the approximation of (piecewise) bnom vs the full field
+      newpiece.params().parameters() += dbint_;
+      fit.append(newpiece);
+    }
+  }
+
+  template<class KTRAJ> void BField<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "BField " << static_cast<Effect<KTRAJ>const&>(*this);
+    ost << " dP " << dp_ << " effect " << dbeff_.parameters() << " domain range " << drange_ << std::endl;
+  }
+
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, BField<KTRAJ> const& kkmat) {
+    kkmat.print(ost,0);
+    return ost;
+  }
 
 }
 #endif
