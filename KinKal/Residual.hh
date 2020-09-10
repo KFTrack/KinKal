@@ -3,7 +3,7 @@
 //
 //  A Residual describes the 1-dimensional tension between an individual sensor measurement and a prediction of a particle trajectory
 //  It does not have fixed units, but must have consistent units between value, variance and derivatives.
-//  It is based on the concept of TPOCA (time point of closest approach) between a measurement and a prediction
+//  It is based on the concept of TCA (time point of closest approach) between a measurement and a prediction
 //  The residual value may depend on any aspect of the measurement, reduced to a single dimension.
 //  used as part of the kinematic kalman fit
 //
@@ -41,7 +41,7 @@ namespace KinKal {
       Residual() : dim_(unknown), value_(0.0), var_(-1.0) {}
     private:
       rdim dim_; // dimension of this residual
-      ClosestApproachData tpoca_; // TPOCA payload associated with this residual
+      ClosestApproachData tpoca_; // TCA payload associated with this residual
       double value_;  // value for this residual
       double var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
       DVEC dRdP_; // derivative of this residual WRT the reference parameters

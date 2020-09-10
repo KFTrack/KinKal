@@ -11,7 +11,7 @@
 #include <ostream>
 
 namespace KinKal {
-  // Hint class for TPOCA calculation. TPOCA search will start at these TOCA values.  This allows to
+  // Hint class for TCA calculation. TCA search will start at these TOCA values.  This allows to
   // disambiguate cases with multiple solutions (like looping trajectories), or to speed up calculations when an
   // approximate answer is already known.
   struct CAHint{
@@ -22,11 +22,11 @@ namespace KinKal {
   // Templated on the types of trajectories. The actual implementations must be specializations for particular trajectory classes.
   template<class KTRAJ, class STRAJ> class ClosestApproach {
     public:
-      // construct from the particle and sensor trajectories; TPOCA is computed on construction, given a hint as to where
+      // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
       // default precision = ~3um along the particle trajectory (assuming speed of light)
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
-      // construct without a hint: TPOCA isn't calculated, state is invalid
+      // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ptraj, STRAJ const& straj, double precision);
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
@@ -54,11 +54,11 @@ namespace KinKal {
       VEC4 delta() const { return tpdata_.delta(); }
       VEC3 const& particleDirection() const { return tpdata_.particleDirection(); }
       VEC3 const& sensorDirection() const { return tpdata_.sensorDirection(); }
-      // calculate POCA given the hint, and fill the state
-      void findTPOCA(CAHint const& hint);
+      // calculate CA given the hint, and fill the state
+      void findTCA(CAHint const& hint);
     private:
       double precision_; // precision used to define convergence
-      ClosestApproachData tpdata_; // data payload of POCA calculation
+      ClosestApproachData tpdata_; // data payload of CA calculation
       KTRAJ const& ktraj_; // kinematic particle trajectory
       STRAJ const& straj_; // sensor trajectory
       // consider moving the followinginto ClosestApproachData TODO
@@ -71,10 +71,10 @@ namespace KinKal {
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
   double prec) : ClosestApproach(ktraj,straj,prec) {
-    findTPOCA(hint);
+    findTCA(hint);
   }
 
-  template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::findTPOCA(CAHint const& hint) {
+  template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::findTCA(CAHint const& hint) {
     // reset status
     tpdata_.reset();
     // initialize TOCA using hints
@@ -129,7 +129,7 @@ namespace KinKal {
       VEC3 dvec = delta().Vect();
       // check
 //      if(fabs(dvec.Dot(particleDirection())) > 1e-4 ||
-//	  fabs(dvec.Dot(sensorDirection())) > 1e-4 ) std::cout << "Error in POCA calculation" 
+//	  fabs(dvec.Dot(sensorDirection())) > 1e-4 ) std::cout << "Error in CA calculation" 
 //	  << dvec.Dot(particleDirection())
 //	  << std::endl;
       double lsign = sensorDirection().Cross(particleDirection()).Dot(dvec);
@@ -137,11 +137,11 @@ namespace KinKal {
       tpdata_.doca_ = dvec.R()*dsign;
       VEC3 dvechat = (dsign*dvec).Unit();
       // now variances due to the particle trajectory parameter covariance
-      // for DOCA, project the spatial position derivative along the delta-POCA direction
+      // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktraj_.dXdPar(particleToca());
       SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
       dDdP_ = -dv*dxdp;
-//      if(fabs(dDdP_[KTRAJ::t0Index()]) > 1e-4) std::cout << "Error in t0 TPOCA derivative " << dDdP_[KTRAJ::t0Index()] << std::endl;
+//      if(fabs(dDdP_[KTRAJ::t0Index()]) > 1e-4) std::cout << "Error in t0 TCA derivative " << dDdP_[KTRAJ::t0Index()] << std::endl;
       dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.
       // project the parameter covariance onto DOCA and TOCA
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktraj_.params().covariance());

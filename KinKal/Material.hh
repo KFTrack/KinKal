@@ -26,7 +26,6 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual void process(FitData& kkdata,TimeDir tdir) override;
       virtual void append(PKTRAJ& fit) override;
-      void setTime(double time) { dxing_->crossingTime() = time; } // allow MaterialHit to set the time (from the Hit)
       virtual ~Material(){}
       // create from the material and a trajectory 
       Material(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);
@@ -92,11 +91,14 @@ namespace KinKal {
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       dxing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
+      // get the parameter derivative WRT momentum
+      DPDV dPdM = ref_.dPardM(time());
+      double mommag = ref_.momentumMag(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
 	auto mdir = static_cast<MomBasis::Direction>(idir);
-	// get the derivatives of the parameters WRT material effects
-	// should call dPardM directly once and then project FIXME!
-	DVEC pder = ref_.momDeriv(time(), mdir);
+	auto dir = ref_.direction(time(),mdir);
+	// project the momentum derivatives onto this direction
+	DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
 	// convert derivative vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,NParams(),1> dPdm;
 	dPdm.Place_in_col(pder,0,0);

@@ -46,9 +46,9 @@ namespace KinKal {
       // copy and override parameters
       CentralHelix(Parameters const &pdata, CentralHelix const& other); 
       // construct from the particle state at a given time, plus mass and charge
-      CentralHelix(ParticleState const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); // TODO
+      CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); // TODO
       // same, including covariance information
-      CentralHelix(ParticleStateMeasurement const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
+      CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
       // particle position and momentum as a function of time
       void position(VEC4& pos) const; // time is input
       VEC4 pos4(double time) const;

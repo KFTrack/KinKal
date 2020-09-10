@@ -31,6 +31,11 @@ namespace KinKal {
 	tdata_ -= other.tdata_;
 	return *this;
       }
+      Weights & operator *=(double scale){
+	tdata_.vec() *= scale;
+	tdata_.mat() *= scale;
+	return *this;
+      }
       void print(std::ostream& ost=std::cout,int detail=0) const {
 	ost << "Weights wVec " << weightVec() << std::endl;
 	if(detail > 1)

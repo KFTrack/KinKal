@@ -38,7 +38,7 @@ namespace KinKal {
   };
 
   struct Config {
-    enum printLevel{none=0, minimal, basic, complete, detailed, extreme};
+    enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     enum BFCorr {nocorr=0, fixed, variable };
     typedef std::vector<MetaIterConfig> MetaIterConfigCol;
     Config(BFieldMap const& bfield,std::vector<MetaIterConfig>const& schedule) : Config(bfield) { schedule_ = schedule; }

@@ -1,7 +1,7 @@
 #ifndef KinKal_ClosestApproachData_hh
 #define KinKal_ClosestApproachData_hh
 //
-// data payload for POCA calculations
+// data payload for CA calculations
 //
 #include "KinKal/Vectors.hh"
 #include <string>
@@ -31,8 +31,8 @@ namespace KinKal {
     ClosestApproachData() : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0)  {}
     TPStat status_; // status of computation
     double doca_, docavar_, tocavar_;
-    VEC3 pdir_, sdir_; // particle and sensor directions at POCA, signed by time propagation
-    VEC4 partPoca_, sensPoca_; //POCA for particle and sensor
+    VEC3 pdir_, sdir_; // particle and sensor directions at CA, signed by time propagation
+    VEC4 partPoca_, sensPoca_; //CA for particle and sensor
     void reset() {status_ = unconverged;}
     static std::vector<std::string> statusNames_;
   };

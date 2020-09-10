@@ -111,16 +111,14 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  CentralHelix::CentralHelix(ParticleState const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range) :
-    CentralHelix(VEC4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
-	MOM4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
-	charge,bnom,range) 
+  CentralHelix::CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+    CentralHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
   {}
 
-  CentralHelix::CentralHelix(ParticleStateMeasurement const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range) :
-  CentralHelix(pstate.stateVector(),time,mass,charge,bnom,range) {
+  CentralHelix::CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+  CentralHelix(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    DPDS dpds = dPardState(time);
+    DPDS dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 

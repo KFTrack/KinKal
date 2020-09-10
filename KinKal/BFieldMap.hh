@@ -21,6 +21,10 @@ namespace KinKal {
       // return the BFieldMap derivative at a given point along a given velocity, WRT time
       virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const = 0;
       virtual ~BFieldMap(){}
+      BFieldMap(){}
+      // disallow copy and equivalence
+      BFieldMap(BFieldMap const& ) = delete; 
+      BFieldMap& operator =(BFieldMap const& ) = delete; 
   };
 
   // trivial instance of the above, used for testing
@@ -32,6 +36,9 @@ namespace KinKal {
       UniformBFieldMap(VEC3 const& bnom) : fvec_(bnom) {}
       UniformBFieldMap(double BZ) : UniformBFieldMap(VEC3(0.0,0.0,BZ)) {}
       virtual ~UniformBFieldMap(){}
+      // disallow copy and equivalence
+      UniformBFieldMap(UniformBFieldMap const& ) = delete; 
+      UniformBFieldMap& operator =(UniformBFieldMap const& ) = delete; 
     private:
       VEC3 fvec_; // constant field
   };
@@ -47,6 +54,10 @@ namespace KinKal {
       CompositeBFieldMap(FCOL const& fields) : fields_(fields) {}
       void addField(BFieldMap const& field) { fields_.push_back(&field); }
       virtual ~CompositeBFieldMap() {}
+      // disallow copy and equivalence
+      CompositeBFieldMap(CompositeBFieldMap const& ) = delete; 
+      CompositeBFieldMap& operator =(CompositeBFieldMap const& ) = delete; 
+
     private:
       FCOL fields_; // fields
   };
@@ -59,6 +70,9 @@ namespace KinKal {
       virtual Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
       virtual ~GradBFieldMap(){}
+      // disallow copy and equivalence
+      GradBFieldMap(GradBFieldMap const& ) = delete; 
+      GradBFieldMap& operator =(GradBFieldMap const& ) = delete; 
     private:
       double b0_, b1_;
       double z0_; 

@@ -46,12 +46,12 @@ void print_usage() {
 template <class KTRAJ>
 int BFieldMapTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using THIT = DetectorHit<KTRAJ>;
-  using THITPTR = std::shared_ptr<THIT>;
+  using DHIT = DetectorHit<KTRAJ>;
+  using DHITPTR = std::shared_ptr<DHIT>;
   using DXING = DetectorXing<KTRAJ>;
   using DXINGPTR = std::shared_ptr<DXING>;
   using DXINGCOL = std::vector<DXINGPTR>;
-  using THITCOL = std::vector<THITPTR>;
+  using DHITCOL = std::vector<DHITPTR>;
   double mom(105.0);
   int icharge(-1);
   int iseed(124223);
@@ -107,7 +107,7 @@ int BFieldMapTest(int argc, char **argv) {
     // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
   PKTRAJ tptraj;
-  THITCOL thits;
+  DHITCOL thits;
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,

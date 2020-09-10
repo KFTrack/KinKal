@@ -14,7 +14,7 @@
 #include "KinKal/BFieldMap.hh"
 #include "KinKal/BFieldUtils.hh"
 #include "KinKal/Vectors.hh"
-#include "KinKal/DistanceToTime.hh"
+#include "KinKal/WireCell.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 namespace KKTest {
@@ -22,9 +22,9 @@ namespace KKTest {
   template <class KTRAJ> class ToyMC {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using THIT = DetectorHit<KTRAJ>;
-      using THITPTR = std::shared_ptr<THIT>;
-      using THITCOL = std::vector<THITPTR>;
+      using DHIT = DetectorHit<KTRAJ>;
+      using DHITPTR = std::shared_ptr<DHIT>;
+      using DHITCOL = std::vector<DHITPTR>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
       using DXINGCOL = std::vector<DXINGPTR>;
@@ -34,7 +34,7 @@ namespace KKTest {
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
-      using PTPOCA = PieceClosestApproach<KTRAJ,Line>;
+      using PTCA = PieceClosestApproach<KTRAJ,Line>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) : 
 	bfield_(bfield), mom_(mom), icharge_(icharge),
@@ -44,7 +44,7 @@ namespace KKTest {
 	momvar_(1.0), ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(0.01), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_),
-	d2t_(sdrift_,sigt_*sigt_,rstraw_) {}
+	cell_(sdrift_,sigt_*sigt_,rstraw_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PKTRAJ const& traj, double htime);
@@ -52,8 +52,8 @@ namespace KKTest {
       void createSeed(KTRAJ& seed);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
-      void createScintHit(PKTRAJ const& pktraj, THITCOL& thits);
-      void simulateParticle(PKTRAJ& pktraj,THITCOL& thits, DXINGCOL& dxings);
+      void createScintHit(PKTRAJ const& pktraj, DHITCOL& thits);
+      void simulateParticle(PKTRAJ& pktraj,DHITCOL& thits, DXINGCOL& dxings);
       double createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
       // set functions, for special purposes
       void setSeedVar(double momvar) { momvar_ = momvar; }
@@ -87,9 +87,9 @@ namespace KKTest {
       double osig_, ctmin_, ctmax_;
       double tbuff_;
       double tol_; // tolerance on spatial accuracy for 
-      double tprec_; // time precision on TPOCA
+      double tprec_; // time precision on TCA
       StrawMat smat_; // straw material
-      CVDistanceToTime d2t_;
+      SimpleCell cell_;
   };
 
   template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PKTRAJ const& traj, double htime) {
@@ -118,7 +118,7 @@ namespace KKTest {
     return Line(mpos,vprop,tmeas,trange);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,THITCOL& thits, DXINGCOL& dxings) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,DHITCOL& thits, DXINGCOL& dxings) {
     // create the seed first
     createTraj(pktraj);
     // divide time range
@@ -133,13 +133,13 @@ namespace KKTest {
       // create the hit at this time
       auto tline = generateStraw(pktraj,htime);
       CAHint tphint(htime,htime);
-      PTPOCA tp(pktraj,tline,tphint,tprec_);
+      PTCA tp(pktraj,tline,tphint,tprec_);
       LRAmbig ambig(LRAmbig::null);
       if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
       // construct the hit from this trajectory
       auto sxing = std::make_shared<STRAWXING>(tp,smat_);
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<STRAWHIT>(bfield_, tline, d2t_,sxing,ambig));
+	thits.push_back(std::make_shared<STRAWHIT>(bfield_, tline, cell_,sxing,ambig));
       } else {
 	dxings.push_back(sxing);
       }
@@ -195,7 +195,7 @@ namespace KKTest {
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, THITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, DHITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
     VEC3 shmpos, hend, lmeas;
@@ -225,8 +225,8 @@ namespace KKTest {
     //    Residual lres;
     //    thits.back()->resid(pktraj,lres);
     //    cout << "ScintHit " << lres << endl;
-    //    PTPOCA tpl(pktraj,lline);
-    //    cout <<"Light PTPOCA ";
+    //    PTCA tpl(pktraj,lline);
+    //    cout <<"Light PTCA ";
     //    tpl.print(cout,2);
   }
 

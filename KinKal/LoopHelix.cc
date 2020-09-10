@@ -48,7 +48,7 @@ namespace KinKal {
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
     double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
     // reduced mass; note sign convention!
-    mbar_ = -mass_*momToRad;
+    mbar_ = -mass()*momToRad;
     // transverse radius of the helix
     param(rad_) = -pt*momToRad;
     // longitudinal wavelength
@@ -94,16 +94,14 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  LoopHelix::LoopHelix(ParticleState const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range) :
-    LoopHelix(VEC4(pstate.position().X(),pstate.position().Y(),pstate.position().Z(),time),
-	MOM4(pstate.momentum().X(),pstate.momentum().Y(),pstate.momentum().Z(),mass),
-	charge,bnom,range) 
+  LoopHelix::LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+    LoopHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
   {}
 
-  LoopHelix::LoopHelix(ParticleStateMeasurement const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix(pstate.stateVector(),time,mass,charge,bnom,range) {
+  LoopHelix::LoopHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+  LoopHelix(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    DPDS dpds = dPardState(time);
+    DPDS dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
@@ -131,8 +129,8 @@ namespace KinKal {
 
   MOM4 LoopHelix::momentum(double time) const{
     VEC3 dir = direction(time);
-    double bgm = betaGamma()*mass_;
-    return MOM4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
+    double bgm = betaGamma()*mass();
+    return MOM4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass());
   }
 
   VEC3 LoopHelix::velocity(double time) const{
@@ -155,7 +153,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::localMomentum(double time) const{
-    return betaGamma()*mass_*localDirection(time);
+    return betaGamma()*mass()*localDirection(time);
   }
 
   VEC3 LoopHelix::localPosition(double time) const {
@@ -261,7 +259,7 @@ namespace KinKal {
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
-    ParticleState dstate(dx,dm);
+    ParticleState dstate(dx,dm,time,mass());
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;
@@ -358,7 +356,7 @@ namespace KinKal {
   }
 
   ParticleState LoopHelix::state(double time) const {
-    return ParticleState(position(time),momentum(time).Vect());
+    return ParticleState(pos4(time),momentum(time));
   }
 
   ParticleStateMeasurement LoopHelix::measurementState(double time) const {

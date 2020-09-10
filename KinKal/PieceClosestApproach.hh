@@ -11,10 +11,10 @@ namespace KinKal {
   template<class KTRAJ, class STRAJ> class PieceClosestApproach {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using KTPOCA = ClosestApproach<KTRAJ,STRAJ>;
+      using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       // the constructor is the only non-inherited function
       PieceClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
-      // copy the TPOCA interface.  This is ugly and a maintenance burden, but avoids inheritance problems
+      // copy the TCA interface.  This is ugly and a maintenance burden, but avoids inheritance problems
       ClosestApproachData::TPStat status() const { return tpdata_.status(); }
       std::string const& statusName() const { return tpdata_.statusName(); }
       double doca() const { return tpdata_.doca(); }
@@ -41,25 +41,25 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       double precision_; // precision used to define convergence
-      ClosestApproachData tpdata_; // data payload of POCA calculation
+      ClosestApproachData tpdata_; // data payload of CA calculation
       PKTRAJ const& pktraj_;
       STRAJ const& straj_;
-      size_t pindex_; // indices to the local traj used in TPOCA calculation
+      size_t pindex_; // indices to the local traj used in TCA calculation
       DVEC dDdP_; 
       DVEC dTdP_;
   };
 
   template<class KTRAJ, class STRAJ> PieceClosestApproach<KTRAJ,STRAJ>::PieceClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double prec) : precision_(prec), pktraj_(pktraj), straj_(straj) {
-    // iteratively find the nearest piece, and POCA for that piece.  Start at hints if availalble, otherwise the middle
+    // iteratively find the nearest piece, and CA for that piece.  Start at hints if availalble, otherwise the middle
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter=0;
     size_t oldindex= pktraj_.pieces().size();
     pindex_ = pktraj_.nearestIndex(hint.particleToca_);
     // copy over the hint: it needs to evolve
     CAHint phint = hint;
-    // iterate until TPOCA is on the same piece
+    // iterate until TCA is on the same piece
     do{
-      KTPOCA tpoca(pktraj_.piece(pindex_),straj,phint,prec);
+      KTCA tpoca(pktraj_.piece(pindex_),straj,phint,prec);
       // copy the state
       tpdata_ = tpoca.tpData();
       dDdP_ = tpoca.dDdP();
@@ -77,7 +77,7 @@ namespace KinKal {
       tpdata_.status_ = ClosestApproachData::unconverged;
     // should test explicitly for piece oscillation FIXME!
     // test if the solution is on a cusp and if so, chose the one with the smallest DOCA TODO
-//    std::cout << "PTPOCA niter " << niter << " status " << status() << " in range " <<  inrange << std::endl;
+//    std::cout << "PTCA niter " << niter << " status " << status() << " in range " <<  inrange << std::endl;
 //    if(!inrange){
 //      auto const& piece = pktraj_.piece(pindex_);
 //      std::cout << "Out of range, TOCA = " << particleToca() << " range " << piece.range() 

@@ -21,18 +21,26 @@ namespace KinKal {
       static std::string const& stateUnit(size_t index);
       static std::string const& stateTitle(size_t index);
 
-      // construct from position and momentum 3-vectors
-      ParticleState(VEC3 const& pos, VEC3 const& mom) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()) {}
+      // construct from position and momentum vectors
+      ParticleState(VEC3 const& pos, VEC3 const& mom, double time, double mass) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()), time_(time), mass_(mass) {}
+      ParticleState(VEC4 const& pos4, MOM4 const& mom4) : state_(pos4.Vect().X(),pos4.Vect().Y(),pos4.Vect().Z(),mom4.Vect().X(),mom4.Vect().Y(),mom4.Vect().Z()), time_(pos4.E()), mass_(mom4.M()) {}
       // construct from raw information
-      ParticleState(SVEC const& state) : state_(state) {}
+      ParticleState(SVEC const& state, double time, double mass) : state_(state), time_(time), mass_(mass) {}
       ParticleState() {}
       // direct accessor
       SVEC const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
       VEC3 position() const { return VEC3(state_[0],state_[1],state_[2]); }
+      VEC4 position4() const { return VEC4(state_[0],state_[1],state_[2],time_); }
       VEC3 momentum() const { return VEC3(state_[3],state_[4],state_[5]); }
+      MOM4 momentum4() const { return MOM4(state_[3],state_[4],state_[5],mass_); }
+
+      double mass() const { return mass_; } 
+      double time() const { return time_; } 
     private:
-      SVEC state_; // state vector payload of this particle
+      SVEC state_; // state vector payload of this particle, with position and momentum information
+      double time_; // time particle had this state
+      double mass_; // particle mass
       static std::vector<std::string> stateTitles_;
       static std::vector<std::string> stateNames_;
       static std::vector<std::string> stateUnits_;
@@ -42,8 +50,8 @@ namespace KinKal {
   class ParticleStateMeasurement  {
     public:
     // construct from from raw information
-      ParticleStateMeasurement(ParticleState const& state, SMat const& scovar) : state_(state.state()), scovar_(scovar) {}
-      ParticleStateMeasurement(SVEC const& state, SMat const& scovar) : state_(state), scovar_(scovar) {}
+      ParticleStateMeasurement(ParticleState const& state, SMat const& scovar) : state_(state), scovar_(scovar) {}
+      ParticleStateMeasurement(SVEC const& state, SMat const& scovar,double time, double mass) : state_(state, time, mass), scovar_(scovar) {}
       ParticleStateMeasurement() {}
       ParticleState const& stateVector() const { return state_; }
       SMat const& stateCovariance() const { return scovar_; }

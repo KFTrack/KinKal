@@ -27,14 +27,17 @@ namespace KinKal {
       virtual void process(FitData& kkdata,TimeDir tdir) = 0;
       virtual double fitChi() const { return 0.0;} // unbiased chi contribution of this effect after fitting
       virtual double chisq(Parameters const& pdata) const { return 0.0;} // chisq contribution WRT parameters 
-      // update this effect for a new refernce trajectory
+      // update this effect for a new reference trajectory; this is used in the algebraic iteration step
       virtual void update(PKTRAJ const& ref) = 0;
-      // update this effect for a new configuration and reference trajectory
+      // update this effect for a new configuration and reference trajectory; this is used to start a meta-iteration step
       virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) = 0;
       // append this effects trajectory change (if appropriate)
       virtual void append(PKTRAJ& fit) {};
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       virtual ~Effect(){} 
+      // disallow copy and equivalence
+      Effect(Effect const& ) = delete; 
+      Effect& operator =(Effect const& ) = delete; 
       Status status(TimeDir tdir) const { return status_[static_cast<std::underlying_type<TimeDir>::type>(tdir)]; }
       void setStatus(TimeDir tdir, Status status) { status_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = status; }
       bool wasProcessed(TimeDir tdir) const { return status(tdir) == processed; }

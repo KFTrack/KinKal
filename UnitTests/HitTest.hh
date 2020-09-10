@@ -10,11 +10,10 @@
 #include "KinKal/StrawHit.hh"
 #include "KinKal/ScintHit.hh"
 #include "KinKal/StrawMat.hh"
-#include "KinKal/MaterialHit.hh"
 #include "KinKal/Residual.hh"
 #include "KinKal/BFieldMap.hh"
 #include "KinKal/Vectors.hh"
-#include "KinKal/Hit.hh"
+#include "KinKal/Measurement.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 #include "UnitTests/ToyMC.hh"
 
@@ -50,15 +49,16 @@ using namespace std;
 using KinKal::Line;
 
 void print_usage() {
-  printf("Usage: HitTest  --momentum f --particle i --charge i --lighthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat i --prec f\n");
+  printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat_ i --prec f\n");
 }
 
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using THIT = DetectorHit<KTRAJ>;
-  using THITPTR = std::shared_ptr<THIT>;
-  using THITCOL = vector<THITPTR>;
+  using KKHIT = Measurement<KTRAJ>;
+  using DHIT = DetectorHit<KTRAJ>;
+  using DHITPTR = std::shared_ptr<DHIT>;
+  using DHITCOL = vector<DHITPTR>;
   using DXING = DetectorXing<KTRAJ>;
   using DXINGPTR = std::shared_ptr<DXING>;
   using DXINGCOL = std::vector<DXINGPTR>;
@@ -81,19 +81,20 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   int iseed(124223);
   double ddoca(0.1);
   double Bgrad(0.0), By(0.0);
-  bool simmat(true), lighthit(true);
+  bool simmat_(true), scinthit_(true), strawhit_(true);
   double precision(1e-8);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
-    {"simmat",     required_argument, 0, 'b'  },
+    {"simmat_",     required_argument, 0, 'b'  },
     {"particle",     required_argument, 0, 'p'  },
     {"charge",     required_argument, 0, 'q'  },
     {"zrange",     required_argument, 0, 'z'  },
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
-    {"lighthit",     required_argument, 0, 'l'  },
+    {"scinthit",     required_argument, 0, 'l'  },
+    {"strawhit",     required_argument, 0, 'S'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"ddoca",     required_argument, 0, 'x'  },
@@ -119,11 +120,13 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 		 break;
       case 'n' : nhits = atoi(optarg);
 		 break;
-      case 'l' : lighthit = atoi(optarg);
+      case 'l' : scinthit_ = atoi(optarg);
+		 break;
+      case 'S' : strawhit_ = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
-      case 'b' : simmat = atoi(optarg);
+      case 'b' : simmat_ = atoi(optarg);
 		 break;
       case 's' : iseed = atoi(optarg);
 		 break;
@@ -149,7 +152,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   } else {
     BF = new UniformBFieldMap(bnom);
   }
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_, ambigdoca, pmass );
   toy.setInefficiency(0.0);
   PKTRAJ tptraj;
 //  cout << "True " << tptraj << endl;
@@ -162,7 +165,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;Doca (mm);Scattering (radians)"); gwscat->SetMinimum(0.0);
   std::vector<TPolyLine3D*> tpl;
   // generate hits
-  THITCOL thits;
+  DHITCOL thits;
   DXINGCOL dxings; // this program shares det xing ownership with Track
   toy.simulateParticle(tptraj, thits, dxings);
 // create Canvas
@@ -181,10 +184,18 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   hel->SetLineColor(kBlue);
   hel->Draw();
   unsigned ihit(0);
-  for(auto const& thit : thits) {
-   // compute residual
-    Residual  res;
-    thit->resid(tptraj,res,precision);
+  for(auto& thit : thits) {
+    Residual res;
+    STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
+    SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
+    if(strawhit && strawhit_){
+      strawhit->update(tptraj);
+      res = strawhit->refResidual();
+    } else if(scinthit && scinthit_){
+      scinthit->update(tptraj);
+      res = scinthit->refResidual();
+    } else
+      continue;
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
     STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
@@ -248,8 +259,16 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ipt(0);
 //  cout << tptraj << endl;
   for(auto& thit : thits) {
-    Hit kkhit(thit,tptraj,precision);
-    Residual ores = kkhit.refResid(); // original residual
+    KKHIT kkhit(thit,tptraj,precision);
+    Residual ores;
+    STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
+    SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
+    if(strawhit && strawhit_){
+      ores = strawhit->refResidual();
+    } else if(scinthit && scinthit_){
+      ores = scinthit->refResidual();
+    } else
+      continue;
     auto pder = ores.dRdP();
     for(size_t ipar=0;ipar < NParams();ipar++){
       auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
@@ -263,10 +282,15 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
         KinKal::DVEC dpvec;
         dpvec[ipar] = dpar;
         kkhit.update(modtptraj);// refer to moded helix
-        Residual mres = kkhit.refResid();
-        double dr = ores.value()-mres.value(); // this sign is confusing.  I think
-        // it means the fit needs to know how much to change the ref parameters, which is
-        // opposite from how much the ref parameters are different from the measurement
+	Residual mres;
+	if(strawhit){
+	  mres = strawhit->refResidual();
+	} else if(scinthit) {
+	  mres = scinthit->refResidual();
+	}
+	double dr = ores.value()-mres.value(); // this sign is confusing.  I think
+	// it means the fit needs to know how much to change the ref parameters, which is
+	// opposite from how much the ref parameters are different from the measurement
         // compare the change with the expected from the derivatives
         double ddr = ROOT::Math::Dot(pder,dpvec);
         hderivg[ipar]->SetPoint(ipt++,dr,ddr);

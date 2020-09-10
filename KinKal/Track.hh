@@ -2,7 +2,7 @@
 #define KinKal_Track_hh
 //
 //  Primary class of the Kinematic Kalman fit.  This class owns the state describing
-//  the fit inputs (hits, material interactions, BFieldMap corrections, etc), the result of the fit,
+//  the fit inputs (hits, material interactions, BField corrections, etc), the result of the fit,
 //  and the methods for computing it.  The fit result is expressed as a piecewise kinematic covariant
 //  particle trajectory, providing position, momentum etc information about the particle with covariance
 //  as a function of physical time.
@@ -40,12 +40,11 @@
 #include "KinKal/FitData.hh"
 #include "KinKal/Effect.hh"
 #include "KinKal/TrackEnd.hh"
-#include "KinKal/MaterialHit.hh"
-#include "KinKal/Hit.hh"
+#include "KinKal/Measurement.hh"
 #include "KinKal/Material.hh"
-#include "KinKal/BField.hh"
+#include "KinKal/BFieldEffect.hh"
 #include "KinKal/ClosestApproach.hh"
-#include "KinKal/Hit.hh"
+#include "KinKal/Measurement.hh"
 #include "KinKal/Config.hh"
 #include "KinKal/FitStatus.hh"
 #include "KinKal/BFieldMap.hh"
@@ -64,16 +63,15 @@ namespace KinKal {
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using KKHIT = Hit<KTRAJ>;
+      using KKHIT = Measurement<KTRAJ>;
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
-      using KKMHIT = MaterialHit<KTRAJ>;
-      using KKBFIELD = BField<KTRAJ>;
+      using KKBFIELD = BFieldEffect<KTRAJ>;
       using KKCONFIGPTR = std::shared_ptr<Config>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using THIT = DetectorHit<KTRAJ>;
-      using THITPTR = std::shared_ptr<THIT>;
-      using THITCOL = std::vector<THITPTR>;
+      using DHIT = DetectorHit<KTRAJ>;
+      using DHITPTR = std::shared_ptr<DHIT>;
+      using DHITCOL = std::vector<DHITPTR>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
       using DXINGCOL = std::vector<DXINGPTR>;
@@ -87,7 +85,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(KKCONFIGPTR kkconfig, KTRAJ const& seedtraj, THITCOL& thits, DXINGCOL& dxings ); 
+      Track(KKCONFIGPTR kkconfig, KTRAJ const& seedtraj, DHITCOL& thits, DXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<FitStatus> const& history() const { return history_; }
@@ -96,7 +94,7 @@ namespace KinKal {
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return *kkconfig_; }
-      THITCOL const& timeHits() const { return thits_; } 
+      DHITCOL const& timeHits() const { return thits_; } 
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
@@ -111,24 +109,22 @@ namespace KinKal {
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
-      THITCOL thits_; // shared collection of hits
+      DHITCOL thits_; // shared collection of hits
   };
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR kkconfig, KTRAJ const& seedtraj,  THITCOL& thits, DXINGCOL& dxings) : 
+  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR kkconfig, KTRAJ const& seedtraj,  DHITCOL& thits, DXINGCOL& dxings) : 
     kkconfig_(kkconfig), thits_(thits) {
-      // Create the initial reference traj.  This also divides the range into domains of ~constant BFieldMap and creates correction effects for inhomogeneity
+      // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);
       // create the effects.  First, loop over the hits
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
-	// if there's associated material, create a combined material and hit effect, otherwise just a hit effect
-	if(kkconfig_->addmat_ && thit->hasMaterial()){
-	  effects_.emplace_back(std::make_unique<KKMHIT>(thit,reftraj_));
-	} else{ 
-	  effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
-	}
+	// if there's associated material, create an effect for that too
+	effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
+	if(kkconfig_->addmat_ && thit->hasMaterial())
+	  effects_.emplace_back(std::make_unique<KKMAT>(thit->detXingPtr(),reftraj_));
       }
       //add pure material effects
       if(kkconfig_->addmat_){
@@ -136,7 +132,7 @@ namespace KinKal {
 	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
 	}
       }
-      // preliminary sort; this makes sure the range is accurate when computing BFieldMap corrections
+      // preliminary sort; this makes sure the range is accurate when computing BField corrections
       std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
       // reset the range 
       reftraj_.setRange(TimeRange(std::min(reftraj_.range().begin(),effects_.begin()->get()->time() - config().tbuff_),
@@ -275,15 +271,15 @@ namespace KinKal {
       KTRAJ piece(seedtraj,bf,tstart);
       reftraj_ = PKTRAJ(piece);
     } else {
-      // use the seed BFieldMap, fixed for the whole fit
+      // use the seed BField, fixed for the whole fit
       reftraj_ = PKTRAJ(seedtraj); // the initial ref traj is just the seed.
-      bf = reftraj_.bnom(tstart); // freeze the nominal BFieldMap to be the one from the seed
+      bf = reftraj_.bnom(tstart); // freeze the nominal BField to be the one from the seed
     }
     if(kkconfig_->bfcorr_ != Config::nocorr) { 
       // divide up this traj into domains.  start the field at the start of the seed trajectory
       TimeRange drange(tstart,reftraj_.range().end());
       while(drange.begin() < reftraj_.range().end()){
-	// see how far we can go before the BFieldMap change cause the traj to go out of tolerance
+	// see how far we can go before the BField change cause the traj to go out of tolerance
 	drange.end() = BFieldUtils::rangeInTolerance(drange.begin(),kkconfig_->bfield_, reftraj_, kkconfig_->tol_);
 	if(kkconfig_->bfcorr_ == Config::variable) {
 	  // create the next piece and append.  The domain transition is set to the middle of the integration range, so the effects coincide
@@ -295,7 +291,7 @@ namespace KinKal {
 	  newpiece.range() = TimeRange(tdomain,std::max(drange.end(),reftraj_.range().end()));
 	  reftraj_.append(newpiece);
 	}
-	// create the BFieldMap effect for integrated differences over this range
+	// create the BField effect for integrated differences over this range
 	effects_.emplace_back(std::make_unique<KKBFIELD>(kkconfig_->bfield_,reftraj_,drange,kkconfig_->bfcorr_));
 	drange.begin() = drange.end(); // reset for next domain
       }

@@ -43,8 +43,8 @@ void print_usage() {
 
 template <class KTRAJ>
 int ClosestApproachTest(int argc, char **argv) {
-  using TPOCA = ClosestApproach<KTRAJ,Line>;
-  using PTPOCA = PieceClosestApproach<KTRAJ,Line>;
+  using TCA = ClosestApproach<KTRAJ,Line>;
+  using PTCA = PieceClosestApproach<KTRAJ,Line>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -137,19 +137,19 @@ int ClosestApproachTest(int argc, char **argv) {
     Line tline(ppos, pvel,time,prange);
     // create ClosestApproach from these
     CAHint tphint(time,time);
-    TPOCA tp(ktraj,tline,tphint,1e-8);
+    TCA tp(ktraj,tline,tphint,1e-8);
     // test: delta vector should be perpendicular to both trajs
     VEC3 del = tp.delta().Vect();
     auto pd = tp.particleDirection();
     auto sd = tp.sensorDirection();
     double dp = del.Dot(pd);
-    if(dp>1e-9) cout << "POCA delta not perpendicular to particle direction" << endl;
+    if(dp>1e-9) cout << "CA delta not perpendicular to particle direction" << endl;
     double ds = del.Dot(sd);
-    if(ds>1e-9) cout << "POCA delta not perpendicular to sensor direction" << endl;
+    if(ds>1e-9) cout << "CA delta not perpendicular to sensor direction" << endl;
 
     // test against a piece-traj
     PKTRAJ pktraj(ktraj);
-    PTPOCA ptp(pktraj,tline,tphint,1e-8);
+    PTCA ptp(pktraj,tline,tphint,1e-8);
     if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
     if(ptp.status() != ClosestApproachData::converged)cout << "PieceClosestApproach status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
     VEC3 thpos, tlpos;
@@ -172,7 +172,7 @@ int ClosestApproachTest(int argc, char **argv) {
         dvec[ipar] += dpar;
         Parameters pdata(dvec,ktraj.params().covariance());
         KTRAJ dktraj(pdata,ktraj);
-        TPOCA dtp(dktraj,tline,tphint,1e-9);
+        TCA dtp(dktraj,tline,tphint,1e-9);
         double xd = dtp.doca();
         double xt = dtp.deltaT();
         // now derivatives

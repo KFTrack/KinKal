@@ -43,7 +43,7 @@ void print_usage() {
 template <class KTRAJ>
 int ParticleTrajectoryTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using PTPOCA = PieceClosestApproach<KTRAJ,Line>;
+  using PTCA = PieceClosestApproach<KTRAJ,Line>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);
@@ -234,7 +234,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   Line tline(lpos, pvel,ptraj.range().mid(),prange);
   // create ClosestApproach from these
   CAHint tphint(ptraj.range().mid(),0.0);
-  PTPOCA tp(ptraj,tline, tphint,1e-8);
+  PTCA tp(ptraj,tline, tphint,1e-8);
   cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   VEC3 thpos, tlpos;
   thpos = tp.particlePoca().Vect();

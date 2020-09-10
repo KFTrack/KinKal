@@ -42,9 +42,9 @@ namespace KinKal {
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange()); // do I really need this?
       // construct from the particle state at a given time, plus mass and charge
-      LoopHelix(ParticleState const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      LoopHelix(ParticleStateMeasurement const& pstate, double time, double mass, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      LoopHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
