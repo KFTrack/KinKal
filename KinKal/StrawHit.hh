@@ -11,18 +11,15 @@
 namespace KinKal {
   template <class KTRAJ> class StrawHit : public WireHit<KTRAJ> {
     public:
-      typedef PKTraj<KTRAJ> PKTRAJ;
-      typedef WireHit<KTRAJ> WHIT;
-      typedef THit<KTRAJ> THIT;
-      typedef StrawXing<KTRAJ> STRAWXING;
-      typedef std::shared_ptr<STRAWXING> STRAWXINGPTR;
-      StrawHit(BField const& bfield, TLine const& straj, D2T const& d2t, STRAWXINGPTR const& sxing,LRAmbig ambig=LRAmbig::null) :
-	WHIT(sxing, bfield,straj,d2t,sxing->strawMat().strawRadius(),ambig) {}
-      virtual double tension() const override { return 0.0; } // check against straw diameter, length, any other measurement content FIXME!
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      using WHIT = WireHit<KTRAJ>;
+      using STRAWXING = StrawXing<KTRAJ>;
+      using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
+      StrawHit(BFieldMap const& bfield, Line const& straj, WireCell const& cell, STRAWXINGPTR const& sxing,LRAmbig ambig=LRAmbig::null) :
+	WHIT(sxing, bfield,straj,cell,ambig) {}
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~StrawHit(){}
     private:
-      // add state for longitudinal resolution, transverse resolution, to use in tension measurement FIXME!
+      // add state for longitudinal resolution, transverse resolution; could be a 2ndary measurement TODO
   };
 
   template<class KTRAJ> void StrawHit<KTRAJ>::print(std::ostream& ost, int detail) const {
