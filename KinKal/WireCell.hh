@@ -23,16 +23,16 @@ namespace KinKal {
   // simple implementation; a realistic implementation needs EXB effects, non-constant drift, etc. TODO
   class SimpleCell : public WireCell {
     public:
-      virtual double size() const override { return 2*rcell_; }
-      virtual void distanceToTime(POL2 const& drift, double& tdrift, double& tdriftvar, double& dspeed) const override {
+      double size() const override { return 2*rcell_; }
+      void distanceToTime(POL2 const& drift, double& tdrift, double& tdriftvar, double& dspeed) const override {
       tdrift  = drift.R()/dvel_;
       tdriftvar = tvar_; 
       dspeed = dvel_;
     }
     // provide seed (mm/ns) and time RMS (ns) on construction
     SimpleCell(double driftspeed, double tvar, double rcell) :dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
-    virtual double averageDriftSpeed() const override { return dvel_; }
-    virtual double maximumDriftTime() const override { return rcell_/dvel_; }
+    double averageDriftSpeed() const override { return dvel_; }
+    double maximumDriftTime() const override { return rcell_/dvel_; }
     virtual ~SimpleCell(){}
     double timeVariance() const { return tvar_; }
     double radius() const { return rcell_; }

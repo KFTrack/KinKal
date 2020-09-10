@@ -27,9 +27,10 @@ namespace KinKal {
       double crossingTime() const { return xtime_; }
       double& crossingTime() { return xtime_; }
       std::vector<MaterialXing>const&  matXings() const { return mxings_; }
+      std::vector<MaterialXing>&  matXings() { return mxings_; }
       // calculate the cumulative material effect from these crossings
       void materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
-    protected:
+    private:
       double xtime_; // time on the reference trajectory when the xing occured
       std::vector<MaterialXing> mxings_; // material crossings for this detector piece on this trajectory
   };

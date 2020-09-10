@@ -8,18 +8,18 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-  vector<string> CentralHelix::paramTitles_ = {
+  const vector<string> CentralHelix::paramTitles_ = {
     "Distance of closest approach d_{0}",
     "Angle in the xy plane at closest approach #phi_{0}",
     "xy plane curvature of the track #omega",
     "Distance from the closest approach to the origin z_{0}",
     "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
-  vector<string> CentralHelix::paramNames_ = {
+  const vector<string> CentralHelix::paramNames_ = {
   "d_{0}","#phi_{0}","#omega","z_{0}","tan#lambda","t_{0}"};
-  vector<string> CentralHelix::paramUnits_ = {
+  const vector<string> CentralHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
-  string CentralHelix::trajName_("CentralHelix");  
+  const string CentralHelix::trajName_("CentralHelix");  
   std::vector<std::string> const& CentralHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& CentralHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& CentralHelix::paramTitles() { return paramTitles_; }

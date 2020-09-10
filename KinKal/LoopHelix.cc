@@ -8,18 +8,18 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-    vector<string> LoopHelix::paramTitles_ = {
+  const vector<string> LoopHelix::paramTitles_ = {
     "Transverse Radius",
     "Longitudinal Wavelength",
     "Cylinder Center X",
     "Cylinder Center Y",
     "Azimuth at Z=0 Plane",
     "Time at Z=0 Plane"}; 
-  vector<string> LoopHelix::paramNames_ = {
+  const vector<string> LoopHelix::paramNames_ = {
     "Radius","Lambda","CenterX","CenterY","Phi0","Time0"};
-  vector<string> LoopHelix::paramUnits_ = {
+  const vector<string> LoopHelix::paramUnits_ = {
     "mm","mm","mm","mm","radians","ns"};
-  string LoopHelix::trajName_("LoopHelix");  
+  const string LoopHelix::trajName_("LoopHelix");  
   vector<string> const& LoopHelix::paramNames() { return paramNames_; }
   vector<string> const& LoopHelix::paramUnits() { return paramUnits_; }
   vector<string> const& LoopHelix::paramTitles() { return paramTitles_; }

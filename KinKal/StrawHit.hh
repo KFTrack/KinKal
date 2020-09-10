@@ -16,7 +16,7 @@ namespace KinKal {
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       StrawHit(BFieldMap const& bfield, Line const& straj, WireCell const& cell, STRAWXINGPTR const& sxing,LRAmbig ambig=LRAmbig::null) :
 	WHIT(sxing, bfield,straj,cell,ambig) {}
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~StrawHit(){}
     private:
       // add state for longitudinal resolution, transverse resolution; could be a 2ndary measurement TODO

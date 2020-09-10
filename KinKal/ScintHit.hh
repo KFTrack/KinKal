@@ -21,15 +21,15 @@ namespace KinKal {
       using DXINGPTR = std::shared_ptr<DXING>;
 
       // DetectorHit interface overrrides
-      virtual Weights weight() const override;
-      virtual double chi(Parameters const& pdata) const override;
-      virtual double time() const override { return rresid_.time(); }
-      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
-      virtual void update(PKTRAJ const& pktraj) override;
-      virtual bool isActive() const override { return active_; }
-      virtual DXINGPTR const& detXingPtr() const override { return null_; }
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
-      virtual unsigned nDOF() const override { return 1; }
+      Weights weight() const override;
+      double chi(Parameters const& pdata) const override;
+      double time() const override { return rresid_.time(); }
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update(PKTRAJ const& pktraj) override;
+      bool isActive() const override { return active_; }
+      DXINGPTR const& detXingPtr() const override { return null_; }
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
+      unsigned nDOF() const override { return 1; }
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
       Line const& sensorAxis() const { return saxis_; }
       ScintHit(Line const& sensorAxis, double tvar, double wvar) : 

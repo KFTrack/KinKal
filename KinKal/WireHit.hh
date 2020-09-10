@@ -30,14 +30,14 @@ namespace KinKal {
       using DXINGPTR = std::shared_ptr<DXING>;
       
       // DetectorHit interface overrrides
-      virtual Weights weight() const override;
-      virtual double chi(Parameters const& pdata) const override;
-      virtual double time() const override { return rresid_.time(); }
-      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
-      virtual void update(PKTRAJ const& pktraj) override;
-      virtual bool isActive() const override { return active_; }
-      virtual DXINGPTR const& detXingPtr() const override { return dxing_; }
-      virtual unsigned nDOF() const override { return active_ ? 1 : 0; }
+      Weights weight() const override;
+      double chi(Parameters const& pdata) const override;
+      double time() const override { return rresid_.time(); }
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update(PKTRAJ const& pktraj) override;
+      bool isActive() const override { return active_; }
+      DXINGPTR const& detXingPtr() const override { return dxing_; }
+      unsigned nDOF() const override { return active_ ? 1 : 0; }
       
       Line const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution

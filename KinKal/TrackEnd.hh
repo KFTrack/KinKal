@@ -14,15 +14,15 @@ namespace KinKal {
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // provide interface
-      virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override { 
+      void update(PKTRAJ const& ref) override;
+      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override { 
 	vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
 	return update(ref); }
-      virtual double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
-      virtual bool isActive() const override { return true; }
-      virtual void process(FitData& kkdata,TimeDir tdir) override;
-      virtual void append(PKTRAJ& fit) override;
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
+      bool isActive() const override { return true; }
+      void process(FitData& kkdata,TimeDir tdir) override;
+      void append(PKTRAJ& fit) override;
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~TrackEnd(){}
       // accessors
       TimeDir const& tDir() const { return tdir_; }

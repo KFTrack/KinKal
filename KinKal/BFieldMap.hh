@@ -30,9 +30,9 @@ namespace KinKal {
   // trivial instance of the above, used for testing
   class UniformBFieldMap : public BFieldMap {
     public:
-      virtual VEC3 fieldVect(VEC3 const& position) const override { return fvec_; }
-      virtual Grad fieldGrad(VEC3 const& position) const override { return Grad(); }
-      virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override { return VEC3(); }
+      VEC3 fieldVect(VEC3 const& position) const override { return fvec_; }
+      Grad fieldGrad(VEC3 const& position) const override { return Grad(); }
+      VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override { return VEC3(); }
       UniformBFieldMap(VEC3 const& bnom) : fvec_(bnom) {}
       UniformBFieldMap(double BZ) : UniformBFieldMap(VEC3(0.0,0.0,BZ)) {}
       virtual ~UniformBFieldMap(){}
@@ -47,9 +47,9 @@ namespace KinKal {
   class CompositeBFieldMap : public BFieldMap {
     public:
       using FCOL = std::vector<const BFieldMap*>;
-      virtual VEC3 fieldVect(VEC3 const& position) const override;
-      virtual Grad fieldGrad(VEC3 const& position) const override;
-      virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      VEC3 fieldVect(VEC3 const& position) const override;
+      Grad fieldGrad(VEC3 const& position) const override;
+      VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
       CompositeBFieldMap () {}
       CompositeBFieldMap(FCOL const& fields) : fields_(fields) {}
       void addField(BFieldMap const& field) { fields_.push_back(&field); }
@@ -66,9 +66,9 @@ namespace KinKal {
   class GradBFieldMap : public BFieldMap {
     public:
       GradBFieldMap(double b0, double b1, double zg0, double zg1);
-      virtual VEC3 fieldVect(VEC3 const& position) const override;
-      virtual Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
-      virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      VEC3 fieldVect(VEC3 const& position) const override;
+      Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
+      VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
       virtual ~GradBFieldMap(){}
       // disallow copy and equivalence
       GradBFieldMap(GradBFieldMap const& ) = delete; 

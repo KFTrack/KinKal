@@ -133,10 +133,10 @@ namespace KinKal {
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       VEC3 bnom_; // nominal BField, in global coordinate system
       ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
-      static std::vector<std::string> paramTitles_;
-      static std::vector<std::string> paramNames_;
-      static std::vector<std::string> paramUnits_;
-      static std::string trajName_;
+      const static std::vector<std::string> paramTitles_;
+      const static std::vector<std::string> paramNames_;
+      const static std::vector<std::string> paramUnits_;
+      const static std::string trajName_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
  };

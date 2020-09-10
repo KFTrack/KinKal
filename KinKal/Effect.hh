@@ -42,8 +42,8 @@ namespace KinKal {
       void setStatus(TimeDir tdir, Status status) { status_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = status; }
       bool wasProcessed(TimeDir tdir) const { return status(tdir) == processed; }
       void updateStatus() { status_[0] = status_[1] = updated; }
-    protected:
       Effect() : status_{{unprocessed,unprocessed}} {}
+    private:
       std::array<Status,2> status_; // status of processing in each direction
   };
   

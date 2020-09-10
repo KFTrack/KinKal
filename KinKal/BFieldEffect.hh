@@ -19,13 +19,13 @@ namespace KinKal {
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       
-      virtual double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
-      virtual bool isActive() const override { return active_ && bfcorr_ != Config::nocorr; }
-      virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
-      virtual void process(FitData& kkdata,TimeDir tdir) override;
-      virtual void append(PKTRAJ& fit) override;
+      double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
+      bool isActive() const override { return active_ && bfcorr_ != Config::nocorr; }
+      void update(PKTRAJ const& ref) override;
+      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
+      void process(FitData& kkdata,TimeDir tdir) override;
+      void append(PKTRAJ& fit) override;
       DVEC const& effect() const { return dbeff_; }
       virtual ~BFieldEffect(){}
       // disallow copy and equivalence

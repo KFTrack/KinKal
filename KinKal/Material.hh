@@ -19,13 +19,13 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
-      virtual double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
-      virtual bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
-      virtual void update(PKTRAJ const& ref) override;
-      virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
-      virtual void process(FitData& kkdata,TimeDir tdir) override;
-      virtual void append(PKTRAJ& fit) override;
+      double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
+      bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
+      void update(PKTRAJ const& ref) override;
+      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
+      void process(FitData& kkdata,TimeDir tdir) override;
+      void append(PKTRAJ& fit) override;
       virtual ~Material(){}
       // create from the material and a trajectory 
       Material(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);

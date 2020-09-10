@@ -18,16 +18,16 @@ namespace KinKal {
       using DXINGPTR = std::shared_ptr<DXING>;
 
       // Measurement interface overrrides
-      virtual Weights weight() const override { return weight_; }
-      virtual unsigned nDOF() const override { return ncons_; }
-      virtual double chi(Parameters const& pdata) const override;
-      virtual double time() const override { return time_; }
+      Weights weight() const override { return weight_; }
+      unsigned nDOF() const override { return ncons_; }
+      double chi(Parameters const& pdata) const override;
+      double time() const override { return time_; }
       // constraints are absolute and can't be updatedA
-      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
-      virtual void update(PKTRAJ const& pktraj) override {}
-      virtual bool isActive() const override { return ncons_ > 0; }
-      virtual DXINGPTR const& detXingPtr() const override { return null_; }
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
+      void update(PKTRAJ const& pktraj) override {}
+      bool isActive() const override { return ncons_ > 0; }
+      DXINGPTR const& detXingPtr() const override { return null_; }
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       // construct from constraint values, time, and mask of which parameters to constrain
       Constraint(double time, Parameters const& params, PMASK const& pmask);
       virtual ~Constraint(){}

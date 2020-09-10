@@ -18,15 +18,15 @@ namespace KinKal {
       using DHIT = DetectorHit<KTRAJ>;
       using DHITPTR = std::shared_ptr<DHIT>;
       
-      virtual unsigned nDOF() const override { return hit_->isActive() ? hit_->nDOF() : 0; }
-      virtual double fitChi() const override; 
-      virtual double chisq(Parameters const& pdata) const override;
-      virtual void update(PKTRAJ const& pktraj) override;
-      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
-      virtual void process(FitData& kkdata,TimeDir tdir) override;
-      virtual bool isActive() const override { return hit_->isActive(); }
-      virtual double time() const override { return hit_->time(); }
-      virtual void print(std::ostream& ost=std::cout,int detail=0) const override;
+      unsigned nDOF() const override { return hit_->isActive() ? hit_->nDOF() : 0; }
+      double fitChi() const override; 
+      double chisq(Parameters const& pdata) const override;
+      void update(PKTRAJ const& pktraj) override;
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
+      void process(FitData& kkdata,TimeDir tdir) override;
+      bool isActive() const override { return hit_->isActive(); }
+      double time() const override { return hit_->time(); }
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Measurement(){}
       // local functions
       // construct from a hit and reference trajectory
