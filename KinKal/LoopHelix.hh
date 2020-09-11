@@ -35,7 +35,6 @@ namespace KinKal {
       static std::string const& paramUnit(ParamIndex index);
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
-
       // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)

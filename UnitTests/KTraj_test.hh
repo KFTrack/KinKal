@@ -34,7 +34,7 @@ using namespace std;
 using KinKal::Line;
 
 void print_usage() {
-  printf("Usage: LoopHelix  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
+  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --xorigin f -- yorigin f --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
 }
 
 struct MomVec {
@@ -63,7 +63,7 @@ int test(int argc, char **argv) {
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int imass(0), icharge(-1);
-  double pmass, oz(100.0), ot(0.0);
+  double pmass, ox(0.0), oy(10.0), oz(100.0), ot(0.0);
   double tmin(-5.0), tmax(5.0);
   double ltime(3.0), vprop(0.8), gap(2.0);
   double hlen(500.0); // half-length of the wire
@@ -76,12 +76,14 @@ int test(int argc, char **argv) {
     {"azimuth",     required_argument, 0, 'a'  },
     {"particle",     required_argument, 0, 'p'  },
     {"charge",     required_argument, 0, 'q'  },
+    {"xorigin",     required_argument, 0, 'x'  },
+    {"yorigin",     required_argument, 0, 'y'  },
     {"zorigin",     required_argument, 0, 'z'  },
     {"torigin",     required_argument, 0, 't'  },
     {"tmin",     required_argument, 0, 's'  },
     {"tmax",     required_argument, 0, 'e'  },
     {"ltime",     required_argument, 0, 'l'  },
-    {"By",     required_argument, 0, 'y'  },
+    {"By",     required_argument, 0, 'b'  },
     {"invert",     required_argument, 0, 'I'  },
     {NULL, 0,0,0}
   };
@@ -100,6 +102,10 @@ int test(int argc, char **argv) {
 		 break;
       case 'q' : icharge = atoi(optarg);
 		 break;
+      case 'x' : ox = atof(optarg);
+		 break;
+      case 'y' : oy = atof(optarg);
+		 break;
       case 'z' : oz = atof(optarg);
 		 break;
       case 't' : ot = atof(optarg);
@@ -110,7 +116,7 @@ int test(int argc, char **argv) {
 		 break;
       case 'l' : ltime = atof(optarg);
 		 break;
-      case 'y' : By = atof(optarg);
+      case 'b' : By = atof(optarg);
 		 break;
       case 'I' : invert = atoi(optarg);
 		 break;
@@ -124,13 +130,14 @@ int test(int argc, char **argv) {
   printf("Testing KTraj with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
 // define the BF (tesla)
   VEC3 bnom(0.0,By,1.0);
-  VEC4 origin(0.0,0.0,oz,ot);
+  VEC4 origin(ox,oy,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ lhel(origin,momv,icharge,bnom,TimeRange(-10,10));
   if(invert)lhel.invertCT();
   MOM4 testmom = lhel.momentum(ot);
-  cout << "KTRAJ with momentum " << momv << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << lhel << endl;
+  cout << "origin time position = " << lhel.position(ot) << " momentum " << lhel.momentum(ot) << " mag " <<  lhel.momentum(ot).R() << endl;
   VEC3 tvel, tdir;
   double ttime;
   double tstp = lhel.range().range()/9;
@@ -139,7 +146,7 @@ int test(int argc, char **argv) {
     tvel = lhel.velocity(ttime);
     tdir = lhel.direction(ttime);
     testmom = lhel.momentum(ttime);
-    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom << endl;
+    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom.R() << endl;
 //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
 //      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
   }

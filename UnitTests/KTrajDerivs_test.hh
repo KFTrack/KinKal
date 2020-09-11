@@ -221,7 +221,7 @@ int test(int argc, char **argv) {
     pline->SetParameters(0.0,1.0);
     TFitResultPtr pfitr = momgraph[idir]->Fit(pline,"SQ","AC*");
     momgraph[idir]->Draw("AC*");
-    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.1*delta){
+    if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > 0.01*delta){
       cout << "Momentum Direction " 
 	<< MomBasis::directionName(tdir)
 	<< " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
@@ -249,7 +249,10 @@ int test(int argc, char **argv) {
       double val(0.0);
       if(irow==icol)val = 1.0;
       if(fabs(ptest(irow,icol) - val) > 1e-9){
-	cout <<"Error in parameter derivative test" << endl;
+	cout <<"Error in parameter derivative test, row col = " << KTRAJ::paramName(typename KTRAJ::ParamIndex(irow))
+	  << " " << KTRAJ::paramName(typename KTRAJ::ParamIndex(icol)) 
+	  << " diff = " << ptest(irow,icol) - val << endl;
+
 	status = 1;
       }
     }
@@ -260,7 +263,9 @@ int test(int argc, char **argv) {
       double val(0.0);
       if(irow==icol)val = 1.0;
       if(fabs(xtest(irow,icol) - val) > 1e-9){
-	cout <<"Error in position derivative test" << endl;
+	cout <<"Error in position derivative test, row col = " << KTRAJ::paramName(typename KTRAJ::ParamIndex(irow))
+	  << " " << KTRAJ::paramName(typename KTRAJ::ParamIndex(icol))
+	  << " diff = " << xtest(irow,icol) - val << endl;
 	status = 1;
       }
     }

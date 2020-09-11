@@ -36,7 +36,8 @@ namespace KinKal {
 	  throw std::runtime_error("Inversion failure");
 	}
 	// check
-	if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
+   if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
+
       }
      // append
       Data & operator -= (Data const& other) {

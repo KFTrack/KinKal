@@ -1,14 +1,15 @@
+
 #!/usr/bin/env python
 #
 # Script to build the files found in this directory.
 #
 # Original author Rob Kutschke.
 #
-
 import os
 Import('env')
 Import('build_helper')
-helper = build_helper(env)
+
+helper=build_helper(env);
 
 # libraries linked to all unit tests
 commonLibs = [ 'UnitTests', 'KinKal', 'MatEnv', 'GenVector', 'Core', 'RIO', 'Net', 'Hist', 'Spectrum', 'MLP', 'Graf', 'Graf3d', 'Gpad', 'Tree',
@@ -27,6 +28,7 @@ for test in unitTests:
     linkLists[test] = commonLibs
     if test in extraLibs:
         linkLists[test] += extraLibs[test]
+
 
 helper.make_dict()
 
