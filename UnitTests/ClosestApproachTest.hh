@@ -106,7 +106,7 @@ int ClosestApproachTest(int argc, char **argv) {
   dtpcan->Divide(3,2);
   std::vector<TGraph*> dtpoca, ttpoca;
   std::vector<double> pchange = {10,0.1,0.0001,10,0.01,0.1};
-  for(int ipar=0;ipar<NParams();ipar++){
+  for(size_t ipar=0;ipar<NParams();ipar++){
     typename KTRAJ::ParamIndex parindex = static_cast<typename KTRAJ::ParamIndex>(ipar);
     dtpoca.push_back(new TGraph(nstep*ntstep));
     string ts = KTRAJ::paramTitle(parindex)+string(" DOCA Change;#Delta DOCA (exact);#Delta DOCA (derivative)");
@@ -162,7 +162,7 @@ int ClosestApproachTest(int argc, char **argv) {
   //  cout << "ClosestApproach dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
     // test against numerical derivatives
     // range to change specific parameters; most are a few mm
-    for(int ipar=0;ipar<NParams();ipar++){
+    for(size_t ipar=0;ipar<NParams();ipar++){
       double dstep = pchange[ipar]/(nstep-1);
       double dstart = -0.5*pchange[ipar];
       for(unsigned istep=0;istep<nstep;istep++){
@@ -183,11 +183,11 @@ int ClosestApproachTest(int argc, char **argv) {
       }
     }
   }
-  for(int ipar=0;ipar<NParams();ipar++){
+  for(size_t ipar=0;ipar<NParams();ipar++){
     dtpcan->cd(ipar+1);
     dtpoca[ipar]->Draw("A*");
   }
-  for(int ipar=0;ipar<NParams();ipar++){
+  for(size_t ipar=0;ipar<NParams();ipar++){
     ttpcan->cd(ipar+1);
     ttpoca[ipar]->Draw("A*");
   }

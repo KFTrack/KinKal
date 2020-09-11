@@ -26,7 +26,7 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void process(FitData& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
-      DVEC const& effect() const { return dbeff_; }
+      Parameters const& effect() const { return dbeff_; }
       virtual ~BFieldEffect(){}
       // disallow copy and equivalence
       BFieldEffect(BFieldEffect const& ) = delete; 

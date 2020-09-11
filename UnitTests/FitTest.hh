@@ -331,7 +331,7 @@ int FitTest(int argc, char **argv) {
   cout << *configptr << endl;
   // if requested, constrain a parameter
   PMASK mask = {false};
-  if(conspar >= 0 && conspar < NParams()){
+  if(conspar >= 0 && conspar < (int)NParams()){
     mask[conspar] = true;
     auto const& front = tptraj.front();
     // take the true parameters but the seed covariance
@@ -515,7 +515,7 @@ int FitTest(int argc, char **argv) {
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
   // if requested, constrain a parameter
-      if(conspar >= 0 && conspar < NParams()){
+      if(conspar >= 0 && conspar < (int)NParams()){
 	auto const& front = tptraj.front();
 	Parameters cparams = front.params();
 	cparams.covariance() = seedtraj.params().covariance();
@@ -674,8 +674,8 @@ int FitTest(int argc, char **argv) {
 	// accumulate average correlation matrix
 	auto const& cov = ffpars.covariance();
 	//    auto cormat = cov;
-	for(unsigned ipar=0; ipar <NParams();ipar++){
-	  for(unsigned jpar=ipar;jpar < NParams(); jpar++){
+	for(size_t ipar=0; ipar <NParams();ipar++){
+	  for(size_t jpar=ipar;jpar < NParams(); jpar++){
 	    double corr = cov[ipar][jpar]/(fcerr[ipar]*fcerr[jpar]);
 	    //	cormat[ipar][jpar] = corr;
 	    corravg->Fill(ipar,jpar,fabs(corr));
