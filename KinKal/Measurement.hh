@@ -23,7 +23,7 @@ namespace KinKal {
       double chisq(Parameters const& pdata) const override;
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
-      void process(FitData& kkdata,TimeDir tdir) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
       bool isActive() const override { return hit_->isActive(); }
       double time() const override { return hit_->time(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -51,7 +51,7 @@ namespace KinKal {
     update(reftraj);
   }
  
-  template<class KTRAJ> void Measurement<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // direction is irrelevant for processing measurements 
     if(this->isActive()){
       // cache the processing weights, adding both processing directions

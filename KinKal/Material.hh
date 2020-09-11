@@ -24,7 +24,7 @@ namespace KinKal {
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitData& kkdata,TimeDir tdir) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       virtual ~Material(){}
       // create from the material and a trajectory 
@@ -50,7 +50,7 @@ namespace KinKal {
      update(pktraj);
    }
 
-  template<class KTRAJ> void Material<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(active_){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {

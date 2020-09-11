@@ -37,7 +37,7 @@
 //  David N. Brown, Lawrence Berkeley National Lab
 //
 #include "KinKal/ParticleTrajectory.hh"
-#include "KinKal/FitData.hh"
+#include "KinKal/FitState.hh"
 #include "KinKal/Effect.hh"
 #include "KinKal/TrackEnd.hh"
 #include "KinKal/Measurement.hh"
@@ -181,15 +181,15 @@ namespace KinKal {
     // fit in both directions (order doesn't matter)
     auto feff = effects_.begin();
     // start with empty fit information; each effect will modify this as necessary, and cache what it needs for later processing
-    FitData ffitdata;
+    FitState forwardstate;
     while(feff != effects_.end()){
       auto ieff = feff->get();
       // update chisquared; only needed forwards
       fstat.ndof_ += ieff->nDOF();
-      double dchisq = ieff->chisq(ffitdata.pData());
+      double dchisq = ieff->chisq(forwardstate.pData());
       fstat.chisq_ += dchisq;
       // process
-      ieff->process(ffitdata,TimeDir::forwards);
+      ieff->process(forwardstate,TimeDir::forwards);
       if(kkconfig_->plevel_ >= Config::detailed){
 	std::cout << "Chisq total " << fstat.chisq_ << " increment " << dchisq << " ";
 	ieff->print(std::cout,kkconfig_->plevel_);
@@ -198,11 +198,11 @@ namespace KinKal {
     }
     fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
     // reset the fit information and process backwards (the order does not matter)
-    FitData bfitdata;
+    FitState backwardstate;
     auto beff = effects_.rbegin();
     while(beff != effects_.rend()){
       auto ieff = beff->get();
-      ieff->process(bfitdata,TimeDir::backwards);
+      ieff->process(backwardstate,TimeDir::backwards);
       beff++;
     }
     // convert the fit result into a new trajectory; start with an empty ptraj

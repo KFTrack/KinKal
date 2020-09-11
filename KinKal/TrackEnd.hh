@@ -20,7 +20,7 @@ namespace KinKal {
 	return update(ref); }
       double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       bool isActive() const override { return true; }
-      void process(FitData& kkdata,TimeDir tdir) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~TrackEnd(){}
@@ -46,7 +46,7 @@ namespace KinKal {
     }
 
 
-  template<class KTRAJ> void TrackEnd<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void TrackEnd<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(tdir == tdir_) 
       // start the fit with the de-weighted info cached from the previous iteration or seed
       kkdata.append(endeff_);

@@ -1,5 +1,5 @@
-#ifndef KinKal_FitData_hh
-#define KinKal_FitData_hh
+#ifndef KinKal_FitState_hh
+#define KinKal_FitState_hh
 //
 //  Data payload for processing the fit.  This object exists in both
 // parameter and weight space, with lazy evaluation to go between the
@@ -8,11 +8,11 @@
 #include "KinKal/Weights.hh"
 #include "KinKal/Parameters.hh"
 namespace KinKal {
-  class FitData {
+  class FitState {
     public:
-      FitData() : hasParameters_(false), hasWeights_(false) {}
-      FitData(Parameters const& pdata) : pdata_(pdata), hasParameters_(true), hasWeights_(false) {}
-      FitData(Weights const& wdata) : wdata_(wdata), hasParameters_(false), hasWeights_(true) {}
+      FitState() : hasParameters_(false), hasWeights_(false) {}
+      FitState(Parameters const& pdata) : pdata_(pdata), hasParameters_(true), hasWeights_(false) {}
+      FitState(Weights const& wdata) : wdata_(wdata), hasParameters_(false), hasWeights_(true) {}
       // accessors
       bool hasParameters() const { return hasParameters_; }
       bool hasWeights() const { return hasWeights_; }

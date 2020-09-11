@@ -24,7 +24,7 @@ namespace KinKal {
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitData& kkdata,TimeDir tdir) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       Parameters const& effect() const { return dbeff_; }
       virtual ~BFieldEffect(){}
@@ -48,7 +48,7 @@ namespace KinKal {
       Config::BFCorr bfcorr_; // type of BFieldMap map correction to apply
   };
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void BFieldEffect<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(active_){
       // forwards; just append the effect's parameter change
       if(tdir == TimeDir::forwards) {

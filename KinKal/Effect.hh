@@ -6,7 +6,7 @@
 // Templated on the trajectory class representing the particle in this fit
 //
 #include "KinKal/ParticleTrajectory.hh"
-#include "KinKal/FitData.hh"
+#include "KinKal/FitState.hh"
 #include "KinKal/Config.hh"
 #include <array>
 #include <memory>
@@ -24,7 +24,7 @@ namespace KinKal {
       virtual unsigned nDOF() const {return 0; }; // how/if this effect contributes to the measurement NDOF
       virtual bool isActive() const = 0; // whether this effect is/was used in the fit
        // Add this effect to the ongoing fit in a give direction.
-      virtual void process(FitData& kkdata,TimeDir tdir) = 0;
+      virtual void process(FitState& kkdata,TimeDir tdir) = 0;
       virtual double fitChi() const { return 0.0;} // unbiased chi contribution of this effect after fitting
       virtual double chisq(Parameters const& pdata) const { return 0.0;} // chisq contribution WRT parameters 
       // update this effect for a new reference trajectory; this is used in the algebraic iteration step
