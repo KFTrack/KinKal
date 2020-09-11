@@ -34,7 +34,7 @@ namespace KinKal {
     VEC3 pdir_, sdir_; // particle and sensor directions at CA, signed by time propagation
     VEC4 partPoca_, sensPoca_; //CA for particle and sensor
     void reset() {status_ = unconverged;}
-    static std::vector<std::string> statusNames_;
+    const static std::vector<std::string> statusNames_;
   };
 
 }

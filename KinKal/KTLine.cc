@@ -85,7 +85,7 @@ namespace KinKal {
   KTLine::KTLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
   KTLine(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    DPDS dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
@@ -120,7 +120,7 @@ namespace KinKal {
 
   ParticleStateMeasurement KTLine::measurementState(double time) const {
     // express the parameter space covariance in global state space
-    DSDP dsdp = dStatedPar(time);
+    PSMAT dsdp = dStatedPar(time);
     return ParticleStateMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
@@ -150,21 +150,21 @@ namespace KinKal {
     }
   }
 
-  DSDP KTLine::dPardState(double time) const{
+  PSMAT KTLine::dPardState(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
-    DPDS dpds;
+    PSMAT dpds;
     dpds.Place_at(dPdX,0,0);
     dpds.Place_at(dPdM,0,3);
     return dpds;
   }
 
-  DPDS KTLine::dStatedPar(double time) const {
+  PSMAT KTLine::dStatedPar(double time) const {
   // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
-    DSDP dsdp;
+    PSMAT dsdp;
     dsdp.Place_at(dXdP,0,0);
     dsdp.Place_at(dMdP,3,0);
     return dsdp;

@@ -55,7 +55,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> std::string const& Effect<KTRAJ>::statusName(Effect::Status status) {
-    static std::vector<std::string> statusNames_ = { "Unprocessed", "Processed", "Updated", "Failed" };
+    const static std::vector<std::string> statusNames_ = { "Unprocessed", "Processed", "Updated", "Failed" };
     switch (status) {
       case unprocessed: default:
 	return statusNames_[0];

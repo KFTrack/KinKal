@@ -130,8 +130,8 @@ class KTLine {
     DPDV dPardM(double time) const;
     DVDP dXdPar(double time) const;
     DVDP dMdPar(double time) const;
-    DSDP dPardState(double time) const;
-    DPDS dStatedPar(double time) const;
+    PSMAT dPardState(double time) const;
+    PSMAT dStatedPar(double time) const;
     // package the above for full (global) state
     // Parameter derivatives given a change in BField.  These return null for KTLine
     DVEC dPardB(double time) const { return DVEC(); }

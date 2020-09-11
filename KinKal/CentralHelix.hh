@@ -116,8 +116,8 @@ namespace KinKal {
       DPDV dPardM(double time) const { return DPDV(); } // TODO
       DVDP dXdPar(double time) const { return DVDP(); } // TODO
       DVDP dMdPar(double time) const { return DVDP(); } // TODO
-      DSDP dPardState(double time) const { return DPDS(); } // TODO
-      DPDS dStatedPar(double time) const { return DSDP(); } // TODO
+      PSMAT dPardState(double time) const { return PSMAT(); } // TODO
+      PSMAT dStatedPar(double time) const { return PSMAT(); } // TODO
       // package the above for full (global) state
       // Parameter derivatives given a change in BFieldMap
       DVEC dPardB(double time) const { return DVEC(); } // TODO

@@ -110,8 +110,8 @@ namespace KinKal {
       DPDV dPardM(double time) const; // return the derivative of the parameters WRT the (global) momentum vector
       DVDP dXdPar(double time) const; // return the derivative of the (global) position vector WRT the parameters
       DVDP dMdPar(double time) const; // return the derivative of the (global) momentum vector WRT parameters
-      DSDP dPardState(double time) const; // derivative of parameters WRT global state
-      DPDS dStatedPar(double time) const; // derivative of global state WRT parameters
+      PSMAT dPardState(double time) const; // derivative of parameters WRT global state
+      PSMAT dStatedPar(double time) const; // derivative of global state WRT parameters
       DVEC momDeriv(double time, MomBasis::Direction mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
       // Parameter derivatives given a change in BField
@@ -124,7 +124,7 @@ namespace KinKal {
       VEC3 localPosition(double time) const;
       DPDV dPardXLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) position vector
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
-      DSDP dPardStateLoc(double time) const; // derivative of parameters WRT local state
+      PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
 
       TimeRange trange_;
       Parameters pars_; // parameters
