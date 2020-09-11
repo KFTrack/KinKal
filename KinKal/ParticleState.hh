@@ -30,9 +30,9 @@ namespace KinKal {
       // direct accessor
       SVEC const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
-      VEC3 position() const { return VEC3(state_[0],state_[1],state_[2]); }
+      VEC3 position3() const { return VEC3(state_[0],state_[1],state_[2]); }
       VEC4 position4() const { return VEC4(state_[0],state_[1],state_[2],time_); }
-      VEC3 momentum() const { return VEC3(state_[3],state_[4],state_[5]); }
+      VEC3 momentum3() const { return VEC3(state_[3],state_[4],state_[5]); }
       MOM4 momentum4() const { return MOM4(state_[3],state_[4],state_[5],mass_); }
 
       double mass() const { return mass_; } 

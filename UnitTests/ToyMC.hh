@@ -94,9 +94,8 @@ namespace KKTest {
 
   template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PKTRAJ const& traj, double htime) {
     // start with the true helix position at this time
-    VEC4 hpos; hpos.SetE(htime);
-    traj.position(hpos);
-    VEC3 hdir = traj.direction(htime);
+    auto hpos = traj.position4(htime);
+    auto hdir = traj.direction(htime);
     // generate a random direction for the straw
     double eta = tr_.Uniform(-M_PI,M_PI);
     VEC3 sdir(cos(eta),sin(eta),0.0);
@@ -161,10 +160,9 @@ namespace KKTest {
     double desum = 0.0;
     double tstraw = sxing.crossingTime();
     auto const& endpiece = pktraj.nearestPiece(tstraw);
-    double mom = endpiece.momentumMag(tstraw);
-    MOM4 endmom = endpiece.momentum(tstraw);
-    VEC4 endpos; endpos.SetE(tstraw);
-    endpiece.position(endpos);
+    double mom = endpiece.momentum(tstraw);
+    auto endmom = endpiece.momentum4(tstraw);
+    auto endpos = endpiece.position4(tstraw);
     std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
     sxing.materialEffects(pktraj,TimeDir::forwards, dmom, momvar);
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
@@ -184,7 +182,7 @@ namespace KKTest {
 	  throw std::invalid_argument("Invalid direction");
       }
       //	cout << "mom change dir " << MomBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
-      VEC3 dmvec = endpiece.direction(tstraw,mdir);
+      auto dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
@@ -200,9 +198,9 @@ namespace KKTest {
     // first, find the position at showermax_.
     VEC3 shmpos, hend, lmeas;
     double cstart = pktraj.range().end() + tbuff_;
-    hend = pktraj.position(cstart);
+    hend = pktraj.position3(cstart);
     double ltime = cstart + shmax_/pktraj.speed(cstart);
-    shmpos = pktraj.position(ltime); // true position at shower-max
+    shmpos = pktraj.position3(ltime); // true position at shower-max
     // smear the x-y position by the transverse variance.
     lmeas.SetX(tr_.Gaus(shmpos.X(),twsig_));
     lmeas.SetY(tr_.Gaus(shmpos.Y(),twsig_));
@@ -220,7 +218,7 @@ namespace KKTest {
     //    cout << "cstart " << cstart << " pos " << hend << endl;
     //    cout << "shmax_ " << ltime << " pos " << shmpos  << endl;
     //    VEC3 lhpos;
-    //    lline.position(tmeas,lhpos);
+    //    lline.position3(tmeas,lhpos);
     //    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
     //    Residual lres;
     //    thits.back()->resid(pktraj,lres);
@@ -260,7 +258,7 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PKTRAJ& pktraj,double htime) {
     ROOT::Math::SMatrix<double,3> bgrad;
     VEC3 pos,vel, dBdt;
-    pos = pktraj.position(htime);
+    pos = pktraj.position3(htime);
     vel = pktraj.velocity(htime);
     dBdt = bfield_.fieldDeriv(pos,vel);
 //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
@@ -274,7 +272,7 @@ namespace KKTest {
 	do {
 	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
 	  VEC4 pos; pos.SetE(prange.begin());
-	  MOM4 mom =  pktraj.momentum(prange.begin());
+	  MOM4 mom =  pktraj.momentum4(prange.begin());
 	  pktraj.position(pos);
 	  VEC3 bf = bfield_.fieldVect(pos.Vect());
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);

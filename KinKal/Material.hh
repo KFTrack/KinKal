@@ -93,7 +93,7 @@ namespace KinKal {
       dxing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
       // get the parameter derivative WRT momentum
       DPDV dPdM = ref_.dPardM(time());
-      double mommag = ref_.momentumMag(time());
+      double mommag = ref_.momentum(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
 	auto mdir = static_cast<MomBasis::Direction>(idir);
 	auto dir = ref_.direction(time(),mdir);

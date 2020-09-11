@@ -48,9 +48,9 @@ namespace KinKal {
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
-      VEC4 pos4(double time) const;
-      void position(VEC4& pos) const; // time of pos is input 
-      VEC3 position(double time) const;
+      void position(VEC4& pos) const;
+      VEC4 position4(double time) const;
+      VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time) const  {  return CLHEP::c_light*beta(); }
       void print(std::ostream& ost, int detail) const;
@@ -60,8 +60,9 @@ namespace KinKal {
       // allow resetting the BField.  Note this is time-dependent
       void setBNom(double time, VEC3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
-      MOM4 momentum(double time) const;
-      double momentumMag(double time) const  { return  fabs(mass_*betaGamma()); }
+      VEC3 momentum3(double time) const;
+      MOM4 momentum4(double time) const;
+      double momentum(double time) const  { return  fabs(mass_*betaGamma()); }
       double momentumVar(double time) const;
       double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;

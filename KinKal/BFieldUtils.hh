@@ -27,7 +27,7 @@ namespace KinKal {
       for(unsigned istep=0; istep< nsteps; istep++){
 	double tstep = trange.begin() + istep*dt;
 	VEC3 vel = ktraj.velocity(tstep);
-	VEC3 db = bfield.fieldVect(ktraj.position(tstep)) - ktraj.bnom(tstep);
+	VEC3 db = bfield.fieldVect(ktraj.position3(tstep)) - ktraj.bnom(tstep);
 	dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);
       }
       return dmom;
@@ -39,9 +39,9 @@ namespace KinKal {
     template<class KTRAJ> double rangeInTolerance(double tstart, BFieldMap const& bfield, KTRAJ const& ktraj, double tol) {
       // compute scaling factor
       double spd = ktraj.speed(tstart);
-      double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentumMag(tstart));
+      double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentum(tstart));
       // estimate step size from initial BFieldMap difference
-      VEC3 tpos = ktraj.position(tstart);
+      VEC3 tpos = ktraj.position3(tstart);
       VEC3 bvec = bfield.fieldVect(tpos);
       auto db = (bvec - ktraj.bnom(tstart)).R();
       // estimate the step size for testing the position deviation.  This comes from 2 components:
@@ -62,7 +62,7 @@ namespace KinKal {
       do{
 	// increment the range
 	tend += tstep;
-	tpos = ktraj.position(tend);
+	tpos = ktraj.position3(tend);
 	bvec = bfield.fieldVect(tpos);
 	// BFieldMap diff with nominal
 	auto db = (bvec - ktraj.bnom(tend)).R();

@@ -24,7 +24,8 @@ namespace KinKal {
 
       // geometric accessors
       void position(VEC4& pos) const;
-      VEC3 position(double time) const;
+      VEC3 position3(double time) const;
+      VEC4 position4(double time) const;
       VEC3 velocity(double time) const;
       VEC3 const& direction(double time) const { return dir_; }
       VEC3 const& dir() const { return dir_; }

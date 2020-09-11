@@ -28,8 +28,12 @@ namespace KinKal {
 	if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
 	PTTRAJ::prepend(newpiece,allowremove);
       }
-      MOM4 momentum(double time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
-      double momentumMag(double time) const  { return PTTRAJ::nearestPiece(time).momentumMag(time); }
+      void position(VEC4 pos) const  { PTTRAJ::nearestPiece(pos.T()).position(pos); }
+      VEC3 position3(double time) const  { return PTTRAJ::nearestPiece(time).position3(time); }
+      VEC4 position4(double time) const  { return PTTRAJ::nearestPiece(time).position4(time); }
+      VEC3 momentum3(double time) const  { return PTTRAJ::nearestPiece(time).momentum3(time); }
+      MOM4 momentum4(double time) const  { return PTTRAJ::nearestPiece(time).momentum4(time); }
+      double momentum(double time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
       double momentumVar(double time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
       double energy(double time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
       double mass() const { return PTTRAJ::front().mass(); } // this will throw for empty

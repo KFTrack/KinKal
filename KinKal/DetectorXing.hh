@@ -37,7 +37,7 @@ namespace KinKal {
 
   template <class KTRAJ> void DetectorXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
-    double mom = pktraj.momentumMag(xtime_);
+    double mom = pktraj.momentum(xtime_);
     double mass = pktraj.mass();
     double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     if(tdir == TimeDir::backwards)dmFdE *= -1.0;

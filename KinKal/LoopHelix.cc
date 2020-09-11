@@ -65,11 +65,10 @@ namespace KinKal {
     param(cx_) = pos.X() + mom.Y()*momToRad;
     param(cy_) = pos.Y() - mom.X()*momToRad;
     // test position and momentum function
-    VEC4 testpos(pos0);
-    position(testpos);
-    MOM4 testmom = momentum(testpos.T());
-    auto dp = testpos.Vect() - pos0.Vect();
-    auto dm = testmom.Vect() - mom0.Vect();
+    auto testpos = position3(pos0.T());
+    auto testmom = momentum3(pos0.T());
+    auto dp = testpos - pos0.Vect();
+    auto dm = testmom - mom0.Vect();
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
@@ -111,26 +110,28 @@ namespace KinKal {
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
 
-  VEC4 LoopHelix::pos4(double time) const {
-    VEC3 temp = position(time);
+  void LoopHelix::position(VEC4& pos) const {
+    pos = position4(pos.T());
+  }
+
+  VEC4 LoopHelix::position4(double time) const {
+    VEC3 temp = position3(time);
     return VEC4(temp.X(),temp.Y(),temp.Z(),time);
   }
 
-  void LoopHelix::position(VEC4& pos) const {
-    VEC3 temp = position(pos.T());
-    pos.SetXYZT(temp.X(),temp.Y(),temp.Z(),pos.T());
-  }
-
-  VEC3 LoopHelix::position(double time) const {
+  VEC3 LoopHelix::position3(double time) const {
     double df = dphi(time);
     double phival = df + phi0();
     return l2g_(VEC3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam()));
   } 
 
-  MOM4 LoopHelix::momentum(double time) const{
-    VEC3 dir = direction(time);
-    double bgm = betaGamma()*mass();
-    return MOM4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass());
+  MOM4 LoopHelix::momentum4(double time) const{
+    VEC3 mom3 = momentum3(time);
+    return MOM4(mom3.X(), mom3.Y(), mom3.Z(), mass());
+  }
+
+  VEC3 LoopHelix::momentum3(double time) const{
+    return direction(time)*betaGamma()*mass();
   }
 
   VEC3 LoopHelix::velocity(double time) const{
@@ -170,7 +171,7 @@ namespace KinKal {
   DVEC LoopHelix::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
-    double mommag = momentumMag(time);
+    double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z())); // normalize to fractional change
   }
 
@@ -356,7 +357,7 @@ namespace KinKal {
   }
 
   ParticleState LoopHelix::state(double time) const {
-    return ParticleState(pos4(time),momentum(time));
+    return ParticleState(position4(time),momentum4(time));
   }
 
   ParticleStateMeasurement LoopHelix::measurementState(double time) const {

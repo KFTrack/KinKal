@@ -102,7 +102,7 @@ namespace KinKal {
       newpiece.range() = newrange;
       // if we are using variable BFieldMap, update the parameters accordingly
       if(bfcorr_ == Config::variable){
-	VEC3 newbnom = bfield_.fieldVect(fit.position(drange_.end()));
+	VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
 	newpiece.setBNom(time,newbnom);
       }
       // adjust for the residual parameter change due to difference in bnom

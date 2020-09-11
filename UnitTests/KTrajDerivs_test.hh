@@ -105,11 +105,9 @@ int test(int argc, char **argv) {
   MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ refhel(origin,momv,icharge,bnom);
   //cout << "Reference " << refhel << endl;
-  VEC4 refpos4;
-  refpos4.SetE(ttest);
-  refhel.position(refpos4);
-  //  cout << "origin position " << origin << " test position " << refpos4 << endl;
-  MOM4 refmom = refhel.momentum(ttest);
+  auto refpos4 = refhel.position4(ttest);
+    //  cout << "origin position " << origin << " test position " << refpos4 << endl;
+  auto refmom = refhel.momentum4(ttest);
   int ndel(50);
   // graphs to compare parameter change
   std::vector<TGraph*> pgraphs[3];
@@ -160,14 +158,11 @@ int test(int argc, char **argv) {
       Parameters pdata(dvec,refhel.params().covariance());
       KTRAJ dhel(pdata,refhel);
       // test
-      VEC4 xpos, dpos;
-      xpos.SetE(ttest);
-      dpos.SetE(ttest);
-      xhel.position(xpos);
-      dhel.position(dpos);
+//      auto xpos = xhel.position4(ttest);
+      auto dpos = dhel.position4(ttest);
 //      cout << " exa pos " << xpos << endl
 //      << " del pos " << dpos << endl;
-      MOM4 dmom = dhel.momentum(ttest);
+      MOM4 dmom = dhel.momentum4(ttest);
 //      cout << "Exact change" << xhel << endl;
 //      cout << "Derivative  " << dhel << endl;
       VEC4 gap = dpos - refpos4;
@@ -319,7 +314,7 @@ int test(int argc, char **argv) {
       for(size_t ipar = 0; ipar < NParams(); ipar++){
 	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
-      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position(ttest)-newbfhel.position(ttest)).R());
+      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-newbfhel.position3(ttest)).R());
     }
     char gtitle[80];
     char gname[80];

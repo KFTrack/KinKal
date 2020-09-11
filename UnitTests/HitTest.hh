@@ -202,13 +202,13 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
       auto const& tline = shptr->wire();
-      plow = tline.position(tline.range().begin());
-      phigh = tline.position(tline.range().end());
+      plow = tline.position3(tline.range().begin());
+      phigh = tline.position3(tline.range().end());
       line->SetLineColor(kRed);
     } else if ((bool)lhptr){
       auto const& tline = lhptr->sensorAxis();
-      plow = tline.position(tline.range().begin());
-      phigh = tline.position(tline.range().end());
+      plow = tline.position3(tline.range().begin());
+      phigh = tline.position3(tline.range().end());
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());

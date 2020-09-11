@@ -111,9 +111,8 @@ int BFieldMapTest(int argc, char **argv) {
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,
-  VEC4 pos; pos.SetE(tptraj.range().begin());
-  tptraj.position(pos);
-  MOM4 momv = tptraj.momentum(pos.T());
+  auto pos = tptraj.position4(tptraj.range().begin());
+  auto momv = tptraj.momentum4(pos.T());
   KTRAJ start(pos,momv,icharge,bnom,tptraj.range());
   PKTRAJ xptraj(start);
   PKTRAJ lptraj(start);
@@ -125,15 +124,14 @@ int BFieldMapTest(int argc, char **argv) {
 // integrate the momentum change over this range
     VEC3 dp = BFieldUtils::integrate(*BF,piece,prange);
     // approximate change in position
-//    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum(prange.mid());
+//    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum4(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
-    pos.SetE(prange.end());
-    piece.position(pos);
-    momv = piece.momentum(pos.T());
+    pos = piece.position4(prange.end());
+    momv = piece.momentum4(pos.T());
 //    cout << "BFieldMap integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
     prange = TimeRange(prange.end(),std::max(prange.end()+double(0.1),xptraj.range().end()));
     // clumsy code to modify a vector
-    VEC3 mom = momv.Vect();
+    auto mom = momv.Vect();
     mom += dp;
     momv.SetPx(mom.X()); momv.SetPy(mom.Y()); momv.SetPz(mom.Z());
     KTRAJ xnew(pos,momv,icharge,bnom,prange);
@@ -226,9 +224,9 @@ int BFieldMapTest(int argc, char **argv) {
     dlpost2->Fill( (lpos-tpos).Vect().Dot(t2dir));
     dlposmd->Fill( (lpos-tpos).Vect().Dot(mdir));
 
-    tmom = tptraj.momentum(tpos.T());
-    xmom = xptraj.momentum(xpos.T());
-    lmom = lptraj.momentum(lpos.T());
+    tmom = tptraj.momentum4(tpos.T());
+    xmom = xptraj.momentum4(xpos.T());
+    lmom = lptraj.momentum4(lpos.T());
     dxmomt1->Fill( (xmom.Vect()-tmom.Vect()).Dot(t1dir));
     dxmomt2->Fill( (xmom.Vect()-tmom.Vect()).Dot(t2dir));
     dxmommd->Fill( (xmom.Vect()-tmom.Vect()).Dot(mdir));
@@ -313,20 +311,19 @@ int BFieldMapTest(int argc, char **argv) {
   PKTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
     // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
-    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range().begin());
+    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position3(piece.range().mid())),piece.range().begin());
     rsktraj.append(newpiece);
   }
   // draw the trajs
   TCanvas* hcandb = new TCanvas("hcandb","#Delta B Traj",1000,1000);
   TPolyLine3D* original = new TPolyLine3D(200);
   TPolyLine3D* rotated = new TPolyLine3D(200);
-  VEC3 opos, rpos;
   tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
     double tplot = sktraj.range().begin()+tstep*istep;
-    opos = sktraj.position(tplot);
+    auto opos = sktraj.position3(tplot);
     original->SetPoint(istep, opos.X(), opos.Y(), opos.Z());
-    rpos = rsktraj.position(tplot);
+    auto rpos = rsktraj.position3(tplot);
     rotated->SetPoint(istep, rpos.X(), rpos.Y(), rpos.Z());
   }
   original->SetLineColor(kBlack);

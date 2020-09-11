@@ -55,11 +55,11 @@ class KTLine {
     virtual ~KTLine() {}
 
     // particle momentum as a function of time
-    MOM4 momentum(double time) const;
-    void momentum(double t, MOM4 &mom) const;
+    MOM4 momentum4(double time) const;
+    VEC3 momentum3(double time) const;
 
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
-    double momentumMag(double time) const { return mom(); }
+    double momentum(double time) const { return mom(); }
 
     double momentumVar(double time) const { return -1.0; }
     double energy() const { double momval = mom(); return sqrt(momval*momval+mass_*mass_); }
@@ -102,7 +102,8 @@ class KTLine {
     double speed(double t) const { return speed(); }
 
     void position(VEC4 &pos) const;
-    VEC3 position(double time) const;
+    VEC3 position3(double time) const;
+    VEC4 position4(double time) const;
 
     VEC3 velocity(double time) const { return dir() * speed(); }
     void print(std::ostream &ost, int detail) const;
@@ -110,7 +111,6 @@ class KTLine {
 
     // local momentum direction basis
     VEC3 direction(double time, MomBasis::Direction mdir = MomBasis::momdir_) const;
-    VEC4 pos4(double time) const;
     // momentum change derivatives; this is required to instantiate a KalTrk
     DVEC momDeriv(double time, MomBasis::Direction mdir) const;
 

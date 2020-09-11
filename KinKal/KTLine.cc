@@ -93,35 +93,29 @@ namespace KinKal {
   }
 
   void KTLine::position(VEC4 &pos) const {
-    VEC3 pos3 = position(pos.T());
-    pos.SetXYZT(pos3.X(), pos3.Y(), pos3.Z(), pos.T());
+    pos = position4(pos.T());
   }
 
-  VEC3 KTLine::position(double time) const {
+  VEC3 KTLine::position3(double time) const {
     return (pos0() + flightLength(time) * dir());
   }
 
-  VEC4 KTLine::pos4(double time) const {
-    VEC3 temp = position(time);
+  VEC4 KTLine::position4(double time) const {
+    VEC3 temp = position3(time);
     return VEC4(temp.X(), temp.Y(), temp.Z(), time);
   }
 
-  void KTLine::momentum(double tval, MOM4 &mom4) const {
-    VEC3 dir = direction(tval);
-    double momval = mom();
-    mom4.SetPx(momval * dir.x());
-    mom4.SetPy(momval * dir.y());
-    mom4.SetPz(momval * dir.z());
-    mom4.SetM(mass_);
+  VEC3 KTLine::momentum3(double tval) const {
+    return direction(tval)*mom();
   }
 
-  MOM4 KTLine::momentum(double tval) const {
-    MOM4 momvec;
-    momentum(tval,momvec);
-    return momvec;
+  MOM4 KTLine::momentum4(double tval) const {
+    VEC3 mom3 = momentum3(tval);
+    return MOM4(mom3.X(),mom3.Y(),mom3.Z(),mass_);
   }
+
   ParticleState KTLine::state(double time) const {
-    return ParticleState(pos4(time),momentum(time));
+    return ParticleState(position4(time),momentum4(time));
   }
 
   ParticleStateMeasurement KTLine::measurementState(double time) const {
@@ -246,8 +240,8 @@ namespace KinKal {
     double cosF = cos(phi0());
     double cos2F = cosF*cosF-sinF*sinF;
     double sin2F = 2*cosF*sinF;
-    VEC3 momv = momentum(time).Vect();
-    VEC3 pos = position(time);
+    VEC3 momv = momentum3(time);
+    VEC3 pos = position3(time);
     static VEC3 zdir(0.0,0.0,1.0);
     VEC3 momt = VectorUtil::PerpVector(momv,zdir);
     double momt2 = momt.Mag2();
@@ -276,7 +270,7 @@ namespace KinKal {
   DVEC KTLine::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
-    double mommag = momentumMag(time);
+    double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 

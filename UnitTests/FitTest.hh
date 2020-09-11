@@ -75,13 +75,13 @@ void print_usage() {
 template <class KTRAJ>
 double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   double dt = numeric_limits<float>::max();
-  VEC3 pos1 = kt1.position(t1);
+  VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
   VEC3 delta, v2;
   while(fabs(dt) > 1e-5){
     v2 = kt2.velocity(t2);
-    delta = kt2.position(t2) - pos1;
+    delta = kt2.position3(t2) - pos1;
     dt = delta.Dot(v2)/v2.Mag2();
     t2 -= dt;
   }
@@ -274,8 +274,8 @@ int FitTest(int argc, char **argv) {
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentumMag(tptraj.range().begin());
-  double endmom = tptraj.momentumMag(tptraj.range().end());
+  double startmom = tptraj.momentum(tptraj.range().begin());
+  double endmom = tptraj.momentum(tptraj.range().end());
   VEC3 end, bend;
   bend = tptraj.front().direction(tptraj.range().end());
   end = tptraj.back().direction(tptraj.range().end());
@@ -283,11 +283,11 @@ int FitTest(int argc, char **argv) {
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
   auto const& midhel = tptraj.nearestPiece(0.0);
-  auto seedmom = midhel.momentum(0.0);
+  auto seedmom = midhel.momentum4(0.0);
   seedmom.SetM(fitmass);
   // buffer the seed range
   TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-  KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,seedrange);
+  KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
   cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
@@ -361,7 +361,7 @@ int FitTest(int argc, char **argv) {
     double ts = fptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fptraj.range().begin() + ip*ts;
-      VEC3 ppos = fptraj.position(tp);
+      VEC3 ppos = fptraj.position3(tp);
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     fitpl->Draw();
@@ -372,7 +372,7 @@ int FitTest(int argc, char **argv) {
     ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = tptraj.range().begin() + ip*ts;
-      VEC3 ppos = tptraj.position(tp);
+      VEC3 ppos = tptraj.position3(tp);
       ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     ttpl->Draw();
@@ -385,13 +385,13 @@ int FitTest(int argc, char **argv) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
-	plow = tline.position(tline.range().begin());
-	phigh = tline.position(tline.range().end());
+	plow = tline.position3(tline.range().begin());
+	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kRed);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
-	plow = tline.position(tline.range().begin());
-	phigh = tline.position(tline.range().end());
+	plow = tline.position3(tline.range().begin());
+	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kCyan);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -508,10 +508,10 @@ int FitTest(int argc, char **argv) {
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
-      auto seedmom = midhel.momentum(tmid);
+      auto seedmom = midhel.momentum4(tmid);
       seedmom.SetM(fitmass);
       TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-      KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,seedrange);
+      KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
   // if requested, constrain a parameter
@@ -556,8 +556,8 @@ int FitTest(int argc, char **argv) {
 	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
 	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
       }
-      ftmom_ = tptraj.momentumMag(ttlow);
-      btmom_ = tptraj.momentumMag(tthigh);
+      ftmom_ = tptraj.momentum(ttlow);
+      btmom_ = tptraj.momentum(tthigh);
       // reset some fit parameters, to signal failed filts
       chiprob_ = -1.0;
       maxgap_ = avgap_ = -1;
@@ -688,8 +688,8 @@ int FitTest(int argc, char **argv) {
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
-	ffmom_ = fptraj.momentumMag(ftlow);
-	bfmom_ = fptraj.momentumMag(fthigh);
+	ffmom_ = fptraj.momentum(ftlow);
+	bfmom_ = fptraj.momentum(fthigh);
 	ffmomerr_ = sqrt(fptraj.momentumVar(ftlow));
 	bfmomerr_ = sqrt(fptraj.momentumVar(fthigh));
 	fft_ = fptraj.range().begin();

@@ -266,7 +266,7 @@ namespace KinKal {
     VEC3 bf;
     if(kkconfig_->bfcorr_ == Config::variable) {
       // initialize BNom at the start of the range. it will change with each piece
-      bf = kkconfig_->bfield_.fieldVect(seedtraj.position(tstart)); 
+      bf = kkconfig_->bfield_.fieldVect(seedtraj.position3(tstart)); 
       // recast the seed parameters so they give the same state vector with the field at the starting point
       KTRAJ piece(seedtraj,bf,tstart);
       reftraj_ = PKTRAJ(piece);
@@ -284,7 +284,7 @@ namespace KinKal {
 	if(kkconfig_->bfcorr_ == Config::variable) {
 	  // create the next piece and append.  The domain transition is set to the middle of the integration range, so the effects coincide
 	  double tdomain = drange.mid();
-	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position(tdomain));
+	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position3(tdomain));
 	  // update the parameters to correspond to the same state but referencing the local field.
 	  // this allows the effects built on this traj to reference the correct parameterization
 	  KTRAJ newpiece(reftraj_.back(),bf,tdomain);

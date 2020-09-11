@@ -124,12 +124,10 @@ int ParticleTrajectoryTest(int argc, char **argv) {
 //    bool added(false);
     ptraj.append(endhel);
     // compare positions and momenta
-    VEC3 pold, pnew;
-    MOM4 mold, mnew;
-    pold = back.position(tcomp);
-    mold = back.momentum(tcomp);
-    pnew = endhel.position(tcomp);
-    mnew = endhel.momentum(tcomp);
+    auto pold = back.position3(tcomp);
+    auto mold = back.momentum4(tcomp);
+    auto pnew = endhel.position3(tcomp);
+    auto mnew = endhel.momentum4(tcomp);
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
@@ -146,21 +144,16 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     KTRAJ endhel(pdata,front);
     endhel.range() = range;
     // test
-    VEC4 frontpos, endpos;
-    frontpos.SetE(tcomp);
-    endpos.SetE(tcomp);
-    front.position(frontpos);
-    endhel.position(endpos);
+    auto frontpos = front.position4(tcomp);
+    auto endpos = endhel.position4(tcomp);
     cout << "front position " << frontpos << endl
     << " end position " << endpos << endl;
     ptraj.prepend(endhel);
     // compare positions and momenta
-    VEC3 pold, pnew;
-    MOM4 mold, mnew;
-    pold = front.position(tcomp);
-    mold = front.momentum(tcomp);
-    pnew = endhel.position(tcomp);
-    mnew = endhel.momentum(tcomp);
+    auto pold = front.position3(tcomp);
+    auto mold = front.momentum4(tcomp);
+    auto pnew = endhel.position3(tcomp);
+    auto mnew = endhel.momentum4(tcomp);
     double dmom = sqrt((mnew.Vect()-mold.Vect()).Mag2());
     double gap = sqrt((pnew-pold).Mag2());
     cout << "Kink at time " << tcomp << " Position gap = " << gap << " Momentum change = " << dmom << endl;
@@ -190,7 +183,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     VEC3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
       double t = tstart + ipt*ts;
-      ppos = piece.position(t);
+      ppos = piece.position3(t);
       plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
     }
     plhel.back()->Draw();
@@ -203,7 +196,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   double ts = (ptraj.range().end()-ptraj.range().begin())/(np-1);
   for(unsigned ip=0;ip<np;ip++){
   double tp = ptraj.range().begin() + ip*ts;
-    VEC3 ppos = ptraj.position(tp);
+    VEC3 ppos = ptraj.position3(tp);
       all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
   }
   all->Draw();
@@ -220,7 +213,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
 
 // ClosestApproach test:
   VEC3 midpos, middir;
-  midpos = ptraj.position(ptraj.range().mid());
+  midpos = ptraj.position3(ptraj.range().mid());
   middir = ptraj.direction(ptraj.range().mid());
   double lhphi = atan2(midpos.Y(),midpos.X());
   VEC3 rdir(cos(lhphi),sin(lhphi),0.0); // radial perpendicular to the helix
@@ -246,8 +239,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    plow = tline.position(tline.range().begin());
-    phigh = tline.position(tline.range().end());
+    plow = tline.position3(tline.range().begin());
+    phigh = tline.position3(tline.range().end());
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);

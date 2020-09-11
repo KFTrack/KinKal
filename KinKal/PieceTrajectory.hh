@@ -18,8 +18,8 @@ namespace KinKal {
     public:
       using DTTRAJ = std::deque<TTRAJ>;
       // forward calls to the pieces 
-      void position(VEC4& pos) const {nearestPiece(pos.T()).position(pos); }
-      VEC3 position(double time) const { return nearestPiece(time).position(time); }
+      void position3(VEC4& pos) const {nearestPiece(pos.T()).position3(pos); }
+      VEC3 position3(double time) const { return nearestPiece(time).position3(time); }
       VEC3 velocity(double time) const { return nearestPiece(time).velocity(time); }
       double speed(double time) const { return nearestPiece(time).speed(time); }
       VEC3 direction(double time, MomBasis::Direction mdir=MomBasis::momdir_) const { return nearestPiece(time).direction(time,mdir); }
@@ -176,8 +176,8 @@ namespace KinKal {
     if(ihigh>0 && ihigh < pieces_.size()){
       double jtime = pieces_[ihigh].range().begin(); // time of the junction of this piece with its preceeding piece
       VEC3 p0,p1;
-      p0 = pieces_[ihigh].position(jtime);
-      p1 = pieces_[ihigh-1].position(jtime);
+      p0 = pieces_[ihigh].position3(jtime);
+      p1 = pieces_[ihigh-1].position3(jtime);
       retval = (p1 - p0).R();
     }
     return retval;
