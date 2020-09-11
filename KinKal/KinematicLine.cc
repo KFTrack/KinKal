@@ -54,11 +54,11 @@ namespace KinKal {
     static const VEC3 zdir(0.0, 0.0, 1.0);
     static const VEC3 zpos(0.0, 0.0, 0.0);
 
-    // calculate POCA to the Z axis.  This is the reference for the parameters
+// calculate POCA to the Z axis.  This is the reference for the parameters
     POCAUtil poca(pos0.Vect(), dir, zpos, zdir);
     double flen = dir.Dot(pos0.Vect()-poca.point1()); // flight length from reference to POCA
     VEC3 pca = poca.point1()-poca.point2(); // vector from Z axis to POCA
-    // doca is signed by the angular momentum around the Z axis
+// doca is signed by the angular momentum around the Z axis
     double amsign = copysign(1.0, -(zdir.Cross(pca)).Dot(dir));
     param(d0_) = amsign*poca.dca(); // dca2d and dca are the same for POCA to the Z axis 
     param(phi0_) = dir.Phi(); // same as at POCA
