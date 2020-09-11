@@ -1,5 +1,5 @@
-#ifndef KinKal_Data_hh
-#define KinKal_Data_hh
+#ifndef KinKal_FitData_hh
+#define KinKal_FitData_hh
 //
 //  Data object describing fit parameters or weights
 //  dimension is always 6 for kinematic parameterizations
@@ -11,14 +11,14 @@
 #include <stdexcept>
 
 namespace KinKal {
-  class Data {
+  class FitData {
     public:
       // construct from vector and matrix
-      Data(DVEC const& vec, DMAT const& mat) : vec_(vec), mat_(mat) {}
-      Data(DVEC const& vec) : vec_(vec)  {}
-      Data() {}
+      FitData(DVEC const& vec, DMAT const& mat) : vec_(vec), mat_(mat) {}
+      FitData(DVEC const& vec) : vec_(vec)  {}
+      FitData() {}
       // copy with optional inversion
-      Data(Data const& tdata, bool inv=false) : vec_(tdata.vec_), mat_(tdata.mat_) { if (inv) invert(); }
+      FitData(FitData const& tdata, bool inv=false) : vec_(tdata.vec_), mat_(tdata.mat_) { if (inv) invert(); }
       // accessors
       DVEC const& vec() const { return vec_; }
       DMAT const& mat() const { return mat_; }
@@ -40,12 +40,12 @@ namespace KinKal {
 
       }
      // append
-      Data & operator -= (Data const& other) {
+      FitData & operator -= (FitData const& other) {
 	vec_ -= other.vec();
 	mat_ -= other.mat();
 	return *this;
       }
-      Data & operator += (Data const& other) {
+      FitData & operator += (FitData const& other) {
 	vec_ += other.vec();
 	mat_ += other.mat();
 	return *this;

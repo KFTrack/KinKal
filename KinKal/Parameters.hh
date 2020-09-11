@@ -4,29 +4,29 @@
 //  Data object describing fit parameters
 //  used as part of the kinematic kalman fit
 //
-#include "KinKal/Data.hh"
+#include "KinKal/FitData.hh"
 #include <ostream>
 namespace KinKal {
   class Weights;
   class Parameters {
     public:
       // construct from vector and matrix
-      Parameters(DVEC const& pars, DMAT const& pcov) : tdata_(pars,pcov) {}
-      Parameters(DVEC const& pars) : tdata_(pars) {}
+      Parameters(DVEC const& pars, DMAT const& pcov) : fitdata_(pars,pcov) {}
+      Parameters(DVEC const& pars) : fitdata_(pars) {}
       Parameters(Weights const& wdata);
       Parameters() {}
       // accessors; just re-interpret the base class accessors
-      DVEC const& parameters() const { return tdata_.vec(); }
-      DMAT const& covariance() const { return tdata_.mat(); }
-      DVEC& parameters() { return tdata_.vec(); }
-      DMAT& covariance() { return tdata_.mat(); }
-      Data const& tData() const { return tdata_; }
-      Data& tData() { return tdata_; }
+      DVEC const& parameters() const { return fitdata_.vec(); }
+      DMAT const& covariance() const { return fitdata_.mat(); }
+      DVEC& parameters() { return fitdata_.vec(); }
+      DMAT& covariance() { return fitdata_.mat(); }
+      FitData const& fitData() const { return fitdata_; }
+      FitData& fitData() { return fitdata_; }
       // scale the matrix
-      void scale(double sfac) { tdata_.scale(sfac); }
+      void scale(double sfac) { fitdata_.scale(sfac); }
 // addition: only works for other parameters
       Parameters & operator +=(Parameters const& other) {
-	tdata_ += other.tdata_;
+	fitdata_ += other.fitdata_;
 	return *this;
       }
       void print(std::ostream& ost=std::cout,int detail=0) const {
@@ -35,7 +35,7 @@ namespace KinKal {
 	  ost << "covariance " << covariance() << std::endl;
       }
     private:
-      Data tdata_; // data payload
+      FitData fitdata_; // data payload
   };
   std::ostream& operator << (std::ostream& ost, Parameters const& pdata);
 
