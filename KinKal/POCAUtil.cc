@@ -19,7 +19,7 @@ using namespace ROOT::Math;
 
 namespace KinKal {
 
-    POCAUtil::POCAUtil( Vec3 const& p1, Vec3 const& t1,  Vec3 const& p2,Vec3 const& t2, double cut):
+    POCAUtil::POCAUtil( VEC3 const& p1, VEC3 const& t1,  VEC3 const& p2,VEC3 const& t2, double cut):
     _p1(p1),
     _t1(t1.unit()),
     _p2(p2),
@@ -43,7 +43,7 @@ namespace KinKal {
 
       else {
 
-        Vec3 delta(_p1-_p2);
+        VEC3 delta(_p1-_p2);
         double dDotT1 = delta.Dot(_t1);
         double dDotT2 = delta.Dot(_t2);
 
@@ -54,7 +54,7 @@ namespace KinKal {
         _pca2 = _p2 + _t2*_s2;
       }
 
-      Vec3 diff = (_pca1-_pca2);
+      VEC3 diff = (_pca1-_pca2);
       _dca   = sqrt(diff.Mag2());
       _dca2d = sqrt(diff.Perp2());
 

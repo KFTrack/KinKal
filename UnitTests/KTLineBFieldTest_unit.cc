@@ -1,5 +1,5 @@
 #include "KinKal/KTLine.hh"
-#include "UnitTests/BFieldTest.hh"
+#include "UnitTests/BFieldMapTest.hh"
 int main(int argc, char **argv) {
-  return BFieldTest<KTLine>(argc,argv);
+  return BFieldMapTest<KTLine>(argc,argv);
 }

@@ -1,8 +1,8 @@
 // 
 // test basic functions of KTraj class
 //
-#include "KinKal/TLine.hh"
-#include "KinKal/TPoca.hh"
+#include "KinKal/Line.hh"
+#include "KinKal/ClosestApproach.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -31,7 +31,7 @@
 using namespace KinKal;
 using namespace std;
 // avoid confusion with root
-using KinKal::TLine;
+using KinKal::Line;
 
 void print_usage() {
   printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --xorigin f -- yorigin f --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
@@ -43,7 +43,7 @@ struct MomVec {
   MomVec() : arrow(new TPolyLine3D(2)), start(new TPolyMarker3D(1,21)), end(new TPolyMarker3D(1,22)) {}
 };
 
-void drawMom(Vec3 const& start, Vec3 const& momvec,int momcolor,MomVec& mom) {
+void drawMom(VEC3 const& start, VEC3 const& momvec,int momcolor,MomVec& mom) {
   mom.arrow->SetPoint(0,start.X(),start.Y(),start.Z());
   auto end = start + momvec;
   mom.arrow->SetPoint(1,end.X(),end.Y(),end.Z());
@@ -129,20 +129,20 @@ int test(int argc, char **argv) {
 
   printf("Testing KTraj with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
 // define the BF (tesla)
-  Vec3 bnom(0.0,By,1.0);
-  Vec4 origin(ox,oy,oz,ot);
+  VEC3 bnom(0.0,By,1.0);
+  VEC4 origin(ox,oy,oz,ot);
   double sint = sqrt(1.0-cost*cost);
-  Mom4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom,TRange(-10,10));
+  MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
+  KTRAJ lhel(origin,momv,icharge,bnom,TimeRange(-10,10));
   if(invert)lhel.invertCT();
-  Mom4 testmom = lhel.momentum(ot);
+  MOM4 testmom = lhel.momentum(ot);
   cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << lhel << endl;
   cout << "origin time position = " << lhel.position(ot) << " momentum " << lhel.momentum(ot) << " mag " <<  lhel.momentum(ot).R() << endl;
-  Vec3 tvel, tdir;
+  VEC3 tvel, tdir;
   double ttime;
   double tstp = lhel.range().range()/9;
   for(int istep=0;istep<10;istep++){
-    ttime = lhel.range().low() + istep*tstp;
+    ttime = lhel.range().begin() + istep*tstp;
     tvel = lhel.velocity(ttime);
     tdir = lhel.direction(ttime);
     testmom = lhel.momentum(ttime);
@@ -150,10 +150,10 @@ int test(int argc, char **argv) {
 //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
 //      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
   }
-  Vec3 mdir = lhel.direction(ot);
+  VEC3 mdir = lhel.direction(ot);
   // create the helix at tmin and tmax 
-  Mom4 tmom;
-  Vec4 tpos; 
+  MOM4 tmom;
+  VEC4 tpos; 
   tmom = lhel.momentum(tmax);
   tpos.SetE(tmax);
   lhel.position(tpos);
@@ -174,7 +174,7 @@ int test(int argc, char **argv) {
   TCanvas* hcan = new TCanvas("hcan","Helix",1000,1000);
 //TPolyLine to graph the result
   TPolyLine3D* hel = new TPolyLine3D(nsteps+1);
-  Vec4 hpos;
+  VEC4 hpos;
   for(int istep=0;istep<nsteps+1;++istep){
   // compute the position from the time
     hpos.SetE(tmin + tstep*istep);
@@ -205,9 +205,9 @@ int test(int argc, char **argv) {
   ihel->Draw();
 // now draw momentum vectors at reference, start and end
   MomVec imstart,imend,imref;
-  Vec3 imompos = ilhel.position(ot);
+  VEC3 imompos = ilhel.position(ot);
   mdir =ilhel.direction(ot);
-  Vec3 imomvec =mom*mdir;
+  VEC3 imomvec =mom*mdir;
   drawMom(imompos,imomvec,kBlack,imref);
   //
   imompos  = lhel.position(tmin);
@@ -233,9 +233,9 @@ int test(int argc, char **argv) {
 
 // now draw momentum vectors at reference, start and end
   MomVec mstart,mend,mref;
-  Vec3 mompos = lhel.position(ot);
+  VEC3 mompos = lhel.position(ot);
   mdir = lhel.direction(ot);
-  Vec3 momvec =mom*mdir;
+  VEC3 momvec =mom*mdir;
   drawMom(mompos,momvec,kBlack,mref);
   //
   mompos = lhel.position(tmin);
@@ -260,30 +260,30 @@ int test(int argc, char **argv) {
   leg->AddEntry(mend.arrow,title,"L");
   leg->Draw();
 
-  // create a TLine near this helix, and draw it and the TPoca vector
-  Vec3 pos = lhel.position(ltime);
-  Vec3 dir = lhel.direction(ltime);
+  // create a Line near this helix, and draw it and the ClosestApproach vector
+  VEC3 pos = lhel.position(ltime);
+  VEC3 dir = lhel.direction(ltime);
   // rotate the direction
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + M_PI/2.0;
-  Vec3 pdir(cos(pphi),sin(pphi),0.0);
+  VEC3 pdir(cos(pphi),sin(pphi),0.0);
   double pspeed = CLHEP::c_light*vprop; // vprop is relative to c
-  Vec3 pvel = pdir*pspeed;
+  VEC3 pvel = pdir*pspeed;
   // shift the position
-  Vec3 perpdir(-sin(phi),cos(phi),0.0);
-  Vec3 ppos = pos + gap*perpdir;
+  VEC3 perpdir(-sin(phi),cos(phi),0.0);
+  VEC3 ppos = pos + gap*perpdir;
 // time range;
-  TRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
-  TLine tline(ppos, pvel,ltime,prange);
-// find TPoca
-//  TPoca<KTRAJ,TLine> tp(lhel,tline);
-//  cout << "TPoca status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-//  if(tp.status() == TPocaBase::converged) {
-//    // draw the line and TPoca
+  TimeRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
+  Line tline(ppos, pvel,ltime,prange);
+// find ClosestApproach
+//  ClosestApproach<KTRAJ,Line> tp(lhel,tline);
+//  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+//  if(tp.status() == ClosestApproachData::converged) {
+//    // draw the line and ClosestApproach
 //    TPolyLine3D* line = new TPolyLine3D(2);
-//    Vec3 plow, phigh;
-//    tline.position(tline.range().low(),plow);
-//    tline.position(tline.range().high(),phigh);
+//    VEC3 plow, phigh;
+//    tline.position(tline.range().begin(),plow);
+//    tline.position(tline.range().end(),phigh);
 //    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
 //    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
 //    line->SetLineColor(kOrange);

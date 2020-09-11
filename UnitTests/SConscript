@@ -18,7 +18,7 @@ commonLibs = [ 'UnitTests', 'KinKal', 'MatEnv', 'GenVector', 'Core', 'RIO', 'Net
 # if you need to link anything specific not covered above to a specific test, add it here
 extraLibs = {
     # e.g.
-    # 'LHelix': ['someAdditionalLibrary'],
+    # 'LoopHelix': ['someAdditionalLibrary'],
 }
 
 linkLists = {}

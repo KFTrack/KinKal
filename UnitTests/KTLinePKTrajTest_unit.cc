@@ -1,5 +1,5 @@
 #include "KinKal/KTLine.hh"
-#include "UnitTests/PKTrajTest.hh"
+#include "UnitTests/ParticleTrajectoryTest.hh"
 int main(int argc, char **argv) {
-  return PKTrajTest<KTLine>(argc,argv);
+  return ParticleTrajectoryTest<KTLine>(argc,argv);
 }

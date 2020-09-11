@@ -5,12 +5,11 @@
   Original Author: S Middleton 2020
 */
 #include "CLHEP/Units/PhysicalConstants.h"
-#include "KinKal/BField.hh"
-#include "KinKal/LocalBasis.hh"
-#include "KinKal/StateVector.hh"
-#include "KinKal/PData.hh"
-#include "KinKal/TLine.hh"
-#include "KinKal/TRange.hh"
+#include "KinKal/BFieldMap.hh"
+#include "KinKal/MomBasis.hh"
+#include "KinKal/ParticleState.hh"
+#include "KinKal/Parameters.hh"
+#include "KinKal/TimeRange.hh"
 #include "KinKal/Vectors.hh"
 #include "Math/Rotation3D.h"
 #include <stdexcept>
@@ -29,10 +28,6 @@ class KTLine {
       npars_ = 6
     };
     constexpr static size_t NParams() { return npars_; }
-    typedef PData<npars_> PDATA;       // Data payload for this class
-    typedef typename PDATA::DVEC DVEC; // derivative of parameters type
-    typedef ROOT::Math::SMatrix<double,npars_,3,ROOT::Math::MatRepStd<double,npars_,3> > DPDV; // parameter derivatives WRT space dimension type
-    typedef ROOT::Math::SMatrix<double,3,npars_,ROOT::Math::MatRepStd<double,3,npars_> > DVDP; // space dimension derivatives WRT parameter type
 
     static std::vector<std::string> const &paramNames();
     static std::vector<std::string> const &paramUnits();
@@ -46,22 +41,22 @@ class KTLine {
 
     // This also requires the nominal BField, which can be a vector (3d) or a
     // scalar (B along z)
-    KTLine(Vec4 const& pos, Mom4 const& mom, int charge, Vec3 const& bnom, TRange const& range=TRange());
-    KTLine(Vec4 const& pos, Mom4 const& mom, int charge, double bnom, TRange const& range=TRange());
+    KTLine(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KTLine(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
     // copy payload and adjust for a different BField and range 
-    KTLine(KTLine const& other, Vec3 const& bnom, double trot);
+    KTLine(KTLine const& other, VEC3 const& bnom, double trot);
 
     // copy and override parameters
-    KTLine(PDATA const &pdata, KTLine const& other); 
-    KTLine(StateVector const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+    KTLine(Parameters const &pdata, KTLine const& other); 
+    KTLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
-    KTLine(StateVectorMeasurement const& pstate, double time, double mass, int charge, Vec3 const& bnom, TRange const& range=TRange());
+    KTLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
     virtual ~KTLine() {}
 
     // particle momentum as a function of time
-    Mom4 momentum(double time) const;
-    void momentum(double t, Mom4 &mom) const;
+    MOM4 momentum(double time) const;
+    void momentum(double t, MOM4 &mom) const;
 
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
     double momentumMag(double time) const { return mom(); }
@@ -72,8 +67,8 @@ class KTLine {
 
     // named parameter accessors
     double paramVal(size_t index) const { return pars_.parameters()[index]; }
-    PDATA const &params() const { return pars_; }
-    PDATA &params() { return pars_; }
+    Parameters const &params() const { return pars_; }
+    Parameters &params() { return pars_; }
     double d0() const { return paramVal(d0_); }
     double phi0() const { return paramVal(phi0_); }
     double z0() const { return paramVal(z0_); }
@@ -82,8 +77,8 @@ class KTLine {
     double mom() const { return paramVal(mom_); }
 
     // express fit results as a state vector (global coordinates)
-    StateVector state(double time) const;
-    StateVectorMeasurement measurementState(double time) const;
+    ParticleState state(double time) const;
+    ParticleStateMeasurement measurementState(double time) const;
 
     double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
@@ -93,31 +88,31 @@ class KTLine {
     double sinPhi0() const { return sin(phi0()); }
     double theta() const { return acos(cost()); }
     double tanTheta() const { return sqrt(1.0 - cost() * cost()) / cost(); }
-    Vec3 pos0() const { return Vec3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
+    VEC3 pos0() const { return VEC3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
     double flightLength(double t)const { return (t-t0())*speed(); }
-    Vec3 dir() const { double st = sinTheta(); return Vec3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
+    VEC3 dir() const { double st = sinTheta(); return VEC3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
 
-    TRange const &range() const { return trange_; }
-    TRange &range() {return trange_; }
-    virtual void setRange(TRange const &trange) { trange_ = trange; }
-    void setBNom(double time, Vec3 const& bnom) { bnom_ = bnom; }
+    TimeRange const &range() const { return trange_; }
+    TimeRange &range() {return trange_; }
+    virtual void setRange(TimeRange const &trange) { trange_ = trange; }
+    void setBNom(double time, VEC3 const& bnom) { bnom_ = bnom; }
     bool inRange(double time) const { return trange_.inRange(time); }
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
     double speed(double t) const { return speed(); }
 
-    void position(Vec4 &pos) const;
-    Vec3 position(double time) const;
+    void position(VEC4 &pos) const;
+    VEC3 position(double time) const;
 
-    Vec3 velocity(double time) const { return dir() * speed(); }
+    VEC3 velocity(double time) const { return dir() * speed(); }
     void print(std::ostream &ost, int detail) const;
-    void rangeInTolerance(TRange &range, BField const &bfield, double tol) const {}; 
+    void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {}; 
 
     // local momentum direction basis
-    Vec3 direction(double time, LocalBasis::LocDir mdir = LocalBasis::momdir) const;
-    Vec4 pos4(double time) const;
+    VEC3 direction(double time, MomBasis::Direction mdir = MomBasis::momdir_) const;
+    VEC4 pos4(double time) const;
     // momentum change derivatives; this is required to instantiate a KalTrk
-    KTLine::DVEC momDeriv(double time, LocalBasis::LocDir mdir) const;
+    DVEC momDeriv(double time, MomBasis::Direction mdir) const;
 
     // some possibly useful equations:
     double mass() const { return mass_; }
@@ -129,7 +124,7 @@ class KTLine {
     double beta() const { return (speed() / CLHEP::c_light); }
     double gamma() const { return energy()/mass_; }
     double betaGamma() const { return beta() * gamma(); }
-    Vec3 const &bnom(double time = 0.0) const { return bnom_; }
+    VEC3 const &bnom(double time = 0.0) const { return bnom_; }
 
     DPDV dPardX(double time) const;
     DPDV dPardM(double time) const;
@@ -140,7 +135,7 @@ class KTLine {
     // package the above for full (global) state
     // Parameter derivatives given a change in BField.  These return null for KTLine
     DVEC dPardB(double time) const { return DVEC(); }
-    DVEC dPardB(double time, Vec3 const& BPrime) const { return DVEC(); }
+    DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
 
     void invertCT() {
       charge_ *= -1;
@@ -149,16 +144,16 @@ class KTLine {
     }
 
   private:
-    static std::string trajName_;
+    const static std::string trajName_;
   // non-parametric variables
-    Vec3 bnom_; // nominal BField: not used by this parameterization 
+    VEC3 bnom_; // nominal BField: not used by this parameterization 
     double mass_;   // mass in MeV/c2
     int charge_; // charge in proton charge unites
-    TRange trange_;  // valid range
-    PDATA pars_;      // parameters
-    static std::vector<std::string> paramTitles_;
-    static std::vector<std::string> paramNames_;
-    static std::vector<std::string> paramUnits_;
+    TimeRange trange_;  // valid range
+    Parameters pars_;      // parameters
+    const static std::vector<std::string> paramTitles_;
+    const static std::vector<std::string> paramNames_;
+    const static std::vector<std::string> paramUnits_;
 
     // nonconst accessors
     double &param(size_t index) { return pars_.parameters()[index]; }

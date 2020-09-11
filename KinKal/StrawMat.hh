@@ -5,7 +5,7 @@
 //  mixture for the straw, the gas, and the wire,
 //
 #include "MatEnv/DetMaterial.hh"
-#include "KinKal/MatXing.hh"
+#include "KinKal/MaterialXing.hh"
 #include "MatEnv/MatDBInfo.hh"
 
 namespace KinKal {
@@ -32,7 +32,7 @@ namespace KinKal {
       double wallPath(double doca, double ddoca, double adot) const; 
       // should add function to compute wire effect (probabilstically) FIXME!
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes FIXME!
-      void findXings(double doca, double ddoca, double adot, std::vector<MatXing>& mxings) const;
+      void findXings(double doca, double ddoca, double adot, std::vector<MaterialXing>& mxings) const;
       double strawRadius() const { return srad_; }
       double wallThickness() const { return thick_; }
       double wireRadius() const { return wrad_; }
