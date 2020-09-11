@@ -85,7 +85,7 @@ os.makedirs('lib', exist_ok=True)
 
 # Make the environment visible to all SConscript files.
 Export('env')
-
+env.Append(CCFLAGS=["-Wno-sign-compare"])
 # Make an instance of the build_helper class and Export it.
 # This makes it Import-able by the SConscript files.
 Export('build_helper')
