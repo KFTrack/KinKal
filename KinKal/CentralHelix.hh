@@ -22,12 +22,12 @@ namespace KinKal {
 
   class CentralHelix {
     public:
-      // This class must provide the following to be used to instantiate the 
+      // This class must provide the following to be used to instantiate the
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
       constexpr static ParamIndex t0Index() { return t0_; }
-      
+
       static std::vector<std::string> const &paramNames();
       static std::vector<std::string> const &paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -41,10 +41,10 @@ namespace KinKal {
       // This also requires the nominal BFieldMap, which can be a vector (3d) or a scalar (B along z)
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
-      // copy payload and adjust for a different BFieldMap and range 
+      // copy payload and adjust for a different BFieldMap and range
       CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot);
       // copy and override parameters
-      CentralHelix(Parameters const &pdata, CentralHelix const& other); 
+      CentralHelix(Parameters const &pdata, CentralHelix const& other);
       // construct from the particle state at a given time, plus mass and charge
       CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); // TODO
       // same, including covariance information
@@ -72,7 +72,7 @@ namespace KinKal {
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       DVEC momDeriv(double time, MomBasis::Direction mdir) const;
-      double mass() const { return mass_;} // mass 
+      double mass() const { return mass_;} // mass
       int charge() const { return charge_;} // charge in proton charge units
 
       // named parameter accessors
@@ -111,17 +111,17 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos / vz(); }
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
-      DPDV dPardX(double time) const { return DPDV(); } // TODO
-      DPDV dPardM(double time) const { return DPDV(); } // TODO
-      DVDP dXdPar(double time) const { return DVDP(); } // TODO
-      DVDP dMdPar(double time) const { return DVDP(); } // TODO
+      DPDV dPardX(double time) const; // TODO
+      DPDV dPardM(double time) const; // TODO
+      DVDP dXdPar(double time) const; // TODO
+      DVDP dMdPar(double time) const; // TODO
       DSDP dPardState(double time) const { return DPDS(); } // TODO
       DPDS dStatedPar(double time) const { return DSDP(); } // TODO
       // package the above for full (global) state
       // Parameter derivatives given a change in BFieldMap
       DVEC dPardB(double time) const { return DVEC(); } // TODO
-      DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); } //TODO 
- 
+      DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); } //TODO
+
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT()
       {
@@ -131,6 +131,8 @@ namespace KinKal {
       }
       //
     private :
+      DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
+      DPDV dPardXLoc(double time) const;
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2
