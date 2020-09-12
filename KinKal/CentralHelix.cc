@@ -19,7 +19,7 @@ namespace KinKal {
   "d_{0}","#phi_{0}","#omega","z_{0}","tan#lambda","t_{0}"};
   const vector<string> CentralHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
-  const string CentralHelix::trajName_("CentralHelix");  
+  const string CentralHelix::trajName_("CentralHelix");
   std::vector<std::string> const& CentralHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& CentralHelix::paramUnits() { return paramUnits_; }
   std::vector<std::string> const& CentralHelix::paramTitles() { return paramTitles_; }
@@ -111,7 +111,7 @@ namespace KinKal {
   }
 
   CentralHelix::CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    CentralHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
+    CentralHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range)
   {}
 
   CentralHelix::CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
@@ -188,48 +188,189 @@ namespace KinKal {
     }
   }
 
+  DPDV CentralHelix::dPardMLoc(double time) const {
+    // euclidean space is column, parameter space is row
+    double phi00 = phi0();
+    double cDip = cosDip();
+    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
+    double rho = 1.0/omega();
+    double sphi0 = sin(phi00);
+    double cphi0 = cos(phi00);
+    double ang = phi00 + l * omega();
+    double cang = cos(ang);
+    double sang = sin(ang);
+    double x = (sang - sphi0) / omega() - d0() * sphi0;
+    double y = -(cang - cphi0) / omega() + d0() * cphi0;
+    double px = Q()/omega()*cang;
+    double py = Q()/omega()*sang;
+    double phip = atan2(py,px);
+    double cx = x-rho*sin(phip);
+    double cy = y+rho*cos(phip);
+
+    double omval = omega();
+    double tanval = tanDip();
+
+    // SVEC3 dz0_dM(0,0,0);
+    SVEC3 dt0_dM (CLHEP::c_light * beta() * cDip * Q() * Q() * sang,
+                  -CLHEP::c_light * beta() * cDip * Q() * Q() * cang,
+                  0);
+    SVEC3 domega_dM (-omval*omval*cang, -omval*omval*sang, 0);
+    SVEC3 dtanDip_dM (-omval*cang*tanval, -omval*sang*tanval, omval);
+    SVEC3 dphi0_dM (cx/(cx*cx+cy*cy), cy/(cx*cx+cy*cy), 0);
+
+    dphi0_dM /= Q();
+    domega_dM /= Q();
+    dtanDip_dM /= Q();
+
+    if( (cy*cphi0-cx*sphi0)*rho < 0.0 ){
+    // wrong angular momentum: fix
+      phi00 = phi00+CLHEP::pi;
+      sphi0 = -sphi0;
+      cphi0 = -cphi0;
+    }
+
+    double drho_dPx = omval*px/(Q()*Q());
+    double drho_dPy = omval*py/(Q()*Q());
+
+    SVEC3 dd0_dM(1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[0]) - drho_dPx,
+                 1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[1] + 1./Q()) - drho_dPy,
+                 0);
+    if(fabs(sphi0)<=0.5)
+      SVEC3 dd0_dM(1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[0] + 1./Q()) - drho_dPx,
+                   1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[1]) - drho_dPy,
+                   0);
+
+    // SVEC3 dz0_dM(- dtanDip_dM[0]*(phip-phi00)/omval
+    //              + tanDip()*domega_dM[0]*(phip-phi00)/(omval*omval)
+    //              - tanDip()*(-omval/Q()*sang-dphi0_dM[0])/omval,
+    //              - dtanDip_dM[1]*(phip-phi00)/omval
+    //              + tanDip()*domega_dM[1]*(phip-phi00)/(omval*omval)
+    //              - tanDip()*(omval/Q()*cang-dphi0_dM[1])/omval,
+    //              dtanDip_dM[2]*(phip-phi00)/omval);
+
+    SVEC3 dz0_dM(0,0,0);
+
+    DPDV dPdM;
+    dPdM.Place_in_row(dd0_dM,d0_,0);
+    dPdM.Place_in_row(dphi0_dM,phi0_,0);
+    dPdM.Place_in_row(domega_dM,omega_,0);
+    dPdM.Place_in_row(dtanDip_dM,tanDip_,0);
+    dPdM.Place_in_row(dz0_dM,z0_,0); // TODO
+    dPdM.Place_in_row(dt0_dM,t0_,0); // TODO
+    return dPdM;
+  }
+
+  DPDV CentralHelix::dPardM(double time) const {
+    // now rotate these into local space
+    RMAT g2lmat;
+    g2l_.GetRotationMatrix(g2lmat);
+    return dPardMLoc(time)*g2lmat;
+  }
+
+  DVDP CentralHelix::dMdPar(double time) const {
+    double phi00 = phi0();
+    double cDip = cosDip();
+    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
+    double omval = omega();
+    double factor = Q()/omval;
+    double ang = phi00 + l * omval;
+    double cang = cos(ang);
+    double sang = sin(ang);
+    SVEC3 dM_dd0 (0,0,0);
+    SVEC3 dM_dphi0 (-factor*sang, factor*cang, 0);
+    SVEC3 dM_domega (-factor/omval*(l*omval*sang+cang),
+                     factor/omval*(l*omval*cang-sang),
+                     -factor/omval);
+    SVEC3 dM_dtanDip (Q() * l * tanDip() * sang,
+                      -Q() * l * tanDip() * cang,
+                      factor);
+    SVEC3 dM_dz0 (0,0,0);
+    SVEC3 dM_dt0 (l/(time-t0()) * Q() * sang,
+                  -l/(time-t0()) * Q() * cang,
+                  0);
+    DVDP dMdP;
+    dMdP.Place_in_col(dM_dd0,0,d0_);
+    dMdP.Place_in_col(dM_dphi0,0,phi0_);
+    dMdP.Place_in_col(dM_domega,0,omega_);
+    dMdP.Place_in_col(dM_dtanDip,0,tanDip_);
+    dMdP.Place_in_col(dM_dz0,0,z0_);
+    dMdP.Place_in_col(dM_dt0,0,t0_);
+    // now rotate these into global space
+    RMAT l2gmat;
+    l2g_.GetRotationMatrix(l2gmat);
+    return l2gmat*dMdP;
+  }
+
+  DPDV CentralHelix::dPardXLoc(double time) const {
+    // euclidean space is column, parameter space is row
+    SVEC3 dd0_dX (0,0,0);
+    SVEC3 dz0_dX (0,0,0);
+    SVEC3 dphi0_dX (0,0,0);
+    SVEC3 dt0_dX (0,0,0);
+    SVEC3 domega_dX (0,0,0);
+    SVEC3 dtanDip_dX (0,0,0);
+    DPDV dPdX;
+    dPdX.Place_in_row(dd0_dX,d0_,0); // TODO
+    dPdX.Place_in_row(dphi0_dX,phi0_,0); // TODO
+    dPdX.Place_in_row(domega_dX,omega_,0); // TODO
+    dPdX.Place_in_row(dz0_dX,z0_,0); // TODO
+    dPdX.Place_in_row(dtanDip_dX,tanDip_,0); // TODO
+    dPdX.Place_in_row(dt0_dX,t0_,0); // TODO
+    return dPdX;
+  }
+
+  DVDP CentralHelix::dXdPar(double time) const {
+    // first find the derivatives wrt local cartesian coordinates
+    // euclidean space is row, parameter space is column
+    double phi00 = phi0();
+    double omval = omega();
+    double d0val = d0();
+    double cDip = cosDip();
+    double sDip = sinDip();
+    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
+    double sang = sin(phi00+omval*l);
+    double cang = cos(phi00+omval*l);
+    SVEC3 dX_dd0 (-sin(phi00), cos(phi00), 0);
+    SVEC3 dX_dphi0 (1./omval*cang - (1./omval+d0val)*cang,
+                    1./omval*sang - (1./omval+d0val)*sang,
+                    0);
+    SVEC3 dX_domega ((l*omval*cang - sang + sin(phi00))/omval/omval,
+                     (l*omval*sang + cang - cos(phi00))/omval/omval,
+                     0);
+    SVEC3 dX_dz0 (0,0,1);
+    SVEC3 dX_dtanDip (-l*sDip*cDip*cang,
+                      -l*sDip*cDip*sang,
+                      l*cDip*cDip);
+    SVEC3 dX_dt0 (-l/(time-t0())*cang,
+                  -l/(time-t0())*sang,
+                  -l/(time-t0())*tanDip());
+    DVDP dXdP;
+    dXdP.Place_in_col(dX_dd0,0,d0_);
+    dXdP.Place_in_col(dX_dphi0,0,phi0_);
+    dXdP.Place_in_col(dX_domega,0,omega_);
+    dXdP.Place_in_col(dX_dz0,0,z0_);
+    dXdP.Place_in_col(dX_dtanDip,0,tanDip_);
+    dXdP.Place_in_col(dX_dt0,0,t0_);
+    // now rotate these into global space
+    RMAT l2gmat;
+    l2g_.GetRotationMatrix(l2gmat);
+    return l2gmat*dXdP;
+  }
+
+  DPDV CentralHelix::dPardX(double time) const {
+    // rotate into local space
+    RMAT g2lmat;
+    g2l_.GetRotationMatrix(g2lmat);
+    return dPardXLoc(time)*g2lmat;
+  }
+
   DVEC CentralHelix::momDeriv(double time, MomBasis::Direction mdir) const
   {
-    // compute some useful quantities
-    double tanval = tanDip();
-    double cosval = cosDip();
-    double omval = omega();
-    double l = translen(CLHEP::c_light * beta() * (time - t0()));
-    double d0val = d0();
-    DVEC pder;
-    // cases
-    switch ( mdir ) {
-      case MomBasis::perpdir_:
-        // polar bending: only momentum and position are unchanged
-        pder[d0_] = tanval*(1-cos(omval*l))/omval;
-        pder[phi0_] = -tanval * sin(omval * l) / (1 + omval * d0val);
-        pder[omega_] = omval * tanval;
-        pder[z0_] = - l - tanval * tanval * sin(omval * l) / (omval * (1 + omval * d0val));
-        pder[tanDip_] = 1 / (cosval * cosval);
-        pder[t0_] = pder[z0_] / vz() + pder[tanDip_] * (time - t0()) * cosval * cosval / tanval;
-        break;
-      case MomBasis::phidir_:
-        // Azimuthal bending: R, Lambda, t0 are unchanged
-        pder[d0_] = -sin(omval * l) / (omval * cosval);
-        pder[phi0_] = cos(omval * l) / (cosval * (1 + omval * d0val));
-        pder[omega_] = 0;
-        pder[z0_] = -tanval / (omval * cosval) * (1 - cos(omval * l) / (1 + omval * d0val));
-        pder[tanDip_] = 0;
-        pder[t0_] = pder[z0_] / vz();
-        break;
-      case MomBasis::momdir_:
-        // fractional momentum change: position and direction are unchanged
-        pder[d0_] = -(1 - cos(omval * l)) / omval;
-        pder[phi0_] = sin(omval * l) / (1 + omval * d0val);
-        pder[omega_] = -omval;
-        pder[z0_] = -tanval * (l - sin(omval * l) / (omval * (1 + omval * d0val)));
-        pder[tanDip_] = 0;
-        pder[t0_] = pder[z0_] / vz();
-        break;
-      default:
-        throw std::invalid_argument("Invalid direction");
-    }
-    return pder;
+    typedef ROOT::Math::SVector<double,3> SVEC3;
+    DPDV dPdM = dPardM(time);
+    auto dir = direction(time,mdir);
+    double mommag = momentum(time);
+    return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
   std::ostream& operator <<(std::ostream& ost, CentralHelix const& hhel) {
