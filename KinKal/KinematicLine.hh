@@ -1,7 +1,7 @@
-#ifndef KinKal_KTLine_hh
-#define KinKal_KTLine_hh
+#ifndef KinKal_KinematicLine_hh
+#define KinKal_KinematicLine_hh
 /*
-  KTLine is the Linear Tracjectory specialization of the KTRAJ
+  KinematicLine is the Linear Tracjectory specialization of the KTRAJ
   Original Author: S Middleton 2020
 */
 #include "CLHEP/Units/PhysicalConstants.h"
@@ -16,7 +16,7 @@
 #include <vector>
 namespace KinKal {
 
-class KTLine {
+class KinematicLine {
   public:
     enum ParamIndex {
       d0_ = 0,
@@ -41,18 +41,18 @@ class KTLine {
 
     // This also requires the nominal BField, which can be a vector (3d) or a
     // scalar (B along z)
-    KTLine(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
-    KTLine(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
+    KinematicLine(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
     // copy payload and adjust for a different BField and range 
-    KTLine(KTLine const& other, VEC3 const& bnom, double trot);
+    KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot);
 
     // copy and override parameters
-    KTLine(Parameters const &pdata, KTLine const& other); 
-    KTLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(Parameters const &pdata, KinematicLine const& other); 
+    KinematicLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
-    KTLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
-    virtual ~KTLine() {}
+    virtual ~KinematicLine() {}
 
     // particle momentum as a function of time
     MOM4 momentum(double time) const;
@@ -133,7 +133,7 @@ class KTLine {
     DSDP dPardState(double time) const;
     DPDS dStatedPar(double time) const;
     // package the above for full (global) state
-    // Parameter derivatives given a change in BField.  These return null for KTLine
+    // Parameter derivatives given a change in BField.  These return null for KinematicLine
     DVEC dPardB(double time) const { return DVEC(); }
     DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
 
@@ -158,7 +158,7 @@ class KTLine {
     // nonconst accessors
     double &param(size_t index) { return pars_.parameters()[index]; }
   };
-  std::ostream &operator<<(std::ostream &ost, KTLine const &line);
+  std::ostream &operator<<(std::ostream &ost, KinematicLine const &line);
 
 } // namespace KinKal
 #endif
