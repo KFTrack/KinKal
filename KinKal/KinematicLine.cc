@@ -1,9 +1,9 @@
 /*
-  KTLine is the Linear Trajectory Specialization of KTRAJ - the kinematic trajectory.
+  KinematicLine is the Linear Trajectory Specialization of KTRAJ - the kinematic trajectory.
   Original Author: S Middleton 2020
 */
 
-#include "KinKal/KTLine.hh"
+#include "KinKal/KinematicLine.hh"
 #include "KinKal/BFieldMap.hh"
 #include "KinKal/POCAUtil.hh"
 #include "Math/AxisAngle.h"
@@ -16,35 +16,35 @@ using namespace ROOT::Math;
 
 namespace KinKal {
   typedef ROOT::Math::SVector<double,3> SVEC3;
-  const vector<string> KTLine::paramTitles_ = {
+  const vector<string> KinematicLine::paramTitles_ = {
       "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
       "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
 
-  const vector<string> KTLine::paramNames_ = {"d_{0}", "#phi_{0}", "z_{0}",
+  const vector<string> KinematicLine::paramNames_ = {"d_{0}", "#phi_{0}", "z_{0}",
                                        "cos(#theta)", "t_{0}", "mom"};
 
-  const vector<string> KTLine::paramUnits_ = {"mm", "radians", "mm", "", "ns","MeV/c"};
+  const vector<string> KinematicLine::paramUnits_ = {"mm", "radians", "mm", "", "ns","MeV/c"};
 
-  std::vector<std::string> const &KTLine::paramUnits() { return paramUnits_; }
-  std::vector<std::string> const &KTLine::paramNames() { return paramNames_; }
-  std::vector<std::string> const &KTLine::paramTitles() { return paramTitles_; }
+  std::vector<std::string> const &KinematicLine::paramUnits() { return paramUnits_; }
+  std::vector<std::string> const &KinematicLine::paramNames() { return paramNames_; }
+  std::vector<std::string> const &KinematicLine::paramTitles() { return paramTitles_; }
 
-  std::string const &KTLine::paramName(ParamIndex index) {
+  std::string const &KinematicLine::paramName(ParamIndex index) {
     return paramNames_[static_cast<size_t>(index)];
   }
-  std::string const &KTLine::paramTitle(ParamIndex index) {
+  std::string const &KinematicLine::paramTitle(ParamIndex index) {
     return paramTitles_[static_cast<size_t>(index)];
   }
-  std::string const &KTLine::paramUnit(ParamIndex index) {
+  std::string const &KinematicLine::paramUnit(ParamIndex index) {
     return paramUnits_[static_cast<size_t>(index)];
   }
 
-  const string KTLine::trajName_("KTLine");
-  string const &KTLine::trajName() { return trajName_; }
+  const string KinematicLine::trajName_("KinematicLine");
+  string const &KinematicLine::trajName() { return trajName_; }
 
- KTLine::KTLine( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : KTLine(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
+ KinematicLine::KinematicLine( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : KinematicLine(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
 
-  KTLine::KTLine(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
+  KinematicLine::KinematicLine(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
   TimeRange const &trange) :  bnom_(bnom), mass_(mom0.M()), charge_(charge), trange_(trange)
   {
     double mommag = mom0.R();
@@ -69,56 +69,56 @@ namespace KinKal {
   }
 
   /*
-  KTLine can take in Momentum externally as a 4-vector or calculate it based. You
+  KinematicLine can take in Momentum externally as a 4-vector or calculate it based. You
   can initialize the line with an origin (pos0) or the trajectory parameters
   (pdata)
   */
 
-  KTLine::KTLine(Parameters const &pdata, KTLine const &other) : KTLine(other) {
+  KinematicLine::KinematicLine(Parameters const &pdata, KinematicLine const &other) : KinematicLine(other) {
     pars_ = pdata;
   }
 
-  KTLine::KTLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    KTLine(pstate.position4(),pstate.momentum4(), charge,bnom,range) 
+  KinematicLine::KinematicLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+    KinematicLine(pstate.position4(),pstate.momentum4(), charge,bnom,range) 
   {}
 
-  KTLine::KTLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  KTLine(pstate.stateVector(),charge,bnom,range) {
+  KinematicLine::KinematicLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+  KinematicLine(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
     PSMAT dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  KTLine::KTLine(KTLine const& other, VEC3 const& bnom, double trot) : KTLine(other) {
+  KinematicLine::KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot) : KinematicLine(other) {
   }
 
-  void KTLine::position(VEC4 &pos) const {
+  void KinematicLine::position(VEC4 &pos) const {
     pos = position4(pos.T());
   }
 
-  VEC3 KTLine::position3(double time) const {
+  VEC3 KinematicLine::position3(double time) const {
     return (pos0() + flightLength(time) * dir());
   }
 
-  VEC4 KTLine::position4(double time) const {
+  VEC4 KinematicLine::position4(double time) const {
     VEC3 temp = position3(time);
     return VEC4(temp.X(), temp.Y(), temp.Z(), time);
   }
 
-  VEC3 KTLine::momentum3(double tval) const {
+  VEC3 KinematicLine::momentum3(double tval) const {
     return direction(tval)*mom();
   }
 
-  MOM4 KTLine::momentum4(double tval) const {
+  MOM4 KinematicLine::momentum4(double tval) const {
     VEC3 mom3 = momentum3(tval);
     return MOM4(mom3.X(),mom3.Y(),mom3.Z(),mass_);
   }
 
-  ParticleState KTLine::state(double time) const {
+  ParticleState KinematicLine::state(double time) const {
     return ParticleState(position4(time),momentum4(time));
   }
 
-  ParticleStateMeasurement KTLine::measurementState(double time) const {
+  ParticleStateMeasurement KinematicLine::measurementState(double time) const {
     // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
     return ParticleStateMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
@@ -133,7 +133,7 @@ namespace KinKal {
   alt dir = a test with the "BTrk parameterization" - just changes signs due to
   swithc in cos<->sin
   */
-  VEC3 KTLine::direction(double t, MomBasis::Direction mdir) const {
+  VEC3 KinematicLine::direction(double t, MomBasis::Direction mdir) const {
 
     switch (mdir) {
     case MomBasis::perpdir_: // purely polar change theta 1 = theta
@@ -150,7 +150,7 @@ namespace KinKal {
     }
   }
 
-  PSMAT KTLine::dPardState(double time) const{
+  PSMAT KinematicLine::dPardState(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
@@ -160,7 +160,7 @@ namespace KinKal {
     return dpds;
   }
 
-  PSMAT KTLine::dStatedPar(double time) const {
+  PSMAT KinematicLine::dStatedPar(double time) const {
   // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
@@ -170,7 +170,7 @@ namespace KinKal {
     return dsdp;
   }
 
-  DVDP KTLine::dXdPar(double time) const { 
+  DVDP KinematicLine::dXdPar(double time) const { 
     double deltat = time-t0();
     double sinT = sinTheta();
     double cotT = 1.0/tanTheta();
@@ -195,7 +195,7 @@ namespace KinKal {
     dXdP.Place_in_col(dX_dmom,0,mom_);
     return dXdP;
   }
-  DVDP KTLine::dMdPar(double time) const {
+  DVDP KinematicLine::dMdPar(double time) const {
     double sinT = sinTheta();
     double cotT = 1.0/tanTheta();
     double cosT = cosTheta();
@@ -214,7 +214,7 @@ namespace KinKal {
     return dMdP;
   }
 
-  DPDV KTLine::dPardX(double time) const {
+  DPDV KinematicLine::dPardX(double time) const {
     double sinT = sinTheta();
     double cotT = 1.0/tanTheta();
     double sinF = sin(phi0());
@@ -232,7 +232,7 @@ namespace KinKal {
     return dPdX;
   }
 
-  DPDV KTLine::dPardM(double time) const { 
+  DPDV KinematicLine::dPardM(double time) const { 
     double sinT = sinTheta();
     double cosT = cosTheta();
     double cotT = 1.0/tanTheta();
@@ -267,26 +267,26 @@ namespace KinKal {
   }
 
   // derivatives of momentum projected along the given basis WRT the parameters
-  DVEC KTLine::momDeriv(double time, MomBasis::Direction mdir) const {
+  DVEC KinematicLine::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
     double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
-  void KTLine::print(ostream &ost, int detail) const {
+  void KinematicLine::print(ostream &ost, int detail) const {
     auto perr = params().covariance().Diagonal();
-    ost << " KTLine " << range() << " parameters: ";
-    for (size_t ipar = 0; ipar < KTLine::npars_; ipar++) {
-      ost << KTLine::paramName(static_cast<ParamIndex>(ipar)) << " "
+    ost << " KinematicLine " << range() << " parameters: ";
+    for (size_t ipar = 0; ipar < KinematicLine::npars_; ipar++) {
+      ost << KinematicLine::paramName(static_cast<ParamIndex>(ipar)) << " "
           << paramVal(ipar) << " +- " << perr(ipar);
-      if (ipar < KTLine::npars_ - 1)
+      if (ipar < KinematicLine::npars_ - 1)
         ost << " ";
     }
     ost << " with rotation around Bnom " << bnom_ << endl;
   }
 
-  ostream &operator<<(ostream &ost, KTLine const &lhel) {
+  ostream &operator<<(ostream &ost, KinematicLine const &lhel) {
     lhel.print(ost, 0);
     return ost;
   }
