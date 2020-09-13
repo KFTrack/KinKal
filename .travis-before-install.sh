@@ -25,6 +25,7 @@ else
   sudo mount -t cvmfs mu2e.opensciencegrid.org /cvmfs/mu2e.opensciencegrid.org || echo "mount may have failed, will continue anyway"
   sudo mount -t cvmfs fermilab.opensciencegrid.org /cvmfs/fermilab.opensciencegrid.org || echo "mount may have failed, will continue anyway"
 
-  docker pull scientificlinux/sl:7
+  docker pull centos:7
+
 fi
 
