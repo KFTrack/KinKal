@@ -14,16 +14,14 @@ else
 
   sudo /etc/init.d/autofs stop
   sudo mkdir -p /etc/cvmfs/
-  echo "CVMFS_REPOSITORIES=mu2e.opensciencegrid.org,fermilab.opensciencegrid.org" > default.local
+  #echo "CVMFS_REPOSITORIES=mu2e.opensciencegrid.org,fermilab.opensciencegrid.org" > default.local
+  echo "CVMFS_REPOSITORIES=sft.cern.ch" > default.local
   echo "CVMFS_HTTP_PROXY=DIRECT" >> default.local
   sudo mv default.local /etc/cvmfs/default.local
 
   sudo cvmfs_config setup
-  sudo mkdir -p /cvmfs/mu2e.opensciencegrid.org
-  sudo mkdir -p /cvmfs/fermilab.opensciencegrid.org
-
-  sudo mount -t cvmfs mu2e.opensciencegrid.org /cvmfs/mu2e.opensciencegrid.org || echo "mount may have failed, will continue anyway"
-  sudo mount -t cvmfs fermilab.opensciencegrid.org /cvmfs/fermilab.opensciencegrid.org || echo "mount may have failed, will continue anyway"
+  sudo mkdir -p /cvmfs/sft.cern.ch
+  sudo mount -t cvmfs sft.cern.ch /cvmfs/sft.cern.ch || echo "mount may have failed, will continue anyway"
 
   docker pull centos:7
 
