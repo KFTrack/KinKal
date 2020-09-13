@@ -1,6 +1,7 @@
 echo -en 'travis_fold:start:ContainerSetup\r'
 
 echo "set up centos7 container with CERN LCG_98"
+yum -y install which
 
 source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-centos7-gcc8-opt/setup.sh
 
