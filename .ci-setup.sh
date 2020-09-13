@@ -1,4 +1,4 @@
-yum -y install make base-devel glibc-devel freetype-devel python3
+yum -y install make base-devel glibc-devel freetype-devel xxhash-devel xxhash-libs
 
 #python3 -m pip install scons
 
