@@ -100,3 +100,5 @@ You should make sure to source the `<root_location>/bin/thisroot.sh` shell scrip
 source <ROOT>/bin/thisroot.sh
 
 ```
+
+The ROOT binaries need to be compiled with C++17 (`-std=c++17`) support.
