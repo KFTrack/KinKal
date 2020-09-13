@@ -5,6 +5,9 @@ jobs:
         - os: osx
           osx_image: xcode10
 
+language: cpp
+python: 3.7
+
 before_install:
     - source .travis-before-install.sh
     - cd KinKal && mkdir build && cd build
