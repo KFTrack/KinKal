@@ -23,7 +23,6 @@ namespace KinKal {
       double TOCA(VEC3 point) const;
 
       // geometric accessors
-      void position(VEC4& pos) const;
       VEC3 position3(double time) const;
       VEC4 position4(double time) const;
       VEC3 velocity(double time) const;

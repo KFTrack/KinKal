@@ -1,7 +1,7 @@
 #ifndef KinKal_ParticleState_hh
 #define KinKal_ParticleState_hh
-// Describe the state vector (position and momentum) of a particle.  This (with mass and charge) unambgiuously defines the particle and
-// can provide a full kinematic interface.  The algebraic parameterization can be used as both input and output to a fit.
+// Describe the state vector (position and momentum) of a particle.  This (with mass and charge) unambgiuously defines the particle kinematics
+// so this class can provide a full kinematic interface.  The algebraic parameterization can be used as both input and output to a fit.
 #include "KinKal/Vectors.hh"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
@@ -23,7 +23,7 @@ namespace KinKal {
       // construct from raw information
       ParticleState(SVEC6 const& state, double time, double mass) : state_(state), time_(time), mass_(mass) {}
       ParticleState() {}
-      // direct accessor
+      // direct accessor to the state content in its algebraic form.
       SVEC6 const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
       VEC3 position3() const { return VEC3(state_[0],state_[1],state_[2]); }
@@ -42,7 +42,9 @@ namespace KinKal {
       const static std::vector<std::string> stateUnits_;
   };
 
-  // the same, including covariance ( when used as a measurement with estimated errors)
+  // the same, including covariance.  This allows using the state with estimated errors to seed a fit,
+  // or to express a fit result as a particle state with errors.  Transforming between ParticleStateMeasuremt
+  // and a kinematic trajectory is lossless.
   class ParticleStateMeasurement  {
     public:
     // construct from from raw information

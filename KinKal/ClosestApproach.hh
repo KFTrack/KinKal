@@ -78,8 +78,8 @@ namespace KinKal {
     // reset status
     tpdata_.reset();
     // initialize TOCA using hints
-    tpdata_.partPoca_.SetE(hint.particleToca_);
-    tpdata_.sensPoca_.SetE(hint.sensorToca_);
+    tpdata_.partCA_.SetE(hint.particleToca_);
+    tpdata_.sensCA_.SetE(hint.sensorToca_);
     static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter(0);
     // speed doesn't change
@@ -89,8 +89,8 @@ namespace KinKal {
     double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
     while(tpdata_.usable() && (fabs(dptoca) > precision() || fabs(dstoca) > precision()) && niter++ < maxiter) { 
       // find positions and directions at the current TOCA estimate
-      ktraj_.position(tpdata_.partPoca_);
-      straj_.position(tpdata_.sensPoca_);
+      tpdata_.partCA_ = ktraj_.position4(tpdata_.particleToca());
+      tpdata_.sensCA_ = straj_.position4(tpdata_.sensorToca());
       tpdata_.pdir_ = ktraj_.direction(particleToca());
       tpdata_.sdir_ = straj_.direction(sensorToca());
       VEC3 dpos = sensorPoca().Vect()-particlePoca().Vect();
@@ -108,8 +108,8 @@ namespace KinKal {
       dptoca = (hdd - ldd*ddot)/(denom*pspeed);
       dstoca = (hdd*ddot - ldd)/(denom*sspeed);
       // update the TOCA estimates
-      tpdata_.partPoca_.SetE(particleToca()+dptoca);
-      tpdata_.sensPoca_.SetE(sensorToca()+dstoca);
+      tpdata_.partCA_.SetE(particleToca()+dptoca);
+      tpdata_.sensCA_.SetE(sensorToca()+dstoca);
     }
     if(tpdata_.status_ != ClosestApproachData::pocafailed){
       if(niter < maxiter)
@@ -119,8 +119,8 @@ namespace KinKal {
       // need to add divergence and oscillation tests FIXME!
     }
     // final update
-    ktraj_.position(tpdata_.partPoca_);
-    straj_.position(tpdata_.sensPoca_);
+    tpdata_.partCA_ = ktraj_.position4(tpdata_.particleToca());
+    tpdata_.sensCA_ = straj_.position4(tpdata_.sensorToca());
     tpdata_.pdir_ = ktraj_.direction(particleToca());
     tpdata_.sdir_ = straj_.direction(sensorToca());
     // fill the rest of the state

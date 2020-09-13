@@ -92,10 +92,6 @@ namespace KinKal {
   KinematicLine::KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot) : KinematicLine(other) {
   }
 
-  void KinematicLine::position(VEC4 &pos) const {
-    pos = position4(pos.T());
-  }
-
   VEC3 KinematicLine::position3(double time) const {
     return (pos0() + flightLength(time) * dir());
   }

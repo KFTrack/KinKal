@@ -113,11 +113,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     KTRAJ endhel(pdata,back);
     endhel.range() = range;
     // test
-    VEC4 backpos, endpos;
-    backpos.SetE(tcomp);
-    endpos.SetE(tcomp);
-    back.position(backpos);
-    endhel.position(endpos);
+    VEC4 backpos = back.position4(tcomp);
+    VEC4 endpos = endhel.position4(tcomp);
     cout << "back position " << backpos << endl
     << " end position " << endpos << endl;
     // append this

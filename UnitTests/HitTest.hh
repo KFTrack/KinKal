@@ -171,12 +171,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 // create Canvas
   TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
   TPolyLine3D* hel = new TPolyLine3D(100);
-  VEC4 hpos;
   double tstep = tptraj.range().range()/100.0;
   for(int istep=0;istep<101;++istep){
   // compute the position from the time
-    hpos.SetE(tptraj.range().begin() + tstep*istep);
-    tptraj.position(hpos);
+    VEC4 hpos = tptraj.position4(tptraj.range().begin() + tstep*istep);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }

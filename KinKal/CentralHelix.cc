@@ -121,11 +121,6 @@ namespace KinKal {
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  void CentralHelix::position(VEC4& pos) const
-  {
-    pos = position4(pos.T());
-  }
-
   VEC4 CentralHelix::position4(double time) const
  {
     VEC3 pos3 = position3(time);

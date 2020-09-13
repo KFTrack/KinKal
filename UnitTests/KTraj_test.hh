@@ -170,11 +170,9 @@ int test(int argc, char **argv) {
   TCanvas* hcan = new TCanvas("hcan","Helix",1000,1000);
 //TPolyLine to graph the result
   TPolyLine3D* hel = new TPolyLine3D(nsteps+1);
-  VEC4 hpos;
   for(int istep=0;istep<nsteps+1;++istep){
   // compute the position from the time
-    hpos.SetE(tmin + tstep*istep);
-    lhel.position(hpos);
+    VEC4 hpos = lhel.position4(tmin + tstep*istep);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }
@@ -190,8 +188,7 @@ int test(int argc, char **argv) {
   ilhel.invertCT();
   for(int istep=0;istep<nsteps+1;++istep){
   // compute the position from the time
-    hpos.SetE(tmin + tstep*istep);
-    ilhel.position(hpos);
+    VEC4 hpos = lhel.position4(tmin + tstep*istep);
     // add these positions to the TPolyLine3D
     ihel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }

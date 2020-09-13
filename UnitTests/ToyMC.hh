@@ -271,9 +271,8 @@ namespace KKTest {
 	prange.begin() = prange.end();
 	do {
 	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
-	  VEC4 pos; pos.SetE(prange.begin());
+	  VEC4 pos = pktraj.position4(prange.begin());
 	  MOM4 mom =  pktraj.momentum4(prange.begin());
-	  pktraj.position(pos);
 	  VEC3 bf = bfield_.fieldVect(pos.Vect());
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
 	  pktraj.append(newend);

@@ -192,61 +192,62 @@ int BFieldMapTest(int argc, char **argv) {
   TPolyLine3D* tpx = new TPolyLine3D(200);
   TPolyLine3D* tpl = new TPolyLine3D(200);
   TPolyLine3D* tnom = new TPolyLine3D(200);
-  VEC4 tpos, xpos, lpos, npos;
+  VEC3 tpos, xpos, lpos, npos;
   VEC3 tvel, xvel, lvel;
   VEC3 t1dir, t2dir, mdir;
-  MOM4 tmom, xmom, lmom;
+  VEC3 tmom, xmom, lmom;
   double tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
   // compute the position from the time
-    tpos.SetE(tptraj.range().begin() + tstep*istep);
-    tptraj.position(tpos);
-    t1dir = tptraj.direction(tpos.T(),MomBasis::perpdir_);
-    t2dir = tptraj.direction(tpos.T(),MomBasis::phidir_);
-    mdir = tptraj.direction(tpos.T(),MomBasis::momdir_);
- 
+    double ttime = tptraj.range().begin() + tstep*istep;
+    tpos = tptraj.position3(ttime);
+    t1dir = tptraj.direction(ttime,MomBasis::perpdir_);
+    t2dir = tptraj.direction(ttime,MomBasis::phidir_);
+    mdir = tptraj.direction(ttime,MomBasis::momdir_);
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
-    xpos.SetE(tptraj.range().begin() + tstep*istep);
-    xptraj.position(xpos);
+    
+    xpos = xptraj.position3(ttime);
     tpx->SetPoint(istep, xpos.X(), xpos.Y(), xpos.Z());
-    lpos.SetE(tptraj.range().begin() + tstep*istep);
-    lptraj.position(lpos);
+
+    lpos = lptraj.position3(ttime);
     tpl->SetPoint(istep, lpos.X(), lpos.Y(), lpos.Z());
-    npos.SetE(tptraj.range().begin() + tstep*istep);
-    start.position(npos);
+
+    npos = start.position3(ttime);
+
     tnom->SetPoint(istep, npos.X(), npos.Y(), npos.Z());
 
-    dxpost1->Fill( (xpos-tpos).Vect().Dot(t1dir));
-    dxpost2->Fill( (xpos-tpos).Vect().Dot(t2dir));
-    dxposmd->Fill( (xpos-tpos).Vect().Dot(mdir));
+    dxpost1->Fill( (xpos-tpos).Dot(t1dir));
+    dxpost2->Fill( (xpos-tpos).Dot(t2dir));
+    dxposmd->Fill( (xpos-tpos).Dot(mdir));
 
-    dlpost1->Fill( (lpos-tpos).Vect().Dot(t1dir));
-    dlpost2->Fill( (lpos-tpos).Vect().Dot(t2dir));
-    dlposmd->Fill( (lpos-tpos).Vect().Dot(mdir));
+    dlpost1->Fill( (lpos-tpos).Dot(t1dir));
+    dlpost2->Fill( (lpos-tpos).Dot(t2dir));
+    dlposmd->Fill( (lpos-tpos).Dot(mdir));
 
-    tmom = tptraj.momentum4(tpos.T());
-    xmom = xptraj.momentum4(xpos.T());
-    lmom = lptraj.momentum4(lpos.T());
-    dxmomt1->Fill( (xmom.Vect()-tmom.Vect()).Dot(t1dir));
-    dxmomt2->Fill( (xmom.Vect()-tmom.Vect()).Dot(t2dir));
-    dxmommd->Fill( (xmom.Vect()-tmom.Vect()).Dot(mdir));
+    tmom = tptraj.momentum3(ttime);
+    xmom = xptraj.momentum3(ttime);
+    lmom = lptraj.momentum3(ttime);
 
-    dlmomt1->Fill( (lmom.Vect()-tmom.Vect()).Dot(t1dir));
-    dlmomt2->Fill( (lmom.Vect()-tmom.Vect()).Dot(t2dir));
-    dlmommd->Fill( (lmom.Vect()-tmom.Vect()).Dot(mdir));
+    dxmomt1->Fill( (xmom-tmom).Dot(t1dir));
+    dxmomt2->Fill( (xmom-tmom).Dot(t2dir));
+    dxmommd->Fill( (xmom-tmom).Dot(mdir));
+
+    dlmomt1->Fill( (lmom-tmom).Dot(t1dir));
+    dlmomt2->Fill( (lmom-tmom).Dot(t2dir));
+    dlmommd->Fill( (lmom-tmom).Dot(mdir));
   }
-  // draw the true helix
+  // draw the true trajectory
   ttrue->SetLineColor(kBlue);
   ttrue->Draw();
-  // draw the nominal (unadjusted) helix
+  // draw the nominal (unadjusted) trajectory
   tnom->SetLineColor(kBlack);
   tnom->SetLineStyle(9);
   tnom->Draw();
-  // draw the adjusted helix
+  // draw the 'exact' (rotated) adjusted trajectory
   tpx->SetLineColor(kGreen);
   tpx->SetLineStyle(6);
   tpx->Draw();
-  //
+  // linear adjusted trajectory
   tpl->SetLineColor(kRed);
   tpl->SetLineStyle(7);
   tpl->Draw();
@@ -263,8 +264,8 @@ int BFieldMapTest(int argc, char **argv) {
   TLegend* hleg = new TLegend(0.7,0.7,1.0,1.0);
   hleg->AddEntry(ttrue,"True Trajectory","L");
   hleg->AddEntry(tnom,"Nominal Trajectory","L");
-  hleg->AddEntry(tpx,"Exact Correction Trajectory","L");
-  hleg->AddEntry(tpl,"Linear Correction Trajectory","L");
+  hleg->AddEntry(tpx,"Rotated Correction Trajectory","L");
+  hleg->AddEntry(tpl,"Fixed Correction Trajectory","L");
   hleg->Draw();
   hcan->Draw();
   hcan->Write();

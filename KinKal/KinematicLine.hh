@@ -101,7 +101,6 @@ class KinematicLine {
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
     double speed(double t) const { return speed(); }
 
-    void position(VEC4 &pos) const;
     VEC3 position3(double time) const;
     VEC4 position4(double time) const;
 

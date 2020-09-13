@@ -110,10 +110,6 @@ namespace KinKal {
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
 
-  void LoopHelix::position(VEC4& pos) const {
-    pos = position4(pos.T());
-  }
-
   VEC4 LoopHelix::position4(double time) const {
     VEC3 temp = position3(time);
     return VEC4(temp.X(),temp.Y(),temp.Z(),time);
@@ -354,10 +350,6 @@ namespace KinKal {
     dsdp.Place_at(dXdP,0,0);
     dsdp.Place_at(dMdP,3,0);
     return dsdp;
-  }
-
-  ParticleState LoopHelix::state(double time) const {
-    return ParticleState(position4(time),momentum4(time));
   }
 
   ParticleStateMeasurement LoopHelix::measurementState(double time) const {

@@ -48,7 +48,6 @@ namespace KinKal {
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
-      void position(VEC4& pos) const;
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
@@ -79,7 +78,7 @@ namespace KinKal {
       double phi0() const { return paramVal(phi0_); }
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
-      ParticleState state(double time) const;
+      ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time)); }
       ParticleStateMeasurement measurementState(double time) const;
       // simple functions; these can be cached if they cause performance problems
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
