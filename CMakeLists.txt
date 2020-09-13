@@ -24,7 +24,7 @@ list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 project (KinKal CXX)
 
-find_package(ROOT REQUIRED COMPONENTS Core RIO Net Hist Spectrum GenVector MLP Graf Graf3d Gpad Tree Rint Postscript Matrix Physics MathCore Thread Gui)
+find_package(ROOT REQUIRED COMPONENTS Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree Rint Postscript Matrix Physics MathCore Thread Gui)
 
 # include "useful" ROOT headers
 include(${ROOT_USE_FILE})
