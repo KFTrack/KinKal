@@ -3,7 +3,7 @@ if [ $TRAVIS_OS_NAME = 'osx' ]; then
   installer -pkg root_v6.22.02.macosx64-10.13-clang100.pkg -target CurrentUserHomeDirectory
   source ~/Applications/root_v6.22.02/bin/thisroot.sh 
   python3 -m pip install --user scons
-
+  export PATH=$HOME/Library/Python/3.7/bin:$PATH
 else
   wget --no-check-certificate https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
   sudo dpkg -i cvmfs-release-latest_all.deb
