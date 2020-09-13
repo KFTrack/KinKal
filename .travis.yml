@@ -1,35 +1,16 @@
-
-sudo: required
-dist: xenial
-
-services:
-  - docker
-
-language: cpp
+jobs:
+    include:
+        - os: linux
+          dist: focal
+        - os: osx
+          osx_image: xcode10
 
 before_install:
-  - wget --no-check-certificate https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb
-  - sudo dpkg -i cvmfs-release-latest_all.deb
-  - sudo apt-get update
-  - sudo apt-get install cvmfs cvmfs-config-default
-  - rm -f cvmfs-release-latest_all.deb
+    - source .travis-before-install.sh
+    - cd KinKal && mkdir build && cd build
+    - source ../../scripts/newBuild.sh prof
+    - source setup.sh
 
-  - sudo /etc/init.d/autofs stop
-  - sudo mkdir -p /etc/cvmfs/
-  - echo "CVMFS_REPOSITORIES=mu2e.opensciencegrid.org,fermilab.opensciencegrid.org" > default.local
-  - echo "CVMFS_HTTP_PROXY=DIRECT" >> default.local
-  - sudo mv default.local /etc/cvmfs/default.local
-
-  - sudo cvmfs_config setup
-  - sudo mkdir -p /cvmfs/mu2e.opensciencegrid.org
-  - sudo mkdir -p /cvmfs/fermilab.opensciencegrid.org
-
-  - sudo mount -t cvmfs mu2e.opensciencegrid.org /cvmfs/mu2e.opensciencegrid.org || echo "mount may have failed, will continue anyway"
-  - sudo mount -t cvmfs fermilab.opensciencegrid.org /cvmfs/fermilab.opensciencegrid.org || echo "mount may have failed, will continue anyway"
-  
 script:
-  - docker pull scientificlinux/sl:7
-  - cd .. && docker run --name KinKalCI -v /cvmfs:/cvmfs:ro,shared -v "$(pwd)"/KinKal:/KinKal -it -d scientificlinux/sl:7
-  - docker exec -ti KinKalCI /bin/bash -c "cd /KinKal && source .ci-setup.sh"
-
-  
+    - scons -j 4
+    - scons test
