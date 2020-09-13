@@ -14,8 +14,8 @@ setup root v6_20_06 -f Linux64bit+3.10-2.17 -q e19:p383b:prof
 
 echo -en 'travis_fold:end:SLF7ContainerSetup\r'
 
-echo -en 'travis_fold:start:Build\r'
-echo "Build"
+#echo -en 'travis_fold:start:Build\r'
+#echo "Build"
 
 rm -rf build || echo ""
 mkdir build && cd build
@@ -34,7 +34,7 @@ cmake .. -DCMAKE_BUILD_TYPE=Release
 
 make -j 8
 
-echo -en 'travis_fold:end:Build\r'
+#echo -en 'travis_fold:end:Build\r'
 
 make test 
 
