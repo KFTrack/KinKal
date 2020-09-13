@@ -5,7 +5,7 @@ if [ $TRAVIS_OS_NAME = 'osx' ]; then
 else
   wget https://root.cern/download/root_v6.22.02.Linux-ubuntu20-x86_64-gcc9.3.tar.gz
   tar xzvf root_v6.22.02.Linux-ubuntu20-x86_64-gcc9.3.tar.gz
-  source ~/root/bin/thisroot.sh
+  source root/bin/thisroot.sh
 
 fi
 
