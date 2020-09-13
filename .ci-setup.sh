@@ -6,14 +6,22 @@ yum -y install make base-devel glibc-devel freetype-devel xxhash-devel xxhash-li
 source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups
 setup mu2e
 setup root v6_20_06 -f Linux64bit+3.10-2.17 -q e19:p383b:prof
-setup -B scons v3_1_2 -q +p383b
+#setup -B scons v3_1_2 -q +p383b
 
 rm -rf build || echo ""
 mkdir build && cd build
 
-source ../scripts/newBuild.sh prof
-source setup.sh
+#source ../scripts/newBuild.sh prof
+#source setup.sh
 
-scons -j 4
+#scons -j 4
 
-scons test
+#scons test
+
+
+setup cmake v3_17_3
+
+cmake .. -DCMAKE_BUILD_TYPE=Release
+
+make -j 8
+make test 

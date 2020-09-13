@@ -1,11 +1,15 @@
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     mkdir build && cd build
+    cmake .. -DCMAKE_BUILD_TYPE=Release
+    
+    make -j 8
+    make test
 
-    source ../scripts/newBuild.sh prof 
-    source setup.sh
+#    source ../scripts/newBuild.sh prof 
+#    source setup.sh
 
-    scons -j 4
-    scons test
+#    scons -j 4
+#    scons test
 
 else
 
