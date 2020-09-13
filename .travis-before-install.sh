@@ -2,7 +2,7 @@ if [ $TRAVIS_OS_NAME = 'osx' ]; then
   wget https://root.cern/download/root_v6.22.02.macosx64-10.13-clang100.pkg
   installer -pkg root_v6.22.02.macosx64-10.13-clang100.pkg -target CurrentUserHomeDirectory
   source ~/Applications/root_v6.22.02/bin/thisroot.sh 
-  python -m pip install --user scons
+  python3 -m pip install --user scons
 
 else
   wget --no-check-certificate https://ecsft.cern.ch/dist/cvmfs/cvmfs-release/cvmfs-release-latest_all.deb

@@ -1,7 +1,7 @@
 if [ "$TRAVIS_OS_NAME" = "osx" ]; then
     mkdir build && cd build
 
-    source ../../scripts/newBuild.sh prof 
+    source ../scripts/newBuild.sh prof 
     source setup.sh
 
     scons -j 4
