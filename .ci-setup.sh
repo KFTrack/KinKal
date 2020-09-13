@@ -7,6 +7,9 @@ setup cmake v3_9_0
 
 rm -rf build || echo ""
 mkdir build && cd build
+
+
+
 cmake .. -DCMAKE_BUILD_TYPE=Release
 
 make -j 8

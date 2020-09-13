@@ -1,19 +1,18 @@
 jobs:
     include:
         - os: linux
-          dist: focal
+          dist: xenial
+          sudo: required
+          services:
+            - docker 
         - os: osx
           osx_image: xcode10
-
-language: cpp
-python: 3.7
+          language: cpp
+          python: 3.7
 
 before_install:
     - source .travis-before-install.sh
-    - cd KinKal && mkdir build && cd build
-    - source ../../scripts/newBuild.sh prof
-    - source setup.sh
 
 script:
-    - scons -j 4
-    - scons test
+    - source .travis-script.sh
+ 
