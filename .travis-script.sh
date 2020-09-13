@@ -8,7 +8,7 @@ else
     # set up SL7 docker container
     cd .. 
 
-    docker run --name KinKalCI -v /cvmfs:/cvmfs:ro,shared -v "$(pwd)"/KinKal:/KinKal -it -d scientificlinux/sl:7
+    docker run --name KinKalCI -v /cvmfs:/cvmfs:ro,shared -v "$(pwd)"/KinKal:/KinKal -it -d centos:7
     docker exec -ti KinKalCI /bin/bash -c "cd /KinKal && source .ci-setup.sh"
 fi
 
