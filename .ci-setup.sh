@@ -1,17 +1,10 @@
-echo -en 'travis_fold:start:SLF7ContainerSetup\r'
-echo "set up SL7 container"
+echo -en 'travis_fold:start:ContainerSetup\r'
 
-yum -y install epel-release
-yum -y install make base-devel glibc-devel freetype-devel xxhash-devel xxhash-libs libcurl libcurl-devel libzstd-devel libzstd
+echo "set up centos7 container with CERN LCG_98"
 
-source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups
-setup mu2e
-setup root v6_20_06 -f Linux64bit+3.10-2.17 -q e19:p383b:prof
-#setup -B scons v3_1_2 -q +p383b
-setup cmake v3_17_3
+source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-centos7-gcc8-opt/setup.sh
 
-
-echo -en 'travis_fold:end:SLF7ContainerSetup\r'
+echo -en 'travis_fold:end:ContainerSetup\r'
 
 #echo -en 'travis_fold:start:Build\r'
 #echo "Build"
