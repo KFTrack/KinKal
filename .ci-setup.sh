@@ -1,5 +1,5 @@
 yum -y install epel-release
-yum -y install make base-devel glibc-devel freetype-devel xxhash-devel xxhash-libs
+yum -y install make base-devel glibc-devel freetype-devel xxhash-devel xxhash-libs libcurl libcurl-devel libzstd-devel libzstd
 
 #python3 -m pip install scons
 
