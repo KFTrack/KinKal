@@ -559,6 +559,7 @@ int FitTest(int argc, char **argv) {
       bfinfovec.clear();
       minfovec.clear();
       tinfovec.clear();
+      statush->Fill(fstat.status_);
       if(fstat.usable()){
 	// truth parameters, front and back
 	double ttlow = tptraj.range().begin();
@@ -572,7 +573,6 @@ int FitTest(int argc, char **argv) {
 	}
 	ftmom_ = tptraj.momentum(ttlow);
 	btmom_ = tptraj.momentum(tthigh);
-	statush->Fill(fstat.status_);
 	ndof->Fill(fstat.ndof_);
 	chisq->Fill(fstat.chisq_);
 	chisqndof->Fill(fstat.chisq_/fstat.ndof_);

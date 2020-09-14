@@ -25,7 +25,7 @@ namespace KinKal {
       // now integrate
       VEC3 dmom;
       for(unsigned istep=0; istep< nsteps; istep++){
-	double tstep = trange.begin() + istep*dt;
+	double tstep = trange.begin() + (0.5+istep)*dt;
 	VEC3 vel = ktraj.velocity(tstep);
 	VEC3 db = bfield.fieldVect(ktraj.position3(tstep)) - ktraj.bnom(tstep);
 	dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);

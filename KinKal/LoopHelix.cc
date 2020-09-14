@@ -74,6 +74,7 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
     // adjust the parameters for the change in bnom
+    mbar_ *= bnom_.R()/bnom.R();
     pars_.parameters() += dPardB(time,bnom);
     bnom_ = bnom;
     // adjust rotations to global space
