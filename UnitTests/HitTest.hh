@@ -147,7 +147,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   VEC3 bnom(0.0,By,1.0);
   BFieldMap* BF;
   if(Bgrad != 0){
-    BF = new GradBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradientBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(VEC3(0.0,0.0,0.0));
   } else {
     BF = new UniformBFieldMap(bnom);

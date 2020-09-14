@@ -97,7 +97,7 @@ int BFieldMapTest(int argc, char **argv) {
   VEC3 bnom(0.0,0.0,1.0);
   VEC3 bsim;
   if(Bgrad != 0){
-    BF = new GradBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradientBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(VEC3(0.0,0.0,0.0));
   } else {
     VEC3 bsim(dBx,dBy,1.0+dBz);

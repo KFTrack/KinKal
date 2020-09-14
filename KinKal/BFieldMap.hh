@@ -63,16 +63,16 @@ namespace KinKal {
   };
 
   // simple Z gradient field, used to test Field corrections
-  class GradBFieldMap : public BFieldMap {
+  class GradientBFieldMap : public BFieldMap {
     public:
-      GradBFieldMap(double b0, double b1, double zg0, double zg1);
+      GradientBFieldMap(double b0, double b1, double zg0, double zg1);
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
-      virtual ~GradBFieldMap(){}
+      virtual ~GradientBFieldMap(){}
       // disallow copy and equivalence
-      GradBFieldMap(GradBFieldMap const& ) = delete; 
-      GradBFieldMap& operator =(GradBFieldMap const& ) = delete; 
+      GradientBFieldMap(GradientBFieldMap const& ) = delete; 
+      GradientBFieldMap& operator =(GradientBFieldMap const& ) = delete; 
     private:
       double b0_, b1_;
       double z0_; 
