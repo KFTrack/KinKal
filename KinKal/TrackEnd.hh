@@ -1,7 +1,7 @@
 #ifndef KinKal_TrackEnd_hh
 #define KinKal_TrackEnd_hh
 //
-// End of the KK fit effect set, used transiently to start the fit and trajectory building
+// End of the track effect.  This initiates the fit and trajectory building
 //
 #include "KinKal/Effect.hh"
 #include <stdexcept>
@@ -62,13 +62,14 @@ namespace KinKal {
     // convert this to a weight (inversion)
     endeff_ = Weights(refend);
     KKEFF::updateStatus();
+    // need to update BField reference fo the end piece to current position local field FIXME!
   }
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::append(PKTRAJ& fit) {
-    // if the fit is empty and we're going in the right direction, take the end cache and
-    // seed the fit with it
+    // Test the fit is empty and we're going in the right direction
     if(tdir_ == TimeDir::forwards) {
       if(fit.pieces().size() == 0){
+	// take the end cache and  seed the fit with it
 	// start with a very large range 
 	endtraj_.range() = TimeRange(-std::numeric_limits<double>::max(),std::numeric_limits<double>::max());
 	// append this to the (empty) fit

@@ -9,14 +9,14 @@
 //
 //  Track is templated on a simple kinematic trajectory class representing the 1-dimensional path and
 //  momentum of a particle traveling through empty space in a constant magnetic field, as a function of time.
-//  The piecewise kinematic trajectory fit result is expressed as a time sequence of these simple trajectory objects.
-//  Material effects and spatial variation of magnetic fields are modeled through changes between adjacent simple
-//  trajectories.
-//  To instantiate Track the particle trajectory class must satisfy a geometric, kinematic, and parametric interface.
+//  Material effects and spatial variation of magnetic fields are modeled through changes between adjacent simple  trajectories.
+//  The particle trajectory is expressed as a piecewise sequence of these simple trajectory objects, joined
+//  at specific times, providing a continuos (in time) description of particle position and momentum.
+//  To instantiate Track the kinematic trajectory class must satisfy a geometric, kinematic, and parametric interface.
 //  The geometric interface includes functions for position, direction, etc.
 //  The kinematic interface includes functions for velocity, momentum, etc.
 //  The parametric interface includes functions for parameter values, covariance, derivatives, etc.
-//  An example is the LoopHelix.hh or CentralHelix.hh classes.
+//  Fully functional examples are provided, including LoopHelix.hh, CentralHelix, and KinematicLine classes.
 //
 //  The Parameters object provides a minimal basis from which the geometric and kinematic properties of the particle as a function
 //  of time can be computed.  For instance, a kinematic helix in space requires a Parameters instance with 6 parameters.  The physical
@@ -261,34 +261,30 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj ) {
-  // initialize the reftraj.  Range is taken from the seed
-    double tstart = seedtraj.range().begin();
-    VEC3 bf;
-    if(kkconfig_->bfcorr_ == Config::variable) {
+    if(kkconfig_->bfcorr_ == Config::variable || kkconfig_->bfcorr_ == Config::both) {
       // initialize BNom at the start of the range. it will change with each piece
-      bf = kkconfig_->bfield_.fieldVect(seedtraj.position3(tstart)); 
+      VEC3 bf = kkconfig_->bfield_.fieldVect(seedtraj.position3(seedtraj.range().begin())); 
       // recast the seed parameters so they give the same state vector with the field at the starting point
-      KTRAJ piece(seedtraj,bf,tstart);
+      KTRAJ piece(seedtraj,bf,seedtraj.range().begin());
       reftraj_ = PKTRAJ(piece);
     } else {
       // use the seed BField, fixed for the whole fit
-      reftraj_ = PKTRAJ(seedtraj); // the initial ref traj is just the seed.
-      bf = reftraj_.bnom(tstart); // freeze the nominal BField to be the one from the seed
+      reftraj_ = PKTRAJ(seedtraj); // the initial ref traj is just the seed.  The nominal BField is taken from the seed
     }
     if(kkconfig_->bfcorr_ != Config::nocorr) { 
-      // divide up this traj into domains.  start the field at the start of the seed trajectory
-      TimeRange drange(tstart,reftraj_.range().end());
+      // divide the range up into magnetic 'domains'.  start with the full range
+      TimeRange drange = reftraj_.range();
       while(drange.begin() < reftraj_.range().end()){
 	// see how far we can go before the BField change cause the traj to go out of tolerance
 	drange.end() = BFieldUtils::rangeInTolerance(drange.begin(),kkconfig_->bfield_, reftraj_, kkconfig_->tol_);
 	if(kkconfig_->bfcorr_ == Config::variable) {
 	  // create the next piece and append.  The domain transition is set to the middle of the integration range, so the effects coincide
 	  double tdomain = drange.mid();
-	  bf = kkconfig_->bfield_.fieldVect(reftraj_.position3(tdomain));
+	  VEC3 bf = kkconfig_->bfield_.fieldVect(reftraj_.position3(tdomain));
 	  // update the parameters to correspond to the same state but referencing the local field.
 	  // this allows the effects built on this traj to reference the correct parameterization
 	  KTRAJ newpiece(reftraj_.back(),bf,tdomain);
-	  newpiece.range() = TimeRange(tdomain,std::max(drange.end(),reftraj_.range().end()));
+	  newpiece.range() = TimeRange(drange.begin(),std::max(drange.end(),reftraj_.range().end()));
 	  reftraj_.append(newpiece);
 	}
 	// create the BField effect for integrated differences over this range
