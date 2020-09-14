@@ -97,7 +97,7 @@ int BFieldMapTest(int argc, char **argv) {
   VEC3 bnom(0.0,0.0,1.0);
   VEC3 bsim;
   if(Bgrad != 0){
-    BF = new GradBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradientBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(VEC3(0.0,0.0,0.0));
   } else {
     VEC3 bsim(dBx,dBy,1.0+dBz);
@@ -111,9 +111,8 @@ int BFieldMapTest(int argc, char **argv) {
   DXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,
-  VEC4 pos; pos.SetE(tptraj.range().begin());
-  tptraj.position(pos);
-  MOM4 momv = tptraj.momentum(pos.T());
+  auto pos = tptraj.position4(tptraj.range().begin());
+  auto momv = tptraj.momentum4(pos.T());
   KTRAJ start(pos,momv,icharge,bnom,tptraj.range());
   PKTRAJ xptraj(start);
   PKTRAJ lptraj(start);
@@ -125,15 +124,14 @@ int BFieldMapTest(int argc, char **argv) {
 // integrate the momentum change over this range
     VEC3 dp = BFieldUtils::integrate(*BF,piece,prange);
     // approximate change in position
-//    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum(prange.mid());
+//    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum4(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
-    pos.SetE(prange.end());
-    piece.position(pos);
-    momv = piece.momentum(pos.T());
+    pos = piece.position4(prange.end());
+    momv = piece.momentum4(pos.T());
 //    cout << "BFieldMap integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
     prange = TimeRange(prange.end(),std::max(prange.end()+double(0.1),xptraj.range().end()));
     // clumsy code to modify a vector
-    VEC3 mom = momv.Vect();
+    auto mom = momv.Vect();
     mom += dp;
     momv.SetPx(mom.X()); momv.SetPy(mom.Y()); momv.SetPz(mom.Z());
     KTRAJ xnew(pos,momv,icharge,bnom,prange);
@@ -194,61 +192,62 @@ int BFieldMapTest(int argc, char **argv) {
   TPolyLine3D* tpx = new TPolyLine3D(200);
   TPolyLine3D* tpl = new TPolyLine3D(200);
   TPolyLine3D* tnom = new TPolyLine3D(200);
-  VEC4 tpos, xpos, lpos, npos;
+  VEC3 tpos, xpos, lpos, npos;
   VEC3 tvel, xvel, lvel;
   VEC3 t1dir, t2dir, mdir;
-  MOM4 tmom, xmom, lmom;
+  VEC3 tmom, xmom, lmom;
   double tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
   // compute the position from the time
-    tpos.SetE(tptraj.range().begin() + tstep*istep);
-    tptraj.position(tpos);
-    t1dir = tptraj.direction(tpos.T(),MomBasis::perpdir_);
-    t2dir = tptraj.direction(tpos.T(),MomBasis::phidir_);
-    mdir = tptraj.direction(tpos.T(),MomBasis::momdir_);
- 
+    double ttime = tptraj.range().begin() + tstep*istep;
+    tpos = tptraj.position3(ttime);
+    t1dir = tptraj.direction(ttime,MomBasis::perpdir_);
+    t2dir = tptraj.direction(ttime,MomBasis::phidir_);
+    mdir = tptraj.direction(ttime,MomBasis::momdir_);
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
-    xpos.SetE(tptraj.range().begin() + tstep*istep);
-    xptraj.position(xpos);
+    
+    xpos = xptraj.position3(ttime);
     tpx->SetPoint(istep, xpos.X(), xpos.Y(), xpos.Z());
-    lpos.SetE(tptraj.range().begin() + tstep*istep);
-    lptraj.position(lpos);
+
+    lpos = lptraj.position3(ttime);
     tpl->SetPoint(istep, lpos.X(), lpos.Y(), lpos.Z());
-    npos.SetE(tptraj.range().begin() + tstep*istep);
-    start.position(npos);
+
+    npos = start.position3(ttime);
+
     tnom->SetPoint(istep, npos.X(), npos.Y(), npos.Z());
 
-    dxpost1->Fill( (xpos-tpos).Vect().Dot(t1dir));
-    dxpost2->Fill( (xpos-tpos).Vect().Dot(t2dir));
-    dxposmd->Fill( (xpos-tpos).Vect().Dot(mdir));
+    dxpost1->Fill( (xpos-tpos).Dot(t1dir));
+    dxpost2->Fill( (xpos-tpos).Dot(t2dir));
+    dxposmd->Fill( (xpos-tpos).Dot(mdir));
 
-    dlpost1->Fill( (lpos-tpos).Vect().Dot(t1dir));
-    dlpost2->Fill( (lpos-tpos).Vect().Dot(t2dir));
-    dlposmd->Fill( (lpos-tpos).Vect().Dot(mdir));
+    dlpost1->Fill( (lpos-tpos).Dot(t1dir));
+    dlpost2->Fill( (lpos-tpos).Dot(t2dir));
+    dlposmd->Fill( (lpos-tpos).Dot(mdir));
 
-    tmom = tptraj.momentum(tpos.T());
-    xmom = xptraj.momentum(xpos.T());
-    lmom = lptraj.momentum(lpos.T());
-    dxmomt1->Fill( (xmom.Vect()-tmom.Vect()).Dot(t1dir));
-    dxmomt2->Fill( (xmom.Vect()-tmom.Vect()).Dot(t2dir));
-    dxmommd->Fill( (xmom.Vect()-tmom.Vect()).Dot(mdir));
+    tmom = tptraj.momentum3(ttime);
+    xmom = xptraj.momentum3(ttime);
+    lmom = lptraj.momentum3(ttime);
 
-    dlmomt1->Fill( (lmom.Vect()-tmom.Vect()).Dot(t1dir));
-    dlmomt2->Fill( (lmom.Vect()-tmom.Vect()).Dot(t2dir));
-    dlmommd->Fill( (lmom.Vect()-tmom.Vect()).Dot(mdir));
+    dxmomt1->Fill( (xmom-tmom).Dot(t1dir));
+    dxmomt2->Fill( (xmom-tmom).Dot(t2dir));
+    dxmommd->Fill( (xmom-tmom).Dot(mdir));
+
+    dlmomt1->Fill( (lmom-tmom).Dot(t1dir));
+    dlmomt2->Fill( (lmom-tmom).Dot(t2dir));
+    dlmommd->Fill( (lmom-tmom).Dot(mdir));
   }
-  // draw the true helix
+  // draw the true trajectory
   ttrue->SetLineColor(kBlue);
   ttrue->Draw();
-  // draw the nominal (unadjusted) helix
+  // draw the nominal (unadjusted) trajectory
   tnom->SetLineColor(kBlack);
   tnom->SetLineStyle(9);
   tnom->Draw();
-  // draw the adjusted helix
+  // draw the 'exact' (rotated) adjusted trajectory
   tpx->SetLineColor(kGreen);
   tpx->SetLineStyle(6);
   tpx->Draw();
-  //
+  // linear adjusted trajectory
   tpl->SetLineColor(kRed);
   tpl->SetLineStyle(7);
   tpl->Draw();
@@ -265,8 +264,8 @@ int BFieldMapTest(int argc, char **argv) {
   TLegend* hleg = new TLegend(0.7,0.7,1.0,1.0);
   hleg->AddEntry(ttrue,"True Trajectory","L");
   hleg->AddEntry(tnom,"Nominal Trajectory","L");
-  hleg->AddEntry(tpx,"Exact Correction Trajectory","L");
-  hleg->AddEntry(tpl,"Linear Correction Trajectory","L");
+  hleg->AddEntry(tpx,"Rotated Correction Trajectory","L");
+  hleg->AddEntry(tpl,"Fixed Correction Trajectory","L");
   hleg->Draw();
   hcan->Draw();
   hcan->Write();
@@ -313,20 +312,19 @@ int BFieldMapTest(int argc, char **argv) {
   PKTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
     // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
-    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position(piece.range().mid())),piece.range().begin());
+    KTRAJ newpiece(piece,BF->fieldVect(sktraj.position3(piece.range().mid())),piece.range().begin());
     rsktraj.append(newpiece);
   }
   // draw the trajs
   TCanvas* hcandb = new TCanvas("hcandb","#Delta B Traj",1000,1000);
   TPolyLine3D* original = new TPolyLine3D(200);
   TPolyLine3D* rotated = new TPolyLine3D(200);
-  VEC3 opos, rpos;
   tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
     double tplot = sktraj.range().begin()+tstep*istep;
-    opos = sktraj.position(tplot);
+    auto opos = sktraj.position3(tplot);
     original->SetPoint(istep, opos.X(), opos.Y(), opos.Z());
-    rpos = rsktraj.position(tplot);
+    auto rpos = rsktraj.position3(tplot);
     rotated->SetPoint(istep, rpos.X(), rpos.Y(), rpos.Z());
   }
   original->SetLineColor(kBlack);

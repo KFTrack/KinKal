@@ -119,7 +119,7 @@ int ClosestApproachTest(int argc, char **argv) {
     double time = tmin + itime*(tmax-tmin)/(ntstep-1);
     // create tline perp to trajectory at the specified time, separated by the specified gap
     VEC3 pos, dir;
-    pos = ktraj.position(time);
+    pos = ktraj.position3(time);
     dir = ktraj.direction(time);
     VEC3 perp1 = ktraj.direction(time,MomBasis::perpdir_);
     VEC3 perp2 = ktraj.direction(time,MomBasis::phidir_);

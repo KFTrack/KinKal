@@ -13,14 +13,14 @@ namespace KinKal {
   t0_(tmeas), speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
   }
 
-  void Line::position(VEC4& pos) const {
-    VEC3 pos3 = position(pos.T());
-    pos.SetXYZT(pos3.X(),pos3.Y(),pos3.Z(),pos.T());
-  }
-
-  VEC3 Line::position(double time) const {
+  VEC3 Line::position3(double time) const {
     if(forceRange()) range().forceRange(time);
     return pos0() + ((time-t0())*speed())*dir_;
+  }
+
+  VEC4 Line::position4(double time) const {
+    VEC3 pos3 = position3(time);
+    return VEC4(pos3.X(),pos3.Y(),pos3.Z(),time);
   }
 
   VEC3 Line::velocity(double time) const {

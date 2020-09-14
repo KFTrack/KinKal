@@ -147,7 +147,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   VEC3 bnom(0.0,By,1.0);
   BFieldMap* BF;
   if(Bgrad != 0){
-    BF = new GradBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradientBFieldMap(1.0-0.5*Bgrad,1.0+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(VEC3(0.0,0.0,0.0));
   } else {
     BF = new UniformBFieldMap(bnom);
@@ -171,12 +171,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 // create Canvas
   TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
   TPolyLine3D* hel = new TPolyLine3D(100);
-  VEC4 hpos;
   double tstep = tptraj.range().range()/100.0;
   for(int istep=0;istep<101;++istep){
   // compute the position from the time
-    hpos.SetE(tptraj.range().begin() + tstep*istep);
-    tptraj.position(hpos);
+    VEC4 hpos = tptraj.position4(tptraj.range().begin() + tstep*istep);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }
@@ -202,13 +200,13 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
       auto const& tline = shptr->wire();
-      plow = tline.position(tline.range().begin());
-      phigh = tline.position(tline.range().end());
+      plow = tline.position3(tline.range().begin());
+      phigh = tline.position3(tline.range().end());
       line->SetLineColor(kRed);
     } else if ((bool)lhptr){
       auto const& tline = lhptr->sensorAxis();
-      plow = tline.position(tline.range().begin());
-      phigh = tline.position(tline.range().end());
+      plow = tline.position3(tline.range().begin());
+      phigh = tline.position3(tline.range().end());
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());

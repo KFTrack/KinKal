@@ -8,7 +8,6 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/ClosestApproachData.hh"
-#include "KinKal/Data.hh"
 #include <ostream>
 #include <string>
 

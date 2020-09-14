@@ -24,7 +24,7 @@ namespace KinKal {
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitData& kkdata,TimeDir tdir) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       virtual ~Material(){}
       // create from the material and a trajectory 
@@ -50,7 +50,7 @@ namespace KinKal {
      update(pktraj);
    }
 
-  template<class KTRAJ> void Material<KTRAJ>::process(FitData& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(active_){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
@@ -93,7 +93,7 @@ namespace KinKal {
       dxing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
       // get the parameter derivative WRT momentum
       DPDV dPdM = ref_.dPardM(time());
-      double mommag = ref_.momentumMag(time());
+      double mommag = ref_.momentum(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
 	auto mdir = static_cast<MomBasis::Direction>(idir);
 	auto dir = ref_.direction(time(),mdir);

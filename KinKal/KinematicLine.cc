@@ -85,48 +85,38 @@ namespace KinKal {
   KinematicLine::KinematicLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
   KinematicLine(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    DPDS dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
   KinematicLine::KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot) : KinematicLine(other) {
   }
 
-  void KinematicLine::position(VEC4 &pos) const {
-    VEC3 pos3 = position(pos.T());
-    pos.SetXYZT(pos3.X(), pos3.Y(), pos3.Z(), pos.T());
-  }
-
-  VEC3 KinematicLine::position(double time) const {
+  VEC3 KinematicLine::position3(double time) const {
     return (pos0() + flightLength(time) * dir());
   }
 
-  VEC4 KinematicLine::pos4(double time) const {
-    VEC3 temp = position(time);
+  VEC4 KinematicLine::position4(double time) const {
+    VEC3 temp = position3(time);
     return VEC4(temp.X(), temp.Y(), temp.Z(), time);
   }
 
-  void KinematicLine::momentum(double tval, MOM4 &mom4) const {
-    VEC3 dir = direction(tval);
-    double momval = mom();
-    mom4.SetPx(momval * dir.x());
-    mom4.SetPy(momval * dir.y());
-    mom4.SetPz(momval * dir.z());
-    mom4.SetM(mass_);
+  VEC3 KinematicLine::momentum3(double tval) const {
+    return direction(tval)*mom();
   }
 
-  MOM4 KinematicLine::momentum(double tval) const {
-    MOM4 momvec;
-    momentum(tval,momvec);
-    return momvec;
+  MOM4 KinematicLine::momentum4(double tval) const {
+    VEC3 mom3 = momentum3(tval);
+    return MOM4(mom3.X(),mom3.Y(),mom3.Z(),mass_);
   }
+
   ParticleState KinematicLine::state(double time) const {
-    return ParticleState(pos4(time),momentum(time));
+    return ParticleState(position4(time),momentum4(time));
   }
 
   ParticleStateMeasurement KinematicLine::measurementState(double time) const {
     // express the parameter space covariance in global state space
-    DSDP dsdp = dStatedPar(time);
+    PSMAT dsdp = dStatedPar(time);
     return ParticleStateMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
@@ -156,21 +146,21 @@ namespace KinKal {
     }
   }
 
-  DSDP KinematicLine::dPardState(double time) const{
+  PSMAT KinematicLine::dPardState(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
-    DPDS dpds;
+    PSMAT dpds;
     dpds.Place_at(dPdX,0,0);
     dpds.Place_at(dPdM,0,3);
     return dpds;
   }
 
-  DPDS KinematicLine::dStatedPar(double time) const {
+  PSMAT KinematicLine::dStatedPar(double time) const {
   // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
-    DSDP dsdp;
+    PSMAT dsdp;
     dsdp.Place_at(dXdP,0,0);
     dsdp.Place_at(dMdP,3,0);
     return dsdp;
@@ -246,8 +236,8 @@ namespace KinKal {
     double cosF = cos(phi0());
     double cos2F = cosF*cosF-sinF*sinF;
     double sin2F = 2*cosF*sinF;
-    VEC3 momv = momentum(time).Vect();
-    VEC3 pos = position(time);
+    VEC3 momv = momentum3(time);
+    VEC3 pos = position3(time);
     static VEC3 zdir(0.0,0.0,1.0);
     VEC3 momt = VectorUtil::PerpVector(momv,zdir);
     double momt2 = momt.Mag2();
@@ -276,7 +266,7 @@ namespace KinKal {
   DVEC KinematicLine::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
-    double mommag = momentumMag(time);
+    double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 

@@ -73,12 +73,11 @@ namespace KinKal {
     vt_ = CLHEP::c_light * pt / mom.E();
     vz_ = CLHEP::c_light * mom.z() / mom.E();
     // test position and momentum function
-    VEC4 testpos(pos0);
     // std::cout << "Testpos " << testpos << std::endl;
-    position(testpos);
-    MOM4 testmom = momentum(testpos.T());
-    auto dp = testpos.Vect() - pos0.Vect();
-    auto dm = testmom.Vect() - mom0.Vect();
+    auto testpos = position3(pos0.T());
+    auto testmom = momentum3(pos0.T());
+    auto dp = testpos - pos0.Vect();
+    auto dm = testmom - mom0.Vect();
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
@@ -118,25 +117,17 @@ namespace KinKal {
   CentralHelix::CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
   CentralHelix(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    DPDS dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  void CentralHelix::position(VEC4 &pos) const
+  VEC4 CentralHelix::position4(double time) const
  {
-    VEC3 pos3 = position(pos.T());
-    pos.SetPx(pos3.X());
-    pos.SetPy(pos3.Y());
-    pos.SetPz(pos3.Z());
-  }
-
-  VEC4 CentralHelix::pos4(double time) const
- {
-    VEC3 pos3 = position(time);
+    VEC3 pos3 = position3(time);
     return VEC4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
 
-  VEC3 CentralHelix::position(double time) const
+  VEC3 CentralHelix::position3(double time) const
   {
     double cDip = cosDip();
     double phi00 = phi0();
@@ -150,12 +141,15 @@ namespace KinKal {
     return l2g_(VEC3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip()));
   }
 
-  MOM4 CentralHelix::momentum(double time) const
+  VEC3 CentralHelix::momentum3(double time) const
   {
+    return direction(time)* betaGamma()*mass_;
+  }
 
-    VEC3 dir = direction(time);
-    double bgm = betaGamma()*mass_;
-    return MOM4(bgm*dir.X(), bgm*dir.Y(), bgm*dir.Z(), mass_);
+  MOM4 CentralHelix::momentum4(double time) const
+  {
+    VEC3 mom3 = momentum3(time);
+    return MOM4(mom3.X(), mom3.Y(), mom3.Z(), mass_);
   }
 
   double CentralHelix::angle(const double &f) const
@@ -165,7 +159,7 @@ namespace KinKal {
 
   VEC3 CentralHelix::velocity(double time) const
   {
-    MOM4 mom = momentum(time);
+    MOM4 mom = momentum4(time);
     return mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
   }
 
@@ -370,7 +364,7 @@ namespace KinKal {
     typedef ROOT::Math::SVector<double,3> SVEC3;
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
-    double mommag = momentumMag(time);
+    double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 

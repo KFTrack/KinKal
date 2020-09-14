@@ -67,7 +67,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --ntries i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -75,16 +75,20 @@ void print_usage() {
 template <class KTRAJ>
 double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   double dt = numeric_limits<float>::max();
-  VEC3 pos1 = kt1.position(t1);
+  VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
   VEC3 delta, v2;
-  while(fabs(dt) > 1e-5){
+  unsigned maxniter(100);
+  unsigned niter(0);
+  while(fabs(dt) > 1e-5 && niter < maxniter){
     v2 = kt2.velocity(t2);
-    delta = kt2.position(t2) - pos1;
+    delta = kt2.position3(t2) - pos1;
     dt = delta.Dot(v2)/v2.Mag2();
     t2 -= dt;
+    niter++;
   }
+  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return (delta.Cross(dir1)).R();
 }
 
@@ -135,7 +139,7 @@ int FitTest(int argc, char **argv) {
   double simmass, fitmass;
   unsigned maxniter(5);
   double dwt(1.0e6);
-  unsigned ntries(100);
+  unsigned nevents(100);
   bool ttree(true), printbad(false);
   string tfname("FitTest.root"), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);
@@ -148,7 +152,7 @@ int FitTest(int argc, char **argv) {
   double zrange(3000);
   double tol(0.1);
   int iseed(123421);
-  int conspar(-1);
+  int conspar(-1), iprint(-1);
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
   bool simmat(true), lighthit(true), seedsmear(true);
@@ -166,7 +170,7 @@ int FitTest(int argc, char **argv) {
     {"simmat",     required_argument, 0, 'b'  },
     {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
-    {"ntries",     required_argument, 0, 'N'  },
+    {"nevents",     required_argument, 0, 'N'  },
     {"ttree",     required_argument, 0, 'r'  },
     {"tolerance",     required_argument, 0, 't'  },
     {"TFile",     required_argument, 0, 'T'  },
@@ -183,6 +187,7 @@ int FitTest(int argc, char **argv) {
     {"Schedule",     required_argument, 0, 'u'  },
     {"seedsmear",     required_argument, 0, 'M' },
     {"constrainpar",     required_argument, 0, 'c' },
+    {"iprint",     required_argument, 0, 'p' },
     {NULL, 0,0,0}
   };
 
@@ -222,7 +227,7 @@ int FitTest(int argc, char **argv) {
 		 break;
       case 'M' : seedsmear = atoi(optarg);
 		 break;
-      case 'N' : ntries = atoi(optarg);
+      case 'N' : nevents = atoi(optarg);
 		 break;
       case 'x' : dBx = atof(optarg);
 		 break;
@@ -233,6 +238,8 @@ int FitTest(int argc, char **argv) {
       case 'g' : Bgrad = atof(optarg);
 		 break;
       case 'P' : printbad = atoi(optarg);
+		 break;
+      case 'p' : iprint = atoi(optarg);
 		 break;
       case 'D' : detail = atoi(optarg);
 		 break;
@@ -254,7 +261,7 @@ int FitTest(int argc, char **argv) {
   // construct BFieldMap
   VEC3 bnom;
   if(Bgrad != 0){
-    BF = new GradBFieldMap(Bz-0.5*Bgrad,Bz+0.5*Bgrad,-0.5*zrange,0.5*zrange);
+    BF = new GradientBFieldMap(Bz-0.5*Bgrad,Bz+0.5*Bgrad,-0.5*zrange,0.5*zrange);
     bnom = BF->fieldVect(VEC3(0.0,0.0,0.0));
   } else {
     VEC3 bsim(dBx,dBy,Bz+dBz);
@@ -274,8 +281,8 @@ int FitTest(int argc, char **argv) {
   cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentumMag(tptraj.range().begin());
-  double endmom = tptraj.momentumMag(tptraj.range().end());
+  double startmom = tptraj.momentum(tptraj.range().begin());
+  double endmom = tptraj.momentum(tptraj.range().end());
   VEC3 end, bend;
   bend = tptraj.front().direction(tptraj.range().end());
   end = tptraj.back().direction(tptraj.range().end());
@@ -283,11 +290,11 @@ int FitTest(int argc, char **argv) {
   cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
   auto const& midhel = tptraj.nearestPiece(0.0);
-  auto seedmom = midhel.momentum(0.0);
+  auto seedmom = midhel.momentum4(0.0);
   seedmom.SetM(fitmass);
   // buffer the seed range
   TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-  KTRAJ seedtraj(midhel.pos4(0.0),seedmom,midhel.charge(),bnom,seedrange);
+  KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
   cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
@@ -350,7 +357,7 @@ int FitTest(int argc, char **argv) {
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
   float maxgap_, avgap_;
 
-  if(ntries <=0 ){
+  if(nevents <=0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
     auto const& fptraj = kktrk.fitTraj();
@@ -361,7 +368,7 @@ int FitTest(int argc, char **argv) {
     double ts = fptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = fptraj.range().begin() + ip*ts;
-      VEC3 ppos = fptraj.position(tp);
+      VEC3 ppos = fptraj.position3(tp);
       fitpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     fitpl->Draw();
@@ -372,7 +379,7 @@ int FitTest(int argc, char **argv) {
     ts = tptraj.range().range()/(np-1);
     for(unsigned ip=0;ip<np;ip++){
       double tp = tptraj.range().begin() + ip*ts;
-      VEC3 ppos = tptraj.position(tp);
+      VEC3 ppos = tptraj.position3(tp);
       ttpl->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
     }
     ttpl->Draw();
@@ -385,13 +392,13 @@ int FitTest(int argc, char **argv) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
-	plow = tline.position(tline.range().begin());
-	phigh = tline.position(tline.range().end());
+	plow = tline.position3(tline.range().begin());
+	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kRed);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
-	plow = tline.position(tline.range().begin());
-	phigh = tline.position(tline.range().end());
+	plow = tline.position3(tline.range().begin());
+	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kCyan);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
@@ -463,6 +470,7 @@ int FitTest(int argc, char **argv) {
     TH1F* hndiv = new TH1F("ndiv", "Diverged Iterations", 50,-0.5,49.5);
     hnfail->SetLineColor(kRed);
     hndiv->SetLineColor(kOrange);
+    TH1F* statush = new TH1F("statush", "Fit Status", 10,-0.5,9.5);
     TH1F* ndof = new TH1F("ndof", "N Degree of Freedom", 100,-0.5,99.5);
     TH1F* chisq = new TH1F("chisq", "Chisquared", 100,0,100);
     TH1F* chisqndof = new TH1F("chisqndof", "Chisquared per NDOF", 100,0,10.0);
@@ -500,7 +508,9 @@ int FitTest(int argc, char **argv) {
     unsigned nfail(0), ndiv(0);
 
     configptr->plevel_ = Config::none;
-    for(unsigned itry=0;itry<ntries;itry++){
+    for(unsigned ievent=0;ievent<nevents;ievent++){
+    if( (ievent % iprint) == 0)
+      cout << "event " << ievent << endl;
     // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
       PKTRAJ tptraj;
       thits.clear();
@@ -508,10 +518,10 @@ int FitTest(int argc, char **argv) {
       toy.simulateParticle(tptraj,thits,dxings);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
-      auto seedmom = midhel.momentum(tmid);
+      auto seedmom = midhel.momentum4(tmid);
       seedmom.SetM(fitmass);
       TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-      KTRAJ seedtraj(midhel.pos4(tmid),seedmom,midhel.charge(),bnom,seedrange);
+      KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj);
   // if requested, constrain a parameter
@@ -532,6 +542,12 @@ int FitTest(int argc, char **argv) {
       for(auto const& fstat: kktrk.history()){
 	if(fstat.status_ != FitStatus::unfit)niter_++;
       }
+      // reset some fit parameters, to signal failed filts
+      chiprob_ = -1.0;
+      maxgap_ = avgap_ = -1;
+      igap_ = -1;
+      // fill effect information
+      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
       // accumulate chisquared info
       chisq_ = fstat.chisq_;
       ndof_ = fstat.ndof_;
@@ -539,36 +555,31 @@ int FitTest(int argc, char **argv) {
       nmeta_ = fstat.miter_;
       status_ = fstat.status_;
       chiprob_ = fstat.prob_;
-      ndof->Fill(fstat.ndof_);
-      chisq->Fill(fstat.chisq_);
-      chisqndof->Fill(fstat.chisq_/fstat.ndof_);
-      chisqprob->Fill(chiprob_);
-      if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
-      hniter->Fill(niter_);
-      hnmeta->Fill(nmeta_);
-      // truth parameters, front and back
-      double ttlow = tptraj.range().begin();
-      double tthigh = tptraj.range().end();
-      KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
-      KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
-      for(size_t ipar=0;ipar<6;ipar++){
-	spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-	ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-	btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
-      }
-      ftmom_ = tptraj.momentumMag(ttlow);
-      btmom_ = tptraj.momentumMag(tthigh);
-      // reset some fit parameters, to signal failed filts
-      chiprob_ = -1.0;
-      maxgap_ = avgap_ = -1;
-      igap_ = -1;
-      // fill effect information
-      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
       hinfovec.clear();
       bfinfovec.clear();
       minfovec.clear();
       tinfovec.clear();
       if(fstat.usable()){
+	// truth parameters, front and back
+	double ttlow = tptraj.range().begin();
+	double tthigh = tptraj.range().end();
+	KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+	KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
+	for(size_t ipar=0;ipar<6;ipar++){
+	  spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+	  ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+	  btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+	}
+	ftmom_ = tptraj.momentum(ttlow);
+	btmom_ = tptraj.momentum(tthigh);
+	statush->Fill(fstat.status_);
+	ndof->Fill(fstat.ndof_);
+	chisq->Fill(fstat.chisq_);
+	chisqndof->Fill(fstat.chisq_/fstat.ndof_);
+	chisqprob->Fill(chiprob_);
+	if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
+	hniter->Fill(niter_);
+	hnmeta->Fill(nmeta_);
 	for(auto const& eff: kktrk.effects()) {
 	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
 	  const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
@@ -688,8 +699,8 @@ int FitTest(int argc, char **argv) {
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
-	ffmom_ = fptraj.momentumMag(ftlow);
-	bfmom_ = fptraj.momentumMag(fthigh);
+	ffmom_ = fptraj.momentum(ftlow);
+	bfmom_ = fptraj.momentum(fthigh);
 	ffmomerr_ = sqrt(fptraj.momentumVar(ftlow));
 	bfmomerr_ = sqrt(fptraj.momentumVar(fthigh));
 	fft_ = fptraj.range().begin();
@@ -704,7 +715,7 @@ int FitTest(int argc, char **argv) {
 
 	// test
       } else if(printbad){
-	cout << "Bad Fit try " << itry << " status " << kktrk.fitStatus() << endl;
+	cout << "Bad Fit event " << ievent << " status " << kktrk.fitStatus() << endl;
 	cout << "True Traj " << tptraj << endl;
 	cout << "Seed Traj " << seedtraj << endl;
 	kktrk.print(cout,detail);
@@ -714,7 +725,7 @@ int FitTest(int argc, char **argv) {
     cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
     hnfail->Fill(nfail);
     hndiv->Fill(ndiv);
-    cout <<"Time/fit = " << duration/double(ntries) << " Nanoseconds " << endl;
+    cout <<"Time/fit = " << duration/double(nevents) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
     fdpcan->Divide(3,2);
@@ -758,7 +769,7 @@ int FitTest(int argc, char **argv) {
     TCanvas* corrcan = new TCanvas("corrcan","corrcan",600,600);
     corrcan->Divide(1,1);
     corrcan->cd(1);
-    corravg->Scale(1.0/double(ntries));
+    corravg->Scale(1.0/double(nevents));
     corravg->SetStats(0);
     gPad->SetLogz();
     corravg->Draw("colorztext0");
@@ -767,13 +778,13 @@ int FitTest(int argc, char **argv) {
     TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
     statuscan->Divide(3,2);
     statuscan->cd(1);
+    statush->Draw();
+    statuscan->cd(2);
     hniter->Draw();
     hnfail->Draw("same");
     hndiv->Draw("same");
-    statuscan->cd(2);
-    ndof->Draw();
     statuscan->cd(3);
-    chisq->Draw();
+    ndof->Draw();
     statuscan->cd(4);
     chisqndof->Draw();
     statuscan->cd(5);

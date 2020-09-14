@@ -50,14 +50,14 @@ namespace KinKal {
       // same, including covariance information
       CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
       // particle position and momentum as a function of time
-      void position(VEC4& pos) const; // time is input
-      VEC4 pos4(double time) const;
-      VEC3 position(double time) const; // time is input
-      MOM4 momentum(double time) const;
+      VEC4 position4(double time) const;
+      VEC3 position3(double time) const;
+      MOM4 momentum4(double time) const;
+      VEC3 momentum3(double time) const;
       VEC3 velocity(double time) const;
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
-      double momentumMag(double time) const  { return mass_ * pbar() / mbar_; }
+      double momentum(double time) const  { return mass_ * pbar() / mbar_; }
       double momentumVar(double time) const  { return -1.0; }//TODO
       double energy(double time) const  { return mass_ * ebar() / mbar_; }
       // speed in mm/ns
@@ -86,7 +86,7 @@ namespace KinKal {
       double tanDip() const { return paramVal(tanDip_); }
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
-      ParticleState state(double time) const { return ParticleState(); } // TODO
+      ParticleState state(double time) const {  return ParticleState(position4(time),momentum4(time)); }
       ParticleStateMeasurement measurementState(double time) const { return ParticleStateMeasurement(); } // TODO
 
       // simple functions
@@ -115,8 +115,8 @@ namespace KinKal {
       DPDV dPardM(double time) const; // TODO
       DVDP dXdPar(double time) const; // TODO
       DVDP dMdPar(double time) const; // TODO
-      DSDP dPardState(double time) const { return DPDS(); } // TODO
-      DPDS dStatedPar(double time) const { return DSDP(); } // TODO
+      PSMAT dPardState(double time) const { return PSMAT(); } // TODO
+      PSMAT dStatedPar(double time) const { return PSMAT(); } // TODO
       // package the above for full (global) state
       // Parameter derivatives given a change in BFieldMap
       DVEC dPardB(double time) const { return DVEC(); } // TODO

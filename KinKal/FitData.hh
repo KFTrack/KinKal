@@ -1,54 +1,58 @@
 #ifndef KinKal_FitData_hh
 #define KinKal_FitData_hh
 //
-//  Data payload for processing the fit.  This object exists in both
-// parameter and weight space, with lazy evaluation to go between the
-// two with the minimum of matrix inversions
+//  Data object describing fit parameters or weights
+//  dimension is always 6 for kinematic parameterizations
+//  used as part of the kinematic kalman fit
 //
-#include "KinKal/Weights.hh"
-#include "KinKal/Parameters.hh"
+#include "Math/SVector.h"
+#include "Math/SMatrix.h"
+#include "KinKal/Vectors.hh"
+#include <stdexcept>
+
 namespace KinKal {
   class FitData {
     public:
-      FitData() : hasParameters_(false), hasWeights_(false) {}
-      FitData(Parameters const& pdata) : pdata_(pdata), hasParameters_(true), hasWeights_(false) {}
-      FitData(Weights const& wdata) : wdata_(wdata), hasParameters_(false), hasWeights_(true) {}
+      // construct from vector and matrix
+      FitData(DVEC const& vec, DMAT const& mat) : vec_(vec), mat_(mat) {}
+      FitData(DVEC const& vec) : vec_(vec)  {}
+      FitData() {}
+      // copy with optional inversion
+      FitData(FitData const& tdata, bool inv=false) : vec_(tdata.vec_), mat_(tdata.mat_) { if (inv) invert(); }
       // accessors
-      bool hasParameters() const { return hasParameters_; }
-      bool hasWeights() const { return hasWeights_; }
-      // add to either parameters or weights
-      void append(Parameters const& pdata) {
-	pData() += pdata;
-	// this invalidates the weight information
-	hasParameters_ = true;
-	hasWeights_ = false;
-      }
-      void append(Weights const& wdata) {
-	wData() += wdata;
-	// this invalidates the parameter information
-	hasWeights_ = true;
-	hasParameters_ = false;
-      }
-      Parameters& pData() { 
-	if(!hasParameters_ && hasWeights_ ){
-	  // invert the weight
-	  pdata_ = Parameters(wdata_);
-	  hasParameters_ = true;
+      DVEC const& vec() const { return vec_; }
+      DMAT const& mat() const { return mat_; }
+      DVEC& vec() { return vec_; }
+      DMAT& mat() { return mat_; }
+      // scale the matrix
+      void scale(double sfac) { mat_ *= sfac; }
+      // inversion changes from params <-> weight. 
+      // Invert in-place
+      void invert() {
+	// first invert the matrix
+	if(mat_.Invert()){
+	  vec_ = mat_*vec_;
+	} else {
+	  throw std::runtime_error("Inversion failure");
 	}
-	return pdata_;
+	// check
+   if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
+
       }
-      Weights& wData() { 
-	if(!hasWeights_ && hasParameters_ ){
-	  // invert the parameters
-	  wdata_ = Weights(pdata_);
-	  hasWeights_ = true;
-	}
-	return wdata_;
+     // append
+      FitData & operator -= (FitData const& other) {
+	vec_ -= other.vec();
+	mat_ -= other.mat();
+	return *this;
+      }
+      FitData & operator += (FitData const& other) {
+	vec_ += other.vec();
+	mat_ += other.mat();
+	return *this;
       }
     private:
-      Parameters pdata_; // parameters space representation of (intermediate) fit data
-      Weights wdata_; // weight space representation of fit data
-      bool hasParameters_, hasWeights_;  // keep track of validity for lazy evaluation (cache coherence)
+      DVEC vec_; // parameters
+      DMAT mat_; // parameter covariance
   };
 }
 #endif
