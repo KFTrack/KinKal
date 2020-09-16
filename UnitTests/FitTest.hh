@@ -78,18 +78,24 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
-  VEC3 delta, v2;
   unsigned maxniter(100);
   unsigned niter(0);
+  VEC3 pos2;
+//  double delta;
   while(fabs(dt) > 1e-5 && niter < maxniter){
-    v2 = kt2.velocity(t2);
-    delta = kt2.position3(t2) - pos1;
-    dt = delta.Dot(v2)/v2.Mag2();
-    t2 -= dt;
+    VEC3 v2 = kt2.velocity(t2);
+    pos2 = kt2.position3(t2);
+// test
+//    delta = pos2.Z() - pos1.Z();
+//    dt = delta/v2.Z();
+    VEC3 dp = kt2.position3(t2) - pos1;
+    dt = dp.Dot(v2)/v2.Mag2();
+
+t2 -= dt;
     niter++;
   }
   if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
-  return (delta.Cross(dir1)).R();
+  return ((pos2-pos1).Cross(dir1)).R();
 }
 
 template <class KTRAJ>
@@ -297,7 +303,7 @@ int FitTest(int argc, char **argv) {
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
-  cout << "Seed params " << seedtraj.params().parameters() <<" covariance " << endl << seedtraj.params().covariance() << endl;
+  cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
   KKCONFIGPTR configptr = make_shared<Config>(*BF);
@@ -351,9 +357,9 @@ int FitTest(int argc, char **argv) {
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + tfname).c_str(),"RECREATE");
   // tree variables
-  KTRAJPars ftpars_, btpars_, spars_, ffitpars_, ffiterrs_, bfitpars_, bfiterrs_;
-  float chisq_, btmom_, ftmom_, ffmom_, bfmom_, ffmomerr_, bfmomerr_, chiprob_;
-  float fft_,eft_;
+  KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;
+  float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
+  float fft_,mft_, bft_;
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
   float maxgap_, avgap_;
 
@@ -431,6 +437,8 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("spars.", &spars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("ffpars.", &ffitpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("fferrs.", &ffiterrs_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("mfpars.", &mfitpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("mferrs.", &mfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("bfpars.", &bfitpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("bferrs.", &bfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
@@ -443,13 +451,17 @@ int FitTest(int argc, char **argv) {
       ftree->Branch("nmeta", &nmeta_,"nmeta/I");
       ftree->Branch("status", &status_,"status/I");
       ftree->Branch("ftmom", &ftmom_,"ftmom/F");
+      ftree->Branch("mtmom", &mtmom_,"mtmom/F");
       ftree->Branch("btmom", &btmom_,"btmom/F");
       ftree->Branch("ffmom", &ffmom_,"ffmom/F");
+      ftree->Branch("mfmom", &mfmom_,"mfmom/F");
       ftree->Branch("bfmom", &bfmom_,"bfmom/F");
       ftree->Branch("ffmomerr", &ffmomerr_,"ffmomerr/F");
+      ftree->Branch("mfmomerr", &mfmomerr_,"mfmomerr/F");
       ftree->Branch("bfmomerr", &bfmomerr_,"bfmomerr/F");
       ftree->Branch("fft", &fft_,"fft/F");
-      ftree->Branch("eft", &eft_,"eft/F");
+      ftree->Branch("mft", &mft_,"mft/F");
+      ftree->Branch("bft", &bft_,"bft/F");
       ftree->Branch("maxgap", &maxgap_,"maxgap/F");
       ftree->Branch("avgap", &avgap_,"avgap/F");
       ftree->Branch("igap", &igap_,"igap/I");
@@ -460,8 +472,10 @@ int FitTest(int argc, char **argv) {
     }
     // now repeat this to gain statistics
     vector<TH1F*> fdp(NParams());
+    vector<TH1F*> mdp(NParams());
     vector<TH1F*> bdp(NParams());
     vector<TH1F*> fpull(NParams());
+    vector<TH1F*> mpull(NParams());
     vector<TH1F*> bpull(NParams());
     vector<TH1F*> fiterrh(NParams());
     TH1F* hniter = new TH1F("niter", "Total Iterations", 50,-0.5,49.5);
@@ -487,12 +501,18 @@ int FitTest(int argc, char **argv) {
       hname = string("fd") + KTRAJ::paramName(tpar);
       htitle = string("Front #Delta ") + KTRAJ::paramTitle(tpar);
       fdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
+      hname = string("md") + KTRAJ::paramName(tpar);
+      htitle = string("Mid #Delta ") + KTRAJ::paramTitle(tpar);
+      mdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("bd") + KTRAJ::paramName(tpar);
       htitle = string("Back #Delta ") + KTRAJ::paramTitle(tpar);
       bdp[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-pscale*sigmas[ipar],pscale*sigmas[ipar]);
       hname = string("fp") + KTRAJ::paramName(tpar);
       htitle = string("Front Pull ") + KTRAJ::paramTitle(tpar);
       fpull[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
+      hname = string("mp") + KTRAJ::paramName(tpar);
+      htitle = string("Mid Pull ") + KTRAJ::paramTitle(tpar);
+      mpull[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
       hname = string("bp") + KTRAJ::paramName(tpar);
       htitle = string("Back Pull ") + KTRAJ::paramTitle(tpar);
       bpull[ipar] = new TH1F(hname.c_str(),htitle.c_str(),100,-nsig,nsig);
@@ -503,6 +523,7 @@ int FitTest(int argc, char **argv) {
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
     TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
+    TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
     unsigned nfail(0), ndiv(0);
@@ -563,15 +584,19 @@ int FitTest(int argc, char **argv) {
       if(fstat.usable()){
 	// truth parameters, front and back
 	double ttlow = tptraj.range().begin();
+	double ttmid = tptraj.range().mid();
 	double tthigh = tptraj.range().end();
 	KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+	KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
 	KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
 	for(size_t ipar=0;ipar<6;ipar++){
 	  spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
 	  ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+	  mtpars_.pars_[ipar] = mttraj.params().parameters()[ipar];
 	  btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
 	}
 	ftmom_ = tptraj.momentum(ttlow);
+	mtmom_ = tptraj.momentum(ttmid);
 	btmom_ = tptraj.momentum(tthigh);
 	ndof->Fill(fstat.ndof_);
 	chisq->Fill(fstat.chisq_);
@@ -652,13 +677,16 @@ int FitTest(int argc, char **argv) {
 	// compare parameters at the first traj of both true and fit
 	// correct the true parameters in case the BFieldMap isn't nominal
 	// correct the sampling time for the t0 difference
-	double ftlow,fthigh;
+	double ftlow,ftmid,fthigh;
 	dTraj(tptraj,fptraj,ttlow,ftlow);
+	dTraj(tptraj,fptraj,ttmid,ftmid);
 	dTraj(tptraj,fptraj,tthigh,fthigh);
 	KTRAJ fftraj(fptraj.measurementState(ftlow),fptraj.charge(),tptraj.bnom(ttlow),fptraj.nearestPiece(ftlow).range());
+	KTRAJ mftraj(fptraj.measurementState(ftmid),fptraj.charge(),tptraj.bnom(ttmid),fptraj.nearestPiece(ftmid).range());
 	KTRAJ bftraj(fptraj.measurementState(fthigh),fptraj.charge(),tptraj.bnom(tthigh),fptraj.nearestPiece(fthigh).range());
 	// fit parameters
 	auto const& ffpars = fftraj.params();
+	auto const& mfpars = mftraj.params();
 	auto const& bfpars = bftraj.params();
 	double maxgap, avgap;
 	size_t igap;
@@ -667,18 +695,22 @@ int FitTest(int argc, char **argv) {
 	avgap_ = avgap;
 	igap_ = igap;
 
-	Parameters ftpars, btpars;
+	Parameters ftpars, mtpars, btpars;
 	ftpars = fttraj.params();
+	mtpars = mttraj.params();
 	btpars = bttraj.params();
 
 	// accumulate parameter difference and pull
-	vector<double> fcerr(6,0.0), bcerr(6,0.0);
+	vector<double> fcerr(6,0.0), mcerr(6,0.0), bcerr(6,0.0);
 	for(size_t ipar=0;ipar< NParams(); ipar++){
 	  fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
+	  mcerr[ipar] = sqrt(mfpars.covariance()[ipar][ipar]);
 	  bcerr[ipar] = sqrt(bfpars.covariance()[ipar][ipar]);
 	  fdp[ipar]->Fill(ffpars.parameters()[ipar]-ftpars.parameters()[ipar]);
+	  mdp[ipar]->Fill(mfpars.parameters()[ipar]-mtpars.parameters()[ipar]);
 	  bdp[ipar]->Fill(bfpars.parameters()[ipar]-btpars.parameters()[ipar]);
 	  fpull[ipar]->Fill((ffpars.parameters()[ipar]-ftpars.parameters()[ipar])/fcerr[ipar]);
+	  mpull[ipar]->Fill((mfpars.parameters()[ipar]-mtpars.parameters()[ipar])/mcerr[ipar]);
 	  bpull[ipar]->Fill((bfpars.parameters()[ipar]-btpars.parameters()[ipar])/bcerr[ipar]);
 	  fiterrh[ipar]->Fill(fcerr[ipar]);
 	}
@@ -695,17 +727,23 @@ int FitTest(int argc, char **argv) {
 	// extract fit parameters and errors
 	for(size_t ipar=0;ipar<6;ipar++){
 	  ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
+	  mfitpars_.pars_[ipar] = mftraj.params().parameters()[ipar];
 	  bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
 	  ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
+	  mfiterrs_.pars_[ipar] = sqrt(mftraj.params().covariance()(ipar,ipar));
 	  bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
 	}
 	ffmom_ = fptraj.momentum(ftlow);
+	mfmom_ = fptraj.momentum(ftmid);
 	bfmom_ = fptraj.momentum(fthigh);
 	ffmomerr_ = sqrt(fptraj.momentumVar(ftlow));
+	mfmomerr_ = sqrt(fptraj.momentumVar(ftmid));
 	bfmomerr_ = sqrt(fptraj.momentumVar(fthigh));
 	fft_ = fptraj.range().begin();
-	eft_ = fptraj.range().end();
+	mft_ = fptraj.range().mid();
+	bft_ = fptraj.range().end();
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
+	mmompull->Fill((mfmom_-mtmom_)/mfmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
 	// state space parameter difference and errors
 	//	ParticleStateMeasurement tslow = tptraj.state(tlow);
@@ -734,6 +772,13 @@ int FitTest(int argc, char **argv) {
       fdp[ipar]->Fit("gaus","q");
     }
     fdpcan->Write();
+    TCanvas* mdpcan = new TCanvas("mdpcan","mdpcan",800,600);
+    mdpcan->Divide(3,2);
+    for(size_t ipar=0;ipar<NParams();++ipar){
+      mdpcan->cd(ipar+1);
+      mdp[ipar]->Fit("gaus","q");
+    }
+    mdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
     bdpcan->Divide(3,2);
     for(size_t ipar=0;ipar<NParams();++ipar){
@@ -750,6 +795,15 @@ int FitTest(int argc, char **argv) {
     fpullcan->cd(NParams()+1);
     fmompull->Fit("gaus","q");
     fpullcan->Write();
+    TCanvas* mpullcan = new TCanvas("mpullcan","mpullcan",800,600);
+    mpullcan->Divide(3,3);
+    for(size_t ipar=0;ipar<NParams();++ipar){
+      mpullcan->cd(ipar+1);
+      mpull[ipar]->Fit("gaus","q");
+    }
+    mpullcan->cd(NParams()+1);
+    fmompull->Fit("gaus","q");
+    mpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){

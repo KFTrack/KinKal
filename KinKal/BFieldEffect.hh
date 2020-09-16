@@ -8,6 +8,7 @@
 #include "KinKal/TimeDir.hh"
 #include "KinKal/BFieldMap.hh"
 #include "KinKal/BFieldUtils.hh"
+#include "KinKal/Config.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>
@@ -32,11 +33,10 @@ namespace KinKal {
       BFieldEffect(BFieldEffect const& ) = delete; 
       BFieldEffect& operator =(BFieldEffect const& ) = delete; 
       // create from the domain range, the effect, and the
-      BFieldEffect(BFieldMap const& bfield, PKTRAJ const& pktraj,TimeRange const& drange,Config::BFCorr bfcorr) : 
-	bfield_(bfield), drange_(drange), active_(false), bfcorr_(bfcorr) {} // not active until updated
-	// accessors
-	VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
-	TimeRange const& range() const { return drange_; }
+      BFieldEffect(Config const& config, PKTRAJ const& pktraj,TimeRange const& drange) : 
+	bfield_(config.bfield_), drange_(drange), active_(false), bfcorr_(config.bfcorr_) {}
+      VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
+      TimeRange const& range() const { return drange_; }
 
     private:
       BFieldMap const& bfield_; // bfield
