@@ -99,7 +99,7 @@ t2 -= dt;
 }
 
 template <class KTRAJ>
-int FitTest(int argc, char **argv) {
+int FitTest(int argc, char *argv[]) {
   struct KTRAJPars{
     Float_t pars_[NParams()];
     static std::string leafnames() {
@@ -162,6 +162,7 @@ int FitTest(int argc, char **argv) {
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
   bool simmat(true), lighthit(true), seedsmear(true);
+  int retval(EXIT_SUCCESS);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -198,7 +199,7 @@ int FitTest(int argc, char **argv) {
   };
 
   int long_index =0;
-  while ((opt = getopt_long_only(argc, argv,"",
+  while ((opt = getopt_long(argc, argv,"",
 	  long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
@@ -284,7 +285,7 @@ int FitTest(int argc, char **argv) {
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
   toy.setSmearSeed(seedsmear);
-  cout << "True initial " << tptraj.front() << endl;
+  if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
   double startmom = tptraj.momentum(tptraj.range().begin());
@@ -293,7 +294,7 @@ int FitTest(int argc, char **argv) {
   bend = tptraj.front().direction(tptraj.range().end());
   end = tptraj.back().direction(tptraj.range().end());
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
-  cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
+  if(nevents < 0)cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
   auto const& midhel = tptraj.nearestPiece(0.0);
   auto seedmom = midhel.momentum4(0.0);
@@ -303,7 +304,7 @@ int FitTest(int argc, char **argv) {
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj);
-  cout << "Seed Traj " << seedtraj << endl;
+  if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
   KKCONFIGPTR configptr = make_shared<Config>(*BF);
@@ -341,10 +342,11 @@ int FitTest(int argc, char **argv) {
       configptr->schedule_.push_back(mconfig);
     }
   }
-  cout << *configptr << endl;
+  if(nevents < 0)cout << *configptr << endl;
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
+    cout << "Constraining parameter " << conspar << endl;
     mask[conspar] = true;
     auto const& front = tptraj.front();
     // take the true parameters but the seed covariance
@@ -423,7 +425,7 @@ int FitTest(int argc, char **argv) {
     rulers->GetZaxis()->SetLabelColor(kOrange);
     rulers->Draw();
     pttcan->Write();
-
+    if (kktrk.fitStatus().status_ != KinKal::FitStatus::converged)retval = -1;
   } else {
     TTree* ftree(0);
     KKHIV hinfovec;
@@ -530,8 +532,7 @@ int FitTest(int argc, char **argv) {
 
     configptr->plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
-    if( (ievent % iprint) == 0)
-      cout << "event " << ievent << endl;
+      if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
     // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
       PKTRAJ tptraj;
       thits.clear();
@@ -763,6 +764,7 @@ int FitTest(int argc, char **argv) {
     cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
     hnfail->Fill(nfail);
     hndiv->Fill(ndiv);
+    if(float(nfail+ndiv)/float(nevents)> 0.05)retval = -2;
     cout <<"Time/fit = " << duration/double(nevents) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
@@ -850,10 +852,5 @@ int FitTest(int argc, char **argv) {
   fitfile.Write();
   fitfile.Close();
 
-  if (kktrk.fitStatus().status_ != KinKal::FitStatus::converged)
-  {
-    exit(1);
-  }
-
-  exit(EXIT_SUCCESS);
+  exit(retval);
 }
