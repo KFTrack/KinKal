@@ -8,6 +8,7 @@
 #include "KinKal/TimeDir.hh"
 #include "KinKal/BFieldMap.hh"
 #include "KinKal/BFieldUtils.hh"
+#include "KinKal/Config.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>
@@ -32,11 +33,10 @@ namespace KinKal {
       BFieldEffect(BFieldEffect const& ) = delete; 
       BFieldEffect& operator =(BFieldEffect const& ) = delete; 
       // create from the domain range, the effect, and the
-      BFieldEffect(BFieldMap const& bfield, PKTRAJ const& pktraj,TimeRange const& drange,Config::BFCorr bfcorr) : 
-	bfield_(bfield), drange_(drange), active_(false), bfcorr_(bfcorr) {} // not active until updated
-	// accessors
-	VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
-	TimeRange const& range() const { return drange_; }
+      BFieldEffect(Config const& config, PKTRAJ const& pktraj,TimeRange const& drange) : 
+	bfield_(config.bfield_), drange_(drange), active_(false), bfcorr_(config.bfcorr_) {}
+      VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
+      TimeRange const& range() const { return drange_; }
 
     private:
       BFieldMap const& bfield_; // bfield
@@ -67,10 +67,14 @@ namespace KinKal {
     double etime = this->time();
     auto const& midtraj = ref.nearestPiece(etime);
     // compute parameter change due to integral of difference in BFieldMap vs BNom
-    dbint_ = midtraj.dPardM(etime)*dp_;
+    if(bfcorr_ == Config::fixed || bfcorr_ == Config::both){
+      dbint_ = midtraj.dPardM(etime)*dp_;
+    } else {
+      dbint_ = DVEC();
+    }
     dbeff_.parameters() = dbint_;
     // add in the effect of changing BNom across this domain transition to parameters 
-    if(bfcorr_ == Config::variable){
+    if(bfcorr_ == Config::variable || bfcorr_ == Config::both){
       auto const& begtraj = ref.nearestPiece(drange_.begin());
       auto const& endtraj = ref.nearestPiece(drange_.end());
       dbeff_.parameters() += begtraj.dPardB(etime,endtraj.bnom()); // check sign FIXME!
@@ -86,6 +90,8 @@ namespace KinKal {
       VEC3 dp =  BFieldUtils::integrate(bfield_, ref, drange_);
       dp_ = SVEC3(dp.X(),dp.Y(),dp.Z()); //translate to SVec; this should be supported by SVector and GenVector
       //      std::cout << "Updating iteration " << miconfig.miter_ << " dP " << dp << std::endl;
+    } else {
+      active_ = false;
     }
     update(ref);
   }
@@ -101,7 +107,7 @@ namespace KinKal {
       KTRAJ newpiece(fit.back());
       newpiece.range() = newrange;
       // if we are using variable BFieldMap, update the parameters accordingly
-      if(bfcorr_ == Config::variable){
+      if(bfcorr_ == Config::variable || bfcorr_ == Config::both){
 	VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
 	newpiece.setBNom(time,newbnom);
       }

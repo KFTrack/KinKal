@@ -25,7 +25,7 @@ namespace KinKal {
       // now integrate
       VEC3 dmom;
       for(unsigned istep=0; istep< nsteps; istep++){
-	double tstep = trange.begin() + istep*dt;
+	double tstep = trange.begin() + (0.5+istep)*dt;
 	VEC3 vel = ktraj.velocity(tstep);
 	VEC3 db = bfield.fieldVect(ktraj.position3(tstep)) - ktraj.bnom(tstep);
 	dmom += cbar()*ktraj.charge()*dt*vel.Cross(db);
@@ -52,8 +52,7 @@ namespace KinKal {
       if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db))); 
       VEC3 dBdt = bfield.fieldDeriv(tpos,ktraj.velocity(tstart));
       // the deviation goes as the cube root of the BFieldMap change.  0.5 comes from cosine expansion
-      tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dBdt.R()))); //
-      //
+      if(fabs(dBdt.R())>1e-6) tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dBdt.R()))); //
       // loop over the trajectory in fixed steps to compute integrals and domains.
       // step size is defined by momentum direction tolerance.
       double tend = tstart;
@@ -69,7 +68,7 @@ namespace KinKal {
 	// spatial distortion accumulation; this goes as the square of the time times the field difference
 	dx += sfac*(tend-tstart)*tstep*db;
       } while(fabs(dx) < tol && tend < ktraj.range().end());
-      //    std::cout << "tstep " << tstep << " trange " << drange.range() << std::endl;
+//      std::cout << "tstep " << tstep << " tstart " << tstart << " tend " << tend  << std::endl;
       return tend;
     }
   }
