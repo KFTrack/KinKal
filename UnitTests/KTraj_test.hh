@@ -3,6 +3,7 @@
 //
 #include "KinKal/Line.hh"
 #include "KinKal/ClosestApproach.hh"
+#include "KinKal/ParticleState.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>
@@ -136,8 +137,8 @@ int test(int argc, char **argv) {
   KTRAJ lhel(origin,momv,icharge,bnom,TimeRange(-10,10));
   if(invert)lhel.invertCT();
   auto testmom = lhel.momentum4(ot);
-  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << lhel << endl;
-  cout << "origin time position = " << lhel.position3(ot) << " momentum " << lhel.momentum3(ot) << " mag " <<  lhel.momentum(ot) << endl;
+//  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << lhel << endl;
+//  cout << "origin time position = " << lhel.position3(ot) << " momentum " << lhel.momentum3(ot) << " mag " <<  lhel.momentum(ot) << endl;
   VEC3 tvel, tdir;
   double ttime;
   double tstp = lhel.range().range()/9;
@@ -146,7 +147,7 @@ int test(int argc, char **argv) {
     tvel = lhel.velocity(ttime);
     tdir = lhel.direction(ttime);
     testmom = lhel.momentum4(ttime);
-    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom.R() << endl;
+//    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom.R() << endl;
 //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() << 
 //      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
   }
@@ -159,8 +160,8 @@ int test(int argc, char **argv) {
   tpos = lhel.position4(tmin);
   KTRAJ lhelmin(tpos,tmom,icharge,bnom);
 
-  cout << "KTRAJ at tmax has parameters : " << lhelmax << endl;
-  cout << "KTRAJ at tmin has parameters : " << lhelmin << endl;
+//  cout << "KTRAJ at tmax has parameters : " << lhelmax << endl;
+//  cout << "KTRAJ at tmin has parameters : " << lhelmin << endl;
 
 // now graph this as a polyline over the specified time range.
   double tstep = 0.1; // nanoseconds
@@ -269,29 +270,41 @@ int test(int argc, char **argv) {
   TimeRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
   Line tline(ppos, pvel,ltime,prange);
 // find ClosestApproach
-//  ClosestApproach<KTRAJ,Line> tp(lhel,tline);
+  CAHint hint(ltime,ltime);
+  ClosestApproach<KTRAJ,Line> tp(lhel,tline,hint, 1e-6);
 //  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-//  if(tp.status() == ClosestApproachData::converged) {
-//    // draw the line and ClosestApproach
-//    TPolyLine3D* line = new TPolyLine3D(2);
-//    VEC3 plow, phigh;
-//    tline.position3(tline.range().begin(),plow);
-//    tline.position3(tline.range().end(),phigh);
-//    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
-//    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
-//    line->SetLineColor(kOrange);
-//    line->Draw();
-//    TPolyLine3D* poca = new TPolyLine3D(2);
-//    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
-//    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
-//    poca->SetLineColor(kBlack);
-//    poca->Draw();
-//  }
+  if(tp.status() == ClosestApproachData::converged) {
+    // draw the line and ClosestApproach
+    TPolyLine3D* line = new TPolyLine3D(2);
+    auto plow = tline.position3(tline.range().begin());
+    auto phigh = tline.position3(tline.range().end());
+    line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
+    line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
+    line->SetLineColor(kOrange);
+    line->Draw();
+    TPolyLine3D* poca = new TPolyLine3D(2);
+    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
+    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
+    poca->SetLineColor(kBlack);
+    poca->Draw();
+  } else {
+    cout << "ClosestApproach failed " << endl;
+    return -1;
+  }
+  // test particle state back-and-forth
+  ParticleStateMeasurement pmeas = lhel.measurementState(ltime);
+  KTRAJ newhel(pmeas,lhel.charge(),lhel.bnom());
+  for(size_t ipar=0;ipar < NParams();ipar++){
+    if(fabs(lhel.paramVal(ipar)-newhel.paramVal(ipar)) > 1e-9){
+      cout << "Parameter check failed par " << ipar << endl;
+      return -2;
+    }
+  }
 
   std::string tfname = KTRAJ::trajName() + ".root";
   cout << "Saving canvas to " << title << endl;
   hcan->SaveAs(tfname.c_str()); 
-
+  cout <<"Exiting with status " << EXIT_SUCCESS << endl;
   exit(EXIT_SUCCESS);
 }
 
