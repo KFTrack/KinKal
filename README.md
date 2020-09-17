@@ -58,13 +58,13 @@
 To build, you must have ROOT (see https://root.cern.ch/) installed, and the `bin/` directory should be on your `PATH`.
 You must also have the python-based SCONS build tool installed (https://scons.org/).
 
-There are 2 build configurations: *debug* or *prof*ile.  To build 
+
+There are 2 build configurations: *Debug* or *Release*.  To build 
 
 1. First, clone this repo
 
 ```bash
 git clone https://github.com/KFTrack/KinKal.git
-cd KinKal
 ```
 
 2. Set up a new build directory; lets say `build_profile` for a profile build (or `build_debug` for a debug build)
@@ -73,25 +73,31 @@ mkdir build_profile
 cd build_profile
 
 ```
-3.1 build, cmake vesrion.  Substitute 'debug' for 'profile' below as desired.
+
+### CMake
+
+3.1. Generate the build system, and build
 
 ```bash
-cmake version:
-cmake  -DCMAKE_BUILD_TYPE=profile -S ../KinKal -B ./
-make -j
+
+cmake ../KinKal  -DCMAKE_BUILD_TYPE=[Release/Debug]
+
+make -j <jobs to run>
 ```
-4.1 Optionally run tests
+4.1 Optionally, run unit tests
 
 ```bash
 make test
-
 ```
-3.2 build, scons version
+
+## SCons (retired)
+
+3.2. Setup the build environment and run `scons`
 
 ```bash
 source ../scripts/newBuild.sh prof
 source setup.sh
-scons -j 4
+scons -j <jobs to run>
 
 ```
 4.2 Optionally run tests; NB, this doesn't work under MacOS
@@ -100,7 +106,7 @@ scons -j 4
 scons test
 ```
 
-Test programs will be built in the bin directory under `build/`. Run them with `--help` in the `build` directory to get a list of run parameters.
+Test programs will be built in the `bin/` directory. Run them with `--help` in the `build` directory to get a list of run parameters.
 
 ### Build FAQ
 #### (MacOS) Brew not working
