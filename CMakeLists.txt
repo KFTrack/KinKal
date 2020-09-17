@@ -13,25 +13,24 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Release")
 endif()
 
-if (CMAKE_BUILD_TYPE MATCHES "^(p|P)(rofile|rof)$")
+if (CMAKE_BUILD_TYPE MATCHES "^((p|P)(rofile|rof))|(release)$")
     message(STATUS "Setting build type to 'Release' instead of '${CMAKE_BUILD_TYPE}'.")
     set(CMAKE_BUILD_TYPE "Release" CACHE
         STRING "Choose the type of build." FORCE)
 endif()
 
+if (CMAKE_BUILD_TYPE MATCHES "^debug$")
+    message(STATUS "Setting build type to 'Debug' instead of '${CMAKE_BUILD_TYPE}'.")
+    set(CMAKE_BUILD_TYPE "Debug" CACHE
+        STRING "Choose the type of build." FORCE)
+endif()
 
 if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release)$")
-    message(STATUS "Setting build type to '${default_build_type}' as neither Release or Debug was specified.")
-    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
-        STRING "Choose the type of build." FORCE)
+    message(FATAL_ERROR "'${CMAKE_BUILD_TYPE}' is not a valid build type. Please choose either 'Release' or 'Debug'.")
 endif()
 
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}" )
 
-
-# use gcc where we can
-set(CMAKE_C_COMPILER "gcc")
-set(CMAKE_CXX_COMPILER "g++")
 
 # enable c++17 standard
 set(CMAKE_CXX_STANDARD 17)
