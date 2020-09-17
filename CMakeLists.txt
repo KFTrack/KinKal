@@ -62,7 +62,7 @@ if(GIT_FOUND)
   )
   message( STATUS "git describes this revision as: ${_build_version}")
 
-  if (_build_version MATCHES "^v([0-9]+)\_([0-9]+)\_([0-9]+)\-([0-9]+)\-([a-z0-9]+)$")
+  if (_build_version MATCHES "^.*([0-9]+)[._]([0-9]+)[._]([0-9]+)\\-([0-9]+)\\-([a-z0-9]+)$")
     set (_build_ver_maj ${CMAKE_MATCH_1})
     set (_build_ver_min ${CMAKE_MATCH_2})
     set (_build_ver_patch ${CMAKE_MATCH_3})
@@ -85,7 +85,6 @@ project (KinKal
 message( STATUS "Project Version: ${CMAKE_PROJECT_VERSION}")
 message( STATUS "Commits made since last tag: ${_build_ver_commits_since_tag}")
 message( STATUS "Commit short hash: ${_build_ver_commit_short}")
-
 
 
 # find the ROOT dependency
