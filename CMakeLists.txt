@@ -1,6 +1,35 @@
 cmake_minimum_required(VERSION 3.9.0)
 
-# always use gcc
+# Check + Enforce build type
+
+set(default_build_type "Release")
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+  message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
+  set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+      STRING "Choose the type of build." FORCE)
+  # Set the possible values of build type for cmake-gui                                                                                                                                                           
+  set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
+    "Debug" "Release")
+endif()
+
+if (CMAKE_BUILD_TYPE MATCHES "^(p|P)(rofile|rof)$")
+    message(STATUS "Setting build type to 'Release' instead of '${CMAKE_BUILD_TYPE}'.")
+    set(CMAKE_BUILD_TYPE "Release" CACHE
+        STRING "Choose the type of build." FORCE)
+endif()
+
+
+if (NOT CMAKE_BUILD_TYPE MATCHES "^(Debug|Release)$")
+    message(STATUS "Setting build type to '${default_build_type}' as neither Release or Debug was specified.")
+    set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
+        STRING "Choose the type of build." FORCE)
+endif()
+
+message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}" )
+
+
+# use gcc where we can
 set(CMAKE_C_COMPILER "gcc")
 set(CMAKE_CXX_COMPILER "g++")
 
@@ -8,43 +37,110 @@ set(CMAKE_CXX_COMPILER "g++")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
-set(CMAKE_CXX_FLAGS "-Wall -Wno-unused-parameter -Wno-unused-local-typedefs -Werror -gdwarf-2 -Werror=return-type -Winit-self -Woverloaded-virtual -ftrapping-math"
-    CACHE STRING "Flags (all configurations)" FORCE)
-set(CMAKE_CXX_FLAGS_DEBUG "-g -Og" 
-    CACHE STRING "Debug flags" FORCE)
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -fno-omit-frame-pointer" 
-    CACHE STRING "Release/Prof flags" FORCE)
-
-if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
-endif()
-message( "Build Type: ${CMAKE_BUILD_TYPE}" )
-
+# make sure CMake is able to find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
-project (KinKal CXX)
 
-find_package(ROOT REQUIRED COMPONENTS Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree Rint Postscript Matrix Physics MathCore Thread Gui)
+# versioning
 
-# include "useful" ROOT headers
+set (_build_ver_maj 0)
+set (_build_ver_min 0)
+set (_build_ver_patch 0)
+set (_build_ver_commits_since_tag 0)
+set (_build_ver_commit_short 0)
+
+# find git information
+find_package(Git)
+
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    OUTPUT_VARIABLE _build_version
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message( STATUS "git describes this revision as: ${_build_version}")
+
+  if (_build_version MATCHES "^.*([0-9]+)[._]([0-9]+)[._]([0-9]+)\\-([0-9]+)\\-([a-z0-9]+)$")
+    set (_build_ver_maj ${CMAKE_MATCH_1})
+    set (_build_ver_min ${CMAKE_MATCH_2})
+    set (_build_ver_patch ${CMAKE_MATCH_3})
+    set (_build_ver_commits_since_tag ${CMAKE_MATCH_4})
+    set (_build_ver_commit_short ${CMAKE_MATCH_5})
+    message( STATUS "Version string correctly matched.")
+  endif()
+else()
+  message( STATUS "Git not found!")
+endif()
+
+
+# Set project name and version
+project (KinKal 
+    LANGUAGES CXX 
+    VERSION ${_build_ver_maj}.${_build_ver_min}.${_build_ver_patch}
+    DESCRIPTION "Kinematic Kalman filter track fit code package"
+)
+
+message( STATUS "Project Version: ${CMAKE_PROJECT_VERSION}")
+message( STATUS "Commits made since last tag: ${_build_ver_commits_since_tag}")
+message( STATUS "Commit short hash: ${_build_ver_commit_short}")
+
+
+# find the ROOT dependency
+find_package(ROOT REQUIRED COMPONENTS 
+        Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree 
+        Rint Postscript Matrix Physics MathCore Thread Gui)
+
+# include "useful" ROOT cmake functions
+# which are useful for building dictionaries
 include(${ROOT_USE_FILE})
 
-include_directories(${PROJECT_SOURCE_DIR})
+# set RPATH options
 set(CMAKE_INSTALL_RPATH ${CMAKE_INSTALL_PREFIX}/lib)
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
+# output shared libraries and executables in lib/ and bin/
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 
+# enable tests
 enable_testing()
 
+# compiler flags
+add_compile_options(
+    # flags applied to ALL build types
+    "-Wall" 
+    "-Wno-unused-parameter" 
+    "-Wno-unused-local-typedefs" 
+    "-Werror" 
+    "-gdwarf-2" 
+    "-Werror=return-type" 
+    "-Winit-self" 
+    "-Woverloaded-virtual" 
+    "-ftrapping-math"
+
+    # debug flags
+    "$<$<CONFIG:DEBUG>:-Og;-g>"
+
+    # release flags
+    "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
+)
+
+# add shared library targets
 add_subdirectory(MatEnv)
 add_subdirectory(KinKal)
 add_subdirectory(UnitTests)
 
+# install rules
+include(GNUInstallDirs)
 
-message ("Writing setup.sh...")
+install(TARGETS KinKal MatEnv
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+message (STATUS "Writing setup.sh...")
 
 file(WRITE ${PROJECT_BINARY_DIR}/setup.sh "
 #
@@ -58,7 +154,10 @@ fi
 export PACKAGE_SOURCE=${CMAKE_SOURCE_DIR}
 export DEBUG_LEVEL=${CMAKE_BUILD_TYPE}
 source \${PACKAGE_SOURCE}/setup.sh
+
+# Linux: 
 export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
+
 # MacOS:
 export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
 
