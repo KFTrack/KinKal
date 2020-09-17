@@ -64,26 +64,39 @@ There are 2 build configurations: *debug* or *prof*ile.  To build
 
 ```bash
 git clone https://github.com/KFTrack/KinKal.git
-
 cd KinKal
 ```
 
-2. Set up a new build directory; lets say `build` (or `debug` for a debug build)
+2. Set up a new build directory; lets say `build_profile` for a profile build (or `build_debug` for a debug build)
 ```bash
-mkdir build 
-cd build
+mkdir build_profile
+cd build_profile
 
-source ../scripts/newBuild.sh prof
-
-source setup.sh
 ```
-
-3. Run `scons` to compile the software
+3.1 build, cmake vesrion.  Substitute 'debug' for 'profile' below as desired.
 
 ```bash
+cmake version:
+cmake  -DCMAKE_BUILD_TYPE=profile -S ../KinKal -B ./
+make -j
+```
+4.1 Optionally run tests
+
+```bash
+make test
+
+```
+3.2 build, scons version
+
+```bash
+source ../scripts/newBuild.sh prof
+source setup.sh
 scons -j 4
 
-# (Optional) Run the unit tests to check everything is running correctly
+```
+4.2 Optionally run tests; NB, this doesn't work under MacOS
+
+```bash
 scons test
 ```
 
