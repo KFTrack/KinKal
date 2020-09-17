@@ -41,13 +41,21 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 
-# find git information
+# versioning
 
+set (_build_ver_maj 0)
+set (_build_ver_min 0)
+set (_build_ver_patch 0)
+set (_build_ver_commits_since_tag 0)
+set (_build_ver_commit_short 0)
+
+# find git information
 find_package(Git)
+
 if(GIT_FOUND)
   execute_process(
     COMMAND ${GIT_EXECUTABLE} describe
-    WORKING_DIRECTORY "${local_dir}"
+    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE _build_version
     ERROR_QUIET
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -64,11 +72,6 @@ if(GIT_FOUND)
   endif()
 else()
   message( STATUS "Git not found!")
-  set (_build_ver_maj 0)
-  set (_build_ver_min 0)
-  set (_build_ver_patch 0)
-  set (_build_ver_commits_since_tag 0)
-  set (_build_ver_commit_short 0)
 endif()
 
 
@@ -80,8 +83,8 @@ project (KinKal
 )
 
 message( STATUS "Project Version: ${CMAKE_PROJECT_VERSION}")
-message( STATUS "Commit short hash: ${_build_ver_commit_short}")
 message( STATUS "Commits made since last tag: ${_build_ver_commits_since_tag}")
+message( STATUS "Commit short hash: ${_build_ver_commit_short}")
 
 
 
