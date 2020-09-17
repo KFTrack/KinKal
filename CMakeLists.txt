@@ -41,12 +41,48 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
 
+# find git information
+
+find_package(Git)
+if(GIT_FOUND)
+  execute_process(
+    COMMAND ${GIT_EXECUTABLE} describe
+    WORKING_DIRECTORY "${local_dir}"
+    OUTPUT_VARIABLE _build_version
+    ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+  message( STATUS "git describes this revision as: ${_build_version}")
+
+  if (_build_version MATCHES "^v([0-9]+)\_([0-9]+)\_([0-9]+)\-([0-9]+)\-([a-z0-9]+)$")
+    set (_build_ver_maj ${CMAKE_MATCH_1})
+    set (_build_ver_min ${CMAKE_MATCH_2})
+    set (_build_ver_patch ${CMAKE_MATCH_3})
+    set (_build_ver_commits_since_tag ${CMAKE_MATCH_4})
+    set (_build_ver_commit_short ${CMAKE_MATCH_5})
+    message( STATUS "Version string correctly matched.")
+  endif()
+else()
+  message( STATUS "Git not found!")
+  set (_build_ver_maj 0)
+  set (_build_ver_min 0)
+  set (_build_ver_patch 0)
+  set (_build_ver_commits_since_tag 0)
+  set (_build_ver_commit_short 0)
+endif()
+
+
 # Set project name and version
 project (KinKal 
     LANGUAGES CXX 
-    VERSION 0.0.1 
+    VERSION ${_build_ver_maj}.${_build_ver_min}.${_build_ver_patch}
     DESCRIPTION "Kinematic Kalman filter track fit code package"
 )
+
+message( STATUS "Project Version: ${CMAKE_PROJECT_VERSION}")
+message( STATUS "Commit short hash: ${_build_ver_commit_short}")
+message( STATUS "Commits made since last tag: ${_build_ver_commits_since_tag}")
+
 
 
 # find the ROOT dependency
