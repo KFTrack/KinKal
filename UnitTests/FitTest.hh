@@ -435,6 +435,7 @@ int FitTest(int argc, char *argv[]) {
     if(ttree){
       ftree = new TTree("fit","fit");
       ftree->Branch("ftpars.", &ftpars_,KTRAJPars::leafnames().c_str());
+      ftree->Branch("mtpars.", &mtpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("btpars.", &btpars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("spars.", &spars_,KTRAJPars::leafnames().c_str());
       ftree->Branch("ffpars.", &ffitpars_,KTRAJPars::leafnames().c_str());
