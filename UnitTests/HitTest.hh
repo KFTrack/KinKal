@@ -269,34 +269,36 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       continue;
     auto pder = ores.dRdP();
     for(size_t ipar=0;ipar < NParams();ipar++){
-      auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-    // update the hits
-      for(size_t istep=0;istep<nsteps; istep++){
-	double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
-	// modify the helix
-        KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
-        modktraj.params().parameters()[ipar] += dpar;
-        PKTRAJ modtptraj(modktraj);
-        KinKal::DVEC dpvec;
-        dpvec[ipar] = dpar;
-        kkhit.update(modtptraj);// refer to moded helix
-	Residual mres;
-	if(strawhit){
-	  mres = strawhit->refResidual();
-	} else if(scinthit) {
-	  mres = scinthit->refResidual();
+      if(fabs(pder[ipar])>1e-10){
+	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
+	// update the hits
+	for(size_t istep=0;istep<nsteps; istep++){
+	  double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
+	  // modify the helix
+	  KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+	  modktraj.params().parameters()[ipar] += dpar;
+	  PKTRAJ modtptraj(modktraj);
+	  KinKal::DVEC dpvec;
+	  dpvec[ipar] = dpar;
+	  kkhit.update(modtptraj);// refer to moded helix
+	  Residual mres;
+	  if(strawhit){
+	    mres = strawhit->refResidual();
+	  } else if(scinthit) {
+	    mres = scinthit->refResidual();
+	  }
+	  double dr = ores.value()-mres.value(); // this sign is confusing.  I think
+	  // it means the fit needs to know how much to change the ref parameters, which is
+	  // opposite from how much the ref parameters are different from the measurement
+	  // compare the change with the expected from the derivatives
+	  double ddr = ROOT::Math::Dot(pder,dpvec);
+	  hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+	  if(fabs(dr - ddr) > 1.0 ){
+	    cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar 
+	      << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+	    status = 2;
+	  }
 	}
-	double dr = ores.value()-mres.value(); // this sign is confusing.  I think
-	// it means the fit needs to know how much to change the ref parameters, which is
-	// opposite from how much the ref parameters are different from the measurement
-        // compare the change with the expected from the derivatives
-        double ddr = ROOT::Math::Dot(pder,dpvec);
-        hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-       if(fabs(dr - ddr) > 1.0 ){
-          cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar 
-            << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
-          status = 2;
-        }
       }
     }
   }
@@ -306,15 +308,17 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   TCanvas* hderivgc = new TCanvas("hderiv","hderiv",800,600);
   hderivgc->Divide(3,2);
   for(size_t ipar=0;ipar<6;++ipar){
-    pline->SetParameters(0.0,1.0);
-    hderivgc->cd(ipar+1);
-    TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
-    hderivg[ipar]->Draw("AC*");
-    if(fabs(pfitr->Parameter(0))> delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
-      cout << "Parameter " 
-	<< KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
-	<< " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
-      status = 1;
+    if(fabs(hderivg[ipar]->GetMaximum()-hderivg[ipar]->GetMinimum())>1e-10){
+      pline->SetParameters(0.0,1.0);
+      hderivgc->cd(ipar+1);
+      TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
+      hderivg[ipar]->Draw("AC*");
+      if(fabs(pfitr->Parameter(0))> delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
+	cout << "Parameter " 
+	  << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+	  << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+	status = 1;
+      }
     }
   }
   hderivgc->Write();
