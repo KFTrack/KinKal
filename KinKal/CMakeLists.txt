@@ -32,3 +32,51 @@ target_link_libraries(KinKal ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
 set_target_properties(KinKal PROPERTIES VERSION ${PROJECT_VERSION})
+
+# select which headers to install ls -1 *.hh
+install(FILES
+    BFieldEffect.hh
+    BFieldMap.hh
+    BFieldUtils.hh
+    CentralHelix.hh
+    ClosestApproachData.hh
+    ClosestApproach.hh
+    Config.hh
+    Constraint.hh
+    DetectorHit.hh
+    DetectorXing.hh
+    Effect.hh
+    FitData.hh
+    FitState.hh
+    FitStatus.hh
+    KinematicLine.hh
+    Line.hh
+    LoopHelix.hh
+    LRAmbig.hh
+    Material.hh
+    MaterialXing.hh
+    Measurement.hh
+    MomBasis.hh
+    Parameters.hh
+    ParticleState.hh
+    ParticleTrajectory.hh
+    PieceClosestApproach.hh
+    PieceTrajectory.hh
+    POCAUtil.hh
+    PrintDetail.hh
+    Residual.hh
+    ScintHit.hh
+    StrawHit.hh
+    StrawMat.hh
+    StrawXing.hh
+    TimeDir.hh
+    TimeRange.hh
+    TrackEnd.hh
+    Track.hh
+    Vectors.hh
+    Weights.hh
+    WireCell.hh
+    WireHit.hh
+
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
+)

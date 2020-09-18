@@ -107,6 +107,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/bin)
 # enable tests
 enable_testing()
 
+include(GNUInstallDirs)
+
 # compiler flags
 add_compile_options(
     # flags applied to ALL build types
@@ -133,8 +135,6 @@ add_subdirectory(KinKal)
 add_subdirectory(UnitTests)
 
 # install rules
-include(GNUInstallDirs)
-
 install(TARGETS KinKal MatEnv
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
