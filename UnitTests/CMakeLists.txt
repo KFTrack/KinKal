@@ -36,7 +36,6 @@ ROOT_GENERATE_DICTIONARY(G__Dict
     BFieldInfo.hh 
     ParticleTrajectoryInfo.hh 
     MaterialInfo.hh 
-    NOINSTALL
     LINKDEF LinkDef.h
 )
 # create shared library with ROOT dict

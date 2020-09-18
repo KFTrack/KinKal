@@ -135,7 +135,7 @@ add_subdirectory(KinKal)
 add_subdirectory(UnitTests)
 
 # install rules
-install(TARGETS KinKal MatEnv
+install(TARGETS KinKal MatEnv UnitTests
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
