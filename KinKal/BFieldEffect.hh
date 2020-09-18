@@ -101,7 +101,7 @@ namespace KinKal {
       // make sure the piece is appendable
       if(fit.back().range().begin() > drange_.end()) throw std::invalid_argument("BFieldEffect: Can't append piece");
       // adjust time if necessary
-      double time = this->time()+ 1.0e-5; // slight buffer to make local piece selection more consistent
+      double time = this->time()+ 1.0e-5; // slight buffer to make local piece selection more consistent (avoid 'cusps')
       double tlow = std::max(time,fit.back().range().begin() + 1.0e-5);
       TimeRange newrange(tlow,fit.range().end());
       KTRAJ newpiece(fit.back());

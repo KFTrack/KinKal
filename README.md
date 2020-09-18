@@ -95,7 +95,7 @@ make test
 3.2. Setup the build environment and run `scons`
 
 ```bash
-source ../scripts/newBuild.sh prof
+source ../KinKal/scripts/newBuild.sh prof
 source setup.sh
 scons -j <jobs to run>
 
