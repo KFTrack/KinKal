@@ -44,6 +44,10 @@ add_library(UnitTests SHARED G__Dict)
 target_include_directories(UnitTests PRIVATE ${PROJECT_SOURCE_DIR})
 target_include_directories(UnitTests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
+# set shared library version equal to project version
+set_target_properties(UnitTests PROPERTIES VERSION ${PROJECT_VERSION})
+
+
 # link ROOT libraries
 target_link_libraries(UnitTests ${ROOT_LIBRARIES})
 
