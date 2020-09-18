@@ -67,7 +67,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f--TFile c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -143,11 +143,11 @@ int FitTest(int argc, char *argv[]) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int isimmass(0), ifitmass(0), icharge(-1);
   double simmass, fitmass;
-  unsigned maxniter(5);
+  unsigned maxniter(10);
   double dwt(1.0e6);
   unsigned nevents(100);
   bool ttree(true), printbad(false);
-  string tfname("FitTest.root"), sfile("Schedule.txt");
+  string tfname(""), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
@@ -180,7 +180,7 @@ int FitTest(int argc, char *argv[]) {
     {"nevents",     required_argument, 0, 'N'  },
     {"ttree",     required_argument, 0, 'r'  },
     {"tolerance",     required_argument, 0, 't'  },
-    {"TFile",     required_argument, 0, 'T'  },
+    {"TFilesuffix",     required_argument, 0, 'T'  },
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
     {"dBz",     required_argument, 0, 'Z'  },
@@ -357,7 +357,7 @@ int FitTest(int argc, char *argv[]) {
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
 //  kktrk.print(cout,detail);
-  TFile fitfile((KTRAJ::trajName() + tfname).c_str(),"RECREATE");
+  TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;

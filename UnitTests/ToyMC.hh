@@ -42,7 +42,7 @@ namespace KKTest {
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
 	momvar_(1.0), ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(0.01), tprec_(1e-8),
+	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_),
 	cell_(sdrift_,sigt_*sigt_,rstraw_) {}
 
@@ -273,7 +273,7 @@ namespace KKTest {
 	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
 	  VEC4 pos = pktraj.position4(prange.begin());
 	  MOM4 mom =  pktraj.momentum4(prange.begin());
-	  VEC3 bf = bfield_.fieldVect(pos.Vect());
+	  VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));
 	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
 	  pktraj.append(newend);
 	  prange.begin() = prange.end();
