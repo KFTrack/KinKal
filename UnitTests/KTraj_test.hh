@@ -1,9 +1,9 @@
 // 
 // test basic functions of KTraj class
 //
-#include "KinKal/Line.hh"
-#include "KinKal/ClosestApproach.hh"
-#include "KinKal/ParticleState.hh"
+#include "Trajectory/Line.hh"
+#include "Trajectory/ClosestApproach.hh"
+#include "General/ParticleState.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>

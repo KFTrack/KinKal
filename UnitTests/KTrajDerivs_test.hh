@@ -1,7 +1,7 @@
 // 
 // test derivatives of Traj class
 //
-#include "KinKal/ClosestApproach.hh"
+#include "Trajectory/ClosestApproach.hh"
 
 #include <iostream>
 #include <stdio.h>

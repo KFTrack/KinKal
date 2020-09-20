@@ -62,7 +62,7 @@ foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # add the project root as an include directory
     # link all unit tests to KinKal, MatEnv, and ROOT libraries.
     target_include_directories(UnitTest_${testname} PRIVATE ${PROJECT_SOURCE_DIR})
-    target_link_libraries( UnitTest_${testname} KinKal MatEnv UnitTests ${ROOT_LIBRARIES} )
+    target_link_libraries( UnitTest_${testname} General Trajectory Detector Fit MatEnv UnitTests ${ROOT_LIBRARIES} )
 
     # ensure the unit test executable filename is just its test name
     set_target_properties( UnitTest_${testname} PROPERTIES OUTPUT_NAME ${testname})

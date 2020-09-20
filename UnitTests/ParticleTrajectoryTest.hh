@@ -1,10 +1,10 @@
 // 
 // test basic functions of the ParticleTrajectory, using the LoopHelix class
 //
-#include "KinKal/ParticleTrajectory.hh"
-#include "KinKal/Line.hh"
-#include "KinKal/PieceClosestApproach.hh"
-#include "KinKal/BFieldMap.hh"
+#include "Trajectory/ParticleTrajectory.hh"
+#include "Trajectory/Line.hh"
+#include "Trajectory/PieceClosestApproach.hh"
+#include "Detector/BFieldMap.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>

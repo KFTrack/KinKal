@@ -1,4 +1,4 @@
-#include "KinKal/KinematicLine.hh"
+#include "Trajectory/KinematicLine.hh"
 #include "UnitTests/ParticleTrajectoryTest.hh"
 int main(int argc, char **argv) {
   return ParticleTrajectoryTest<KinematicLine>(argc,argv);

@@ -129,13 +129,16 @@ add_compile_options(
 
 # add shared library targets
 add_subdirectory(MatEnv)
-add_subdirectory(KinKal)
+add_subdirectory(General)
+add_subdirectory(Detector)
+add_subdirectory(Trajectory)
+add_subdirectory(Fit)
 add_subdirectory(UnitTests)
 
 # install rules
 include(GNUInstallDirs)
 
-install(TARGETS KinKal MatEnv
+install(TARGETS General Trajectory Detector Fit MatEnv
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 

@@ -1,11 +1,11 @@
 //
 // test basic functions of ClosestApproach using KTraj and Line
 //
-#include "KinKal/Line.hh"
-#include "KinKal/ClosestApproach.hh"
-#include "KinKal/PieceClosestApproach.hh"
-#include "KinKal/ParticleTrajectory.hh"
-#include "KinKal/BFieldMap.hh"
+#include "Trajectory/Line.hh"
+#include "Trajectory/ClosestApproach.hh"
+#include "Trajectory/PieceClosestApproach.hh"
+#include "Trajectory/ParticleTrajectory.hh"
+#include "Detector/BFieldMap.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 #include <iostream>

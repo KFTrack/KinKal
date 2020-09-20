@@ -4,17 +4,17 @@
 //  Toy MC for fit and hit testing
 //
 #include "TRandom3.h"
-#include "KinKal/Line.hh"
-#include "KinKal/ParticleTrajectory.hh"
-#include "KinKal/PieceClosestApproach.hh"
-#include "KinKal/StrawHit.hh"
-#include "KinKal/StrawXing.hh"
-#include "KinKal/StrawMat.hh"
-#include "KinKal/ScintHit.hh"
-#include "KinKal/BFieldMap.hh"
-#include "KinKal/BFieldUtils.hh"
-#include "KinKal/Vectors.hh"
-#include "KinKal/WireCell.hh"
+#include "Trajectory/Line.hh"
+#include "Trajectory/ParticleTrajectory.hh"
+#include "Trajectory/PieceClosestApproach.hh"
+#include "Detector/StrawHit.hh"
+#include "Detector/StrawXing.hh"
+#include "Detector/StrawMat.hh"
+#include "Detector/ScintHit.hh"
+#include "Detector/BFieldMap.hh"
+#include "Detector/BFieldUtils.hh"
+#include "General/Vectors.hh"
+#include "Detector/WireCell.hh"
 #include "CLHEP/Units/PhysicalConstants.h"
 
 namespace KKTest {
