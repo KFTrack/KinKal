@@ -41,7 +41,7 @@ namespace KKTest {
 	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
-	momvar_(1.0), ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_),
 	cell_(sdrift_,sigt_*sigt_,rstraw_) {}
@@ -49,15 +49,13 @@ namespace KKTest {
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PKTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
-      void createSeed(KTRAJ& seed);
+      void createSeed(KTRAJ& seed,double momvar, double posvar, bool smear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ const& pktraj, DHITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,DHITCOL& thits, DXINGCOL& dxings);
       double createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
       // set functions, for special purposes
-      void setSeedVar(double momvar) { momvar_ = momvar; }
-      void setSmearSeed(bool smear) { smearseed_ = smear; }
       void setInefficiency(double ineff) { ineff_ = ineff; }
       // accessors
       double shVar() const {return sigt_*sigt_;}
@@ -73,7 +71,7 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_, smearseed_;
+      bool simmat_, lighthit_;
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
@@ -81,7 +79,6 @@ namespace KKTest {
       double rwire_, wthick_;
       double sigt_; // drift time resolution in ns
       double ineff_; // hit inefficiency
-      double momvar_; // seed randomization factors
       // time hit parameters
       double ttsig_, twsig_, shmax_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
@@ -228,26 +225,27 @@ namespace KKTest {
     //    tpl.print(cout,2);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed){
+  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,double momvar, double posvar,bool smearseed){
     auto& seedpar = seed.params();
     // propagate the momentum and position variances to parameter variances
-    for(int idir=0;idir<MomBasis::ndir;idir++){
-      DVEC pder = seed.momDeriv(seed.range().mid(),MomBasis::Direction(idir));
-      // convert derivative vector to a Nx1 matrix
-      ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-      dPdm.Place_in_col(pder,0,0);
-      ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1> > MVar;
-      MVar(0,0) = momvar_/(mom_*mom_);
-      auto cpars =ROOT::Math::Similarity(dPdm,MVar);
-      for(size_t ipar=0;ipar<NParams();ipar++)
-	seedpar.covariance()[ipar][ipar] += cpars[ipar][ipar];
+    DPDV momder = seed.dPardM(seed.range().mid());
+    DPDV posder = seed.dPardX(seed.range().mid());
+    // assume equal uncertainty in every direction.  Add effects incoherently
+    SMAT mxvar,myvar,mzvar,pxvar,pyvar,pzvar;
+    mxvar(0,0) = myvar(1,1) = mzvar(2,2) = momvar;
+    pxvar(0,0) = pyvar(1,1) = pzvar(2,2) = posvar;
+    std::vector<SMAT> momvdirmat= {mxvar,myvar,mzvar};
+    std::vector<SMAT> posvdirmat= {pxvar,pyvar,pzvar};
+    for(int idir=0;idir<3;idir++){
+      DMAT momvmat = ROOT::Math::Similarity(momder,momvdirmat[idir]);
+      DMAT posvmat = ROOT::Math::Similarity(posder,posvdirmat[idir]);
+      seedpar.covariance() += momvmat + posvmat;
     }
     // smearing on T0 from momentum is too small
-    size_t it0 = NParams()-1; // assumed t0 is the last index FIXME! this should be a constexpr
-    seedpar.covariance()[it0][it0]*= 100; // smear factor should be adjustable FIXME!
-
+    size_t it0 = KTRAJ::t0Index();
+    seedpar.covariance()[it0][it0] += 10.0; 
     // now, randomize the parameters within those errors.  Don't include correlations
-    if(smearseed_){
+    if(smearseed){
       for(unsigned ipar=0;ipar < NParams(); ipar++){
 	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
 	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);

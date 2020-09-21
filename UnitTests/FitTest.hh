@@ -3,19 +3,19 @@
 //
 #include "MatEnv/MatDBInfo.hh"
 #include "MatEnv/DetMaterial.hh"
+#include "General/Vectors.hh"
 #include "Trajectory/ParticleTrajectory.hh"
 #include "Trajectory/Line.hh"
 #include "Detector/StrawHit.hh"
 #include "Detector/StrawMat.hh"
 #include "Detector/ScintHit.hh"
-#include "Fit/Constraint.hh"
-#include "Detector/BFieldMap.hh"
-#include "General/Vectors.hh"
-#include "Fit/Config.hh"
-#include "Fit/Measurement.hh"
-#include "Detector/Material.hh"
-#include "Fit/BFieldEffect.hh"
 #include "Detector/DetectorXing.hh"
+#include "Detector/BFieldMap.hh"
+#include "Fit/Config.hh"
+#include "Fit/Constraint.hh"
+#include "Fit/Measurement.hh"
+#include "Fit/Material.hh"
+#include "Fit/BFieldEffect.hh"
 #include "Fit/Track.hh"
 #include "UnitTests/ToyMC.hh"
 #include "UnitTests/HitInfo.hh"
@@ -58,6 +58,7 @@
 #include "TDirectory.h"
 #include "TProfile.h"
 #include "TProfile2D.h"
+#include "TFitResult.h"
 #include "Math/VectorUtil.h"
 #include <limits>
 
@@ -99,7 +100,7 @@ t2 -= dt;
 }
 
 template <class KTRAJ>
-int FitTest(int argc, char *argv[]) {
+int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   struct KTRAJPars{
     Float_t pars_[NParams()];
     static std::string leafnames() {
@@ -152,11 +153,11 @@ int FitTest(int argc, char *argv[]) {
   double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
-  vector<double> sigmas = { 3.0, 3.0, 3.0, 3.0, 0.1, 3.0}; // base sigmas for parameter plots
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
   double tol(0.1);
+  double seedposvar(3.0); //position variance for seed smearing
   int iseed(123421);
   int conspar(-1), iprint(-1);
   unsigned nhits(40);
@@ -284,7 +285,6 @@ int FitTest(int argc, char *argv[]) {
   DXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
-  toy.setSmearSeed(seedsmear);
   if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
@@ -303,7 +303,7 @@ int FitTest(int argc, char *argv[]) {
   TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj);
+  toy.createSeed(seedtraj,sigmas[NParams()],seedposvar,seedsmear);
   if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
@@ -498,7 +498,8 @@ int FitTest(int argc, char *argv[]) {
     TAxis* xax = corravg->GetXaxis();
     TAxis* yax = corravg->GetYaxis();
     double nsig(10.0);
-    double pscale = nsig/sqrt(nhits);
+//    double pscale = nsig/sqrt(nhits);
+    double pscale =  nsig;
     for(size_t ipar=0;ipar< NParams(); ipar++){
       auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
       hname = string("fd") + KTRAJ::paramName(tpar);
@@ -525,6 +526,9 @@ int FitTest(int argc, char *argv[]) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
+    TH1F* fmomres = new TH1F("fmomres","Front Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
+    TH1F* mmomres = new TH1F("mmomres","Mid Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
+    TH1F* bmomres = new TH1F("bmomres","Back Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
     TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
@@ -546,7 +550,7 @@ int FitTest(int argc, char *argv[]) {
       TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
       KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
-      toy.createSeed(seedtraj);
+      toy.createSeed(seedtraj,10*sigmas[NParams()],seedposvar,seedsmear);
   // if requested, constrain a parameter
       if(conspar >= 0 && conspar < (int)NParams()){
 	auto const& front = tptraj.front();
@@ -744,6 +748,9 @@ int FitTest(int argc, char *argv[]) {
 	fft_ = fptraj.range().begin();
 	mft_ = fptraj.range().mid();
 	bft_ = fptraj.range().end();
+	fmomres->Fill((ffmom_-ftmom_));
+	mmomres->Fill((mfmom_-mtmom_));
+	bmomres->Fill((bfmom_-btmom_));
 	fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
 	mmompull->Fill((mfmom_-mtmom_)/mfmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
@@ -762,31 +769,58 @@ int FitTest(int argc, char *argv[]) {
       }
       if(ttree)ftree->Fill();
     }
+// Test fit success
     cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
     hnfail->Fill(nfail);
     hndiv->Fill(ndiv);
-    if(float(nfail+ndiv)/float(nevents)> 0.05)retval = -2;
+    if(float(nfail+ndiv)/float(nevents)> 0.1){
+      retval = -2;
+    }
     cout <<"Time/fit = " << duration/double(nevents) << " Nanoseconds " << endl;
     // fill canvases
     TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
-    fdpcan->Divide(3,2);
+    fdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       fdpcan->cd(ipar+1);
       fdp[ipar]->Fit("gaus","q");
     }
+    fdpcan->cd(NParams()+1);
+    // Test momentum resolution
+    TFitResultPtr ffitr = fmomres->Fit("gaus","qS");
+    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+      cout << "Front momentum resolution out of tolerance "
+      << ffitr->Parameter(1) << " +- " << ffitr->Error(1) << " sigma " << ffitr->Parameter(2) << endl;
+      retval=-3;	
+    }
+
     fdpcan->Write();
     TCanvas* mdpcan = new TCanvas("mdpcan","mdpcan",800,600);
-    mdpcan->Divide(3,2);
+    mdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       mdpcan->cd(ipar+1);
       mdp[ipar]->Fit("gaus","q");
     }
+    mdpcan->cd(NParams()+1);
+    // Test momentum resolution
+    TFitResultPtr mfitr = mmomres->Fit("gaus","qS");
+    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+      cout << "Mid momentum resolution out of tolerance "
+      << mfitr->Parameter(1) << " +- " << mfitr->Error(1) << " sigma " << mfitr->Parameter(2) << endl;
+      retval=-3;	
+    }
     mdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
-    bdpcan->Divide(3,2);
+    bdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       bdpcan->cd(ipar+1);
       bdp[ipar]->Fit("gaus","q");
+    }
+    bdpcan->cd(NParams()+1);
+    TFitResultPtr bfitr = bmomres->Fit("gaus","qS");
+    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+      cout << "Back momentum resolution out of tolerance "
+      << bfitr->Parameter(1) << " +- " << bfitr->Error(1) << " sigma " << bfitr->Parameter(2) << endl;
+      retval=-3;	
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
@@ -852,6 +886,6 @@ int FitTest(int argc, char *argv[]) {
   }
   fitfile.Write();
   fitfile.Close();
-
+  cout << "Exiting with status " << retval << endl;
   exit(retval);
 }

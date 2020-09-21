@@ -22,6 +22,7 @@ namespace KinKal {
   using VMAT = ROOT::Math::SMatrix<double,NDim(),NDim(),ROOT::Math::MatRepSym<double,NDim()>>;  // matrix type for spatial vector covariance
   using DPDV = ROOT::Math::SMatrix<double,NParams(),NDim(),ROOT::Math::MatRepStd<double,NParams(),NDim()>>; // parameter derivatives WRT space dimension type
   using DVDP = ROOT::Math::SMatrix<double,NDim(),NParams(),ROOT::Math::MatRepStd<double,NDim(),NParams()>>; // space dimension derivatives WRT parameter type
+  using SMAT = ROOT::Math::SMatrix<double,NDim(),NDim(),ROOT::Math::MatRepSym<double,NDim()>>;  // Spatial covariance matrix
   using SVEC3 = ROOT::Math::SVector<double,NDim()>;
   using SVEC6 = ROOT::Math::SVector<double,NParams()>; // type for particle state vector payload
   using PSMAT = ROOT::Math::SMatrix<double,NParams(),NParams(),ROOT::Math::MatRepStd<double,NParams(),NParams()>>; // matrix type for translating to/from state and parameters; this is not symmetric
