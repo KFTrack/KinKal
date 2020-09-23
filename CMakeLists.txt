@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 # Check + Enforce build type
-
 set(default_build_type "Release")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -127,6 +126,9 @@ add_compile_options(
     "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
 )
 
+# install rules
+include(GNUInstallDirs)
+
 # add shared library targets
 add_subdirectory(MatEnv)
 add_subdirectory(General)
@@ -135,12 +137,19 @@ add_subdirectory(Trajectory)
 add_subdirectory(Fit)
 add_subdirectory(Tests)
 
-# install rules
-include(GNUInstallDirs)
 
-install(TARGETS General Trajectory Detector Fit MatEnv
+install(TARGETS General Trajectory Detector Fit MatEnv Tests
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# install headers
+# Globbing here is fine because it does not influence build behaviour
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
+        FILES_MATCHING PATTERN "*.hh" 
+        PATTERN ".git*" EXCLUDE
+)
+
 
 message (STATUS "Writing setup.sh...")
 
