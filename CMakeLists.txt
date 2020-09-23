@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 # Check + Enforce build type
-
 set(default_build_type "Release")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -39,6 +38,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 # make sure CMake is able to find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # versioning
 
@@ -127,6 +127,9 @@ add_compile_options(
     "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
 )
 
+# install rules
+include(GNUInstallDirs)
+
 # add shared library targets
 add_subdirectory(MatEnv)
 add_subdirectory(General)
@@ -135,12 +138,19 @@ add_subdirectory(Trajectory)
 add_subdirectory(Fit)
 add_subdirectory(Tests)
 
-# install rules
-include(GNUInstallDirs)
 
-install(TARGETS General Trajectory Detector Fit MatEnv
+install(TARGETS General Trajectory Detector Fit MatEnv Tests
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# install headers
+# Globbing here is fine because it does not influence build behaviour
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
+        FILES_MATCHING PATTERN "*.hh" 
+        PATTERN ".git*" EXCLUDE
+)
+
 
 message (STATUS "Writing setup.sh...")
 
@@ -164,3 +174,33 @@ export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
 export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
 
 ")
+
+
+# clang tidy
+
+if(ENABLE_CLANG_TIDY)
+
+    find_program(CLANG_TIDY_BIN clang-tidy)
+    find_program(RUN_CLANG_TIDY_BIN run-clang-tidy)
+
+    if(CLANG_TIDY_BIN STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate clang-tidy")
+    endif()
+
+    if(RUN_CLANG_TIDY_BIN STREQUAL "RUN_CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate run-clang-tidy.py")
+    endif()
+
+    list(APPEND RUN_CLANG_TIDY_BIN_ARGS
+        -p .
+    )
+
+    add_custom_target(
+        tidy
+        COMMAND ${RUN_CLANG_TIDY_BIN} ${RUN_CLANG_TIDY_BIN_ARGS}
+        COMMENT "running clang tidy"
+    )
+
+endif()
+
+

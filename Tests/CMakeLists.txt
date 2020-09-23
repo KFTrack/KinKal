@@ -30,17 +30,17 @@ set( TEST_SOURCE_FILES
 
 # generate root dictionary
 
-ROOT_GENERATE_DICTIONARY(G__Dict 
+ROOT_GENERATE_DICTIONARY(TestsDict 
     # headers to include in ROOT dictionary
     HitInfo.hh 
     BFieldInfo.hh 
     ParticleTrajectoryInfo.hh 
     MaterialInfo.hh 
-    NOINSTALL
+
     LINKDEF LinkDef.h
 )
 # create shared library with ROOT dict
-add_library(Tests SHARED G__Dict)
+add_library(Tests SHARED TestsDict)
 
 target_include_directories(Tests PRIVATE ${PROJECT_SOURCE_DIR}/..)
 target_include_directories(Tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
