@@ -38,6 +38,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 # make sure CMake is able to find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # versioning
 
@@ -173,3 +174,33 @@ export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
 export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
 
 ")
+
+
+# clang tidy
+
+if(ENABLE_CLANG_TIDY)
+
+    find_program(CLANG_TIDY_BIN clang-tidy)
+    find_program(RUN_CLANG_TIDY_BIN run-clang-tidy)
+
+    if(CLANG_TIDY_BIN STREQUAL "CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate clang-tidy")
+    endif()
+
+    if(RUN_CLANG_TIDY_BIN STREQUAL "RUN_CLANG_TIDY_BIN-NOTFOUND")
+        message(FATAL_ERROR "unable to locate run-clang-tidy.py")
+    endif()
+
+    list(APPEND RUN_CLANG_TIDY_BIN_ARGS
+        -p .
+    )
+
+    add_custom_target(
+        tidy
+        COMMAND ${RUN_CLANG_TIDY_BIN} ${RUN_CLANG_TIDY_BIN_ARGS}
+        COMMENT "running clang tidy"
+    )
+
+endif()
+
+
