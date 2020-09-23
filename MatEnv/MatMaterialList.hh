@@ -25,7 +25,7 @@
 #include <vector>
 #include <iostream>
 
-#include "MatEnv/MatMaterialObj.hh"
+#include "KinKal/MatEnv/MatMaterialObj.hh"
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------

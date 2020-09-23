@@ -22,7 +22,7 @@
 //----------------------
 #include <iostream>
 #include <stdlib.h>
-#include "MatEnv/MatMaterialObj.hh"
+#include "KinKal/MatEnv/MatMaterialObj.hh"
 using std::cout;
 using std::endl;
 namespace MatEnv {

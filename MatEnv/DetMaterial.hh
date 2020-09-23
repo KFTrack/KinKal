@@ -16,7 +16,7 @@
 //
 //  Babar includes
 //
-#include "MatEnv/MtrPropObj.hh"
+#include "KinKal/MatEnv/MtrPropObj.hh"
 #include <iostream>
 #include <string>
 #include <vector>

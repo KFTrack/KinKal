@@ -24,13 +24,13 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
-#include "MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
 
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatMaterialList.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MatMaterialList.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 using std::fstream;
 using std::ifstream;
 namespace MatEnv {
@@ -60,7 +60,7 @@ namespace MatEnv {
     ifstream materials( materialsFile.c_str() );
     assert( materials.good() );
     if (materials.eof()) {
-      ErrMsg(fatal) << "MatEnv/MatMaterialsList.data file empty!" << endmsg; 
+      ErrMsg(fatal) << "MatMaterialsList " << materialsFile << " empty!" << endmsg; 
     }
 
     std::string tagname;

@@ -13,7 +13,7 @@
 //  Authors: Dave Brown, 11/21/96
 //           Matthias Steinke 04/09/99
 //------------------------------------------------------------------------------
-#include "MatEnv/DetMaterial.hh"
+#include "KinKal/MatEnv/DetMaterial.hh"
 #include <iostream>
 #include <cfloat>
 #include <string>

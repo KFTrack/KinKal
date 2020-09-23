@@ -76,7 +76,7 @@ cd build_profile
 
 ### CMake
 
-3.1. Generate the build system, and build
+3. Generate the build system, and build
 
 ```bash
 
@@ -84,26 +84,10 @@ cmake ../KinKal  -DCMAKE_BUILD_TYPE=[Release/Debug]
 
 make -j <jobs to run>
 ```
-4.1 Optionally, run unit tests
+4. Optionally, run unit tests
 
 ```bash
 make test
-```
-
-## SCons (retired)
-
-3.2. Setup the build environment and run `scons`
-
-```bash
-source ../KinKal/scripts/newBuild.sh prof
-source setup.sh
-scons -j <jobs to run>
-
-```
-4.2 Optionally run tests; NB, this doesn't work under MacOS
-
-```bash
-scons test
 ```
 
 Test programs will be built in the `bin/` directory. Run them with `--help` in the `build` directory to get a list of run parameters.

@@ -14,8 +14,8 @@
 //	Copyright (C) 1999		Lawrence Berkeley Laboratory
 //
 //------------------------------------------------------------------------
-#include "MatEnv/MatDBInfo.hh"
-#include "MatEnv/DetMaterial.hh"
+#include "KinKal/MatEnv/MatDBInfo.hh"
+#include "KinKal/MatEnv/DetMaterial.hh"
 
 #include <string>
 #include <map>

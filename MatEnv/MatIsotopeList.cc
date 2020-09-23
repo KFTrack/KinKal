@@ -25,13 +25,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
 
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatIsotopeList.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MatIsotopeList.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 using std::fstream;
 using std::ifstream;
 namespace MatEnv {
@@ -59,7 +59,7 @@ namespace MatEnv {
     ifstream isotopes( isotopesFile.c_str() );
     assert( isotopes.good() );
     if (isotopes.eof()) {
-      ErrMsg(fatal) << "MatEnv/MatIsotopesList.data file empty!" << endmsg; 
+      ErrMsg(fatal) << "MatIsotopesList " << isotopesFile << " empty!" << endmsg; 
     }
 
     std::string chline;

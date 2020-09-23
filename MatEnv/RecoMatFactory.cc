@@ -20,17 +20,17 @@
 //----------------------
 // This Class Headers --
 //----------------------
-#include "MatEnv/RecoMatFactory.hh"
+#include "KinKal/MatEnv/RecoMatFactory.hh"
 
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
-#include "MatEnv/ErrLog.hh" 
-#include "MatEnv/ElmPropObj.hh"
-#include "MatEnv/MtrPropObj.hh" 
-#include "MatEnv/MatElmDictionary.hh"
-#include "MatEnv/MatMtrDictionary.hh"
-#include "MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/ErrLog.hh" 
+#include "KinKal/MatEnv/ElmPropObj.hh"
+#include "KinKal/MatEnv/MtrPropObj.hh" 
+#include "KinKal/MatEnv/MatElmDictionary.hh"
+#include "KinKal/MatEnv/MatMtrDictionary.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
 #include <cstdlib>
 #include <string>
 #include <map>
