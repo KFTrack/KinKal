@@ -4,14 +4,14 @@
 //  class representing a drift wire measurement.  Implemented using PTCA between the particle traj and the wire
 //  Used as part of the kinematic Kalman fit
 //
-#include "Detector/DetectorHit.hh"
-#include "Trajectory/Residual.hh"
-#include "Detector/WireCell.hh"
-#include "Detector/DetectorXing.hh"
-#include "Trajectory/Line.hh"
-#include "Trajectory/PieceClosestApproach.hh"
-#include "General/LRAmbig.hh"
-#include "Detector/BFieldMap.hh"
+#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/Trajectory/Residual.hh"
+#include "KinKal/Detector/WireCell.hh"
+#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/General/LRAmbig.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 #include <stdexcept>
 namespace KinKal {
 // struct for updating wire hits; this is just parameters, but could be methods as well

@@ -1,4 +1,4 @@
-#include "Trajectory/Line.hh"
+#include "KinKal/Trajectory/Line.hh"
 #include <iostream>
 #include <stdexcept>
 #include <vector>

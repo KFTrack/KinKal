@@ -7,7 +7,7 @@
 //
 #include "Math/SVector.h"
 #include "Math/SMatrix.h"
-#include "General/Vectors.hh"
+#include "KinKal/General/Vectors.hh"
 #include <stdexcept>
 
 namespace KinKal {

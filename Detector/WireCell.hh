@@ -3,7 +3,7 @@
 //
 // class describing a wire cell.  Eventually this could have more structure
 //
-#include "General/Vectors.hh"
+#include "KinKal/General/Vectors.hh"
 namespace KinKal {
   class WireCell {
     public:

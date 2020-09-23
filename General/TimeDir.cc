@@ -1,4 +1,4 @@
-#include "General/TimeDir.hh"
+#include "KinKal/General/TimeDir.hh"
 namespace KinKal {
   TimeDir& operator ++ (TimeDir& tdir) {
     if (tdir == TimeDir::end) throw std::out_of_range("TimeDir& operator ++");

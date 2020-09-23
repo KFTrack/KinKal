@@ -8,7 +8,7 @@
 // struct to define a single meta-iteration of the KKTrk fit.  Each meta-iteration configuration is held
 // constant until the algebraic iteration implicit in the extended Kalman fit methodology converges.
 //
-#include "Detector/BFieldMap.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 
 #include <vector>
 #include <memory>

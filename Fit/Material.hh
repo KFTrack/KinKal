@@ -4,9 +4,9 @@
 // Class to describe effect of a particle passing through discrete material on the fit (ie material transport)
 // This effect adds no information content, just noise, and is KKEFF::processed in params space 
 //
-#include "Fit/Effect.hh"
-#include "Detector/DetectorXing.hh"
-#include "General/TimeDir.hh"
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/General/TimeDir.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>

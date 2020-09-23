@@ -1,9 +1,9 @@
 #ifndef KinKal_BFieldMap_hh
 #define KinKal_BFieldMap_hh
 // class defining a BFieldMap Map interface for use in KinKal.
-#include "General/Vectors.hh"
-#include "General/TimeRange.hh"
-#include "CLHEP/Units/PhysicalConstants.h"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/General/TimeRange.hh"
+#include "KinKal/General/PhysicalConstants.h"
 #include "Math/SMatrix.h"
 #include <vector>
 #include <algorithm>

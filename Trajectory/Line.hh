@@ -4,8 +4,8 @@
 //  Linear time-based trajectory with a constant velocity.
 //  Used as part of the kinematic Kalman fit
 //
-#include "General/Vectors.hh"
-#include "General/TimeRange.hh"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/General/TimeRange.hh"
 namespace KinKal {
   class Line {
     public:

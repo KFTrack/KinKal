@@ -4,10 +4,10 @@
 //  Describe the material effects of a kinematic trajectory crossing a piece of physical detector (material)
 //  Used in the kinematic Kalman fit
 //
-#include "General/MomBasis.hh"
-#include "Detector/MaterialXing.hh"
-#include "Trajectory/ParticleTrajectory.hh"
-#include "General/TimeDir.hh"
+#include "KinKal/General/MomBasis.hh"
+#include "KinKal/Detector/MaterialXing.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/General/TimeDir.hh"
 #include <vector>
 #include <stdexcept>
 #include <array>

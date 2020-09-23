@@ -4,8 +4,8 @@
 //  direct constraint on a subset of parameters expressed as a 'measurement'
 //  Used as part of the kinematic Kalman fit
 //
-#include "Detector/DetectorHit.hh"
-#include "General/Vectors.hh"
+#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/General/Vectors.hh"
 #include <stdexcept>
 namespace KinKal {
 

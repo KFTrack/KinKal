@@ -5,8 +5,8 @@
 // parameter and weight space, with lazy evaluation to go between the
 // two with the minimum of matrix inversions
 //
-#include "General/Weights.hh"
-#include "General/Parameters.hh"
+#include "KinKal/General/Weights.hh"
+#include "KinKal/General/Parameters.hh"
 namespace KinKal {
   class FitState {
     public:

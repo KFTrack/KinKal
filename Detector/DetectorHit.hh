@@ -7,11 +7,11 @@
 //  The measurement may be associated with a piece of detector material as well
 //  Used as part of the kinematic Kalman fit
 //
-#include "General/Weights.hh"
-#include "General/Parameters.hh"
-#include "Detector/DetectorXing.hh"
-#include "Trajectory/ParticleTrajectory.hh"
-#include "Fit/Config.hh"
+#include "KinKal/General/Weights.hh"
+#include "KinKal/General/Parameters.hh"
+#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Fit/Config.hh"
 #include <memory>
 #include <ostream>
 

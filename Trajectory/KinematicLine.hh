@@ -4,13 +4,13 @@
   KinematicLine is the Linear Tracjectory specialization of the KTRAJ
   Original Author: S Middleton 2020
 */
-#include "CLHEP/Units/PhysicalConstants.h"
-#include "Detector/BFieldMap.hh"
-#include "General/MomBasis.hh"
-#include "General/ParticleState.hh"
-#include "General/Parameters.hh"
-#include "General/TimeRange.hh"
-#include "General/Vectors.hh"
+#include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/MomBasis.hh"
+#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/Parameters.hh"
+#include "KinKal/General/TimeRange.hh"
+#include "KinKal/General/Vectors.hh"
 #include "Math/Rotation3D.h"
 #include <stdexcept>
 #include <vector>

@@ -3,7 +3,7 @@
 //
 //  Struct to describe a path crossing a piece of material
 //
-#include "MatEnv/DetMaterial.hh"
+#include "KinKal/MatEnv/DetMaterial.hh"
 #include <vector>
 namespace KinKal {
   struct MaterialXing {

@@ -1,7 +1,7 @@
 #ifndef KinKal_POCAUtil_hh
 #define KinKal_POCAUtil_hh
 
-#include "General/Vectors.hh"
+#include "KinKal/General/Vectors.hh"
 #include "Math/Rotation3D.h"
 namespace KinKal {
   class POCAUtil{

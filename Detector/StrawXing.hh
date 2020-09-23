@@ -4,10 +4,10 @@
 //  Describe the material effects of a kinematic trajectory crossing a straw
 //  Used in the kinematic Kalman fit
 //
-#include "Detector/DetectorXing.hh"
-#include "Detector/StrawMat.hh"
-#include "Trajectory/Line.hh"
-#include "Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/PieceClosestApproach.hh"
 
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public DetectorXing<KTRAJ> {

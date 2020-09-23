@@ -34,8 +34,8 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
-#include "MatEnv/MatMtrDictionary.hh"
-#include "MatEnv/MatElmDictionary.hh"
+#include "KinKal/MatEnv/MatMtrDictionary.hh"
+#include "KinKal/MatEnv/MatElmDictionary.hh"
 
 
 #include <string>

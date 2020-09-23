@@ -1,5 +1,5 @@
 
-#include "General/LRAmbig.hh"
+#include "KinKal/General/LRAmbig.hh"
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, LRAmbig const& lrambig) {
     if(lrambig == LRAmbig::left)

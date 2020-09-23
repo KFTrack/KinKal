@@ -19,7 +19,7 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/ElmPropObj.hh"
+#include "KinKal/MatEnv/ElmPropObj.hh"
 
 #include <iostream>
 #include <math.h>
@@ -27,8 +27,8 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
-#include "CLHEP/Units/PhysicalConstants.h"
-#include "MatEnv/MatElementObj.hh"
+#include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/MatEnv/MatElementObj.hh"
 #include <string>
 #include <vector>
 using namespace CLHEP;

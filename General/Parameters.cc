@@ -1,5 +1,5 @@
-#include "General/Parameters.hh"
-#include "General/Weights.hh"
+#include "KinKal/General/Parameters.hh"
+#include "KinKal/General/Weights.hh"
 namespace KinKal {
   Parameters::Parameters(Weights const& wdata) : fitdata_(wdata.fitData(),true) {}
 

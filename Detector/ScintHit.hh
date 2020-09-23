@@ -5,10 +5,10 @@
 //  class representing a timing measurement using scintillator light from a crystal or plastic scintillator
 //  Used as part of the kinematic Kalman fit
 //
-#include "Detector/DetectorHit.hh"
-#include "Trajectory/Line.hh"
-#include "Trajectory/PieceClosestApproach.hh"
-#include "Detector/DetectorXing.hh"
+#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Detector/DetectorXing.hh"
 #include <stdexcept>
 namespace KinKal {
 

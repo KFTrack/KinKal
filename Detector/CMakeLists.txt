@@ -10,10 +10,11 @@ add_library(Detector SHARED
     StrawMat.cc
 )
 
+#message( "source dir detector " ${CMAKE_SOURCE_DIR}/..)
 # set top-level directory as include root
-target_include_directories(Detector PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(Detector PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
-# link this library with ROOT libraries
+# link this library with ROOT libraries and other KinKal libraries
 target_link_libraries(Detector Trajectory General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version

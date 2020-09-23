@@ -29,8 +29,8 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatMtrDictionary.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MatMtrDictionary.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 
 using std::fstream;
 namespace MatEnv {

@@ -5,8 +5,8 @@
 //  circular outer cathode locally parallel to the wire.  All the work is done in the WireHit parent.
 //  Used as part of the kinematic Kalman fit
 //
-#include "Detector/WireHit.hh"
-#include "Detector/StrawXing.hh"
+#include "KinKal/Detector/WireHit.hh"
+#include "KinKal/Detector/StrawXing.hh"
 #include <memory>
 namespace KinKal {
   template <class KTRAJ> class StrawHit : public WireHit<KTRAJ> {

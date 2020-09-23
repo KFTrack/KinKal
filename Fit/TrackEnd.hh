@@ -3,8 +3,8 @@
 //
 // End of the track effect.  This initiates the fit and trajectory building
 //
-#include "Fit/Effect.hh"
-#include "Fit/Config.hh"
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/Fit/Config.hh"
 #include <stdexcept>
 #include <limits>
 #include <ostream>

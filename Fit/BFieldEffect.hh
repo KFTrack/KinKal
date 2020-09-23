@@ -4,11 +4,11 @@
 // correct for the effect of BFieldMap inhomogenity; adjust the trajectory parameters using the BFieldMap
 // This effect adds no information content or noise (presently), just transports the parameters 
 //
-#include "Fit/Effect.hh"
-#include "General/TimeDir.hh"
-#include "Detector/BFieldMap.hh"
-#include "Detector/BFieldUtils.hh"
-#include "Fit/Config.hh"
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/General/TimeDir.hh"
+#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/Detector/BFieldUtils.hh"
+#include "KinKal/Fit/Config.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>

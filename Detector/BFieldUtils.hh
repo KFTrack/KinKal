@@ -4,9 +4,9 @@
 //  Utility functions for working with BFieldMap and KTRAJ objects.  Used in the
 //  Kinematic Kalman filter fit
 //
-#include "General/TimeRange.hh"
-#include "General/Vectors.hh"
-#include "Detector/BFieldMap.hh"
+#include "KinKal/General/TimeRange.hh"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 #include <algorithm>
 #include <cmath>
 #include <iostream>

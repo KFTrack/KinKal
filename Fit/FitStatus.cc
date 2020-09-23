@@ -1,4 +1,4 @@
-#include "Fit/FitStatus.hh"
+#include "KinKal/Fit/FitStatus.hh"
 namespace KinKal {
 
   std::string FitStatus::statusName(FitStatus::status stat) {

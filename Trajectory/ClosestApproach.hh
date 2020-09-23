@@ -6,7 +6,7 @@
 //  Concrete instances are specializations and must be implemented explicity for each trajectory pair
 //  Used as part of the kinematic Kalman fit
 //
-#include "Trajectory/ClosestApproachData.hh"
+#include "KinKal/Trajectory/ClosestApproachData.hh"
 #include <iostream>
 #include <ostream>
 

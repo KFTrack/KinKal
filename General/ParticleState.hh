@@ -2,7 +2,7 @@
 #define KinKal_ParticleState_hh
 // Describe the state vector (position and momentum) of a particle.  This (with mass and charge) unambgiuously defines the particle kinematics
 // so this class can provide a full kinematic interface.  The algebraic parameterization can be used as both input and output to a fit.
-#include "General/Vectors.hh"
+#include "KinKal/General/Vectors.hh"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 #include <vector>

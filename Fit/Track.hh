@@ -36,16 +36,16 @@
 //  The KinKal package is licensed under Adobe v2, and is hosted at https://github.com/KFTrack/KinKal.git
 //  David N. Brown, Lawrence Berkeley National Lab
 //
-#include "Trajectory/ParticleTrajectory.hh"
-#include "Fit/FitState.hh"
-#include "Fit/Effect.hh"
-#include "Fit/TrackEnd.hh"
-#include "Fit/Measurement.hh"
-#include "Fit/Material.hh"
-#include "Fit/BFieldEffect.hh"
-#include "Fit/Config.hh"
-#include "Fit/FitStatus.hh"
-#include "Detector/BFieldUtils.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Fit/FitState.hh"
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/Fit/TrackEnd.hh"
+#include "KinKal/Fit/Measurement.hh"
+#include "KinKal/Fit/Material.hh"
+#include "KinKal/Fit/BFieldEffect.hh"
+#include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/FitStatus.hh"
+#include "KinKal/Detector/BFieldUtils.hh"
 #include "TMath.h"
 #include <set>
 #include <vector>

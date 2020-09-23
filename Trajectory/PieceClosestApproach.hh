@@ -3,8 +3,8 @@
 //
 // ClosestApproach class dealing with piecewise trajectories
 //
-#include "Trajectory/ClosestApproach.hh"
-#include "Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Trajectory/ClosestApproach.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include <ostream>
 
 namespace KinKal {

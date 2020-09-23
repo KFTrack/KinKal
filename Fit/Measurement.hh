@@ -4,9 +4,9 @@
 //  class wrapping a detector measurement for the Kinematic fit.
 //  Used as part of the kinematic Kalman fit
 //
-#include "Fit/Effect.hh"
-#include "Trajectory/ParticleTrajectory.hh"
-#include "Detector/DetectorHit.hh"
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Detector/DetectorHit.hh"
 #include <ostream>
 #include <memory>
 

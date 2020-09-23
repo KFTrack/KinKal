@@ -5,9 +5,9 @@
 // This is a base class for specific subclasses representing measurements, material interactions, etc.
 // Templated on the trajectory class representing the particle in this fit
 //
-#include "Trajectory/ParticleTrajectory.hh"
-#include "Fit/FitState.hh"
-#include "Fit/Config.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Fit/FitState.hh"
+#include "KinKal/Fit/Config.hh"
 #include <array>
 #include <memory>
 #include <ostream>

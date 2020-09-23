@@ -4,9 +4,9 @@
 //  description of a local segment of a straw, including a
 //  mixture for the straw, the gas, and the wire,
 //
-#include "MatEnv/DetMaterial.hh"
-#include "Detector/MaterialXing.hh"
-#include "MatEnv/MatDBInfo.hh"
+#include "KinKal/MatEnv/DetMaterial.hh"
+#include "KinKal/Detector/MaterialXing.hh"
+#include "KinKal/MatEnv/MatDBInfo.hh"
 
 namespace KinKal {
   class StrawMat {

@@ -1,4 +1,4 @@
-#include "Detector/BFieldMap.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 
 namespace KinKal {
 

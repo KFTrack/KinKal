@@ -7,12 +7,12 @@
 // Original Author David Brown (LBNL) 1/2020
 //
 
-#include "General/Vectors.hh"
-#include "General/TimeRange.hh"
-#include "General/Parameters.hh"
-#include "General/MomBasis.hh"
-#include "General/ParticleState.hh"
-#include "CLHEP/Units/PhysicalConstants.h"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/General/TimeRange.hh"
+#include "KinKal/General/Parameters.hh"
+#include "KinKal/General/MomBasis.hh"
+#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>

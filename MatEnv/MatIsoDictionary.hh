@@ -24,10 +24,10 @@
 #include <string>
 #include <map>
 
-#include "MatEnv/MatIsotopeObj.hh"
-#include "MatEnv/MatIsotopeList.hh"
-#include "MatEnv/BbrCollectionUtils.hh"
-#include "MatEnv/FileFinderInterface.hh"
+#include "KinKal/MatEnv/MatIsotopeObj.hh"
+#include "KinKal/MatEnv/MatIsotopeList.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------

@@ -7,7 +7,7 @@
 //  The residual value may depend on any aspect of the measurement, reduced to a single dimension.
 //  used as part of the kinematic kalman fit
 //
-#include "Trajectory/ClosestApproachData.hh"
+#include "KinKal/Trajectory/ClosestApproachData.hh"
 #include <ostream>
 #include <string>
 

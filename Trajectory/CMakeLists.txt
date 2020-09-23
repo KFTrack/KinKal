@@ -15,7 +15,7 @@ add_library(Trajectory SHARED
 )
 
 # set top-level directory as include root
-target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
 # link this library with ROOT libraries
 target_link_libraries(Trajectory General ${ROOT_LIBRARIES})

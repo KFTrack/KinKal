@@ -4,10 +4,10 @@
 //  class describing a piecewise trajectory.  Templated on a simple time-based trajectory
 //  used as part of the kinematic kalman fit
 //
-#include "General/TimeDir.hh"
-#include "General/Vectors.hh"
-#include "General/MomBasis.hh"
-#include "General/TimeRange.hh"
+#include "KinKal/General/TimeDir.hh"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/General/MomBasis.hh"
+#include "KinKal/General/TimeRange.hh"
 #include <deque>
 #include <ostream>
 #include <stdexcept>

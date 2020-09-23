@@ -1,5 +1,5 @@
-#include "Trajectory/LoopHelix.hh"
-#include "Detector/BFieldUtils.hh"
+#include "KinKal/Trajectory/LoopHelix.hh"
+#include "KinKal/Detector/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
 #include <cmath>
 #include <stdexcept>

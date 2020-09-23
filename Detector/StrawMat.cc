@@ -1,4 +1,4 @@
-#include "Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMat.hh"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

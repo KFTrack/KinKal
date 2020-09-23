@@ -11,7 +11,7 @@ add_library(Fit SHARED
 )
 
 # set top-level directory as include root
-target_include_directories(Fit PRIVATE ${PROJECT_SOURCE_DIR})
+target_include_directories(Fit PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
 # link this library with ROOT libraries
 target_link_libraries(Fit Detector Trajectory General ${ROOT_LIBRARIES})

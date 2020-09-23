@@ -1,4 +1,4 @@
-#include "Fit/Config.hh"
+#include "KinKal/Fit/Config.hh"
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, MetaIterConfig miconfig ) {
       ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;

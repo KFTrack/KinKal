@@ -19,7 +19,7 @@
 // C++ Headers --
 //----------------------
 #include <vector>
-#include "MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
 #include <algorithm>
 #include <fstream>
 #include <assert.h>
@@ -27,8 +27,8 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatElementList.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MatElementList.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 using std::fstream;
 using std::ifstream;
 
@@ -57,7 +57,7 @@ namespace MatEnv {
     ifstream elements( elementsFile.c_str() );
     assert( elements.good() );
     if (elements.eof()) {
-      ErrMsg(fatal) << "MatEnv/MatElementsList.data file empty!" << endmsg; 
+      ErrMsg(fatal) << "MatElements" << elementsFile << " empty!" << endmsg; 
     }
 
     std::string tagname;

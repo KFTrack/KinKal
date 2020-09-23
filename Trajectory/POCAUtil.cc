@@ -10,7 +10,7 @@ Original author Rob Kutschke
 
 */
 
-#include "Trajectory/POCAUtil.hh"
+#include "KinKal/Trajectory/POCAUtil.hh"
 #include <math.h>
 #include <stdexcept>
 
