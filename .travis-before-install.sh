@@ -23,7 +23,6 @@ else
   sudo mkdir -p /cvmfs/sft.cern.ch
   sudo mount -t cvmfs sft.cern.ch /cvmfs/sft.cern.ch || echo "mount may have failed, will continue anyway"
 
-  docker pull centos:7
-
+  source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-ubuntu1804-gcc8-opt/setup.sh
 fi
 
