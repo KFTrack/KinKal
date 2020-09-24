@@ -41,12 +41,11 @@ before_install:
 script:
     - | 
         # Setup CMake build directory
-        which cmake
-        cmake --version
-        
         cd .. # Out of source build
         rm -rf KinKal-build || echo ""
         mkdir KinKal-build && cd KinKal-build
+        
         cmake ../KinKal -DCMAKE_BUILD_TYPE=Release
+
     - make -j 8
     - env CTEST_OUTPUT_ON_FAILURE=1 make test
