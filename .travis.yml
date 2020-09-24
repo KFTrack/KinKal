@@ -4,13 +4,13 @@ jobs:
     include:
         - os: linux
           dist: bionic
-          sudo: required
+
         - os: osx
           osx_image: xcode10
-          python: 3.7
 
 before_install:
     - | 
+        # Install dependencies for relevant platform
         if [ $TRAVIS_OS_NAME = 'osx' ]; then
             wget https://root.cern/download/root_v6.22.02.macosx64-10.13-clang100.pkg
             installer -pkg root_v6.22.02.macosx64-10.13-clang100.pkg -target CurrentUserHomeDirectory
@@ -35,16 +35,18 @@ before_install:
             sudo cvmfs_config setup
             sudo mkdir -p /cvmfs/sft.cern.ch
             sudo mount -t cvmfs sft.cern.ch /cvmfs/sft.cern.ch || echo "mount may have failed, will continue anyway"
+
+            source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-ubuntu1804-gcc7-opt/setup.sh
         fi
 script:
-    - 
-    - | # Setup ROOT dependency from LCG_98
-        source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-ubuntu1804-gcc8-opt/setup.sh
+    - | 
+        # Setup CMake build directory
+        which cmake
+        cmake --version
         
-        # Create build directory with CMake
-        rm -rf build || echo ""
-        mkdir build && cd build
-        cmake .. -DCMAKE_BUILD_TYPE=Release
-      
+        cd .. # Out of source build
+        rm -rf KinKal-build || echo ""
+        mkdir KinKal-build && cd KinKal-build
+        cmake ../KinKal -DCMAKE_BUILD_TYPE=Release
     - make -j 8
     - env CTEST_OUTPUT_ON_FAILURE=1 make test
