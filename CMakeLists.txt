@@ -174,7 +174,6 @@ if [ \"\$sourced\" = \"0\" ];then
 fi
 export PACKAGE_SOURCE=${CMAKE_SOURCE_DIR}
 export DEBUG_LEVEL=${CMAKE_BUILD_TYPE}
-source \${PACKAGE_SOURCE}/setup.sh
 
 # Linux: 
 export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
