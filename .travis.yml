@@ -3,10 +3,8 @@ language: cpp
 jobs:
     include:
         - os: linux
-          dist: xenial
+          dist: bionic
           sudo: required
-          services:
-            - docker 
         - os: osx
           osx_image: xcode10
           python: 3.7
@@ -16,8 +14,8 @@ before_install:
 
 script:
     - |
+        rm -rf build || echo ""
         mkdir build && cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
-
-        make -j 8
-        env CTEST_OUTPUT_ON_FAILURE=1 make test
+    - make -j 8
+    - env CTEST_OUTPUT_ON_FAILURE=1 make test
