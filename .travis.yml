@@ -35,14 +35,16 @@ before_install:
             sudo cvmfs_config setup
             sudo mkdir -p /cvmfs/sft.cern.ch
             sudo mount -t cvmfs sft.cern.ch /cvmfs/sft.cern.ch || echo "mount may have failed, will continue anyway"
-            
-            # Setup ROOT dependency from LCG_98
-            source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-ubuntu1804-gcc8-opt/setup.sh
         fi
 script:
-    - |
+    - 
+    - | # Setup ROOT dependency from LCG_98
+        source /cvmfs/sft.cern.ch/lcg/views/LCG_98/x86_64-ubuntu1804-gcc8-opt/setup.sh
+        
+        # Create build directory with CMake
         rm -rf build || echo ""
         mkdir build && cd build
         cmake .. -DCMAKE_BUILD_TYPE=Release
+      
     - make -j 8
     - env CTEST_OUTPUT_ON_FAILURE=1 make test
