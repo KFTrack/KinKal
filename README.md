@@ -56,7 +56,6 @@
 ## Installation
 
 To build, you must have ROOT (see https://root.cern.ch/) installed, and the `bin/` directory should be on your `PATH`.
-You must also have the python-based SCONS build tool installed (https://scons.org/).
 
 
 There are 2 build configurations: *Debug* or *Release*.  To build 
