@@ -15,5 +15,9 @@ before_install:
     - source .travis-before-install.sh
 
 script:
-    - source .travis-script.sh
- 
+    - |
+        mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release
+
+        make -j 8
+        env CTEST_OUTPUT_ON_FAILURE=1 make test
