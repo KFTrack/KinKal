@@ -74,7 +74,7 @@ namespace KinKal {
     }
     dbeff_.parameters() = dbint_;
     // add in the effect of changing BNom across this domain transition to parameters 
-    if(bfcorr_ == Config::variable || bfcorr_ == Config::both){
+    if(Config::localBFieldCorrection(bfcorr_)){
       auto const& begtraj = ref.nearestPiece(drange_.begin());
       auto const& endtraj = ref.nearestPiece(drange_.end());
       dbeff_.parameters() += begtraj.dPardB(etime,endtraj.bnom()); // check sign FIXME!
