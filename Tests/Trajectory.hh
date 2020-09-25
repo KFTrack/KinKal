@@ -1,5 +1,5 @@
 // 
-// test basic functions of KTraj class
+// test basic functions of kinematic trajectory class
 //
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
@@ -35,7 +35,7 @@ using namespace std;
 using KinKal::Line;
 
 void print_usage() {
-  printf("Usage: LHelix  --momentum f --costheta f --azimuth f --particle i --charge i --xorigin f -- yorigin f --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
+  printf("Usage: Trajectory --momentum f --costheta f --azimuth f --particle i --charge i --xorigin f -- yorigin f --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
 }
 
 struct MomVec {
@@ -128,7 +128,7 @@ int test(int argc, char **argv) {
 
   pmass = masses[imass];
 
-  printf("Testing KTraj with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",mom,cost,phi,pmass,icharge,oz,ot);
+  printf("Testing Kinematic Trajectory %s with momentum = %f, costheta = %f, phi = %f, mass = %f, charge = %i, z = %f, t = %f \n",KTRAJ::trajName().c_str(),mom,cost,phi,pmass,icharge,oz,ot);
 // define the BF (tesla)
   VEC3 bnom(0.0,By,1.0);
   VEC4 origin(ox,oy,oz,ot);

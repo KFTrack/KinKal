@@ -6,7 +6,7 @@
 #include "TRandom3.h"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Detector/StrawHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
@@ -34,7 +34,7 @@ namespace KKTest {
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
-      using PTCA = PieceClosestApproach<KTRAJ,Line>;
+      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) : 
 	bfield_(bfield), mom_(mom), icharge_(icharge),

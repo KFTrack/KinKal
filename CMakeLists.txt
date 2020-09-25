@@ -121,7 +121,7 @@ add_compile_options(
     "-ftrapping-math"
 
     # debug flags
-    "$<$<CONFIG:DEBUG>:-Og;-g>"
+    "$<$<CONFIG:DEBUG>:-O0;-g>"
 
     # release flags
     "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"

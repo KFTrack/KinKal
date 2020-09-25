@@ -352,7 +352,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     // take the true parameters but the seed covariance
     Parameters cparams = front.params();
     cparams.covariance() = seedtraj.params().covariance();
-    thits.push_back(std::make_shared<CONSTRAINT>(front.range().mid(),cparams,mask));
+    thits.push_back(std::make_shared<CONSTRAINT>(front.range().begin(),cparams,mask));
   }
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -660,7 +660,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    nkkbf_++;
 	    BFieldInfo bfinfo;
 	    bfinfo.active_ = kkbf->isActive();
-	    bfinfo.dp_ = kkbf->time();
+	    bfinfo.time_ = kkbf->time();
 	    bfinfo.dp_ = kkbf->deltaP().R();
 	    bfinfo.range_ = kkbf->range().range();
 	    bfinfovec.push_back(bfinfo);

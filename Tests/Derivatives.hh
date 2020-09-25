@@ -1,5 +1,5 @@
 // 
-// test derivatives of Traj class
+// test derivatives of simple trajectory class
 //
 #include "KinKal/Trajectory/ClosestApproach.hh"
 
@@ -36,7 +36,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: KTrajDerivs  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --delta f --ttest f --By f \n");
+  printf("Usage: Derivatives  --momentum f --costheta f --azimuth f --particle i --charge i --zorigin f --torigin --delta f --ttest f --By f \n");
 }
 
 template <class KTRAJ>

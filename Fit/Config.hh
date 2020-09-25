@@ -45,6 +45,8 @@ namespace KinKal {
     Config(BFieldMap const& bfield) : bfield_(bfield),  maxniter_(10), dwt_(1.0e6),  tbuff_(1.0), tol_(0.1), minndof_(5), addmat_(true), bfcorr_(fixed), plevel_(none) {} 
     BFieldMap const& bfield() const { return bfield_; }
     MetaIterConfigCol const& schedule() const { return schedule_; }
+    static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
+    bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }
     BFieldMap const& bfield_;
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config

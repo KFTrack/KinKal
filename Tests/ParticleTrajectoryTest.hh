@@ -3,7 +3,7 @@
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
@@ -43,7 +43,7 @@ void print_usage() {
 template <class KTRAJ>
 int ParticleTrajectoryTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using PTCA = PieceClosestApproach<KTRAJ,Line>;
+  using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);

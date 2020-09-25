@@ -1,5 +1,5 @@
-#ifndef KinKal_PieceClosestApproach_hh
-#define KinKal_PieceClosestApproach_hh
+#ifndef KinKal_PiecewiseClosestApproach_hh
+#define KinKal_PiecewiseClosestApproach_hh
 //
 // ClosestApproach class dealing with piecewise trajectories
 //
@@ -8,12 +8,12 @@
 #include <ostream>
 
 namespace KinKal {
-  template<class KTRAJ, class STRAJ> class PieceClosestApproach {
+  template<class KTRAJ, class STRAJ> class PiecewiseClosestApproach {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       // the constructor is the only non-inherited function
-      PieceClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
+      PiecewiseClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // copy the TCA interface.  This is ugly and a maintenance burden, but avoids inheritance problems
       ClosestApproachData::TPStat status() const { return tpdata_.status(); }
       std::string const& statusName() const { return tpdata_.statusName(); }
@@ -49,7 +49,7 @@ namespace KinKal {
       DVEC dTdP_;
   };
 
-  template<class KTRAJ, class STRAJ> PieceClosestApproach<KTRAJ,STRAJ>::PieceClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double prec) : precision_(prec), pktraj_(pktraj), straj_(straj) {
+  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double prec) : precision_(prec), pktraj_(pktraj), straj_(straj) {
     // iteratively find the nearest piece, and CA for that piece.  Start at hints if availalble, otherwise the middle
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter=0;
@@ -88,8 +88,8 @@ namespace KinKal {
   }
   
 
-  template<class KTRAJ, class STRAJ> void PieceClosestApproach<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {
-    ost << "PieceClosestApproach status " << statusName() << " Doca " << doca() << " +- " << sqrt(docaVar())
+  template<class KTRAJ, class STRAJ> void PiecewiseClosestApproach<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "PiecewiseClosestApproach status " << statusName() << " Doca " << doca() << " +- " << sqrt(docaVar())
       << " dToca " << deltaT() << " +- " << sqrt(tocaVar()) << " cos(theta) " << dirDot() << " Precision " << precision() << std::endl;
     if(detail > 0)
       ost << "Particle Poca " << particlePoca() << " Sensor Poca " << sensorPoca() << std::endl;
