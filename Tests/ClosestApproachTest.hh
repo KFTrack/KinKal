@@ -3,7 +3,7 @@
 //
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
@@ -44,7 +44,7 @@ void print_usage() {
 template <class KTRAJ>
 int ClosestApproachTest(int argc, char **argv) {
   using TCA = ClosestApproach<KTRAJ,Line>;
-  using PTCA = PieceClosestApproach<KTRAJ,Line>;
+  using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -151,7 +151,7 @@ int ClosestApproachTest(int argc, char **argv) {
     PKTRAJ pktraj(ktraj);
     PTCA ptp(pktraj,tline,tphint,1e-8);
     if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
-    if(ptp.status() != ClosestApproachData::converged)cout << "PieceClosestApproach status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
+    if(ptp.status() != ClosestApproachData::converged)cout << "PiecewiseClosestApproach status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
     VEC3 thpos, tlpos;
     thpos = tp.particlePoca().Vect();
     tlpos = tp.sensorPoca().Vect();

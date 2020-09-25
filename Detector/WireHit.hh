@@ -9,7 +9,7 @@
 #include "KinKal/Detector/WireCell.hh"
 #include "KinKal/Detector/DetectorXing.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/LRAmbig.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include <stdexcept>
@@ -25,7 +25,7 @@ namespace KinKal {
     public:
       using DHIT = DetectorHit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using PTCA = PieceClosestApproach<KTRAJ,Line>;
+      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
       
