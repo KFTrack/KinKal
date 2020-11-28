@@ -9,7 +9,7 @@
 //
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Fit/Config.hh"
 #include <memory>
@@ -19,8 +19,8 @@ namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
      // default
       Hit(){}
       virtual ~Hit(){}
@@ -42,7 +42,7 @@ namespace KinKal {
       // hits may inactive
       virtual bool isActive() const =0;
       // associated material information; null means no material
-      virtual DXINGPTR const& detXingPtr() const = 0;
+      virtual EXINGPTR const& detXingPtr() const = 0;
       bool hasMaterial() const { return (bool)detXingPtr(); }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
   };

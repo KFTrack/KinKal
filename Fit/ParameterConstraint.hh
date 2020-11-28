@@ -12,10 +12,10 @@ namespace KinKal {
   template <class KTRAJ> class ParameterConstraint : public Hit<KTRAJ> {
     public:
       using PMASK = std::array<bool,NParams()>; // parameter mask
-      using DHIT = Hit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
 
       // Constraint interface overrrides
       Weights weight() const override { return weight_; }
@@ -26,7 +26,7 @@ namespace KinKal {
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
       void update(PKTRAJ const& pktraj) override {}
       bool isActive() const override { return ncons_ > 0; }
-      DXINGPTR const& detXingPtr() const override { return null_; }
+      EXINGPTR const& detXingPtr() const override { return null_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // construct from constraint values, time, and mask of which parameters to constrain
       ParameterConstraint(double time, Parameters const& params, PMASK const& pmask);
@@ -41,7 +41,7 @@ namespace KinKal {
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask of unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
-      DXINGPTR null_; // null detector material crossing 
+      EXINGPTR null_; // null detector material crossing 
   };
 
   template<class KTRAJ> ParameterConstraint<KTRAJ>::ParameterConstraint(double time, Parameters const& params, PMASK const& pmask) :

@@ -1,7 +1,7 @@
-#ifndef KinKal_DetectorXing_hh
-#define KinKal_DetectorXing_hh
+#ifndef KinKal_ElementXing_hh
+#define KinKal_ElementXing_hh
 //
-//  Describe the material effects of a kinematic trajectory crossing a piece of physical detector (material)
+//  Describe the material effects of a kinematic trajectory crossing a detector element (piece of the detector)
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/General/MomBasis.hh"
@@ -15,12 +15,12 @@
 #include <ostream>
 
 namespace KinKal {
-  template <class KTRAJ> class DetectorXing {
+  template <class KTRAJ> class ElementXing {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // construct from a time
-      DetectorXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
-      virtual ~DetectorXing() {}
+      ElementXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
+      virtual ~ElementXing() {}
       virtual void update(PKTRAJ const& pktraj,double precision) =0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // accessors
@@ -35,7 +35,7 @@ namespace KinKal {
       std::vector<MaterialXing> mxings_; // material crossings for this detector piece on this trajectory
   };
 
-  template <class KTRAJ> void DetectorXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
+  template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
     double mom = pktraj.momentum(xtime_);
     double mass = pktraj.mass();

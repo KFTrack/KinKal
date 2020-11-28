@@ -8,17 +8,17 @@
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include <stdexcept>
 namespace KinKal {
 
   template <class KTRAJ> class ScintHit : public Hit<KTRAJ> {
     public:
-      using DHIT = Hit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
 
       // Hit interface overrrides
       Weights weight() const override;
@@ -27,7 +27,7 @@ namespace KinKal {
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void update(PKTRAJ const& pktraj) override;
       bool isActive() const override { return active_; }
-      DXINGPTR const& detXingPtr() const override { return null_; }
+      EXINGPTR const& detXingPtr() const override { return null_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       unsigned nDOF() const override { return 1; }
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
@@ -44,7 +44,7 @@ namespace KinKal {
       double tvar_; // variance in the time measurement: assumed independent of propagation distance/time FIXME!
       double wvar_; // variance in transverse position of the sensor/measurement in mm.  Assumes cylindrical error, Should be more general FIXME!
       bool active_; // active or not (pat. rec. tool)
-      DXINGPTR null_; // no detector material xing: should be added TODO
+      EXINGPTR null_; // no detector material xing: should be added TODO
       // caches
       Residual rresid_; // residual WRT most recent reference parameters
       Parameters rparams_; // reference parameters

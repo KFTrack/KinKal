@@ -68,9 +68,9 @@ namespace KinKal {
       using MEAS = Hit<KTRAJ>;
       using MEASPTR = std::shared_ptr<MEAS>;
       using MEASCOL = std::vector<MEASPTR>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
-      using DXINGCOL = std::vector<DXINGPTR>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
+      using EXINGCOL = std::vector<EXINGPTR>;
       struct KKEFFComp { // comparator to sort effects by time
 	bool operator()(std::unique_ptr<KKEFF> const& a, std::unique_ptr<KKEFF> const&  b) const {
 	  if(a.get() != b.get())
@@ -81,7 +81,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(KKCONFIGPTR config, KTRAJ const& seedtraj, MEASCOL& thits, DXINGCOL& dxings ); 
+      Track(KKCONFIGPTR config, KTRAJ const& seedtraj, MEASCOL& thits, EXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<FitStatus> const& history() const { return history_; }
@@ -110,7 +110,7 @@ namespace KinKal {
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR cfg, KTRAJ const& seedtraj,  MEASCOL& thits, DXINGCOL& dxings) : 
+  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR cfg, KTRAJ const& seedtraj,  MEASCOL& thits, EXINGCOL& dxings) : 
     config_(cfg), thits_(thits) {
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);

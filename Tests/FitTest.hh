@@ -9,7 +9,7 @@
 #include "KinKal/Detector/StrawHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/ScintHit.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/ParameterConstraint.hh"
@@ -122,9 +122,9 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
   using MEASCOL = std::vector<MEASPTR>;
-  using DXING = DetectorXing<KTRAJ>;
-  using DXINGPTR = std::shared_ptr<DXING>;
-  using DXINGCOL = std::vector<DXINGPTR>;
+  using EXING = ElementXing<KTRAJ>;
+  using EXINGPTR = std::shared_ptr<EXING>;
+  using EXINGCOL = std::vector<EXINGPTR>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
   using STRAWHIT = StrawHit<KTRAJ>;
@@ -282,7 +282,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
   // generate hits
   MEASCOL thits; // this program shares hit ownership with Track
-  DXINGCOL dxings; // this program shares det xing ownership with Track
+  EXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
   if(nevents < 0)cout << "True initial " << tptraj.front() << endl;

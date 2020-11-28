@@ -7,7 +7,7 @@
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/Trajectory/Residual.hh"
 #include "KinKal/Detector/WireCell.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/LRAmbig.hh"
@@ -23,11 +23,11 @@ namespace KinKal {
 
   template <class KTRAJ> class WireHit : public Hit<KTRAJ> {
     public:
-      using DHIT = Hit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
       
       // Hit interface overrrides
       Weights weight() const override;
@@ -36,14 +36,14 @@ namespace KinKal {
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void update(PKTRAJ const& pktraj) override;
       bool isActive() const override { return active_; }
-      DXINGPTR const& detXingPtr() const override { return dxing_; }
+      EXINGPTR const& detXingPtr() const override { return dxing_; }
       unsigned nDOF() const override { return active_ ? 1 : 0; }
       
       Line const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
       void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/12.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
-      WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig=LRAmbig::null);
+      WireHit(EXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig=LRAmbig::null);
       virtual ~WireHit(){}
       LRAmbig ambig() const { return ambig_; }
       WireCell const& cell() const { return cell_; }
@@ -57,14 +57,14 @@ namespace KinKal {
       LRAmbig ambig_; // current ambiguity assignment: can change during a fit
       bool active_; // active or not (pat. rec. tool)
       BFieldMap const& bfield_;
-      DXINGPTR dxing_; // material xing
+      EXINGPTR dxing_; // material xing
       // caches used in processing
       Residual rresid_; // residual WRT most recent reference parameters
       Parameters rparams_; // reference parameters
       double precision_; // current precision
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig) : 
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(EXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig) : 
     wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(cell_.size()); }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
