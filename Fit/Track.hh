@@ -2,7 +2,7 @@
 #define KinKal_Track_hh
 //
 //  Primary class of the Kinematic Kalman fit.  This class owns the state describing
-//  the fit inputs (hits, material interactions, BField corrections, etc), the result of the fit,
+//  the fit inputs (measurements, material interactions, BField corrections, etc), the result of the fit,
 //  and the methods for computing it.  The fit result is expressed as a piecewise kinematic covariant
 //  particle trajectory, providing position, momentum etc information about the particle with covariance
 //  as a function of physical time.
@@ -11,7 +11,7 @@
 //  momentum of a particle traveling through empty space in a constant magnetic field, as a function of time.
 //  Material effects and spatial variation of magnetic fields are modeled through changes between adjacent simple  trajectories.
 //  The particle trajectory is expressed as a piecewise sequence of these simple trajectory objects, joined
-//  at specific times, providing a continuos (in time) description of particle position and momentum.
+//  at specific times, providing a continuous (in time) description of particle position and momentum.
 //  To instantiate Track the kinematic trajectory class must satisfy a geometric, kinematic, and parametric interface.
 //  The geometric interface includes functions for position, direction, etc.
 //  The kinematic interface includes functions for velocity, momentum, etc.
@@ -19,8 +19,7 @@
 //  Fully functional examples are provided, including LoopHelix.hh, CentralHelix, and KinematicLine classes.
 //
 //  The Parameters object provides a minimal basis from which the geometric and kinematic properties of the particle as a function
-//  of time can be computed.  For instance, a kinematic helix in space requires a Parameters instance with 6 parameters.  The physical
-//  interpretation of the Parameters payload is made in the kinematic trajectory class.
+//  of time can be computed.  The physical interpretation of the Parameters payload is made in the kinematic trajectory class.
 //
 //  Track uses the root SVector and SMatrix classes for algebraic manipulation, and GenVector classes for geometric and
 //  kinematic particle descriptions, both part of the root Math package.  These are described on the root website https://root.cern.ch/root/html608/namespaceROOT_1_1Math.html
@@ -28,7 +27,7 @@
 //  The underlying processing model is a progressive BLUE fit first used in the geometric track fit implementation used by the BaBar
 //  collaboration, described in "D.N. Brown, E.A. Charles, D.A. Roberts, The BABAR track fitting algorithm, Proceedings of CHEP 2000, Padova, Italy, 2000"
 //
-//  Track is constructed from a configuration object which can be shared between many instances, and a unique set of hit and
+//  Track is constructed from a configuration object which can be shared between many instances, and a unique set of measurements and
 //  material interactions.  The configuration object controls the fit iteration convergence testing, including simulated
 //  annealing and interactions with the external environment such as the material model and the magnetic field map.
 //  The fit is performed on construction.
@@ -275,13 +274,28 @@ namespace KinKal {
 	// see how far we can go on the current traj before the BField change causes it to go out of tolerance
 	// that defines the end of this domain
 	tend = BFieldUtils::rangeInTolerance(tstart,config_->bfield_, reftraj_, config_->tol_);
+	// for local correction there is also tolerance coming from 2nd order terms in the rotation of the BField: this is proportional
+	// to the lever arm.
+	if(config_->localBFieldCorr()){
+	  double dx;
+	  do{
+	    auto epos = reftraj_.position3(tend);
+	    auto ebf = config_->bfield_.fieldVect(epos);
+	    dx = epos.R()*(1.0-bf.Dot(ebf)/(bf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
+	    if(dx > config_->tol_){
+	      double factor = std::min(0.9,0.9*config_->tol_/dx);
+	      // decrease the time step
+	      tend = tstart + factor*(tend-tstart);
+	    }
+	  } while(dx > config_->tol_);
+	}
 	// create the BField effect for integrated differences over this range
 	effects_.emplace_back(std::make_unique<KKBFIELD>(config(),reftraj_,TimeRange(tstart,tend)));
-	// if we're using variable BField, create a new piece that uses the local BField
-	if(tend < reftraj_.range().end() && (config_->bfcorr_ == Config::variable || config_->bfcorr_ == Config::both)) {
+	// if we're using a local BField correction, create a new piece that uses the local BField
+	if(tend < reftraj_.range().end() && config_->localBFieldCorr()) {
 	  // update the BF for the next piece: it is at the end of this one
 	  bf = config_->bfield_.fieldVect(reftraj_.position3(tend));
-	  // update the parameters to correspond to the same state but referencing the local field.
+	  // update the trajectory parameters to correspond to the same particle state but referencing the local field.
 	  // this allows the effects built on this traj to reference the correct parameterization
 	  KTRAJ newpiece(reftraj_.back(),bf,tend);
 	  newpiece.range() = TimeRange(tend,reftraj_.range().end());

@@ -4,7 +4,7 @@
 #include "KinKal/Trajectory/KinematicLine.hh"
 #include "KinKal/Tests/FitTest.hh"
 int main(int argc, char *argv[]){
-  vector<double> sigmas = { 0.5, 0.004, 0.5, 0.002, 0.4, 0.01, 0.01}; // expected parameter sigmas: the last is momentum 
+  vector<double> sigmas = { 0.5, 0.004, 0.5, 0.002, 0.4, 0.05, 0.05}; // expected parameter sigmas: the last is momentum 
   if(argc == 1){
     cout << "Adding momentum constraint" << endl;
     std::vector<std::string> arguments;

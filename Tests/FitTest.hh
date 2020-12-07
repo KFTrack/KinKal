@@ -660,7 +660,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    nkkbf_++;
 	    BFieldInfo bfinfo;
 	    bfinfo.active_ = kkbf->isActive();
-	    bfinfo.dp_ = kkbf->time();
+	    bfinfo.time_ = kkbf->time();
 	    bfinfo.dp_ = kkbf->deltaP().R();
 	    bfinfo.range_ = kkbf->range().range();
 	    bfinfovec.push_back(bfinfo);

@@ -4,14 +4,14 @@
 //  Particle trajectory, based on a piecewise trajectory with kinematic information, templated on a simple kinetic trajectory (KTRAJ)
 //  used as part of the kinematic kalman fit
 //
-#include "KinKal/Trajectory/PieceTrajectory.hh"
+#include "KinKal/Trajectory/PiecewiseTrajectory.hh"
 #include "KinKal/General/ParticleState.hh"
 #include <stdexcept>
 namespace KinKal {
 
-  template <class KTRAJ> class ParticleTrajectory : public PieceTrajectory<KTRAJ> {
+  template <class KTRAJ> class ParticleTrajectory : public PiecewiseTrajectory<KTRAJ> {
     public:
-      using PTTRAJ = PieceTrajectory<KTRAJ>;
+      using PTTRAJ = PiecewiseTrajectory<KTRAJ>;
       
       // base class implementation
       // construct from an initial piece, which also provides kinematic information

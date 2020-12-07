@@ -1,5 +1,5 @@
-#ifndef KinKal_PieceTrajectory_hh
-#define KinKal_PieceTrajectory_hh
+#ifndef KinKal_PiecewiseTrajectory_hh
+#define KinKal_PiecewiseTrajectory_hh
 //
 //  class describing a piecewise trajectory.  Templated on a simple time-based trajectory
 //  used as part of the kinematic kalman fit
@@ -14,7 +14,7 @@
 #include <typeinfo>
 
 namespace KinKal {
-  template <class TTRAJ> class PieceTrajectory {
+  template <class TTRAJ> class PiecewiseTrajectory {
     public:
       using DTTRAJ = std::deque<TTRAJ>;
       // forward calls to the pieces 
@@ -26,9 +26,9 @@ namespace KinKal {
       TimeRange range() const { return TimeRange(pieces_.front().range().begin(),pieces_.back().range().end()); }
       void setRange(TimeRange const& trange, bool trim=false);
 // construct without any content.  Any functions except append or prepend will throw in this state
-      PieceTrajectory() {}
+      PiecewiseTrajectory() {}
 // construct from an initial piece
-      PieceTrajectory(TTRAJ const& piece);
+      PiecewiseTrajectory(TTRAJ const& piece);
 // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last 
 // piece will be shortened or extended as necessary to keep time contiguous.
 // Optionally allow truncate existing pieces to accomodate this piece.
@@ -53,7 +53,7 @@ namespace KinKal {
       DTTRAJ pieces_; // constituent pieces
   };
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::setRange(TimeRange const& trange, bool trim) {
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::setRange(TimeRange const& trange, bool trim) {
 // trim pieces as necessary
     if(trim){
       while(pieces_.size() > 1 && trange.begin() > pieces_.front().range().end() ) pieces_.pop_front();
@@ -65,10 +65,10 @@ namespace KinKal {
     pieces_.back().setRange(TimeRange(pieces_.front().range().begin(),trange.end()));
   }
 
-  template <class TTRAJ> PieceTrajectory<TTRAJ>::PieceTrajectory(TTRAJ const& piece) : pieces_(1,piece)
+  template <class TTRAJ> PiecewiseTrajectory<TTRAJ>::PiecewiseTrajectory(TTRAJ const& piece) : pieces_(1,piece)
   {}
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::add(TTRAJ const& newpiece, TimeDir tdir, bool allowremove){
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::add(TTRAJ const& newpiece, TimeDir tdir, bool allowremove){
     switch (tdir) {
       case TimeDir::forwards:
 	append(newpiece,allowremove);
@@ -81,7 +81,7 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
   // new piece can't have infinite range
     if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
     if(pieces_.empty()){
@@ -90,7 +90,7 @@ namespace KinKal {
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().contains(range())){
 	if(allowremove)
-	  *this = PieceTrajectory(newpiece);
+	  *this = PiecewiseTrajectory(newpiece);
 	else
 	  throw std::invalid_argument("range overlap");
       } else {
@@ -116,7 +116,7 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
   // new piece can't have infinite range
     if(newpiece.range().infinite())throw std::invalid_argument("Can't append infinite range traj");
     if(pieces_.empty()){
@@ -125,7 +125,7 @@ namespace KinKal {
       // if the new piece completely contains the existing pieces, overwrite or fail
       if(newpiece.range().begin() < range().begin()){
 	if(allowremove)
-	  *this = PieceTrajectory(newpiece);
+	  *this = PiecewiseTrajectory(newpiece);
 	else
 	  throw std::invalid_argument("range overlap");
       } else {
@@ -153,9 +153,9 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> size_t PieceTrajectory<TTRAJ>::nearestIndex(double time) const {
+  template <class TTRAJ> size_t PiecewiseTrajectory<TTRAJ>::nearestIndex(double time) const {
     size_t retval;
-    if(pieces_.empty())throw std::length_error("Empty PieceTrajectory!");
+    if(pieces_.empty())throw std::length_error("Empty PiecewiseTrajectory!");
     if(time <= range().begin()){
       retval = 0;
     } else if(time >= range().end()){
@@ -171,7 +171,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TTRAJ> double PieceTrajectory<TTRAJ>::gap(size_t ihigh) const {
+  template <class TTRAJ> double PiecewiseTrajectory<TTRAJ>::gap(size_t ihigh) const {
     double retval(0.0);
     if(ihigh>0 && ihigh < pieces_.size()){
       double jtime = pieces_[ihigh].range().begin(); // time of the junction of this piece with its preceeding piece
@@ -183,7 +183,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::gaps(double& largest,  size_t& ilargest, double& average) const {
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::gaps(double& largest,  size_t& ilargest, double& average) const {
     largest = average = 0.0;
     ilargest =0;
     // loop over adjacent pairs
@@ -199,11 +199,11 @@ namespace KinKal {
       average /= (pieces_.size()-1);
   }
 
-  template <class TTRAJ> void PieceTrajectory<TTRAJ>::print(std::ostream& ost, int detail) const {
+  template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::print(std::ostream& ost, int detail) const {
     double maxgap, avggap;
     size_t igap;
     gaps(maxgap,igap,avggap);
-    ost << "PieceTrajectory of " << TTRAJ::trajName() << " with " << range()  << " pieces " << pieces().size() << " gaps max "<< maxgap << " avg " << avggap << std::endl;
+    ost << "PiecewiseTrajectory of " << TTRAJ::trajName() << " with " << range()  << " pieces " << pieces().size() << " gaps max "<< maxgap << " avg " << avggap << std::endl;
     if(detail ==1 && pieces().size() > 0){
       ost << "Front ";
       front().print(ost,detail);
@@ -220,7 +220,7 @@ namespace KinKal {
     }
   }
   
-  template <class TTRAJ> std::ostream& operator <<(std::ostream& ost, PieceTrajectory<TTRAJ> const& pttraj) {
+  template <class TTRAJ> std::ostream& operator <<(std::ostream& ost, PiecewiseTrajectory<TTRAJ> const& pttraj) {
     pttraj.print(ost,0);
     return ost;
   }

@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.9.0)
 
 # Check + Enforce build type
-
 set(default_build_type "Release")
 
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
@@ -39,6 +38,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 # make sure CMake is able to find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # versioning
 
@@ -53,7 +53,7 @@ find_package(Git)
 
 if(GIT_FOUND)
   execute_process(
-    COMMAND ${GIT_EXECUTABLE} describe
+    COMMAND ${GIT_EXECUTABLE} describe --tags
     WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
     OUTPUT_VARIABLE _build_version
     ERROR_QUIET
@@ -61,13 +61,15 @@ if(GIT_FOUND)
   )
   message( STATUS "git describes this revision as: ${_build_version}")
 
-  if (_build_version MATCHES "^.*([0-9]+)[._]([0-9]+)[._]([0-9]+)\\-([0-9]+)\\-([a-z0-9]+)$")
+if (_build_version MATCHES  "^[vV]?([0-9]+)[._]([0-9]+)[._]([0-9]+)([A-Za-z0-9_]*)$")
     set (_build_ver_maj ${CMAKE_MATCH_1})
     set (_build_ver_min ${CMAKE_MATCH_2})
     set (_build_ver_patch ${CMAKE_MATCH_3})
-    set (_build_ver_commits_since_tag ${CMAKE_MATCH_4})
-    set (_build_ver_commit_short ${CMAKE_MATCH_5})
-    message( STATUS "Version string correctly matched.")
+   set (_build_ver_commits_since_tag ${CMAKE_MATCH_4})
+#    set (_build_ver_commit_short ${CMAKE_MATCH_5})
+    message( STATUS "Version string correctly matched: major= ${_build_ver_maj}, minor= ${_build_ver_min}, patch= ${_build_ver_patch}, other=${_build_ver_commits_since_tag}")
+  else()
+    message ("Version not parsed!")
   endif()
 else()
   message( STATUS "Git not found!")
@@ -121,11 +123,23 @@ add_compile_options(
     "-ftrapping-math"
 
     # debug flags
-    "$<$<CONFIG:DEBUG>:-Og;-g>"
+    "$<$<CONFIG:DEBUG>:-O0;-g>"
 
     # release flags
     "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
 )
+
+# install rules
+include(GNUInstallDirs)
+
+
+# clang tidy
+
+if(ENABLE_CLANG_TIDY)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy) 
+endif()
+
+
 
 # add shared library targets
 add_subdirectory(MatEnv)
@@ -135,12 +149,19 @@ add_subdirectory(Trajectory)
 add_subdirectory(Fit)
 add_subdirectory(Tests)
 
-# install rules
-include(GNUInstallDirs)
 
-install(TARGETS General Trajectory Detector Fit MatEnv
+install(TARGETS General Trajectory Detector Fit MatEnv Tests
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+
+# install headers
+# Globbing here is fine because it does not influence build behaviour
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
+        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
+        FILES_MATCHING PATTERN "*.hh" 
+        PATTERN ".git*" EXCLUDE
+)
+
 
 message (STATUS "Writing setup.sh...")
 
@@ -155,7 +176,6 @@ if [ \"\$sourced\" = \"0\" ];then
 fi
 export PACKAGE_SOURCE=${CMAKE_SOURCE_DIR}
 export DEBUG_LEVEL=${CMAKE_BUILD_TYPE}
-source \${PACKAGE_SOURCE}/setup.sh
 
 # Linux: 
 export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
@@ -164,3 +184,5 @@ export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
 export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
 
 ")
+
+

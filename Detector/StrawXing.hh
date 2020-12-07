@@ -7,14 +7,14 @@
 #include "KinKal/Detector/DetectorXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Trajectory/PieceClosestApproach.hh"
+#include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public DetectorXing<KTRAJ> {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using DXING = DetectorXing<KTRAJ>;
-      using PTCA = PieceClosestApproach<KTRAJ,Line>;
+      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // construct from PTCA (for use with hits)
       StrawXing(PTCA const& tpoca, StrawMat const& smat) : DXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
