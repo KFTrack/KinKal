@@ -3,8 +3,7 @@
 //
 //  A Residual describes the 1-dimensional tension between an individual sensor measurement and a prediction of a particle trajectory
 //  It does not have fixed units, but must have consistent units between value, variance and derivatives.
-//  It is based on the concept of TCA (time point of closest approach) between a measurement and a prediction
-//  The residual value may depend on any aspect of the measurement, reduced to a single dimension.
+//  Its value may depend on any aspect of the measurement, reduced to a single dimension.
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/Trajectory/ClosestApproachData.hh"

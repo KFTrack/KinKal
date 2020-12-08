@@ -5,7 +5,7 @@
 // This effect adds no information content, just noise, and is KKEFF::processed in params space 
 //
 #include "KinKal/Fit/Effect.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/General/TimeDir.hh"
 #include <iostream>
 #include <stdexcept>
@@ -17,8 +17,8 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
       double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
       bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
       void update(PKTRAJ const& ref) override;
@@ -28,16 +28,16 @@ namespace KinKal {
       void append(PKTRAJ& fit) override;
       virtual ~Material(){}
       // create from the material and a trajectory 
-      Material(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);
+      Material(EXINGPTR const& dxing, PKTRAJ const& pktraj, bool active = true);
       // accessors
       Parameters const& effect() const { return mateff_; }
       Weights const& cache() const { return cache_; }
-      DXING const& detXing() const { return *dxing_; }
+      EXING const& detXing() const { return *dxing_; }
       KTRAJ const& refKTraj() const { return ref_; }
     private:
       // update the local cache
       void updateCache();
-      DXINGPTR dxing_; // detector piece crossing for this effect
+      EXINGPTR dxing_; // detector piece crossing for this effect
       KTRAJ ref_; // reference to local trajectory
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
@@ -45,7 +45,7 @@ namespace KinKal {
       bool active_;
   };
 
-   template<class KTRAJ> Material<KTRAJ>::Material(DXINGPTR const& dxing, PKTRAJ const& pktraj, bool active) : dxing_(dxing), 
+   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj, bool active) : dxing_(dxing), 
    ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0), active_(active) {
      update(pktraj);
    }
@@ -132,7 +132,7 @@ namespace KinKal {
     ost << "Material " << static_cast<Effect<KTRAJ>const&>(*this);
     ost << " effect ";
     effect().print(ost,detail-2);
-    ost << " DetectorXing ";
+    ost << " ElementXing ";
     dxing_->print(ost,detail);
     if(detail >3){
       ost << " cache ";

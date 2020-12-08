@@ -6,7 +6,6 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Detector/StrawHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
@@ -46,12 +45,12 @@ void print_usage() {
 template <class KTRAJ>
 int BFieldMapTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using DHIT = DetectorHit<KTRAJ>;
-  using DHITPTR = std::shared_ptr<DHIT>;
-  using DXING = DetectorXing<KTRAJ>;
-  using DXINGPTR = std::shared_ptr<DXING>;
-  using DXINGCOL = std::vector<DXINGPTR>;
-  using DHITCOL = std::vector<DHITPTR>;
+  using HIT = Hit<KTRAJ>;
+  using HITPTR = std::shared_ptr<HIT>;
+  using EXING = ElementXing<KTRAJ>;
+  using EXINGPTR = std::shared_ptr<EXING>;
+  using EXINGCOL = std::vector<EXINGPTR>;
+  using HITCOL = std::vector<HITPTR>;
   double mom(105.0);
   int icharge(-1);
   int iseed(124223);
@@ -107,8 +106,8 @@ int BFieldMapTest(int argc, char **argv) {
     // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
   PKTRAJ tptraj;
-  DHITCOL thits;
-  DXINGCOL dxings;
+  HITCOL thits;
+  EXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
   // then, create a piecetraj around the nominal field with corrections,
   auto pos = tptraj.position4(tptraj.range().begin());

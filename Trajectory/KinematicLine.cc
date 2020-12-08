@@ -82,7 +82,7 @@ namespace KinKal {
     KinematicLine(pstate.position4(),pstate.momentum4(), charge,bnom,range) 
   {}
 
-  KinematicLine::KinematicLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+  KinematicLine::KinematicLine(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
   KinematicLine(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
     PSMAT dpds = dPardState(pstate.stateVector().time());
@@ -114,10 +114,10 @@ namespace KinKal {
     return ParticleState(position4(time),momentum4(time));
   }
 
-  ParticleStateMeasurement KinematicLine::measurementState(double time) const {
+  ParticleStateEstimate KinematicLine::stateEstimate(double time) const {
     // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
-    return ParticleStateMeasurement(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
+    return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
   /*

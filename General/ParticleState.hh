@@ -42,15 +42,15 @@ namespace KinKal {
       const static std::vector<std::string> stateUnits_;
   };
 
-  // the same, including covariance.  This allows using the state with estimated errors to seed a fit,
-  // or to express a fit result as a particle state with errors.  Transforming between ParticleStateMeasuremt
+  // particle state with estimated errors (covariance), used to seed a fit,
+  // or to express a fit result as a particle state with errors.  Transforming between ParticleStateEstimate
   // and a kinematic trajectory is lossless.
-  class ParticleStateMeasurement  {
+  class ParticleStateEstimate  {
     public:
     // construct from from raw information
-      ParticleStateMeasurement(ParticleState const& state, DMAT const& scovar) : state_(state), scovar_(scovar) {}
-      ParticleStateMeasurement(SVEC6 const& state, DMAT const& scovar,double time, double mass) : state_(state, time, mass), scovar_(scovar) {}
-      ParticleStateMeasurement() {}
+      ParticleStateEstimate(ParticleState const& state, DMAT const& scovar) : state_(state), scovar_(scovar) {}
+      ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass) : state_(state, time, mass), scovar_(scovar) {}
+      ParticleStateEstimate() {}
       ParticleState const& stateVector() const { return state_; }
       DMAT const& stateCovariance() const { return scovar_; }
     private:

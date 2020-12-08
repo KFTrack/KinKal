@@ -7,13 +7,13 @@
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Detector/StrawHit.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Trajectory/Residual.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Fit/Measurement.hh"
+#include "KinKal/Fit/Constraint.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
 
@@ -55,14 +55,14 @@ void print_usage() {
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
-  using DHIT = DetectorHit<KTRAJ>;
-  using DHITPTR = std::shared_ptr<DHIT>;
-  using DHITCOL = vector<DHITPTR>;
-  using DXING = DetectorXing<KTRAJ>;
-  using DXINGPTR = std::shared_ptr<DXING>;
-  using DXINGCOL = std::vector<DXINGPTR>;
-  using STRAWHIT = StrawHit<KTRAJ>;
+  using KKHIT = Constraint<KTRAJ>;
+  using HIT = Hit<KTRAJ>;
+  using HITPTR = std::shared_ptr<HIT>;
+  using HITCOL = vector<HITPTR>;
+  using EXING = ElementXing<KTRAJ>;
+  using EXINGPTR = std::shared_ptr<EXING>;
+  using EXINGCOL = std::vector<EXINGPTR>;
+  using STRAWHIT = WireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
@@ -165,8 +165,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;Doca (mm);Scattering (radians)"); gwscat->SetMinimum(0.0);
   std::vector<TPolyLine3D*> tpl;
   // generate hits
-  DHITCOL thits;
-  DXINGCOL dxings; // this program shares det xing ownership with Track
+  HITCOL thits;
+  EXINGCOL dxings; // this program shares det xing ownership with Track
   toy.simulateParticle(tptraj, thits, dxings);
 // create Canvas
   TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);

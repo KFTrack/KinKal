@@ -114,7 +114,7 @@ namespace KinKal {
     CentralHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range)
   {}
 
-  CentralHelix::CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
+  CentralHelix::CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
   CentralHelix(pstate.stateVector(),charge,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
     PSMAT dpds = dPardState(pstate.stateVector().time());

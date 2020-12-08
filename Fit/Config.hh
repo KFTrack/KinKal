@@ -21,7 +21,7 @@ namespace KinKal {
   struct MetaIterConfig {
     bool updatemat_; // update material effects
     bool updatebfcorr_; // update magnetic field inhomogeneity effects
-    bool updatehits_; // update the internal state of the hits (activity, LR ambiguity) 
+    bool updatehits_; // update the internal state of the hits
     double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
     double convdchisq_; // maximum change in chisquared/dof for convergence
     double divdchisq_; // minimum change in chisquared/dof for divergence

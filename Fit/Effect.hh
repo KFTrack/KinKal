@@ -8,6 +8,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Config.hh"
+#include "KinKal/General/TimeRange.hh"
 #include <array>
 #include <memory>
 #include <ostream>

@@ -4,10 +4,10 @@
 //  class representing a drift wire measurement.  Implemented using PTCA between the particle traj and the wire
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/Detector/Hit.hh"
 #include "KinKal/Trajectory/Residual.hh"
 #include "KinKal/Detector/WireCell.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/LRAmbig.hh"
@@ -21,29 +21,30 @@ namespace KinKal {
     WireHitUpdater(double mindoca,double maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
   };
 
-  template <class KTRAJ> class WireHit : public DetectorHit<KTRAJ> {
+  template <class KTRAJ> class WireHit : public Hit<KTRAJ> {
     public:
-      using DHIT = DetectorHit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
       
-      // DetectorHit interface overrrides
+      // Hit interface overrrides
       Weights weight() const override;
       double chi(Parameters const& pdata) const override;
       double time() const override { return rresid_.time(); }
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void update(PKTRAJ const& pktraj) override;
       bool isActive() const override { return active_; }
-      DXINGPTR const& detXingPtr() const override { return dxing_; }
+      EXINGPTR const& detXingPtr() const override { return dxing_; }
       unsigned nDOF() const override { return active_ ? 1 : 0; }
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       
       Line const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
       void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/12.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
-      WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig=LRAmbig::null);
+      WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig=LRAmbig::null);
       virtual ~WireHit(){}
       LRAmbig ambig() const { return ambig_; }
       WireCell const& cell() const { return cell_; }
@@ -57,15 +58,15 @@ namespace KinKal {
       LRAmbig ambig_; // current ambiguity assignment: can change during a fit
       bool active_; // active or not (pat. rec. tool)
       BFieldMap const& bfield_;
-      DXINGPTR dxing_; // material xing
+      EXINGPTR dxing_; // material xing
       // caches used in processing
       Residual rresid_; // residual WRT most recent reference parameters
       Parameters rparams_; // reference parameters
       double precision_; // current precision
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig) : 
-    wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(0.5*cell_.size()); }
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig) : 
+    wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(cell_.size()); }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
     if(isActive()){
@@ -118,7 +119,7 @@ namespace KinKal {
 	setAmbig(newambig);
       } else {
 	setAmbig(LRAmbig::null);
-	setNullVar(std::min(0.5*cell_.size(),whupdater->mindoca_));
+	setNullVar(std::min(cell_.size(),whupdater->mindoca_));
       }
       // decide if the hit is consistent with this track, and if not disable/enable it.
       // for now, just look at DOCA, but could look at other information.  This should be
@@ -148,8 +149,7 @@ namespace KinKal {
 	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
 	rresid_ = Residual(Residual::dtime,tpoca.tpData(),tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
-	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
-	// residual is in space, so unit dependendence on distance, none on time
+	// interpret DOCA against the wire directly as the residual.  
 	rresid_ = Residual(Residual::distance,tpoca.tpData(),-tpoca.doca(),nullvar_,tpoca.dDdP());
       }
     } else
@@ -171,6 +171,14 @@ namespace KinKal {
       retval = uresid/sqrt(rvar);
     }
     return retval;
+  }
+
+  template<class KTRAJ> void WireHit<KTRAJ>::print(std::ostream& ost, int detail) const {
+    if(this->isActive())
+      ost<<"Active ";
+    else
+      ost<<"Inactive ";
+    ost << " WireHit LRAmbig " << this-> ambig() << " " << std::endl;
   }
 
 }

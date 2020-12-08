@@ -48,7 +48,7 @@ namespace KinKal {
       // construct from the particle state at a given time, plus mass and charge
       CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); // TODO
       // same, including covariance information
-      CentralHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
+      CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
@@ -87,7 +87,7 @@ namespace KinKal {
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const {  return ParticleState(position4(time),momentum4(time)); }
-      ParticleStateMeasurement measurementState(double time) const { return ParticleStateMeasurement(); } // TODO
+      ParticleStateEstimate stateEstimate(double time) const { return ParticleStateEstimate(); } // TODO
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge

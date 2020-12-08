@@ -39,7 +39,7 @@ namespace KinKal {
       double charge() const { return PTTRAJ::front().charge(); } // this will throw for empty 
       VEC3 const& bnom(double time) const { return PTTRAJ::nearestPiece(time).bnom(); }
       ParticleState state(double time) const { return PTTRAJ::nearestPiece(time).state(time); }
-      ParticleStateMeasurement measurementState(double time) const { return PTTRAJ::nearestPiece(time).measurementState(time); }
+      ParticleStateEstimate stateEstimate(double time) const { return PTTRAJ::nearestPiece(time).stateEstimate(time); }
   };
 }
 #endif

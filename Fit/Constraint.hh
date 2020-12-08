@@ -1,97 +1,122 @@
 #ifndef KinKal_Constraint_hh
 #define KinKal_Constraint_hh
 //
-//  direct constraint on a subset of parameters expressed as a 'measurement'
+//  class represeting a constraint on the fit parameters due to a hit (measurement).  This adds information content to the fit.
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/Detector/DetectorHit.hh"
-#include "KinKal/General/Vectors.hh"
-#include <stdexcept>
+#include "KinKal/Fit/Effect.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/Detector/Hit.hh"
+#include <ostream>
+#include <memory>
+
 namespace KinKal {
-
-  template <class KTRAJ> class Constraint : public DetectorHit<KTRAJ> {
+  template <class KTRAJ> class Constraint : public Effect<KTRAJ> {
     public:
-      using PMASK = std::array<bool,NParams()>; // parameter mask
-      using DHIT = DetectorHit<KTRAJ>;
+      using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
-
-      // Measurement interface overrrides
-      Weights weight() const override { return weight_; }
-      unsigned nDOF() const override { return ncons_; }
-      double chi(Parameters const& pdata) const override;
-      double time() const override { return time_; }
-      // constraints are absolute and can't be updatedA
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
-      void update(PKTRAJ const& pktraj) override {}
-      bool isActive() const override { return ncons_ > 0; }
-      DXINGPTR const& detXingPtr() const override { return null_; }
+      using HIT = Hit<KTRAJ>;
+      using HITPTR = std::shared_ptr<HIT>;
+      
+      unsigned nDOF() const override { return hit_->isActive() ? hit_->nDOF() : 0; }
+      double fitChi() const override; 
+      double chisq(Parameters const& pdata) const override;
+      void update(PKTRAJ const& pktraj) override;
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
+      void process(FitState& kkdata,TimeDir tdir) override;
+      bool isActive() const override { return hit_->isActive(); }
+      double time() const override { return hit_->time(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      // construct from constraint values, time, and mask of which parameters to constrain
-      Constraint(double time, Parameters const& params, PMASK const& pmask);
       virtual ~Constraint(){}
-      // Constraint-specfic interface
-      Parameters const& constraintParameters() const { return params_; }
-      PMASK const& constraintMask() const { return pmask_; }
+      // local functions
+      // construct from a hit and reference trajectory
+      Constraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision=1e-6);
+      // interface for reduced residual
+      double chi(Parameters const& pdata) const;
+      // accessors
+      HITPTR const& hit() const { return hit_; }
+      Weights const& weightCache() const { return wcache_; }
+      Weights const& hitWeight() const { return hitwt_; }
+      double precision() const { return precision_; }
+      // compute the reduced residual
     private:
-      double time_; // time of this constraint: must be supplied on construction
-      Parameters params_; // constraint parameters with covariance
-      Weights weight_; // constraint WRT reference parameters expressed as a weight 
-      PMASK pmask_; // subset of parmeters to constrain
-      DMAT mask_; // matrix to mask of unconstrainted parameters
-      unsigned ncons_; // number of parameters constrained
-      DXINGPTR null_; // null detector material crossing 
+      HITPTR hit_ ; // hit used for this constraint
+      Weights wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute chisquared and reduced residuals
+      Weights hitwt_; // weight representation of the hits constraint
+      double vscale_; // variance factor due to annealing 'temperature'
+      double precision_; // precision used in TCA calcuation
   };
 
-  template<class KTRAJ> Constraint<KTRAJ>::Constraint(double time, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
-      weight_ = Weights(params_);
-      // count constrained parameters, and mask off unused parameters
-      for(size_t ipar=0;ipar < NParams(); ipar++){
-	if(pmask_[ipar]){
-	  ncons_++;
-	} else {
-	  // zero unconstrained values
-	  mask_(ipar,ipar) = 0.0;
-	}
-      }
-      // Mask Off unused parameters
-      weight_.weightMat() = ROOT::Math::Similarity(mask_,weight_.weightMat());
-      weight_.weightVec() = weight_.weightVec()*mask_;
+  template<class KTRAJ> Constraint<KTRAJ>::Constraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision) : hit_(hit), vscale_(1.0), precision_(precision) {
+    update(reftraj);
+  }
+ 
+  template<class KTRAJ> void Constraint<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+    // direction is irrelevant for processing hits 
+    if(this->isActive()){
+      // cache the processing weights, adding both processing directions
+      wcache_ += kkdata.wData();
+      // add this effect's information
+      kkdata.append(hitwt_);
     }
-
-  template <class KTRAJ> double Constraint<KTRAJ>::chi(Parameters const& pdata) const {
-  // chi measures the dimensionless 'distance' between this constraint and the given parameters.
-  // Compute as the parameter difference contracted through the sum covariance of the 2.
-    Parameters pdiff = pdata;
-    pdiff.parameters() *= -1.0; // so I can subtract in the next step
-    pdiff += params_;  // this is now the difference of parameters but sum of covariances
-    // invert the covariance matrix
-    DMAT wmat = pdiff.covariance();
-    if(!wmat.Invert()) throw std::runtime_error("Inversion failure");
-    // zero out unconstrainted parts
-    wmat = ROOT::Math::Similarity(mask_,wmat);
-    double chisq = ROOT::Math::Similarity(pdiff.parameters(),wmat);
-    // sign of chi has no meaning here
-    return sqrt(chisq);
+    KKEFF::setStatus(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void Constraint<KTRAJ>::print(std::ostream& ost, int detail) const {
-    if(this->isActive())
-      ost<<"Active ";
-    else
-      ost<<"Inactive ";
-    ost << " Constraint Hit" << std::endl;
+  template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj) {
+    // reset the processing cache
+    wcache_ = Weights();
+    // update the hit
+    hit_->update(pktraj);
+    // get the weight from the hit 
+    hitwt_ = hit_->weight();
+    // scale weight for the temp
+    hitwt_ *= 1.0/vscale_;
+    // ready for processing!
+    KKEFF::updateStatus();
+  }
+
+  template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+    // reset the annealing temp and hit precision
+    vscale_ = miconfig.varianceScale();
+    precision_ = miconfig.tprec_;
+    // update the hit's internal state; this depends on the configuration parameters
+    if(miconfig.updatehits_)hit_->update(pktraj,miconfig );
+    // update the state of this object
+    update(pktraj);
+  }
+
+  template<class KTRAJ> double Constraint<KTRAJ>::chisq(Parameters const& pdata) const {
+    double retval(0.0);
+    if(this->isActive()) {
+      double chi = hit_->chi(pdata);
+      // correct for current variance scaling
+      retval = chi*chi/vscale_;
+    }
+    return retval;
+  }
+
+  template<class KTRAJ> double Constraint<KTRAJ>::fitChi() const {
+    double retval(0.0);
+    if(this->isActive() && KKEFF::wasProcessed(TimeDir::forwards) && KKEFF::wasProcessed(TimeDir::backwards)) {
+    // Invert the cache to get unbiased parameters at this hit
+      Parameters unbiased(wcache_);
+      retval = hit_->chi(unbiased)/vscale_;
+    }
+    return retval;
+  }
+
+  template <class KTRAJ> void Constraint<KTRAJ>::print(std::ostream& ost, int detail) const {
+    ost << "Constraint " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
     if(detail > 0){
-      for(size_t ipar=0;ipar < NParams(); ipar++){
-	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-	if (pmask_[ipar]) {
-	  ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
-	}
-      }
+      hit_->print(ost,detail);    
+      ost << " Constraint Weight " << hitwt_ << std::endl;
     }
   }
 
-} // namespace KinKal
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Constraint<KTRAJ> const& kkhit) {
+    kkhit.print(ost,0);
+    return ost;
+  }
+
+}
 #endif

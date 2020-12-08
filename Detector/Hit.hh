@@ -1,32 +1,32 @@
-#ifndef KinKal_DetectorHit_hh
-#define KinKal_DetectorHit_hh
+#ifndef KinKal_Hit_hh
+#define KinKal_Hit_hh
 //
 //  Base class to describe a measurement that constraints some parameters of the fit
-//  DetectorHits must have a measurement value (WRT a reference trajectory) and covariance, but can internally
+//  Hits must have a measurement value (WRT a reference trajectory) and covariance, but can internally
 //  be of any dimension and constrain any physical aspect of the fit (time, position, time+position, momentum, ...)
-//  The measurement may be associated with a piece of detector material as well
+//  The hit may be associated with a piece of detector material as well
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Fit/Config.hh"
 #include <memory>
 #include <ostream>
 
 namespace KinKal {
-  template <class KTRAJ> class DetectorHit {
+  template <class KTRAJ> class Hit {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
      // default
-      DetectorHit(){}
-      virtual ~DetectorHit(){}
+      Hit(){}
+      virtual ~Hit(){}
       // disallow copy and equivalence
-      DetectorHit(DetectorHit const& ) = delete; 
-      DetectorHit& operator =(DetectorHit const& ) = delete;
+      Hit(Hit const& ) = delete; 
+      Hit& operator =(Hit const& ) = delete;
       // compute the constraint this hit implies WRT the current reference, expressed as a weight
       virtual Weights weight() const = 0;
       // number of degrees of freedom constrained by this measurement (typically 1)
@@ -42,12 +42,12 @@ namespace KinKal {
       // hits may inactive
       virtual bool isActive() const =0;
       // associated material information; null means no material
-      virtual DXINGPTR const& detXingPtr() const = 0;
+      virtual EXINGPTR const& detXingPtr() const = 0;
       bool hasMaterial() const { return (bool)detXingPtr(); }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
   };
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DetectorHit<KTRAJ> const& thit) {
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Hit<KTRAJ> const& thit) {
     thit.print(ost,0);
     return ost;
  }

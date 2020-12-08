@@ -6,14 +6,14 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Detector/StrawHit.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/ScintHit.hh"
-#include "KinKal/Detector/DetectorXing.hh"
+#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/ParameterConstraint.hh"
 #include "KinKal/Fit/Constraint.hh"
-#include "KinKal/Fit/Measurement.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Track.hh"
@@ -114,25 +114,25 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
+  using KKHIT = Constraint<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBF = BFieldEffect<KTRAJ>;
   using KKEND = TrackEnd<KTRAJ>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using DHIT = DetectorHit<KTRAJ>;
-  using DHITPTR = std::shared_ptr<DHIT>;
-  using DHITCOL = std::vector<DHITPTR>;
-  using DXING = DetectorXing<KTRAJ>;
-  using DXINGPTR = std::shared_ptr<DXING>;
-  using DXINGCOL = std::vector<DXINGPTR>;
+  using MEAS = Hit<KTRAJ>;
+  using MEASPTR = std::shared_ptr<MEAS>;
+  using MEASCOL = std::vector<MEASPTR>;
+  using EXING = ElementXing<KTRAJ>;
+  using EXINGPTR = std::shared_ptr<EXING>;
+  using EXINGCOL = std::vector<EXINGPTR>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
-  using STRAWHIT = StrawHit<KTRAJ>;
+  using STRAWHIT = WireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
-  using CONSTRAINT = Constraint<KTRAJ>;
-  using CONSTRAINTPTR = std::shared_ptr<CONSTRAINT>;
+  using PCONSTRAINT = ParameterConstraint<KTRAJ>;
+  using PCONSTRAINTPTR = std::shared_ptr<PCONSTRAINT>;
   using Clock = std::chrono::high_resolution_clock;
   using PMASK = std::array<bool,NParams()>; // parameter mask
 
@@ -281,8 +281,8 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   fitmass = masses[ifitmass];
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
   // generate hits
-  DHITCOL thits; // this program shares hit ownership with Track
-  DXINGCOL dxings; // this program shares det xing ownership with Track
+  MEASCOL thits; // this program shares hit ownership with Track
+  EXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings);
   if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
@@ -352,7 +352,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     // take the true parameters but the seed covariance
     Parameters cparams = front.params();
     cparams.covariance() = seedtraj.params().covariance();
-    thits.push_back(std::make_shared<CONSTRAINT>(front.range().begin(),cparams,mask));
+    thits.push_back(std::make_shared<PCONSTRAINT>(front.range().begin(),cparams,mask));
   }
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -556,7 +556,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	auto const& front = tptraj.front();
 	Parameters cparams = front.params();
 	cparams.covariance() = seedtraj.params().covariance();
-	thits.push_back(std::make_shared<CONSTRAINT>(front.range().mid(),cparams,mask));
+	thits.push_back(std::make_shared<PCONSTRAINT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
       KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -622,9 +622,9 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    hinfo.time_ = kkhit->time();
 	    hinfo.fitchi_ = kkhit->fitChi();
 	    hinfo.ambig_ = -1000;
-	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->detectorHit().get());
-	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->detectorHit().get());
-	    const CONSTRAINT* constraint = dynamic_cast<const CONSTRAINT*>(kkhit->detectorHit().get());
+	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+	    const PCONSTRAINT* constraint = dynamic_cast<const PCONSTRAINT*>(kkhit->hit().get());
 	    if(strawhit != 0){
 	      hinfo.type_ = HitInfo::straw;
 	      hinfo.resid_ = strawhit->refResidual().value();
@@ -689,9 +689,9 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	dTraj(tptraj,fptraj,ttlow,ftlow);
 	dTraj(tptraj,fptraj,ttmid,ftmid);
 	dTraj(tptraj,fptraj,tthigh,fthigh);
-	KTRAJ fftraj(fptraj.measurementState(ftlow),fptraj.charge(),tptraj.bnom(ttlow),fptraj.nearestPiece(ftlow).range());
-	KTRAJ mftraj(fptraj.measurementState(ftmid),fptraj.charge(),tptraj.bnom(ttmid),fptraj.nearestPiece(ftmid).range());
-	KTRAJ bftraj(fptraj.measurementState(fthigh),fptraj.charge(),tptraj.bnom(tthigh),fptraj.nearestPiece(fthigh).range());
+	KTRAJ fftraj(fptraj.stateEstimate(ftlow),fptraj.charge(),tptraj.bnom(ttlow),fptraj.nearestPiece(ftlow).range());
+	KTRAJ mftraj(fptraj.stateEstimate(ftmid),fptraj.charge(),tptraj.bnom(ttmid),fptraj.nearestPiece(ftmid).range());
+	KTRAJ bftraj(fptraj.stateEstimate(fthigh),fptraj.charge(),tptraj.bnom(tthigh),fptraj.nearestPiece(fthigh).range());
 	// fit parameters
 	auto const& ffpars = fftraj.params();
 	auto const& mfpars = mftraj.params();
@@ -757,10 +757,10 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	mmompull->Fill((mfmom_-mtmom_)/mfmomerr_);
 	bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
 	// state space parameter difference and errors
-	//	ParticleStateMeasurement tslow = tptraj.state(tlow);
-	//	ParticleStateMeasurement tshigh = tptraj.state(thigh);
-	//	ParticleStateMeasurement slow = fptraj.measurementState(tlow);
-	//	ParticleStateMeasurement shigh = fptraj.measurementState(thigh);
+	//	ParticleStateEstimate tslow = tptraj.state(tlow);
+	//	ParticleStateEstimate tshigh = tptraj.state(thigh);
+	//	ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
+	//	ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
 
 	// test
       } else if(printbad){

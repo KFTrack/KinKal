@@ -7,14 +7,14 @@
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/StrawHit.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Detector/WireCell.hh"
+#include "KinKal/Detector/SimpleCell.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 namespace KKTest {
@@ -22,13 +22,13 @@ namespace KKTest {
   template <class KTRAJ> class ToyMC {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DHIT = DetectorHit<KTRAJ>;
-      using DHITPTR = std::shared_ptr<DHIT>;
-      using DHITCOL = std::vector<DHITPTR>;
-      using DXING = DetectorXing<KTRAJ>;
-      using DXINGPTR = std::shared_ptr<DXING>;
-      using DXINGCOL = std::vector<DXINGPTR>;
-      using STRAWHIT = StrawHit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
+      using HITPTR = std::shared_ptr<HIT>;
+      using HITCOL = std::vector<HITPTR>;
+      using EXING = ElementXing<KTRAJ>;
+      using EXINGPTR = std::shared_ptr<EXING>;
+      using EXINGCOL = std::vector<EXINGPTR>;
+      using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       using SCINTHIT = ScintHit<KTRAJ>;
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
@@ -52,8 +52,8 @@ namespace KKTest {
       void createSeed(KTRAJ& seed,double momvar, double posvar, bool smear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
-      void createScintHit(PKTRAJ const& pktraj, DHITCOL& thits);
-      void simulateParticle(PKTRAJ& pktraj,DHITCOL& thits, DXINGCOL& dxings);
+      void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
+      void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings);
       double createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
@@ -114,7 +114,7 @@ namespace KKTest {
     return Line(mpos,vprop,tmeas,trange);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,DHITCOL& thits, DXINGCOL& dxings) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings) {
     // create the seed first
     createTraj(pktraj);
     // divide time range
@@ -190,7 +190,7 @@ namespace KKTest {
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, DHITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
     VEC3 shmpos, hend, lmeas;

@@ -50,7 +50,7 @@ class KinematicLine {
     KinematicLine(Parameters const &pdata, KinematicLine const& other); 
     KinematicLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
-    KinematicLine(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
     virtual ~KinematicLine() {}
 
@@ -78,7 +78,7 @@ class KinematicLine {
 
     // express fit results as a state vector (global coordinates)
     ParticleState state(double time) const;
-    ParticleStateMeasurement measurementState(double time) const;
+    ParticleStateEstimate stateEstimate(double time) const;
 
     double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
