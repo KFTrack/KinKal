@@ -299,10 +299,10 @@ int test(int argc, char **argv) {
       // construct exact helix for this field and the corresponding exact parameter change
       double dval = dmin + del*id;
       VEC3 bf = bnom + basis[idir]*dval;
-      auto state = refhel.measurementState(ttest);
+      auto state = refhel.stateEstimate(ttest);
       // exact traj given the full state
       KTRAJ newbfhel(state,refhel.charge(),bf);
-      auto newstate = newbfhel.measurementState(ttest);
+      auto newstate = newbfhel.stateEstimate(ttest);
       for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
 	if(fabs(state.stateVector().state()[ipar] - newstate.stateVector().state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "
 	  << state.stateVector().state()[ipar] << " rotated " << newstate.stateVector().state()[ipar]  << endl;

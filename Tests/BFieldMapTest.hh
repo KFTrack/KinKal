@@ -46,7 +46,7 @@ void print_usage() {
 template <class KTRAJ>
 int BFieldMapTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using DHIT = DetectorHit<KTRAJ>;
+  using DHIT = Hit<KTRAJ>;
   using DHITPTR = std::shared_ptr<DHIT>;
   using DXING = DetectorXing<KTRAJ>;
   using DXINGPTR = std::shared_ptr<DXING>;

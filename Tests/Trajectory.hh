@@ -292,7 +292,7 @@ int test(int argc, char **argv) {
     return -1;
   }
   // test particle state back-and-forth
-  ParticleStateMeasurement pmeas = lhel.measurementState(ltime);
+  ParticleStateEstimate pmeas = lhel.stateEstimate(ltime);
   KTRAJ newhel(pmeas,lhel.charge(),lhel.bnom());
   for(size_t ipar=0;ipar < NParams();ipar++){
     if(fabs(lhel.paramVal(ipar)-newhel.paramVal(ipar)) > 1e-9){

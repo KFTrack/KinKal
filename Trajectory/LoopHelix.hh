@@ -43,7 +43,7 @@ namespace KinKal {
       // construct from the particle state at a given time, plus mass and charge
       LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      LoopHelix(ParticleStateMeasurement const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot);
       // copy payload and override the parameters; Is this used?
@@ -79,7 +79,7 @@ namespace KinKal {
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time)); }
-      ParticleStateMeasurement measurementState(double time) const;
+      ParticleStateEstimate stateEstimate(double time) const;
       // simple functions; these can be cached if they cause performance problems
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 

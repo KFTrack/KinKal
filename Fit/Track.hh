@@ -39,7 +39,7 @@
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/TrackEnd.hh"
-#include "KinKal/Fit/Measurement.hh"
+#include "KinKal/Fit/Constraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Config.hh"
@@ -59,15 +59,15 @@ namespace KinKal {
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using KKHIT = Measurement<KTRAJ>;
+      using KKHIT = Constraint<KTRAJ>;
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
       using KKBFIELD = BFieldEffect<KTRAJ>;
       using KKCONFIGPTR = std::shared_ptr<Config>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DHIT = DetectorHit<KTRAJ>;
-      using DHITPTR = std::shared_ptr<DHIT>;
-      using DHITCOL = std::vector<DHITPTR>;
+      using MEAS = Hit<KTRAJ>;
+      using MEASPTR = std::shared_ptr<MEAS>;
+      using MEASCOL = std::vector<MEASPTR>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
       using DXINGCOL = std::vector<DXINGPTR>;
@@ -81,7 +81,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(KKCONFIGPTR config, KTRAJ const& seedtraj, DHITCOL& thits, DXINGCOL& dxings ); 
+      Track(KKCONFIGPTR config, KTRAJ const& seedtraj, MEASCOL& thits, DXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<FitStatus> const& history() const { return history_; }
@@ -90,7 +90,7 @@ namespace KinKal {
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return *config_; }
-      DHITCOL const& timeHits() const { return thits_; } 
+      MEASCOL const& timeHits() const { return thits_; } 
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
@@ -105,12 +105,12 @@ namespace KinKal {
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
-      DHITCOL thits_; // shared collection of hits
+      MEASCOL thits_; // shared collection of hits
   };
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR cfg, KTRAJ const& seedtraj,  DHITCOL& thits, DXINGCOL& dxings) : 
+  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR cfg, KTRAJ const& seedtraj,  MEASCOL& thits, DXINGCOL& dxings) : 
     config_(cfg), thits_(thits) {
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);

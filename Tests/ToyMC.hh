@@ -14,7 +14,7 @@
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Detector/WireCell.hh"
+#include "KinKal/Detector/SimpleCell.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 namespace KKTest {
@@ -22,7 +22,7 @@ namespace KKTest {
   template <class KTRAJ> class ToyMC {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using DHIT = DetectorHit<KTRAJ>;
+      using DHIT = Hit<KTRAJ>;
       using DHITPTR = std::shared_ptr<DHIT>;
       using DHITCOL = std::vector<DHITPTR>;
       using DXING = DetectorXing<KTRAJ>;

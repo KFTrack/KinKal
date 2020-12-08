@@ -13,7 +13,7 @@
 #include "KinKal/Trajectory/Residual.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Fit/Measurement.hh"
+#include "KinKal/Fit/Constraint.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
 
@@ -55,8 +55,8 @@ void print_usage() {
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
-  using DHIT = DetectorHit<KTRAJ>;
+  using KKHIT = Constraint<KTRAJ>;
+  using DHIT = Hit<KTRAJ>;
   using DHITPTR = std::shared_ptr<DHIT>;
   using DHITCOL = vector<DHITPTR>;
   using DXING = DetectorXing<KTRAJ>;

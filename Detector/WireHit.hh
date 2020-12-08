@@ -4,7 +4,7 @@
 //  class representing a drift wire measurement.  Implemented using PTCA between the particle traj and the wire
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/Detector/Hit.hh"
 #include "KinKal/Trajectory/Residual.hh"
 #include "KinKal/Detector/WireCell.hh"
 #include "KinKal/Detector/DetectorXing.hh"
@@ -21,15 +21,15 @@ namespace KinKal {
     WireHitUpdater(double mindoca,double maxdoca) : mindoca_(mindoca), maxdoca_(maxdoca) {}
   };
 
-  template <class KTRAJ> class WireHit : public DetectorHit<KTRAJ> {
+  template <class KTRAJ> class WireHit : public Hit<KTRAJ> {
     public:
-      using DHIT = DetectorHit<KTRAJ>;
+      using DHIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
       
-      // DetectorHit interface overrrides
+      // Hit interface overrrides
       Weights weight() const override;
       double chi(Parameters const& pdata) const override;
       double time() const override { return rresid_.time(); }
@@ -65,7 +65,7 @@ namespace KinKal {
   };
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig) : 
-    wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(0.5*cell_.size()); }
+    wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(cell_.size()); }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
     if(isActive()){
@@ -118,7 +118,7 @@ namespace KinKal {
 	setAmbig(newambig);
       } else {
 	setAmbig(LRAmbig::null);
-	setNullVar(std::min(0.5*cell_.size(),whupdater->mindoca_));
+	setNullVar(std::min(cell_.size(),whupdater->mindoca_));
       }
       // decide if the hit is consistent with this track, and if not disable/enable it.
       // for now, just look at DOCA, but could look at other information.  This should be

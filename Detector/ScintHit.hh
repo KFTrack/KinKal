@@ -5,22 +5,22 @@
 //  class representing a timing measurement using scintillator light from a crystal or plastic scintillator
 //  Used as part of the kinematic Kalman fit
 //
-#include "KinKal/Detector/DetectorHit.hh"
+#include "KinKal/Detector/Hit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Detector/DetectorXing.hh"
 #include <stdexcept>
 namespace KinKal {
 
-  template <class KTRAJ> class ScintHit : public DetectorHit<KTRAJ> {
+  template <class KTRAJ> class ScintHit : public Hit<KTRAJ> {
     public:
-      using DHIT = DetectorHit<KTRAJ>;
+      using DHIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using DXING = DetectorXing<KTRAJ>;
       using DXINGPTR = std::shared_ptr<DXING>;
 
-      // DetectorHit interface overrrides
+      // Hit interface overrrides
       Weights weight() const override;
       double chi(Parameters const& pdata) const override;
       double time() const override { return rresid_.time(); }
