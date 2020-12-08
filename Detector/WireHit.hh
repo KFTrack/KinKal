@@ -134,20 +134,22 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::setResidual(PTCA const& tpoca) {
     if(tpoca.usable()){
       // translate PTCA to residual
+      VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
+      auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BFieldMap
+      VEC3 dvec = tpoca.delta().Vect();
+      double phi = asin(double(dvec.Unit().Dot(pdir)));
+      // must use absolute DOCA to call distanceToTime
+      POL2 drift(fabs(tpoca.doca()), phi);
+      double tdrift, tdvar, vdrift;
+      cell_.distanceToTime(drift, tdrift, tdvar, vdrift);
+      // Use ambiguity to convert drift time to a time difference.   null ambiguity means ignore drift time
+      auto iambig = static_cast<std::underlying_type<LRAmbig>::type>(ambig_);
+      double dsign = copysign(1.0,iambig*tpoca.lSign()); // overall sign is the product of ambiguity and doca sign
+      double dt = tpoca.deltaT()-tdrift*dsign;
       if(ambig_ != LRAmbig::null){ 
-	auto iambig = static_cast<std::underlying_type<LRAmbig>::type>(ambig_);
-	// convert DOCA to wire-local polar coordinates.  This defines azimuth WRT the B field for ExB effects
-	double rho = tpoca.doca()*iambig; // this is allowed to go negative
-	VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
-	auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BFieldMap
-	VEC3 dvec = tpoca.delta().Vect();
-	double phi = asin(double(dvec.Unit().Dot(pdir)));
-	POL2 drift(rho, phi);
-	double tdrift, tdvar, vdrift;
-	cell_.distanceToTime(drift, tdrift, tdvar, vdrift);
 	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
 	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
-	rresid_ = Residual(Residual::dtime,tpoca.tpData(),tpoca.deltaT()-tdrift,tdvar,dRdP);
+	rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,tdvar,dRdP);
       } else {
 	// interpret DOCA against the wire directly as the residual.  
 	rresid_ = Residual(Residual::distance,tpoca.tpData(),-tpoca.doca(),nullvar_,tpoca.dDdP());
