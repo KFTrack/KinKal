@@ -1,7 +1,7 @@
 #ifndef KinKal_SimpleCell_hh
 #define KinKal_SimpleCell_hh
 //
-// class describing a wire cell.  Eventually this could have more structure
+// simple implementation of wire cell, for testing
 //
 #include "KinKal/Detector/WireCell.hh"
 namespace KinKal {
@@ -16,8 +16,8 @@ namespace KinKal {
     }
     // provide seed (mm/ns) and time RMS (ns) on construction
     SimpleCell(double driftspeed, double tvar, double rcell) :dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
-    double averageDriftSpeed() const override { return dvel_; }
-    double maximumDriftTime() const override { return rcell_/dvel_; }
+    double averageDriftSpeed() const { return dvel_; }
+    double maximumDriftTime() const { return rcell_/dvel_; }
     virtual ~SimpleCell(){}
     double timeVariance() const { return tvar_; }
     double radius() const { return rcell_; }

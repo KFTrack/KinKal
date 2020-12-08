@@ -7,7 +7,7 @@
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/StrawHit.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/ScintHit.hh"
@@ -28,7 +28,7 @@ namespace KKTest {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
-      using STRAWHIT = StrawHit<KTRAJ>;
+      using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       using SCINTHIT = ScintHit<KTRAJ>;
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;

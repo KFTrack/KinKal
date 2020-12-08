@@ -6,7 +6,7 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Detector/StrawHit.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
 #include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
@@ -127,7 +127,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   using EXINGCOL = std::vector<EXINGPTR>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
-  using STRAWHIT = StrawHit<KTRAJ>;
+  using STRAWHIT = WireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;

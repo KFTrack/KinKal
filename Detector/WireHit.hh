@@ -38,12 +38,13 @@ namespace KinKal {
       bool isActive() const override { return active_; }
       EXINGPTR const& detXingPtr() const override { return dxing_; }
       unsigned nDOF() const override { return active_ ? 1 : 0; }
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       
       Line const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
       void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/12.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
-      WireHit(EXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig=LRAmbig::null);
+      WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig=LRAmbig::null);
       virtual ~WireHit(){}
       LRAmbig ambig() const { return ambig_; }
       WireCell const& cell() const { return cell_; }
@@ -64,7 +65,7 @@ namespace KinKal {
       double precision_; // current precision
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(EXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig) : 
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig) : 
     wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(cell_.size()); }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
@@ -148,8 +149,7 @@ namespace KinKal {
 	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
 	rresid_ = Residual(Residual::dtime,tpoca.tpData(),tpoca.deltaT()-tdrift,tdvar,dRdP);
       } else {
-	// interpret DOCA against the wire directly as the residual.  There is no direct time dependence in this case
-	// residual is in space, so unit dependendence on distance, none on time
+	// interpret DOCA against the wire directly as the residual.  
 	rresid_ = Residual(Residual::distance,tpoca.tpData(),-tpoca.doca(),nullvar_,tpoca.dDdP());
       }
     } else
@@ -171,6 +171,14 @@ namespace KinKal {
       retval = uresid/sqrt(rvar);
     }
     return retval;
+  }
+
+  template<class KTRAJ> void WireHit<KTRAJ>::print(std::ostream& ost, int detail) const {
+    if(this->isActive())
+      ost<<"Active ";
+    else
+      ost<<"Inactive ";
+    ost << " WireHit LRAmbig " << this-> ambig() << " " << std::endl;
   }
 
 }
