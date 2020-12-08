@@ -6,9 +6,9 @@ namespace KinKal {
     enum htype{straw=0,scint=1,constraint=2,unknown};
     HitInfo(){};
     ~HitInfo(){};
-    Int_t active_, type_;
+    Int_t active_, type_, ambig_;
     Float_t time_, resid_, residvar_, fitchi_;
-    static std::string leafnames() { return std::string("active/i:type/i:time/f:resid/f:residvar/f:fitchi/f"); }
+    static std::string leafnames() { return std::string("active/i:type/i:ambig/i:time/f:resid/f:residvar/f:fitchi/f"); }
   };
   typedef std::vector<HitInfo> KKHIV;
 }

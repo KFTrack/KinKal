@@ -621,6 +621,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    hinfo.active_ = kkhit->isActive();
 	    hinfo.time_ = kkhit->time();
 	    hinfo.fitchi_ = kkhit->fitChi();
+	    hinfo.ambig_ = -1000;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->detectorHit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->detectorHit().get());
 	    const CONSTRAINT* constraint = dynamic_cast<const CONSTRAINT*>(kkhit->detectorHit().get());
@@ -628,6 +629,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	      hinfo.type_ = HitInfo::straw;
 	      hinfo.resid_ = strawhit->refResidual().value();
 	      hinfo.residvar_ = strawhit->refResidual().variance();
+	      hinfo.ambig_ = static_cast<std::underlying_type<LRAmbig>::type>(strawhit->ambig());
 	    } else if(scinthit != 0){
 	      hinfo.type_ = HitInfo::scint;
 	      hinfo.resid_ = scinthit->refResidual().value();

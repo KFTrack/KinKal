@@ -41,7 +41,7 @@ namespace KinKal {
       
       Line const& wire() const { return wire_; }
       // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
-      void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/3.0; }
+      void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/12.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
       WireHit(DXINGPTR const& dxing, BFieldMap const& bfield, Line const& wire, WireCell const& cell, LRAmbig ambig=LRAmbig::null);
       virtual ~WireHit(){}
