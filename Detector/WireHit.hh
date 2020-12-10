@@ -37,12 +37,10 @@ namespace KinKal {
       void update(PKTRAJ const& pktraj) override;
       bool isActive() const override { return active_; }
       EXINGPTR const& detXingPtr() const override { return dxing_; }
-      unsigned nDOF() const override { return active_ ? 1 : 0; }
+      unsigned nDOF() const override { return ndof_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      
+      // WireHit specific functions
       Line const& wire() const { return wire_; }
-      // set the null variance given the min DOCA used to assign LR ambiguity.  This assumes a flat DOCA distribution
-      void setNullVar(double mindoca) { nullvar_ = mindoca*mindoca/12.0; }
       void setAmbig(LRAmbig newambig) { ambig_ = newambig; }
       WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig=LRAmbig::null);
       virtual ~WireHit(){}
@@ -51,54 +49,55 @@ namespace KinKal {
       Residual const& refResidual() const { return rresid_; }
       Parameters const& refParams() const { return rparams_; }
     private:
-      void setResidual(PTCA const& tpoca);
+      void setWeight(PTCA const& tpoca); // compute the weights
       Line wire_; // local linear approximation to the wire of this hit.  The range describes the active wire length
       WireCell const& cell_; // cell description
-      double nullvar_; // variance of the error in space for null ambiguity
+      double vdrift0_; // drift velocity at 0 drift distance
+      double tmax_; // maximum time to use drift info
       LRAmbig ambig_; // current ambiguity assignment: can change during a fit
       bool active_; // active or not (pat. rec. tool)
+      unsigned ndof_; // nominally 1 for active time hits, but can be otherwise
       BFieldMap const& bfield_;
       EXINGPTR dxing_; // material xing
       // caches used in processing
       Residual rresid_; // residual WRT most recent reference parameters
+      Weights weight_; // measurement weight WRT most recent parameters
       Parameters rparams_; // reference parameters
       double precision_; // current precision
   };
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, WireCell const& cell, EXINGPTR const& dxing, LRAmbig ambig) : 
-    wire_(wire), cell_(cell), ambig_(ambig), active_(true), bfield_(bfield), dxing_(dxing), precision_(1e-6) { setNullVar(cell_.size()); }
+    wire_(wire), cell_(cell), ambig_(ambig), active_(true), ndof_(1), bfield_(bfield), dxing_(dxing), precision_(1e-6) {
+    // initial nvariance is the cell size. This assumes a flat DOCA distribution.  We need the drift velocity for this
+      POL2 drift(0.0,0.0);
+      double tdrift, tdvar; // I don't need these, but they are part of the call
+      cell_.distanceToTime(drift, tdrift, tdvar, vdrift0_);
+      tmax_ = cell_.size()/vdrift0_;
+    }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
-    if(isActive()){
-      // convert derivatives to a Nx1 matrix (for root)
-      ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
-      dRdPM.Place_in_col(rresid_.dRdP(),0,0);
-      // convert the variance into a 1X1 matrix
-      ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
-      // weight by inverse variance
-      double tvar = rresid_.variance();
-      RVarM(0,0) = 1.0/tvar;
-      // expand these into the weight matrix
-      DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
-      // translate residual value into weight vector WRT the reference parameters
-      // sign convention reflects resid = measurement - prediction
-      DVEC wvec = wmat*rparams_.parameters() + rresid_.dRdP()*rresid_.value()/tvar;
-      return Weights(wvec,wmat);
-    } else
-      return Weights();
+    return weight_;
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // compute PTCA.  Use the wire middle as hint
+    // compute PTCA.  Default hint is the wire middle
     CAHint tphint(wire_.range().mid(),wire_.range().mid());
+    // if we already have a residual from the previous iteration, use that hint instead
     if(rresid_.tPoca().usable())
       tphint = CAHint(rresid_.tPoca().particleToca(),rresid_.tPoca().sensorToca());
     PTCA tpoca(pktraj,wire_,tphint,precision_);
-    setResidual(tpoca);
-    rparams_ = pktraj.nearestPiece(rresid_.time()).params();
+    if(tpoca.usable()){
+      rparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
+      if(isActive())
+	setWeight(tpoca);
+      else 
+	weight_ = Weights(); // null weight
+    } else
+      throw std::runtime_error("TCA failure");
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+    // use DOCA to set the ambiguity.  This is a crude implementation, it should be moved to an example class, FIXME
     precision_ = miconfig.tprec_;
     // update to move to the new trajectory
     update(pktraj);
@@ -112,27 +111,31 @@ namespace KinKal {
       }
     }
     if(whupdater != 0){
-      // use DOCA to set the ambiguity
       double doca = rresid_.tPoca().doca();
       if(fabs(doca) > whupdater->mindoca_){
 	LRAmbig newambig = doca > 0.0 ? LRAmbig::right : LRAmbig::left;
 	setAmbig(newambig);
+	ndof_ = 1;
       } else {
 	setAmbig(LRAmbig::null);
-	setNullVar(std::min(cell_.size(),whupdater->mindoca_));
+	tmax_ = std::min(cell_.size(),whupdater->mindoca_)/vdrift0_;
+	ndof_ = 1;
+//	ndof_ = 2; // adding t0 constraint increases the DOFs
       }
       // decide if the hit is consistent with this track, and if not disable/enable it.
       // for now, just look at DOCA, but could look at other information.  This should be
       // delegated to the hit updater as a function FIXME!
       active_ = fabs(doca) < whupdater->maxdoca_;
+      if(!active_)ndof_ = 0;
     // now update again in case the hit changed
       update(pktraj);
     }
   // OK if no updater is found, hits may be frozen this meta-iteration
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::setResidual(PTCA const& tpoca) {
-    if(tpoca.usable()){
+  template <class KTRAJ> void WireHit<KTRAJ>::setWeight(PTCA const& tpoca) {
+    if(ambig_ != LRAmbig::null){
+      // compute the precise drift
       // translate PTCA to residual
       VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
       auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BFieldMap
@@ -144,18 +147,47 @@ namespace KinKal {
       cell_.distanceToTime(drift, tdrift, tdvar, vdrift);
       // Use ambiguity to convert drift time to a time difference.   null ambiguity means ignore drift time
       auto iambig = static_cast<std::underlying_type<LRAmbig>::type>(ambig_);
-      double dsign = copysign(1.0,iambig*tpoca.lSign()); // overall sign is the product of ambiguity and doca sign
+      double dsign = iambig*tpoca.lSign(); // overall sign is the product of ambiguity and doca sign
       double dt = tpoca.deltaT()-tdrift*dsign;
-      if(ambig_ != LRAmbig::null){ 
-	// residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
-	DVEC dRdP = tpoca.dDdP()*iambig/vdrift - tpoca.dTdP(); 
-	rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,tdvar,dRdP);
-      } else {
-	// interpret DOCA against the wire directly as the residual.  
-	rresid_ = Residual(Residual::distance,tpoca.tpData(),-tpoca.doca(),nullvar_,tpoca.dDdP());
-      }
-    } else
-      throw std::runtime_error("TCA failure");
+      // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
+      DVEC dRdP = tpoca.dDdP()*dsign/vdrift - tpoca.dTdP(); 
+      rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,tdvar,dRdP);
+    } else {
+      // interpret DOCA against the wire directly as the residual.  
+      DVEC dRdP = tpoca.dDdP()*tpoca.lSign()/vdrift0_;
+      double dt = -tpoca.doca()/vdrift0_;
+      double nullvar = tmax_*tmax_/6.0; // signed doca is between [-v*tmax, v*tmax];
+      rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,nullvar,dRdP);
+    }
+    // convert derivatives to a Nx1 matrix (for root)
+    ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
+    dRdPM.Place_in_col(rresid_.dRdP(),0,0);
+    // convert the variance into a 1X1 matrix
+    ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
+    // weight by inverse variance
+    double tvar = rresid_.variance();
+    RVarM(0,0) = 1.0/tvar;
+    // expand these into the weight matrix
+    DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
+    // translate residual value into weight vector WRT the reference parameters
+    // sign convention reflects resid = measurement - prediction
+    DVEC wvec = wmat*rparams_.parameters() + rresid_.dRdP()*rresid_.value()/tvar;
+    weight_ = Weights(wvec,wmat);
+    if(ambig_ == LRAmbig::null){
+// absolute time constraint for the null ambig hits.  This won't show up in the residual, but will in the weight
+// this can be added because weights are additive
+      ROOT::Math::SMatrix<double,NParams(),1> dRdPM_dt;
+      dRdPM_dt.Place_in_col(tpoca.dTdP(),0,0);
+      ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM_dt;
+      double nullvar_dt = tmax_*tmax_/12.0; // dt is between 0 and tmax
+      RVarM_dt(0,0) = 1.0/nullvar_dt;
+      DMAT wmat_dt = ROOT::Math::Similarity(dRdPM_dt,RVarM_dt);
+      // correct time difference for the average drift.  This will need to be calibrated for a real ambig resolver TODO!
+      double dt = tpoca.deltaT() - 0.5*tmax_;
+      DVEC wvec_dt = wmat_dt*rparams_.parameters() - tpoca.dTdP()*dt/nullvar_dt;
+      //      std::cout << "dt " << dt << std::endl;
+//      weight_ += Weights(wvec_dt,wmat_dt);
+    }
   }
 
   template <class KTRAJ> double WireHit<KTRAJ>::chi(Parameters const& pdata) const {

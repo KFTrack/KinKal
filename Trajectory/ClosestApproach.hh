@@ -130,7 +130,7 @@ namespace KinKal {
       VEC3 dvec = delta().Vect();
       tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(particleDirection()).Dot(dvec));
       tpdata_.doca_ = dvec.R()*tpdata_.lsign_;
-      VEC3 dvechat = (tpdata_.lsign_*dvec).Unit();
+      VEC3 dvechat = dvec.Unit();
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktraj_.dXdPar(particleToca());
