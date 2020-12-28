@@ -1,26 +1,24 @@
-#ifndef KinKal_FitStatus_hh
-#define KinKal_FitStatus_hh
+#ifndef KinKal_Status_hh
+#define KinKal_Status_hh
+#include "KinKal/Fit/Chisq.hh"
 #include <ostream>
 #include <string>
 #include <vector>
-#include <limits>
 
 namespace KinKal {
 // struct to define fit status
-  struct FitStatus {
+  struct Status {
     enum status {unfit=-1,converged,unconverged,oscillating,diverged,lowNDOF,failed}; // fit status
     int miter_; // meta-iteration number;
     int iter_; // iteration number;
     status status_; // current status
-    double chisq_; // current chisquared
-    unsigned ndof_; // current number of degrees of freedom
-    double prob_; // chisquared probability
+    Chisq chisq_; // current chisquared
     std::string comment_; // further information about the status 
     bool usable() const { return status_ !=failed &&  status_ !=diverged; }
     bool needsFit() const { return status_ == unfit || status_ == unconverged; }
-    FitStatus(unsigned miter) : miter_(miter), iter_(-1), status_(unfit), chisq_(std::numeric_limits<double>::max()), ndof_(0), prob_(-1.0){}
+    Status(unsigned miter) : miter_(miter), iter_(-1), status_(unfit){}
     static std::string statusName(status stat);
   };
-  std::ostream& operator <<(std::ostream& os, FitStatus fitstatus );
+  std::ostream& operator <<(std::ostream& os, Status const& fitstatus );
 }
 #endif

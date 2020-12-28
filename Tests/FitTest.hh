@@ -425,7 +425,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     rulers->GetZaxis()->SetLabelColor(kOrange);
     rulers->Draw();
     pttcan->Write();
-    if (kktrk.fitStatus().status_ != KinKal::FitStatus::converged)retval = -1;
+    if (kktrk.fitStatus().status_ != KinKal::Status::converged)retval = -1;
   } else {
     TTree* ftree(0);
     KKHIV hinfovec;
@@ -563,11 +563,11 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       auto const& fstat = kktrk.fitStatus();
-      if(fstat.status_ == FitStatus::failed)nfail++;
-      if(fstat.status_ == FitStatus::diverged)ndiv++;
+      if(fstat.status_ == Status::failed)nfail++;
+      if(fstat.status_ == Status::diverged)ndiv++;
       niter_ = 0;
       for(auto const& fstat: kktrk.history()){
-	if(fstat.status_ != FitStatus::unfit)niter_++;
+	if(fstat.status_ != Status::unfit)niter_++;
       }
       // reset some fit parameters, to signal failed filts
       chiprob_ = -1.0;
@@ -576,12 +576,12 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       // fill effect information
       nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
       // accumulate chisquared info
-      chisq_ = fstat.chisq_;
-      ndof_ = fstat.ndof_;
+      chisq_ = fstat.chisq_.chisq();
+      ndof_ = fstat.chisq_.nDOF();
       niter_ = fstat.iter_;
       nmeta_ = fstat.miter_;
       status_ = fstat.status_;
-      chiprob_ = fstat.prob_;
+      chiprob_ = fstat.chisq_.probability();
       hinfovec.clear();
       bfinfovec.clear();
       minfovec.clear();
@@ -604,9 +604,9 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	ftmom_ = tptraj.momentum(ttlow);
 	mtmom_ = tptraj.momentum(ttmid);
 	btmom_ = tptraj.momentum(tthigh);
-	ndof->Fill(fstat.ndof_);
-	chisq->Fill(fstat.chisq_);
-	chisqndof->Fill(fstat.chisq_/fstat.ndof_);
+	ndof->Fill(ndof_);
+	chisq->Fill(chisq_);
+	chisqndof->Fill(fstat.chisq_.chisqPerNDOF());
 	chisqprob->Fill(chiprob_);
 	if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
 	hniter->Fill(niter_);
@@ -620,7 +620,8 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    HitInfo hinfo;
 	    hinfo.active_ = kkhit->isActive();
 	    hinfo.time_ = kkhit->time();
-	    hinfo.fitchi_ = kkhit->fitChi();
+	    hinfo.chisq_ = kkhit->chisq().chisq();
+	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());

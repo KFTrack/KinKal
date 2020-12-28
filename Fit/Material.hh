@@ -65,14 +65,14 @@ namespace KinKal {
       	kkdata.append(reverse);
       }
     }
-    KKEFF::setStatus(tdir,KKEFF::processed);
+    KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref) {
     cache_ = Weights();
     ref_ = ref.nearestPiece(dxing_->crossingTime()); 
     updateCache();
-    KKEFF::updateStatus();
+    KKEFF::updateState();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {

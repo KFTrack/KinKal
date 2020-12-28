@@ -53,10 +53,10 @@ namespace KinKal {
       Line wire_; // local linear approximation to the wire of this hit.  The range describes the active wire length
       WireCell const& cell_; // cell description
       double vdrift0_; // drift velocity at 0 drift distance
-      double tmax_; // maximum time to use drift info
+      double mind_; // minimum DOCA to use drift info
       LRAmbig ambig_; // current ambiguity assignment: can change during a fit
       bool active_; // active or not (pat. rec. tool)
-      unsigned ndof_; // nominally 1 for active time hits, but can be otherwise
+      unsigned ndof_; // nominally 1 for active time hits
       BFieldMap const& bfield_;
       EXINGPTR dxing_; // material xing
       // caches used in processing
@@ -72,7 +72,7 @@ namespace KinKal {
       POL2 drift(0.0,0.0);
       double tdrift, tdvar; // I don't need these, but they are part of the call
       cell_.distanceToTime(drift, tdrift, tdvar, vdrift0_);
-      tmax_ = cell_.size()/vdrift0_;
+      mind_ = cell_.size();
     }
 
   template <class KTRAJ> Weights WireHit<KTRAJ>::weight() const {
@@ -111,14 +111,14 @@ namespace KinKal {
       }
     }
     if(whupdater != 0){
-      double doca = rresid_.tPoca().doca();
+      double doca = fabs(rresid_.tPoca().doca());
       if(fabs(doca) > whupdater->mindoca_){
 	LRAmbig newambig = doca > 0.0 ? LRAmbig::right : LRAmbig::left;
 	setAmbig(newambig);
 	ndof_ = 1;
       } else {
 	setAmbig(LRAmbig::null);
-	tmax_ = std::min(cell_.size(),whupdater->mindoca_)/vdrift0_;
+	mind_ = std::min(cell_.size(),whupdater->mindoca_);
 	ndof_ = 1;
 //	ndof_ = 2; // adding t0 constraint increases the DOFs
       }
@@ -154,10 +154,10 @@ namespace KinKal {
       rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,tdvar,dRdP);
     } else {
       // interpret DOCA against the wire directly as the residual.  
-      DVEC dRdP = tpoca.dDdP()*tpoca.lSign()/vdrift0_;
-      double dt = -tpoca.doca()/vdrift0_;
-      double nullvar = tmax_*tmax_/6.0; // signed doca is between [-v*tmax, v*tmax];
-      rresid_ = Residual(Residual::dtime,tpoca.tpData(),dt,nullvar,dRdP);
+      DVEC dRdP = tpoca.dDdP();
+      double dd = -fabs(tpoca.doca())*tpoca.lSign();
+      double nullvar = mind_*mind_/3.0; // signed doca is between [-mind_, mind_];
+      rresid_ = Residual(Residual::distance,tpoca.tpData(),dd,nullvar,dRdP);
     }
     // convert derivatives to a Nx1 matrix (for root)
     ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
@@ -179,11 +179,12 @@ namespace KinKal {
       ROOT::Math::SMatrix<double,NParams(),1> dRdPM_dt;
       dRdPM_dt.Place_in_col(tpoca.dTdP(),0,0);
       ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM_dt;
-      double nullvar_dt = tmax_*tmax_/12.0; // dt is between 0 and tmax
+      double mint = mind_/vdrift0_; // minimum drift time is given by the min DOCA
+      double nullvar_dt = mint*mint/12.0; // drift time is between mint and 0
       RVarM_dt(0,0) = 1.0/nullvar_dt;
       DMAT wmat_dt = ROOT::Math::Similarity(dRdPM_dt,RVarM_dt);
       // correct time difference for the average drift.  This will need to be calibrated for a real ambig resolver TODO!
-      double dt = tpoca.deltaT() - 0.5*tmax_;
+      double dt = tpoca.deltaT() - 0.5*mint;
       DVEC wvec_dt = wmat_dt*rparams_.parameters() - tpoca.dTdP()*dt/nullvar_dt;
       //      std::cout << "dt " << dt << std::endl;
 //      weight_ += Weights(wvec_dt,wmat_dt);
