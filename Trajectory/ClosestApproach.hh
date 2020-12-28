@@ -49,6 +49,7 @@ namespace KinKal {
       bool usable() const { return tpdata_.usable(); }
       double particleToca() const { return tpdata_.particleToca(); }
       double sensorToca() const { return tpdata_.sensorToca(); }
+      double lSign() const { return tpdata_.lsign_; } // sign of angular momentum
       VEC4 const& particlePoca() const { return tpdata_.particlePoca(); }
       VEC4 const& sensorPoca() const { return tpdata_.sensorPoca(); }
       VEC4 delta() const { return tpdata_.delta(); }
@@ -127,21 +128,14 @@ namespace KinKal {
     if(usable()){
       // sign doca by angular momentum projected onto difference vector
       VEC3 dvec = delta().Vect();
-      // check
-//      if(fabs(dvec.Dot(particleDirection())) > 1e-4 ||
-//	  fabs(dvec.Dot(sensorDirection())) > 1e-4 ) std::cout << "Error in CA calculation" 
-//	  << dvec.Dot(particleDirection())
-//	  << std::endl;
-      double lsign = sensorDirection().Cross(particleDirection()).Dot(dvec);
-      double dsign = copysign(1.0,lsign);
-      tpdata_.doca_ = dvec.R()*dsign;
-      VEC3 dvechat = (dsign*dvec).Unit();
+      tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(particleDirection()).Dot(dvec));
+      tpdata_.doca_ = dvec.R()*tpdata_.lsign_;
+      VEC3 dvechat = dvec.Unit();
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktraj_.dXdPar(particleToca());
       SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
       dDdP_ = -dv*dxdp;
-//      if(fabs(dDdP_[KTRAJ::t0Index()]) > 1e-4) std::cout << "Error in t0 TCA derivative " << dDdP_[KTRAJ::t0Index()] << std::endl;
       dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.
       // project the parameter covariance onto DOCA and TOCA
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktraj_.params().covariance());

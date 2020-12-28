@@ -60,7 +60,7 @@ namespace KinKal {
       	kkdata.append(reverse);
       }
     }
-    KKEFF::setStatus(tdir,KKEFF::processed);
+    KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref) {
@@ -80,7 +80,7 @@ namespace KinKal {
       dbeff_.parameters() += begtraj.dPardB(etime,endtraj.bnom()); // check sign FIXME!
     }
     // eventually include field map uncertainties in dbeff_ covariance TODO!
-    KKEFF::updateStatus();
+    KKEFF::updateState();
   }
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {

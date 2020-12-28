@@ -178,7 +178,6 @@ namespace KKTest {
 	default:
 	  throw std::invalid_argument("Invalid direction");
       }
-      //	cout << "mom change dir " << MomBasis::directionName(mdir) << " mean " << dmom[idir]  << " +- " << momsig << " value " << dm  << endl;
       auto dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
@@ -211,18 +210,6 @@ namespace KKTest {
     Line lline(lmeas,lvel,tmeas,trange);
     // then create the hit and add it; the hit has no material
     thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
-    // test
-    //    cout << "cstart " << cstart << " pos " << hend << endl;
-    //    cout << "shmax_ " << ltime << " pos " << shmpos  << endl;
-    //    VEC3 lhpos;
-    //    lline.position3(tmeas,lhpos);
-    //    cout << "tmeas " <<  tmeas  << " pos " << lmeas  << " llinepos " << lhpos << endl;
-    //    Residual lres;
-    //    thits.back()->resid(pktraj,lres);
-    //    cout << "ScintHit " << lres << endl;
-    //    PTCA tpl(pktraj,lline);
-    //    cout <<"Light PTCA ";
-    //    tpl.print(cout,2);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,double momvar, double posvar,bool smearseed){

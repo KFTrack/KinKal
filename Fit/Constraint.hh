@@ -18,9 +18,8 @@ namespace KinKal {
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;
       
-      unsigned nDOF() const override { return hit_->isActive() ? hit_->nDOF() : 0; }
-      double fitChi() const override; 
-      double chisq(Parameters const& pdata) const override;
+      Chisq chisq() const override; 
+      Chisq chisq(Parameters const& pdata) const override;
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
       void process(FitState& kkdata,TimeDir tdir) override;
@@ -59,7 +58,7 @@ namespace KinKal {
       // add this effect's information
       kkdata.append(hitwt_);
     }
-    KKEFF::setStatus(tdir,KKEFF::processed);
+    KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj) {
@@ -72,7 +71,7 @@ namespace KinKal {
     // scale weight for the temp
     hitwt_ *= 1.0/vscale_;
     // ready for processing!
-    KKEFF::updateStatus();
+    KKEFF::updateState();
   }
 
   template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
@@ -85,24 +84,24 @@ namespace KinKal {
     update(pktraj);
   }
 
-  template<class KTRAJ> double Constraint<KTRAJ>::chisq(Parameters const& pdata) const {
-    double retval(0.0);
+  template<class KTRAJ> Chisq Constraint<KTRAJ>::chisq(Parameters const& pdata) const {
     if(this->isActive()) {
       double chi = hit_->chi(pdata);
+      int ndof = hit_->isActive() ? hit_->nDOF() : 0;
       // correct for current variance scaling
-      retval = chi*chi/vscale_;
-    }
-    return retval;
+      double chi2 = chi*chi/vscale_;
+      return Chisq(chi2,ndof);
+    } else
+      return Chisq();
   }
 
-  template<class KTRAJ> double Constraint<KTRAJ>::fitChi() const {
-    double retval(0.0);
+  template<class KTRAJ> Chisq Constraint<KTRAJ>::chisq() const {
     if(this->isActive() && KKEFF::wasProcessed(TimeDir::forwards) && KKEFF::wasProcessed(TimeDir::backwards)) {
     // Invert the cache to get unbiased parameters at this hit
       Parameters unbiased(wcache_);
-      retval = hit_->chi(unbiased)/vscale_;
-    }
-    return retval;
+      return chisq(unbiased);
+    } else
+      return Chisq();
   }
 
   template <class KTRAJ> void Constraint<KTRAJ>::print(std::ostream& ost, int detail) const {

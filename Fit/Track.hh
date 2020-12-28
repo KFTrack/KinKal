@@ -43,7 +43,7 @@
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/FitStatus.hh"
+#include "KinKal/Fit/Status.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
 #include "TMath.h"
 #include <set>
@@ -84,8 +84,8 @@ namespace KinKal {
       Track(KKCONFIGPTR config, KTRAJ const& seedtraj, MEASCOL& thits, EXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
-      std::vector<FitStatus> const& history() const { return history_; }
-      FitStatus const& fitStatus() const { return history_.back(); } // most recent status
+      std::vector<Status> const& history() const { return history_; }
+      Status const& fitStatus() const { return history_.back(); } // most recent status
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
@@ -94,14 +94,14 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
-      void update(FitStatus const& fstat, MetaIterConfig const& miconfig);
-      void fitIteration(FitStatus& status, MetaIterConfig const& miconfig);
+      void update(Status const& fstat, MetaIterConfig const& miconfig);
+      void fitIteration(Status& status, MetaIterConfig const& miconfig);
       bool canIterate() const;
-      bool oscillating(FitStatus const& status, MetaIterConfig const& miconfig) const;
+      bool oscillating(Status const& status, MetaIterConfig const& miconfig) const;
       void createRefTraj(KTRAJ const& seedtraj);
       // payload
       KKCONFIGPTR config_; // configuration
-      std::vector<FitStatus> history_; // fit status history; records the current iteration
+      std::vector<Status> history_; // fit status history; records the current iteration
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
@@ -148,7 +148,7 @@ namespace KinKal {
       auto miconfig  = *imiconfig;
       miconfig.miter_  = std::distance(config().schedule().begin(),imiconfig);
       // algebraic convergence iteration
-      FitStatus fstat(miconfig.miter_);
+      Status fstat(miconfig.miter_);
       history_.push_back(fstat);
       if(config_->plevel_ >= Config::basic)std::cout << "Processing fit meta-iteration " << miconfig << std::endl;
       while(canIterate()) {
@@ -157,7 +157,7 @@ namespace KinKal {
 	  update(fstat,miconfig);
 	  fitIteration(fstat,miconfig);
 	} catch (std::exception const& error) {
-	  fstat.status_ = FitStatus::failed;
+	  fstat.status_ = Status::failed;
 	  fstat.comment_ = error.what();
 	}
 	// record this status in the history
@@ -168,11 +168,10 @@ namespace KinKal {
   }
 
   // single algebraic iteration 
-  template <class KTRAJ> void Track<KTRAJ>::fitIteration(FitStatus& fstat, MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void Track<KTRAJ>::fitIteration(Status& fstat, MetaIterConfig const& miconfig) {
     if(config_->plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fstat.iter_ << std::endl;
     // reset counters
-    fstat.chisq_ = 0.0;
-    fstat.ndof_ = -(int)NParams();
+    fstat.chisq_ = Chisq(0.0, -(int)NParams());
     fstat.iter_++;
     // fit in both directions (order doesn't matter)
     auto feff = effects_.begin();
@@ -180,9 +179,8 @@ namespace KinKal {
     FitState forwardstate;
     while(feff != effects_.end()){
       auto ieff = feff->get();
-      // update chisquared; only needed forwards
-      fstat.ndof_ += ieff->nDOF();
-      double dchisq = ieff->chisq(forwardstate.pData());
+      // update chisquared increment WRT the current state: only needed forwards
+      Chisq dchisq = ieff->chisq(forwardstate.pData());
       fstat.chisq_ += dchisq;
       // process
       ieff->process(forwardstate,TimeDir::forwards);
@@ -192,7 +190,6 @@ namespace KinKal {
       }
       feff++;
     }
-    fstat.prob_ = TMath::Prob(fstat.chisq_,fstat.ndof_);
     // reset the fit information and process backwards (the order does not matter)
     FitState backwardstate;
     auto beff = effects_.rbegin();
@@ -212,22 +209,22 @@ namespace KinKal {
     beff = effects_.rbegin(); beff++;
     fittraj_.front().range().begin() = (*feff)->time() - config().tbuff_;
     fittraj_.back().range().end() = (*beff)->time() + config().tbuff_;
-    // update status.  Convergence criteria is iteration-dependent
-    double dchisq = (fstat.chisq_ -fitStatus().chisq_)/fstat.ndof_;
-    if (fstat.ndof_ < config().minndof_){
-      fstat.status_ = FitStatus::lowNDOF;
+    // update status.  Convergence criteria is iteration-dependent.
+    double dchisq = fstat.chisq_.chisqPerNDOF() - fitStatus().chisq_.chisqPerNDOF();
+    if (fstat.chisq_.nDOF() < config().minndof_){
+      fstat.status_ = Status::lowNDOF;
     } else if(fabs(dchisq) < miconfig.convdchisq_) {
-      fstat.status_ = FitStatus::converged;
+      fstat.status_ = Status::converged;
     } else if (dchisq > miconfig.divdchisq_) {
-      fstat.status_ = FitStatus::diverged;
+      fstat.status_ = Status::diverged;
     } else if(oscillating(fstat,miconfig)){
-      fstat.status_ = FitStatus::oscillating;
+      fstat.status_ = Status::oscillating;
     } else
-      fstat.status_ = FitStatus::unconverged;
+      fstat.status_ = Status::unconverged;
   }
 
   // update between iterations 
-  template <class KTRAJ> void Track<KTRAJ>::update(FitStatus const& fstat, MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void Track<KTRAJ>::update(Status const& fstat, MetaIterConfig const& miconfig) {
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
       if(miconfig.miter_ > 0)// if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
 	reftraj_ = fittraj_;
@@ -246,11 +243,11 @@ namespace KinKal {
     return fitStatus().needsFit() && fitStatus().iter_ < config().maxniter_;
   }
 
-  template<class KTRAJ> bool Track<KTRAJ>::oscillating(FitStatus const& fstat, MetaIterConfig const& miconfig) const {
+  template<class KTRAJ> bool Track<KTRAJ>::oscillating(Status const& fstat, MetaIterConfig const& miconfig) const {
     if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
-      double d1 = fstat.chisq_ - history_.back().chisq_;
-      double d2 = fstat.chisq_ - history_[history_.size()-2].chisq_;
-      double d3 = history_.back().chisq_ - history_[history_.size()-3].chisq_;
+      double d1 = fstat.chisq_.chisqPerNDOF() - history_.back().chisq_.chisqPerNDOF();
+      double d2 = fstat.chisq_.chisqPerNDOF() - history_[history_.size()-2].chisq_.chisqPerNDOF();
+      double d3 = history_.back().chisq_.chisqPerNDOF() - history_[history_.size()-3].chisq_.chisqPerNDOF();
       if(d1*d2 < 0.0 && d1*d3 > 0.0 && fabs(d1) - fabs(d2) < miconfig.oscdchisq_ && fabs(fabs(d2) - fabs(d3)) < miconfig.oscdchisq_) return true;
     }
     return false;
