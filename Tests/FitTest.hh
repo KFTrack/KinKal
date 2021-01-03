@@ -12,7 +12,7 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/ParameterConstraint.hh"
+#include "KinKal/Fit/ParameterHit.hh"
 #include "KinKal/Fit/Constraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
@@ -131,8 +131,8 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
-  using PCONSTRAINT = ParameterConstraint<KTRAJ>;
-  using PCONSTRAINTPTR = std::shared_ptr<PCONSTRAINT>;
+  using PARHIT = ParameterHit<KTRAJ>;
+  using PARHITPTR = std::shared_ptr<PARHIT>;
   using Clock = std::chrono::high_resolution_clock;
   using PMASK = std::array<bool,NParams()>; // parameter mask
 
@@ -352,7 +352,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     // take the true parameters but the seed covariance
     Parameters cparams = front.params();
     cparams.covariance() = seedtraj.params().covariance();
-    thits.push_back(std::make_shared<PCONSTRAINT>(front.range().begin(),cparams,mask));
+    thits.push_back(std::make_shared<PARHIT>(front.range().begin(),cparams,mask));
   }
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -556,7 +556,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	auto const& front = tptraj.front();
 	Parameters cparams = front.params();
 	cparams.covariance() = seedtraj.params().covariance();
-	thits.push_back(std::make_shared<PCONSTRAINT>(front.range().mid(),cparams,mask));
+	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
       KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -618,14 +618,14 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	  if(kkhit != 0){
 	    nkkhit_++;
 	    HitInfo hinfo;
-	    hinfo.active_ = kkhit->isActive();
+	    hinfo.active_ = kkhit->active();
 	    hinfo.time_ = kkhit->time();
 	    hinfo.chisq_ = kkhit->chisq().chisq();
 	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-	    const PCONSTRAINT* constraint = dynamic_cast<const PCONSTRAINT*>(kkhit->hit().get());
+	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
 	    if(strawhit != 0){
 	      hinfo.type_ = HitInfo::straw;
 	      hinfo.resid_ = strawhit->refResidual().value();
@@ -650,7 +650,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    nkkmat_++;
 	    KinKal::MaterialInfo minfo;
 	    minfo.time_ = kkmat->time();
-	    minfo.active_ = kkmat->isActive();
+	    minfo.active_ = kkmat->active();
 	    minfo.nxing_ = kkmat->detXing().matXings().size();
 	    std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
 	    kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
@@ -662,7 +662,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	  if(kkbf != 0){
 	    nkkbf_++;
 	    BFieldInfo bfinfo;
-	    bfinfo.active_ = kkbf->isActive();
+	    bfinfo.active_ = kkbf->active();
 	    bfinfo.time_ = kkbf->time();
 	    bfinfo.dp_ = kkbf->deltaP().R();
 	    bfinfo.range_ = kkbf->range().range();

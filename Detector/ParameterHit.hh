@@ -1,15 +1,15 @@
-#ifndef KinKal_ParameterConstraint_hh
-#define KinKal_ParameterConstraint_hh
+#ifndef KinKal_ParameterHit_hh
+#define KinKal_ParameterHit_hh
 //
-//  direct constraint on a subset of parameters expressed as a 'measurement'
-//  Used as part of the kinematic Kalman fit
+//  direct constraint on a subset of parameters expressed as a 'hit'.  This allows
+//  external information to be added to the fit.
 //
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/General/Vectors.hh"
 #include <stdexcept>
 namespace KinKal {
 
-  template <class KTRAJ> class ParameterConstraint : public Hit<KTRAJ> {
+  template <class KTRAJ> class ParameterHit : public Hit<KTRAJ> {
     public:
       using PMASK = std::array<bool,NParams()>; // parameter mask
       using HIT = Hit<KTRAJ>;
@@ -25,13 +25,13 @@ namespace KinKal {
       // constraints are absolute and can't be updatedA
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
       void update(PKTRAJ const& pktraj) override {}
-      bool isActive() const override { return ncons_ > 0; }
+      bool active() const override { return ncons_ > 0; }
       EXINGPTR const& detXingPtr() const override { return null_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // construct from constraint values, time, and mask of which parameters to constrain
-      ParameterConstraint(double time, Parameters const& params, PMASK const& pmask);
-      virtual ~ParameterConstraint(){}
-      // ParameterConstraint-specfic interface
+      ParameterHit(double time, Parameters const& params, PMASK const& pmask);
+      virtual ~ParameterHit(){}
+      // ParameterHit-specfic interface
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
@@ -44,7 +44,7 @@ namespace KinKal {
       EXINGPTR null_; // null detector material crossing 
   };
 
-  template<class KTRAJ> ParameterConstraint<KTRAJ>::ParameterConstraint(double time, Parameters const& params, PMASK const& pmask) :
+  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :
     time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
       weight_ = Weights(params_);
       // count constrained parameters, and mask off unused parameters
@@ -61,8 +61,9 @@ namespace KinKal {
       weight_.weightVec() = weight_.weightVec()*mask_;
     }
 
-  template <class KTRAJ> double ParameterConstraint<KTRAJ>::chi(Parameters const& pdata) const {
-  // chi measures the dimensionless 'distance' between this constraint and the given parameters.
+  template <class KTRAJ> double ParameterHit<KTRAJ>::chi(Parameters const& pdata) const {
+  // chi measures the dimensionless tension between this constraint and the given parameters, including uncertainty
+  // on both the measurement and the trajectory estimate.
   // Compute as the parameter difference contracted through the sum covariance of the 2.
     Parameters pdiff = pdata;
     pdiff.parameters() *= -1.0; // so I can subtract in the next step
@@ -77,12 +78,12 @@ namespace KinKal {
     return sqrt(chisq);
   }
 
-  template<class KTRAJ> void ParameterConstraint<KTRAJ>::print(std::ostream& ost, int detail) const {
-    if(this->isActive())
+  template<class KTRAJ> void ParameterHit<KTRAJ>::print(std::ostream& ost, int detail) const {
+    if(this->active())
       ost<<"Active ";
     else
       ost<<"Inactive ";
-    ost << " ParameterConstraint Hit" << std::endl;
+    ost << " ParameterHit Hit" << std::endl;
     if(detail > 0){
       for(size_t ipar=0;ipar < NParams(); ipar++){
 	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);

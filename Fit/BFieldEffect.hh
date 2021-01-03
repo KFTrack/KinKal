@@ -21,7 +21,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
-      bool isActive() const override { return active_ && bfcorr_ != Config::nocorr; }
+      bool active() const override { return active_ && bfcorr_ != Config::nocorr; }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;

@@ -20,7 +20,7 @@ namespace KinKal {
 	vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
 	return update(ref); }
       double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
-      bool isActive() const override { return true; }
+      bool active() const override { return true; }
       void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;

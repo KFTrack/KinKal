@@ -20,7 +20,7 @@ namespace KinKal {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       double time() const override { return dxing_->crossingTime() + 1.0e-3;} // small positive offset to disambiguate WRT hits should be a parameter FIXME!
-      bool isActive() const override { return active_ && dxing_->matXings().size() > 0; }
+      bool active() const override { return active_ && dxing_->matXings().size() > 0; }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;

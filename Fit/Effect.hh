@@ -24,7 +24,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // properties common to all effects
       virtual double time() const = 0; // time of this effect
-      virtual bool isActive() const = 0; // whether this effect is/was used in the fit
+      virtual bool active() const = 0; // whether this effect is/was used in the fit
       // Add this effect to the ongoing fit in the given direction.
       virtual void process(FitState& kkdata,TimeDir tdir) = 0;
       // update this effect for a new reference trajectory within the existing algebraic iteration sequence
@@ -55,7 +55,7 @@ namespace KinKal {
   };
   
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Effect<KTRAJ> const& eff) {
-    ost << (eff.isActive() ? "Active " : "Inactive ") << "time " << eff.time() << " state " <<
+    ost << (eff.active() ? "Active " : "Inactive ") << "time " << eff.time() << " state " <<
     TimeDir::forwards << " " << eff.stateName(eff.state(TimeDir::forwards))  << " : " <<
     TimeDir::backwards << " " << eff.stateName(eff.state(TimeDir::backwards));
     return ost;
