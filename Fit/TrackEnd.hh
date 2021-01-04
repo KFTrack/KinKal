@@ -40,7 +40,10 @@ namespace KinKal {
       double vscale_; // variance scale (from annealing)
       Weights endeff_; // wdata representation of this effect's constraint/measurement
       KTRAJ endtraj_; // cache of parameters at the end of processing this direction, used in traj creation
-};
+      static double tbuff_; // buffer to range end
+  };
+
+  template <class KTRAJ> double TrackEnd<KTRAJ>::tbuff_ = 1.0; // this should come from the config FIXME!
 
   template <class KTRAJ> TrackEnd<KTRAJ>::TrackEnd(Config const& config, PKTRAJ const& pktraj, TimeDir tdir) :
     config_(config), tdir_(tdir) , vscale_(1.0),
@@ -53,7 +56,7 @@ namespace KinKal {
       // start the fit with the de-weighted info cached from the previous iteration or seed
       kkdata.append(endeff_);
     else
-    // at the opposite end, cache the final parameters
+      // at the opposite end, cache the final parameters
       endtraj_.params() = kkdata.pData();
     KKEFF::setState(tdir,KKEFF::processed);
   }
@@ -63,7 +66,12 @@ namespace KinKal {
     refend.covariance() *= (config_.dwt_/vscale_);
     // convert this to a weight (inversion)
     endeff_ = Weights(refend);
-    endtraj_.setRange(ref.range());
+    // set the range; this should buffer the original traj
+    if(tdir_ == TimeDir::forwards){
+      endtraj_.setRange(TimeRange(ref.range().begin()-tbuff_,ref.range().end()));
+    } else {
+      endtraj_.setRange(TimeRange(ref.range().begin(),ref.range().end()+tbuff_));
+    }
     // update BField reference
     double endtime = (tdir_ == TimeDir::forwards) ? ref.range().begin() : ref.range().end();
     bnom_ = config_.bfield_.fieldVect(ref.position3(endtime));
@@ -94,7 +102,7 @@ namespace KinKal {
       ost << "EndWeight " << endeff_ << std::endl;
     }
   }
-  
+
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, TrackEnd<KTRAJ> const& kkend) {
     kkend.print(ost,0);
     return ost;

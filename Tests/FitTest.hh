@@ -86,13 +86,12 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   while(fabs(dt) > 1e-5 && niter < maxniter){
     VEC3 v2 = kt2.velocity(t2);
     pos2 = kt2.position3(t2);
-// test
-//    delta = pos2.Z() - pos1.Z();
-//    dt = delta/v2.Z();
+    // test
+    //    delta = pos2.Z() - pos1.Z();
+    //    dt = delta/v2.Z();
     VEC3 dp = kt2.position3(t2) - pos1;
     dt = dp.Dot(v2)/v2.Mag2();
-
-t2 -= dt;
+    t2 -= dt;
     niter++;
   }
   if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
@@ -100,7 +99,7 @@ t2 -= dt;
 }
 
 template <class KTRAJ>
-int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
+int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   struct KTRAJPars{
     Float_t pars_[NParams()];
     static std::string leafnames() {
@@ -157,13 +156,15 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
   double tol(0.1);
-  double seedposvar(3.0); //position variance for seed smearing
   int iseed(123421);
   int conspar(-1), iprint(-1);
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
-  bool simmat(true), lighthit(true), seedsmear(true), nulltime(true);
+  double seedsmear(10.0);
+  double momsigma(0.5);
+  bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
+  TRandom3 tr_; // random number generator
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -190,7 +191,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
-    {"NullTime",     required_argument, 0, 'v'  },
+    {"nulltime",     required_argument, 0, 'v'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
@@ -236,7 +237,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
-      case 'M' : seedsmear = atoi(optarg);
+      case 'M' : seedsmear = atof(optarg);
 		 break;
       case 'N' : nevents = atoi(optarg);
 		 break;
@@ -306,7 +307,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj,sigmas[NParams()],seedposvar,seedsmear);
+  toy.createSeed(seedtraj,sigmas,seedsmear);
   if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
@@ -352,10 +353,14 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     cout << "Constraining parameter " << conspar << endl;
     mask[conspar] = true;
     auto const& front = tptraj.front();
-    // take the true parameters but the seed covariance
+    // smear the truth by the covariance
     Parameters cparams = front.params();
-    cparams.covariance() = seedtraj.params().covariance();
-    thits.push_back(std::make_shared<PARHIT>(front.range().begin(),cparams,mask));
+    for(size_t ipar=0; ipar < NParams(); ipar++){
+      double perr = sigmas[ipar];
+      cparams.covariance()[ipar][ipar] = perr*perr;
+      cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
+    }
+    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -529,9 +534,11 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
-    TH1F* fmomres = new TH1F("fmomres","Front Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
-    TH1F* mmomres = new TH1F("mmomres","Mid Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
-    TH1F* bmomres = new TH1F("bmomres","Back Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
+// convert
+
+    TH1F* fmomres = new TH1F("fmomres","Front Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
+    TH1F* mmomres = new TH1F("mmomres","Mid Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
+    TH1F* bmomres = new TH1F("bmomres","Back Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
     TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
@@ -553,12 +560,17 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
       KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
-      toy.createSeed(seedtraj,10*sigmas[NParams()],seedposvar,seedsmear);
+      toy.createSeed(seedtraj,sigmas,seedsmear);
   // if requested, constrain a parameter
       if(conspar >= 0 && conspar < (int)NParams()){
 	auto const& front = tptraj.front();
 	Parameters cparams = front.params();
-	cparams.covariance() = seedtraj.params().covariance();
+	// smear the truth by the covariance
+	for(size_t ipar=0; ipar < NParams(); ipar++){
+	  double perr = sigmas[ipar];
+	  cparams.covariance()[ipar][ipar] = perr*perr;
+	  cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
+	}
 	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
@@ -803,7 +815,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     fdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr ffitr = fmomres->Fit("gaus","qS");
-    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*momsigma ){
       cout << "Front momentum resolution out of tolerance "
       << ffitr->Parameter(1) << " +- " << ffitr->Error(1) << " sigma " << ffitr->Parameter(2) << endl;
       retval=-3;	
@@ -819,7 +831,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     mdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr mfitr = mmomres->Fit("gaus","qS");
-    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Mid momentum resolution out of tolerance "
       << mfitr->Parameter(1) << " +- " << mfitr->Error(1) << " sigma " << mfitr->Parameter(2) << endl;
       retval=-3;	
@@ -833,7 +845,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     }
     bdpcan->cd(NParams()+1);
     TFitResultPtr bfitr = bmomres->Fit("gaus","qS");
-    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Back momentum resolution out of tolerance "
       << bfitr->Parameter(1) << " +- " << bfitr->Error(1) << " sigma " << bfitr->Parameter(2) << endl;
       retval=-3;	

@@ -47,7 +47,7 @@ namespace KKTest {
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PKTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
-      void createSeed(KTRAJ& seed,double momvar, double posvar, bool smear);
+      void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
@@ -223,31 +223,13 @@ namespace KKTest {
     thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,double momvar, double posvar,bool smearseed){
+  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){
     auto& seedpar = seed.params();
-    // propagate the momentum and position variances to parameter variances
-    DPDV momder = seed.dPardM(seed.range().mid());
-    DPDV posder = seed.dPardX(seed.range().mid());
-    // assume equal uncertainty in every direction.  Add effects incoherently
-    SMAT mxvar,myvar,mzvar,pxvar,pyvar,pzvar;
-    mxvar(0,0) = myvar(1,1) = mzvar(2,2) = momvar;
-    pxvar(0,0) = pyvar(1,1) = pzvar(2,2) = posvar;
-    std::vector<SMAT> momvdirmat= {mxvar,myvar,mzvar};
-    std::vector<SMAT> posvdirmat= {pxvar,pyvar,pzvar};
-    for(int idir=0;idir<3;idir++){
-      DMAT momvmat = ROOT::Math::Similarity(momder,momvdirmat[idir]);
-      DMAT posvmat = ROOT::Math::Similarity(posder,posvdirmat[idir]);
-      seedpar.covariance() += momvmat + posvmat;
-    }
-    // smearing on T0 from momentum is too small
-    size_t it0 = KTRAJ::t0Index();
-    seedpar.covariance()[it0][it0] += 10.0; 
-    // now, randomize the parameters within those errors.  Don't include correlations
-    if(smearseed){
-      for(unsigned ipar=0;ipar < NParams(); ipar++){
-	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
-	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
-      }
+    // create covariance
+    for(size_t ipar=0; ipar < NParams(); ipar++){
+      double perr = sigmas[ipar]*seedsmear;
+      seedpar.covariance()[ipar][ipar] = perr*perr;
+      seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
     }
   }
 

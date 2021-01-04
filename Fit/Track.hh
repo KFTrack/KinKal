@@ -257,6 +257,7 @@ namespace KinKal {
     if(config_->bfcorr_ != Config::nocorr) {
     // find the nominal BField.  This can be fixed or variable
       VEC3 bf;
+      // use the seed to set the range
       double tstart = seedtraj.range().begin();
       if(config_->bfcorr_ == Config::fixed) // fixed field: take the middle of the range
 	bf = config_->bfield_.fieldVect(seedtraj.position3(seedtraj.range().mid()));

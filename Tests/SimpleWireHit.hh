@@ -47,7 +47,7 @@ namespace KinKal {
     this->update(pktraj);
     // find the wire hit updater in the update params.  There should be 0 or 1
     const SimpleWireHitUpdater* whupdater(0);
-    for(auto const& uparams : miconfig.hitupdaters_){
+    for(auto const& uparams : miconfig.updaters_){
       auto const* whu = std::any_cast<SimpleWireHitUpdater>(&uparams);
       if(whu != 0){
 	if(whupdater !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");

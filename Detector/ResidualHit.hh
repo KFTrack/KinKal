@@ -64,21 +64,17 @@ namespace KinKal {
   template <class KTRAJ> Chisq ResidualHit<KTRAJ>::chisq(Parameters const& params) const {
     double chisq(0.0);
     unsigned ndof(0);
-    // compute the difference between these parameters and the reference parameters
-    DVEC dpvec = params.parameters() - refparams_.parameters(); 
     for(unsigned ires=0; ires< nResid(); ires++) {
       if(active(ires)) {
 	ndof++;
 	// compute the residual WRT the given parameters
 	auto res = residual(params,ires);
-	// use the differnce to 'correct' the reference residual value to be WRT these parameters
-	double uresid = res.value() - ROOT::Math::Dot(dpvec,res.dRdP());
 	// project the parameter covariance into a residual space variance
 	double rvar = ROOT::Math::Similarity(res.dRdP(),params.covariance());
 	// add the measurement variance
 	rvar +=  res.variance();
 	// add chisq for this DOF
-	chisq += (uresid*uresid)/rvar;
+	chisq += (res.value()*res.value())/rvar;
       }
     }
     return Chisq(chisq,ndof);
