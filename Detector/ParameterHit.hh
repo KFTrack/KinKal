@@ -17,36 +17,37 @@ namespace KinKal {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
 
-      // Constraint interface overrrides
+      // Hit interface overrrides
       Weights weight() const override { return weight_; }
-      unsigned nDOF() const override { return ncons_; }
-      double chi(Parameters const& pdata) const override;
-      double time() const override { return time_; }
-      // constraints are absolute and can't be updatedA
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override {}
-      void update(PKTRAJ const& pktraj) override {}
       bool active() const override { return ncons_ > 0; }
-      EXINGPTR const& detXingPtr() const override { return null_; }
+      Chisq chisq() const override { return chisq(refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
+      Chisq chisq(Parameters const& pdata) const override;
+      double time() const override { return time_; }
+      // parameter constraints are absolute and can't be updated
+      void update(PKTRAJ const& pktraj) override { refparams_ = pktraj.nearestPiece(time()).params(); }
+      void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
+      EXINGPTR const& detXingPtr() const override { return null_; } // no material associated with a parameter constraint
       void print(std::ostream& ost=std::cout,int detail=0) const override;
+      // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
       ParameterHit(double time, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
-      // ParameterHit-specfic interface
+      unsigned nDOF() const { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
       double time_; // time of this constraint: must be supplied on construction
       Parameters params_; // constraint parameters with covariance
-      Weights weight_; // constraint WRT reference parameters expressed as a weight 
+      Weights weight_; // weight from these parameters
+      Parameters refparams_; // reference parameters
       PMASK pmask_; // subset of parmeters to constrain
-      DMAT mask_; // matrix to mask of unconstrainted parameters
+      DMAT mask_; // matrix to mask off unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
       EXINGPTR null_; // null detector material crossing 
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
-      weight_ = Weights(params_);
+    time_(time), params_(params), weight_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
 	if(pmask_[ipar]){
@@ -57,14 +58,15 @@ namespace KinKal {
 	}
       }
       // Mask Off unused parameters
-      weight_.weightMat() = ROOT::Math::Similarity(mask_,weight_.weightMat());
-      weight_.weightVec() = weight_.weightVec()*mask_;
+      auto wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
+      auto wvec = weight_.weightVec()*mask_;
+      weight_ = Weights(wvec, wmat);
     }
 
-  template <class KTRAJ> double ParameterHit<KTRAJ>::chi(Parameters const& pdata) const {
-  // chi measures the dimensionless tension between this constraint and the given parameters, including uncertainty
-  // on both the measurement and the trajectory estimate.
-  // Compute as the parameter difference contracted through the sum covariance of the 2.
+  template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {
+    // chi measures the dimensionless tension between this constraint and the given parameters, including uncertainty
+    // on both the measurement and the trajectory estimate.
+    // Compute as the parameter difference contracted through the sum covariance of the 2.
     Parameters pdiff = pdata;
     pdiff.parameters() *= -1.0; // so I can subtract in the next step
     pdiff += params_;  // this is now the difference of parameters but sum of covariances
@@ -75,7 +77,7 @@ namespace KinKal {
     wmat = ROOT::Math::Similarity(mask_,wmat);
     double chisq = ROOT::Math::Similarity(pdiff.parameters(),wmat);
     // sign of chi has no meaning here
-    return sqrt(chisq);
+    return Chisq(chisq,nDOF());
   }
 
   template<class KTRAJ> void ParameterHit<KTRAJ>::print(std::ostream& ost, int detail) const {

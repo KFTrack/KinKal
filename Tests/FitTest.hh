@@ -6,14 +6,14 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Detector/WireHit.hh"
+#include "KinKal/Tests/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
-#include "KinKal/Detector/ScintHit.hh"
+#include "KinKal/Detector/ParameterHit.hh"
+#include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/ParameterHit.hh"
-#include "KinKal/Fit/Constraint.hh"
+#include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Track.hh"
@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -114,7 +114,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = Constraint<KTRAJ>;
+  using KKHIT = HitConstraint<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBF = BFieldEffect<KTRAJ>;
   using KKEND = TrackEnd<KTRAJ>;
@@ -162,7 +162,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   int conspar(-1), iprint(-1);
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
-  bool simmat(true), lighthit(true), seedsmear(true);
+  bool simmat(true), lighthit(true), seedsmear(true), nulltime(true);
   int retval(EXIT_SUCCESS);
 
   static struct option long_options[] = {
@@ -190,6 +190,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
+    {"NullTime",     required_argument, 0, 'v'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
@@ -226,6 +227,8 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       case 'f' : fitmat = atoi(optarg);
 		 break;
       case 'L' : lighthit = atoi(optarg);
+		 break;
+      case 'v' : nulltime = atoi(optarg);
 		 break;
       case 'B' : bfcorr = Config::BFCorr(atoi(optarg));
 		 break;
@@ -279,7 +282,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   // generate hits
   MEASCOL thits; // this program shares hit ownership with Track
   EXINGCOL dxings; // this program shares det xing ownership with Track
@@ -623,28 +626,38 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	    hinfo.chisq_ = kkhit->chisq().chisq();
 	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
+	    hinfo.dim_ = -1000;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
 	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
 	    if(strawhit != 0){
-	      hinfo.type_ = HitInfo::straw;
-	      hinfo.resid_ = strawhit->refResidual().value();
-	      hinfo.residvar_ = strawhit->refResidual().variance();
-	      hinfo.ambig_ = static_cast<std::underlying_type<LRAmbig>::type>(strawhit->ambig());
+	      hinfo.ambig_ = strawhit->hitState().lrambig_;
+	      hinfo.dim_ = strawhit->hitState().dimension_;
+	      // straw hits can have multiple residuals
+	      hinfo.type_ = HitInfo::strawtime;
+	      hinfo.resid_ = strawhit->residual(WireHitState::time).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+	      hinfovec.push_back(hinfo);
+	      //
+	      hinfo.type_ = HitInfo::strawdistance;
+	      hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+	      hinfovec.push_back(hinfo);
 	    } else if(scinthit != 0){
 	      hinfo.type_ = HitInfo::scint;
-	      hinfo.resid_ = scinthit->refResidual().value();
-	      hinfo.residvar_ = scinthit->refResidual().variance();
+	      hinfo.resid_ = scinthit->residual().value();
+	      hinfo.residvar_ = scinthit->residual().variance();
+	      hinfovec.push_back(hinfo);
 	    } else if(constraint != 0){
 	      hinfo.type_ = HitInfo::constraint;
-	      hinfo.resid_ = constraint->chi(constraint->constraintParameters());
+	      hinfo.resid_ = sqrt(constraint->chisq().chisq());
 	      hinfo.residvar_ = 1.0;
+	      hinfovec.push_back(hinfo);
 	    } else {
 	      hinfo.type_ = HitInfo::unknown;
 	      hinfo.resid_ =  0.0;
 	      hinfo.residvar_ = 1.0;
 	    }
-	    hinfovec.push_back(hinfo);
 	  }
 	  if(kkmat != 0){
 	    nkkmat_++;

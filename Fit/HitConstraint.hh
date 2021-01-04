@@ -1,7 +1,7 @@
-#ifndef KinKal_Constraint_hh
-#define KinKal_Constraint_hh
+#ifndef KinKal_HitConstraint_hh
+#define KinKal_HitConstraint_hh
 //
-//  class represeting a constraint on the fit parameters due to a hit.  A hit is anything that adds information content to the fit.
+//  class represeting a constraint on the fit parameters due to a hit.  A hit is any mreasurement that adds information content to the fit.
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Fit/Effect.hh"
@@ -11,7 +11,7 @@
 #include <memory>
 
 namespace KinKal {
-  template <class KTRAJ> class Constraint : public Effect<KTRAJ> {
+  template <class KTRAJ> class HitConstraint : public Effect<KTRAJ> {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
@@ -19,20 +19,19 @@ namespace KinKal {
       using HITPTR = std::shared_ptr<HIT>;
       
       Chisq chisq(Parameters const& pdata) const override;
+      Chisq chisq() const override;
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
       void process(FitState& kkdata,TimeDir tdir) override;
       bool active() const override { return hit_->active(); }
       double time() const override { return hit_->time(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      virtual ~Constraint(){}
+      virtual ~HitConstraint(){}
       // local functions
       // construct from a hit and reference trajectory
-      Constraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision=1e-6);
+      HitConstraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision=1e-6);
       // the unbiased parameters are the fit parameters not including the information content of this effect
       Parameters unbiasedParameters() const;
-      // Total unbiased chisquared for this effect
-      Chisq chisq() const;
       // access the contents
       HITPTR const& hit() const { return hit_; }
       Weights const& weightCache() const { return wcache_; }
@@ -46,11 +45,11 @@ namespace KinKal {
       double precision_; // precision used in TCA calcuation
   };
 
-  template<class KTRAJ> Constraint<KTRAJ>::Constraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision) : hit_(hit), vscale_(1.0), precision_(precision) {
+  template<class KTRAJ> HitConstraint<KTRAJ>::HitConstraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision) : hit_(hit), vscale_(1.0), precision_(precision) {
     update(reftraj);
   }
  
-  template<class KTRAJ> void Constraint<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void HitConstraint<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // direction is irrelevant for processing hits 
     if(this->active()){
       // cache the processing weights, adding both processing directions
@@ -61,7 +60,7 @@ namespace KinKal {
     KKEFF::setState(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj) {
+  template<class KTRAJ> void HitConstraint<KTRAJ>::update(PKTRAJ const& pktraj) {
     // reset the processing cache
     wcache_ = Weights();
     // update the hit
@@ -74,31 +73,21 @@ namespace KinKal {
     KKEFF::updateState();
   }
 
-  template<class KTRAJ> void Constraint<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+  template<class KTRAJ> void HitConstraint<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // reset the annealing temp and hit precision
     vscale_ = miconfig.varianceScale();
     precision_ = miconfig.tprec_;
     // update the hit's internal state; this depends on the configuration parameters
-    if(miconfig.updatehits_)hit_->update(pktraj,miconfig );
+    if(miconfig.updatehits_)hit_->updateState(pktraj,miconfig );
     // update the state of this object
     update(pktraj);
   }
 
-  template<class KTRAJ> Chisq Constraint<KTRAJ>::chisq(Parameters const& pdata) const {
-    if(this->active()) {
-      double chi2(0.0);
-      for(size_t idof= 0; idof < hit_->nDOF(); idof++){
-	double chi = hit_->chi(idof,pdata);
-	chi2 += chi*chi;
-      }	
-      // correct for current variance scaling
-      double chi2  /= vscale_;
-      return Chisq(chi2,hit_->nDOF());
-    } else
-      return Chisq();
+  template<class KTRAJ> Chisq HitConstraint<KTRAJ>::chisq(Parameters const& pdata) const {
+    return hit_->chisq(pdata);
   }
 
-  template<class KTRAJ> Chisq Constraint<KTRAJ>::chisq() const {
+  template<class KTRAJ> Chisq HitConstraint<KTRAJ>::chisq() const {
    if(this->active()) {
      Parameters unbiased = unbiasedParameters();
       return chisq(unbiased);
@@ -106,7 +95,7 @@ namespace KinKal {
       return Chisq();
   } 
 
-  template<class KTRAJ> Parameters Constraint<KTRAJ>::unbiasedParameters() const {
+  template<class KTRAJ> Parameters HitConstraint<KTRAJ>::unbiasedParameters() const {
   // this function can't be called on an unprocessed effect
     if( !KKEFF::wasProcessed(TimeDir::forwards) || !KKEFF::wasProcessed(TimeDir::backwards))
       throw  std::invalid_argument("Can't compute unbiased parameters for unprocessed constraint");
@@ -114,15 +103,15 @@ namespace KinKal {
       return Parameters(wcache_);
   }
 
-  template <class KTRAJ> void Constraint<KTRAJ>::print(std::ostream& ost, int detail) const {
-    ost << "Constraint " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
+  template <class KTRAJ> void HitConstraint<KTRAJ>::print(std::ostream& ost, int detail) const {
+    ost << "HitConstraint " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
     if(detail > 0){
       hit_->print(ost,detail);    
-      ost << " Constraint Weight " << hitwt_ << std::endl;
+      ost << " HitConstraint Weight " << hitwt_ << std::endl;
     }
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Constraint<KTRAJ> const& kkhit) {
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, HitConstraint<KTRAJ> const& kkhit) {
     kkhit.print(ost,0);
     return ost;
   }

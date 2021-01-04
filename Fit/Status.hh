@@ -1,6 +1,6 @@
 #ifndef KinKal_Status_hh
 #define KinKal_Status_hh
-#include "KinKal/Fit/Chisq.hh"
+#include "KinKal/General/Chisq.hh"
 #include <ostream>
 #include <string>
 #include <vector>

@@ -6,8 +6,8 @@
 // Templated on the trajectory class representing the particle in this fit
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/General/Chisq.hh"
 #include "KinKal/Fit/FitState.hh"
-#include "KinKal/Fit/Chisq.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/General/TimeRange.hh"
 #include <array>

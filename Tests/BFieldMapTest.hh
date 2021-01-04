@@ -104,7 +104,7 @@ int BFieldMapTest(int argc, char **argv) {
     bnom = VEC3(0.0,0.0,1.0);
   }
     // first, create a traj based on the actual field at this point
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false,false, -1.0, pmass );
   PKTRAJ tptraj;
   HITCOL thits;
   EXINGCOL dxings;

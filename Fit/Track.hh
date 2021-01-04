@@ -39,7 +39,7 @@
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/TrackEnd.hh"
-#include "KinKal/Fit/Constraint.hh"
+#include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Config.hh"
@@ -59,7 +59,7 @@ namespace KinKal {
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using KKHIT = Constraint<KTRAJ>;
+      using KKHIT = HitConstraint<KTRAJ>;
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
       using KKBFIELD = BFieldEffect<KTRAJ>;
