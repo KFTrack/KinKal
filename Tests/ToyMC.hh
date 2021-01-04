@@ -7,14 +7,13 @@
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/WireHit.hh"
+#include "KinKal/Tests/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
-#include "KinKal/Detector/ScintHit.hh"
+#include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Detector/SimpleCell.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 namespace KKTest {
@@ -28,28 +27,27 @@ namespace KKTest {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
-      using STRAWHIT = WireHit<KTRAJ>;
-      using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+      using WIREHIT = SimpleWireHit<KTRAJ>;
+      using WIREHITPTR = std::shared_ptr<WIREHIT>;
       using SCINTHIT = ScintHit<KTRAJ>;
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
-      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) : 
+      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) : 
 	bfield_(bfield), mom_(mom), icharge_(icharge),
-	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), ambigdoca_(ambigdoca), simmass_(simmass),
+	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
 	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
-	smat_(matdb_,rstraw_, wthick_,rwire_),
-	cell_(sdrift_,sigt_*sigt_,rstraw_) {}
+	smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PKTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
-      void createSeed(KTRAJ& seed,double momvar, double posvar, bool smear);
+      void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
@@ -71,7 +69,7 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_;
+      bool simmat_, lighthit_, nulltime_;
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
@@ -86,7 +84,7 @@ namespace KKTest {
       double tol_; // tolerance on spatial accuracy for 
       double tprec_; // time precision on TCA
       StrawMat smat_; // straw material
-      SimpleCell cell_;
+    
   };
 
   template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PKTRAJ const& traj, double htime) {
@@ -130,12 +128,25 @@ namespace KKTest {
       auto tline = generateStraw(pktraj,htime);
       CAHint tphint(htime,htime);
       PTCA tp(pktraj,tline,tphint,tprec_);
-      LRAmbig ambig(LRAmbig::null);
-      if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? LRAmbig::left : LRAmbig::right;
+      WireHitState::LRAmbig ambig(WireHitState::null);
+      if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
+      WireHitState::Dimension dim(WireHitState::time);
+      if(ambig == WireHitState::null){
+	if(nulltime_)
+	  dim = WireHitState::both;
+	else
+	  dim = WireHitState::distance;
+      }
+      // null variance based on doca cuttoff
+      double nullvar = (ambigdoca_*ambigdoca_)/3.0;
+      // null time shift
+      double nulldt = 0.5*ambigdoca_/sdrift_;
+      WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
       auto sxing = std::make_shared<STRAWXING>(tp,smat_);
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<STRAWHIT>(bfield_, tline, cell_,sxing,ambig));
+	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, sxing, whstate,
+	sdrift_, sigt_*sigt_, rstraw_));
       } else {
 	dxings.push_back(sxing);
       }
@@ -212,31 +223,13 @@ namespace KKTest {
     thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,double momvar, double posvar,bool smearseed){
+  template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){
     auto& seedpar = seed.params();
-    // propagate the momentum and position variances to parameter variances
-    DPDV momder = seed.dPardM(seed.range().mid());
-    DPDV posder = seed.dPardX(seed.range().mid());
-    // assume equal uncertainty in every direction.  Add effects incoherently
-    SMAT mxvar,myvar,mzvar,pxvar,pyvar,pzvar;
-    mxvar(0,0) = myvar(1,1) = mzvar(2,2) = momvar;
-    pxvar(0,0) = pyvar(1,1) = pzvar(2,2) = posvar;
-    std::vector<SMAT> momvdirmat= {mxvar,myvar,mzvar};
-    std::vector<SMAT> posvdirmat= {pxvar,pyvar,pzvar};
-    for(int idir=0;idir<3;idir++){
-      DMAT momvmat = ROOT::Math::Similarity(momder,momvdirmat[idir]);
-      DMAT posvmat = ROOT::Math::Similarity(posder,posvdirmat[idir]);
-      seedpar.covariance() += momvmat + posvmat;
-    }
-    // smearing on T0 from momentum is too small
-    size_t it0 = KTRAJ::t0Index();
-    seedpar.covariance()[it0][it0] += 10.0; 
-    // now, randomize the parameters within those errors.  Don't include correlations
-    if(smearseed){
-      for(unsigned ipar=0;ipar < NParams(); ipar++){
-	double perr = sqrt(seedpar.covariance()[ipar][ipar]);
-	seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
-      }
+    // create covariance
+    for(size_t ipar=0; ipar < NParams(); ipar++){
+      double perr = sigmas[ipar]*seedsmear;
+      seedpar.covariance()[ipar][ipar] = perr*perr;
+      seedpar.parameters()[ipar] += tr_.Gaus(0.0,perr);
     }
   }
 

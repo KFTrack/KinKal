@@ -6,10 +6,9 @@ namespace KinKal {
 	ost << " Update Material Xings";
       if(miconfig.updatebfcorr_)
 	ost << " Update BFieldMap Correction";
-      if(miconfig.updatehits_){
-	ost << " Update Hit Internals rith ";
-	ost << miconfig.hitupdaters_.size() << " Hit updaters" << std::endl;
-      }
+      if(miconfig.updatehits_)
+	ost << " Update Hit Internals";
+      ost << miconfig.updaters_.size() << " Dedicated Updaters" << std::endl;
       ost << " converge, diverge, oscillating dchisq " << miconfig.convdchisq_ 
       << " "<< miconfig.divdchisq_  
       << " "<< miconfig.oscdchisq_;

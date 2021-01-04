@@ -21,7 +21,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
-      bool isActive() const override { return active_ && bfcorr_ != Config::nocorr; }
+      bool active() const override { return active_ && bfcorr_ != Config::nocorr; }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -46,7 +46,10 @@ namespace KinKal {
       Parameters dbeff_; // aggregate effect in parameter space of BFieldMap change, including BNom change
       bool active_; // activity state
       Config::BFCorr bfcorr_; // type of BFieldMap map correction to apply
+      static double tbuff_; // small time buffer to avoid ambiguity
   };
+
+  template<class KTRAJ> double BFieldEffect<KTRAJ>::tbuff_ = 1.0e-5;
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(active_){
@@ -101,9 +104,9 @@ namespace KinKal {
       // make sure the piece is appendable
       if(fit.back().range().begin() > drange_.end()) throw std::invalid_argument("BFieldEffect: Can't append piece");
       // adjust time if necessary
-      double time = this->time()+ 1.0e-5; // slight buffer to make local piece selection more consistent (avoid 'cusps')
-      double tlow = std::max(time,fit.back().range().begin() + 1.0e-5);
-      TimeRange newrange(tlow,fit.range().end());
+      double time = this->time()+ tbuff_; // slight buffer to make local piece selection more consistent (avoid 'cusps')
+      double tlow = std::max(time,fit.back().range().begin() + tbuff_);
+      TimeRange newrange(tlow,std::max(tlow+tbuff_,fit.range().end()));
       KTRAJ newpiece(fit.back());
       newpiece.range() = newrange;
       // if we are using variable BFieldMap, update the parameters accordingly

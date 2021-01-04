@@ -28,8 +28,8 @@ namespace KinKal {
     double oscdchisq_; // maximum change in chisquared/dof for oscillation
     double tprec_; // time precision for TOCA calculations
     int miter_; // count of meta-iteration
-    // payload for hit updating; specific hit classes should find their particular payload inside the vector
-    std::vector<std::any> hitupdaters_;
+    // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
+    std::vector<std::any> updaters_;
     MetaIterConfig() : updatemat_(false), updatebfcorr_(false), updatehits_(false), temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), tprec_(1e-6), miter_(-1) {}
     MetaIterConfig(std::istream& is) : miter_(-1) {
       is >> updatemat_ >> updatebfcorr_ >> updatehits_ >> temp_ >> convdchisq_ >> divdchisq_ >> oscdchisq_ >> tprec_;

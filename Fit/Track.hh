@@ -39,7 +39,7 @@
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/TrackEnd.hh"
-#include "KinKal/Fit/Constraint.hh"
+#include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Config.hh"
@@ -59,7 +59,7 @@ namespace KinKal {
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using KKHIT = Constraint<KTRAJ>;
+      using KKHIT = HitConstraint<KTRAJ>;
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
       using KKBFIELD = BFieldEffect<KTRAJ>;
@@ -257,6 +257,7 @@ namespace KinKal {
     if(config_->bfcorr_ != Config::nocorr) {
     // find the nominal BField.  This can be fixed or variable
       VEC3 bf;
+      // use the seed to set the range
       double tstart = seedtraj.range().begin();
       if(config_->bfcorr_ == Config::fixed) // fixed field: take the middle of the range
 	bf = config_->bfield_.fieldVect(seedtraj.position3(seedtraj.range().mid()));

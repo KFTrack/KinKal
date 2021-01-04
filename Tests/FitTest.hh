@@ -6,14 +6,14 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Detector/WireHit.hh"
+#include "KinKal/Tests/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
-#include "KinKal/Detector/ScintHit.hh"
+#include "KinKal/Detector/ParameterHit.hh"
+#include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/ParameterConstraint.hh"
-#include "KinKal/Fit/Constraint.hh"
+#include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Track.hh"
@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -86,13 +86,12 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   while(fabs(dt) > 1e-5 && niter < maxniter){
     VEC3 v2 = kt2.velocity(t2);
     pos2 = kt2.position3(t2);
-// test
-//    delta = pos2.Z() - pos1.Z();
-//    dt = delta/v2.Z();
+    // test
+    //    delta = pos2.Z() - pos1.Z();
+    //    dt = delta/v2.Z();
     VEC3 dp = kt2.position3(t2) - pos1;
     dt = dp.Dot(v2)/v2.Mag2();
-
-t2 -= dt;
+    t2 -= dt;
     niter++;
   }
   if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
@@ -100,7 +99,7 @@ t2 -= dt;
 }
 
 template <class KTRAJ>
-int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
+int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   struct KTRAJPars{
     Float_t pars_[NParams()];
     static std::string leafnames() {
@@ -114,7 +113,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = Constraint<KTRAJ>;
+  using KKHIT = HitConstraint<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBF = BFieldEffect<KTRAJ>;
   using KKEND = TrackEnd<KTRAJ>;
@@ -131,8 +130,8 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
-  using PCONSTRAINT = ParameterConstraint<KTRAJ>;
-  using PCONSTRAINTPTR = std::shared_ptr<PCONSTRAINT>;
+  using PARHIT = ParameterHit<KTRAJ>;
+  using PARHITPTR = std::shared_ptr<PARHIT>;
   using Clock = std::chrono::high_resolution_clock;
   using PMASK = std::array<bool,NParams()>; // parameter mask
 
@@ -157,13 +156,15 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
   double tol(0.1);
-  double seedposvar(3.0); //position variance for seed smearing
   int iseed(123421);
   int conspar(-1), iprint(-1);
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
-  bool simmat(true), lighthit(true), seedsmear(true);
+  double seedsmear(10.0);
+  double momsigma(0.5);
+  bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
+  TRandom3 tr_; // random number generator
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -190,6 +191,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
+    {"nulltime",     required_argument, 0, 'v'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
@@ -227,13 +229,15 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 		 break;
       case 'L' : lighthit = atoi(optarg);
 		 break;
+      case 'v' : nulltime = atoi(optarg);
+		 break;
       case 'B' : bfcorr = Config::BFCorr(atoi(optarg));
 		 break;
       case 'r' : ttree = atoi(optarg);
 		 break;
       case 'd' : ambigdoca = atof(optarg);
 		 break;
-      case 'M' : seedsmear = atoi(optarg);
+      case 'M' : seedsmear = atof(optarg);
 		 break;
       case 'N' : nevents = atoi(optarg);
 		 break;
@@ -279,7 +283,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   // generate hits
   MEASCOL thits; // this program shares hit ownership with Track
   EXINGCOL dxings; // this program shares det xing ownership with Track
@@ -303,7 +307,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
   TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj,sigmas[NParams()],seedposvar,seedsmear);
+  toy.createSeed(seedtraj,sigmas,seedsmear);
   if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
@@ -349,10 +353,14 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     cout << "Constraining parameter " << conspar << endl;
     mask[conspar] = true;
     auto const& front = tptraj.front();
-    // take the true parameters but the seed covariance
+    // smear the truth by the covariance
     Parameters cparams = front.params();
-    cparams.covariance() = seedtraj.params().covariance();
-    thits.push_back(std::make_shared<PCONSTRAINT>(front.range().begin(),cparams,mask));
+    for(size_t ipar=0; ipar < NParams(); ipar++){
+      double perr = sigmas[ipar];
+      cparams.covariance()[ipar][ipar] = perr*perr;
+      cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
+    }
+    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
 // create and fit the track
   KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -526,9 +534,11 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       xax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
       yax->SetBinLabel(ipar+1,KTRAJ::paramName(tpar).c_str());
     }
-    TH1F* fmomres = new TH1F("fmomres","Front Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
-    TH1F* mmomres = new TH1F("mmomres","Mid Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
-    TH1F* bmomres = new TH1F("bmomres","Back Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*sigmas[NParams()],pscale*sigmas[NParams()]);
+// convert
+
+    TH1F* fmomres = new TH1F("fmomres","Front Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
+    TH1F* mmomres = new TH1F("mmomres","Mid Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
+    TH1F* bmomres = new TH1F("bmomres","Back Momentum Resolution;P_{reco}-P_{true}(MeV/c)",100,-pscale*momsigma,pscale*momsigma);
     TH1F* fmompull = new TH1F("fmompull","Front Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
@@ -550,13 +560,18 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
       TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
       KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
       if(invert)seedtraj.invertCT();
-      toy.createSeed(seedtraj,10*sigmas[NParams()],seedposvar,seedsmear);
+      toy.createSeed(seedtraj,sigmas,seedsmear);
   // if requested, constrain a parameter
       if(conspar >= 0 && conspar < (int)NParams()){
 	auto const& front = tptraj.front();
 	Parameters cparams = front.params();
-	cparams.covariance() = seedtraj.params().covariance();
-	thits.push_back(std::make_shared<PCONSTRAINT>(front.range().mid(),cparams,mask));
+	// smear the truth by the covariance
+	for(size_t ipar=0; ipar < NParams(); ipar++){
+	  double perr = sigmas[ipar];
+	  cparams.covariance()[ipar][ipar] = perr*perr;
+	  cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
+	}
+	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
       KKTRK kktrk(configptr,seedtraj,thits,dxings);
@@ -618,39 +633,49 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	  if(kkhit != 0){
 	    nkkhit_++;
 	    HitInfo hinfo;
-	    hinfo.active_ = kkhit->isActive();
+	    hinfo.active_ = kkhit->active();
 	    hinfo.time_ = kkhit->time();
 	    hinfo.chisq_ = kkhit->chisq().chisq();
 	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
+	    hinfo.dim_ = -1000;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-	    const PCONSTRAINT* constraint = dynamic_cast<const PCONSTRAINT*>(kkhit->hit().get());
+	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
 	    if(strawhit != 0){
-	      hinfo.type_ = HitInfo::straw;
-	      hinfo.resid_ = strawhit->refResidual().value();
-	      hinfo.residvar_ = strawhit->refResidual().variance();
-	      hinfo.ambig_ = static_cast<std::underlying_type<LRAmbig>::type>(strawhit->ambig());
+	      hinfo.ambig_ = strawhit->hitState().lrambig_;
+	      hinfo.dim_ = strawhit->hitState().dimension_;
+	      // straw hits can have multiple residuals
+	      hinfo.type_ = HitInfo::strawtime;
+	      hinfo.resid_ = strawhit->residual(WireHitState::time).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+	      hinfovec.push_back(hinfo);
+	      //
+	      hinfo.type_ = HitInfo::strawdistance;
+	      hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+	      hinfovec.push_back(hinfo);
 	    } else if(scinthit != 0){
 	      hinfo.type_ = HitInfo::scint;
-	      hinfo.resid_ = scinthit->refResidual().value();
-	      hinfo.residvar_ = scinthit->refResidual().variance();
+	      hinfo.resid_ = scinthit->residual().value();
+	      hinfo.residvar_ = scinthit->residual().variance();
+	      hinfovec.push_back(hinfo);
 	    } else if(constraint != 0){
 	      hinfo.type_ = HitInfo::constraint;
-	      hinfo.resid_ = constraint->chi(constraint->constraintParameters());
+	      hinfo.resid_ = sqrt(constraint->chisq().chisq());
 	      hinfo.residvar_ = 1.0;
+	      hinfovec.push_back(hinfo);
 	    } else {
 	      hinfo.type_ = HitInfo::unknown;
 	      hinfo.resid_ =  0.0;
 	      hinfo.residvar_ = 1.0;
 	    }
-	    hinfovec.push_back(hinfo);
 	  }
 	  if(kkmat != 0){
 	    nkkmat_++;
 	    KinKal::MaterialInfo minfo;
 	    minfo.time_ = kkmat->time();
-	    minfo.active_ = kkmat->isActive();
+	    minfo.active_ = kkmat->active();
 	    minfo.nxing_ = kkmat->detXing().matXings().size();
 	    std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
 	    kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
@@ -662,7 +687,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
 	  if(kkbf != 0){
 	    nkkbf_++;
 	    BFieldInfo bfinfo;
-	    bfinfo.active_ = kkbf->isActive();
+	    bfinfo.active_ = kkbf->active();
 	    bfinfo.time_ = kkbf->time();
 	    bfinfo.dp_ = kkbf->deltaP().R();
 	    bfinfo.range_ = kkbf->range().range();
@@ -790,7 +815,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     fdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr ffitr = fmomres->Fit("gaus","qS");
-    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*momsigma ){
       cout << "Front momentum resolution out of tolerance "
       << ffitr->Parameter(1) << " +- " << ffitr->Error(1) << " sigma " << ffitr->Parameter(2) << endl;
       retval=-3;	
@@ -806,7 +831,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     mdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr mfitr = mmomres->Fit("gaus","qS");
-    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Mid momentum resolution out of tolerance "
       << mfitr->Parameter(1) << " +- " << mfitr->Error(1) << " sigma " << mfitr->Parameter(2) << endl;
       retval=-3;	
@@ -820,7 +845,7 @@ int FitTest(int argc, char *argv[],const vector<double>& sigmas) {
     }
     bdpcan->cd(NParams()+1);
     TFitResultPtr bfitr = bmomres->Fit("gaus","qS");
-    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*sigmas[NParams()] ){
+    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Back momentum resolution out of tolerance "
       << bfitr->Parameter(1) << " +- " << bfitr->Error(1) << " sigma " << bfitr->Parameter(2) << endl;
       retval=-3;	

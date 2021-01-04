@@ -30,8 +30,8 @@ namespace KinKal {
       double gasPath(double doca, double ddoca, double adot) const;
       // same for wall material
       double wallPath(double doca, double ddoca, double adot) const; 
-      // should add function to compute wire effect (probabilstically) FIXME!
-      // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes FIXME!
+      // should add function to compute wire effect (probabilstically) TODO
+      // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO
       void findXings(double doca, double ddoca, double adot, std::vector<MaterialXing>& mxings) const;
       double strawRadius() const { return srad_; }
       double wallThickness() const { return thick_; }

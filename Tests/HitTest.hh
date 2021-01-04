@@ -7,13 +7,13 @@
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Detector/WireHit.hh"
-#include "KinKal/Detector/ScintHit.hh"
+#include "KinKal/Tests/SimpleWireHit.hh"
+#include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/StrawMat.hh"
-#include "KinKal/Trajectory/Residual.hh"
+#include "KinKal/Detector/Residual.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Fit/Constraint.hh"
+#include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
 
@@ -55,7 +55,7 @@ void print_usage() {
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using KKHIT = Constraint<KTRAJ>;
+  using KKHIT = HitConstraint<KTRAJ>;
   using HIT = Hit<KTRAJ>;
   using HITPTR = std::shared_ptr<HIT>;
   using HITCOL = vector<HITPTR>;
@@ -152,7 +152,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   } else {
     BF = new UniformBFieldMap(bnom);
   }
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_, ambigdoca, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_,false, ambigdoca, pmass );
   toy.setInefficiency(0.0);
   PKTRAJ tptraj;
 //  cout << "True " << tptraj << endl;
@@ -184,14 +184,17 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ihit(0);
   for(auto& thit : thits) {
     Residual res;
+    ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       strawhit->update(tptraj);
-      res = strawhit->refResidual();
+      res = strawhit->residual(0);
+      tpdata = strawhit->closestApproach();
     } else if(scinthit && scinthit_){
       scinthit->update(tptraj);
-      res = scinthit->refResidual();
+      res = scinthit->residual(0);
+      tpdata = scinthit->closestApproach();
     } else
       continue;
     TPolyLine3D* line = new TPolyLine3D(2);
@@ -217,7 +220,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 //    double adot = tp.dirDot();
     double adot =0.0; // transverse
 //    double adot = tp.dirDot();
-    double doca = fabs(res.tPoca().doca());
+    double doca = fabs(tpdata.doca());
     double gpath = smat.gasPath(doca,ddoca,adot);
     double wpath = smat.wallPath(doca,ddoca,adot);
     ggplen->SetPoint(ihit,doca,gpath );
@@ -259,12 +262,15 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   for(auto& thit : thits) {
     KKHIT kkhit(thit,tptraj,precision);
     Residual ores;
+    ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
-      ores = strawhit->refResidual();
+      ores = strawhit->residual(0);
+      tpdata = strawhit->closestApproach();
     } else if(scinthit && scinthit_){
-      ores = scinthit->refResidual();
+      ores = scinthit->residual(0);
+      tpdata = scinthit->closestApproach();
     } else
       continue;
     auto pder = ores.dRdP();
@@ -283,9 +289,9 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 	  kkhit.update(modtptraj);// refer to moded helix
 	  Residual mres;
 	  if(strawhit){
-	    mres = strawhit->refResidual();
+	    mres = strawhit->residual(0);
 	  } else if(scinthit) {
-	    mres = scinthit->refResidual();
+	    mres = scinthit->residual(0);
 	  }
 	  double dr = ores.value()-mres.value(); // this sign is confusing.  I think
 	  // it means the fit needs to know how much to change the ref parameters, which is
@@ -295,7 +301,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 	  hderivg[ipar]->SetPoint(ipt++,dr,ddr);
 	  if(fabs(dr - ddr) > 1.0 ){
 	    cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar 
-	      << " doca " << ores.tPoca().doca() << " DirDot " << ores.tPoca().dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+	      << " doca " << tpdata.doca() << " DirDot " << tpdata.dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
 	    status = 2;
 	  }
 	}

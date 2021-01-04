@@ -6,7 +6,7 @@
 
 # you can regenerate this list easily by running in this directory: ls -1 *.cc
 add_library(General SHARED 
-    LRAmbig.cc
+    Chisq.cc
     Parameters.cc
     ParticleState.cc
     TimeDir.cc
