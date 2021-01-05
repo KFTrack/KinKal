@@ -43,7 +43,7 @@ namespace KinKal {
       
      // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
-      bool active(unsigned ires) const override;
+      bool activeRes(unsigned ires) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
@@ -94,7 +94,7 @@ namespace KinKal {
       throw std::runtime_error("PTCA failure");
   }
 
-  template <class KTRAJ> bool WireHit<KTRAJ>::active(unsigned ires) const {
+  template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && (wstate_.dimension_ == WireHitState::time || wstate_.dimension_ == WireHitState::both))
       return true;
     else if(ires ==1 && (wstate_.dimension_ == WireHitState::distance))
@@ -175,9 +175,9 @@ namespace KinKal {
 	break;
     }
     if(detail > 0){
-      if(active(WireHitState::time))
+      if(activeRes(WireHitState::time))
 	ost << " Time Residual " << rresid_[WireHitState::time];
-      if(active(WireHitState::distance))
+      if(activeRes(WireHitState::distance))
 	ost << " Distance Residual " << rresid_[WireHitState::distance];
       ost << std::endl;
     }
