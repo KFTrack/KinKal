@@ -39,7 +39,7 @@ namespace KKTest {
 	bfield_(bfield), mom_(mom), icharge_(icharge),
 	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
-	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.1),
+	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.05),
 	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_) {}
@@ -138,7 +138,8 @@ namespace KKTest {
 	  dim = WireHitState::distance;
       }
       // null variance based on doca cuttoff
-      double nullvar = (ambigdoca_*ambigdoca_)/3.0;
+      double rmax = std::max(std::min(ambigdoca_,rstraw_),0.5);
+      double nullvar = (rmax*rmax)/3.0; // range is +- doca
       // null time shift
       double nulldt = 0.5*ambigdoca_/sdrift_;
       WireHitState whstate(ambig, dim, nullvar, nulldt);

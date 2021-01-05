@@ -37,7 +37,7 @@ namespace KinKal {
     auto const& resid = residual(ires);
     // compute the difference between these parameters and the reference parameters
     DVEC dpvec = pdata.parameters() - refparams_.parameters(); 
-    // use the differnce to 'correct' the reference residual to be WRT these parameters
+    // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     return Residual(uresid,resid.variance(),resid.dRdP());
   }
