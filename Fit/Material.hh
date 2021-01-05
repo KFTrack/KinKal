@@ -123,19 +123,16 @@ namespace KinKal {
       newpiece.params() = Parameters(cache_);
       // extend as necessary: absolute time can shift during iterations
       newpiece.range() = TimeRange(time,std::max(time+tbuff_,fit.range().end()));
-      // make sure the piece is appendable; this indicates an ordering error
-      if(time > fit.back().range().begin()){
-	fit.append(newpiece);
-      } else {
+      // make sure the piece is appendable; if not, adjust
+      if(time < fit.back().range().begin()){
       // if this is the first piece, simply extend it back
 	if(fit.pieces().size() ==1){
 	  fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
-	  fit.append(newpiece);
-	} else // this is an ordering problem
+	} else {
 	  newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
-	  fit.append(newpiece);
-//	  throw std::invalid_argument("Material: Can't append piece");
+	}
       }
+      fit.append(newpiece);
     }
   }
 

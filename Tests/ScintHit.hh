@@ -19,7 +19,7 @@ namespace KinKal {
 
       // Hit interface overrrides
       unsigned nResid() const override { return 1; } // 1 time residual
-      bool active(unsigned ires=0) const override;
+      bool activeRes(unsigned ires=0) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
@@ -48,7 +48,7 @@ namespace KinKal {
       double precision_; // current precision
   };
 
-  template <class KTRAJ> bool ScintHit<KTRAJ>::active(unsigned ires) const {
+  template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires == 0 && active_)
       return true;
     else

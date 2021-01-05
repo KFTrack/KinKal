@@ -20,7 +20,7 @@ namespace KinKal {
       // describe residuals associated with this hit
       virtual unsigned nResid() const = 0;
       // individual residuals may be active or inactive
-      virtual bool active(unsigned ires) const = 0;
+      virtual bool activeRes(unsigned ires) const = 0;
       // reference residuals for this hit.  iDOF indexs the measurement and is hit-specific, outside the range will throw
       virtual Residual const& residual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
@@ -46,7 +46,7 @@ namespace KinKal {
     double chisq(0.0);
     unsigned ndof(0);
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(active(ires)) {
+      if(activeRes(ires)) {
 	ndof++;
 	// find the reference residual
 	auto const& res = residual(ires);
@@ -65,7 +65,7 @@ namespace KinKal {
     double chisq(0.0);
     unsigned ndof(0);
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(active(ires)) {
+      if(activeRes(ires)) {
 	ndof++;
 	// compute the residual WRT the given parameters
 	auto res = residual(params,ires);
@@ -85,7 +85,7 @@ namespace KinKal {
   // into a single residual
     unsigned retval(0);
     for(unsigned ires=0; ires< nResid(); ires++) 
-      if(active(ires)) retval++;
+      if(activeRes(ires)) retval++;
     return retval;
   }
 
@@ -93,7 +93,7 @@ namespace KinKal {
     // start with a null weight
     Weights weight;
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(active(ires)) {
+      if(activeRes(ires)) {
 	auto const& res = residual(ires);
 	// convert derivatives vector to a Nx1 matrix
 	ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
