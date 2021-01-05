@@ -1,7 +1,7 @@
 #ifndef KinKal_HitConstraint_hh
 #define KinKal_HitConstraint_hh
 //
-//  class represeting a constraint on the fit parameters due to a hit.  A hit is any mreasurement that adds information content to the fit.
+//  class represeting a constraint on the fit parameters due to a hit.  A hit is an external measurement that adds information content to the fit.
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Fit/Effect.hh"

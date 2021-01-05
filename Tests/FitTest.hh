@@ -646,15 +646,19 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	      hinfo.ambig_ = strawhit->hitState().lrambig_;
 	      hinfo.dim_ = strawhit->hitState().dimension_;
 	      // straw hits can have multiple residuals
-	      hinfo.type_ = HitInfo::strawtime;
-	      hinfo.resid_ = strawhit->residual(WireHitState::time).value();
-	      hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
-	      hinfovec.push_back(hinfo);
+	      if(strawhit->activeRes(WireHitState::time)){
+		hinfo.type_ = HitInfo::strawtime;
+		hinfo.resid_ = strawhit->residual(WireHitState::time).value();
+		hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+		hinfovec.push_back(hinfo);
+	      }
 	      //
-	      hinfo.type_ = HitInfo::strawdistance;
-	      hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
-	      hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
-	      hinfovec.push_back(hinfo);
+	      if(strawhit->activeRes(WireHitState::distance)){
+		hinfo.type_ = HitInfo::strawdistance;
+		hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
+		hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+		hinfovec.push_back(hinfo);
+	      }
 	    } else if(scinthit != 0){
 	      hinfo.type_ = HitInfo::scint;
 	      hinfo.resid_ = scinthit->residual().value();
@@ -855,7 +859,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     fpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       fpullcan->cd(ipar+1);
-      fpull[ipar]->Fit("gaus","q");
+      TFitResultPtr fpfitr =  fpull[ipar]->Fit("gaus","qS");
+      if(fpull[ipar]->GetEntries() > 1000 && (fabs(fpfitr->Parameter(1)) > 0.1 || (fpfitr->Parameter(2)-1.0) > 0.2)  ){
+	cout << "front pull " << fpull[ipar]->GetName() << " out of tolerance "
+	  << fpfitr->Parameter(1) << " +- " << fpfitr->Error(1) << " sigma " << fpfitr->Parameter(2) << endl;
+	retval=-3;	
+      }
     }
     fpullcan->cd(NParams()+1);
     fmompull->Fit("gaus","q");

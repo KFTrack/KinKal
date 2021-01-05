@@ -97,7 +97,7 @@ namespace KinKal {
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && (wstate_.dimension_ == WireHitState::time || wstate_.dimension_ == WireHitState::both))
       return true;
-    else if(ires ==1 && (wstate_.dimension_ == WireHitState::distance))
+    else if(ires ==1 && (wstate_.dimension_ == WireHitState::distance || wstate_.dimension_ == WireHitState::both))
       return true;
     else
       return false;
@@ -123,9 +123,9 @@ namespace KinKal {
       DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP(); 
       rresid_[WireHitState::time] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
-      // interpret DOCA against the wire directly as the residual.  Sign by the angular momentum
+      // interpret DOCA against the wire directly as the residual.  We have to take the sign out of DOCA
       DVEC dRdP = tpoca.dDdP();
-      double dd = -fabs(tpoca.doca())*tpoca.lSign();
+      double dd = -tpoca.lSign()*tpoca.doca();
       rresid_[WireHitState::distance] = Residual(dd,wstate_.nullvar_,dRdP);
       if(wstate_.dimension_ == WireHitState::both){
 	// add an absolute time constraint for the null ambig hits.
