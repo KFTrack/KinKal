@@ -149,7 +149,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool ttree(true), printbad(false);
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);
-  double ambigdoca(-1.0);// minimum doca to set ambiguity, default sets for all hits
+  double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
   BFieldMap *BF(0);

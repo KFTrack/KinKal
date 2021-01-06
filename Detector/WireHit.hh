@@ -124,18 +124,14 @@ namespace KinKal {
       rresid_[WireHitState::time] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
       // interpret DOCA against the wire directly as the residual.  We have to take the sign out of DOCA
-      DVEC dRdP = tpoca.dDdP();
-      double dd = -tpoca.lSign()*tpoca.doca();
+      DVEC dRdP = -tpoca.lSign()*tpoca.dDdP();
+      double dd = tpoca.doca();
       rresid_[WireHitState::distance] = Residual(dd,wstate_.nullvar_,dRdP);
       if(wstate_.dimension_ == WireHitState::both){
 	// add an absolute time constraint for the null ambig hits.
 	// correct time difference for the average drift.  
 	double dt = tpoca.deltaT() - wstate_.nulldt_;
-	// convert spatial variance into temporal using the drift velocity at the wire
-	POL2 drift(0.0,0.0);
-	DriftInfo dinfo;
-	distanceToTime(drift, dinfo);
-	double dtvar = wstate_.nullvar_/(dinfo.vdrift_*dinfo.vdrift_); 
+	double dtvar = 4.0*wstate_.nulldt_*wstate_.nulldt_;
 	rresid_[WireHitState::time] = Residual(dt,dtvar,-tpoca.dTdP());
       }
     }
