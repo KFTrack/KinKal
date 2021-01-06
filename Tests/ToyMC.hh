@@ -138,10 +138,10 @@ namespace KKTest {
 	  dim = WireHitState::distance;
       }
       // null variance based on doca cuttoff
-      double rmax = std::max(std::min(ambigdoca_,rstraw_),0.5);
+      double rmax = std::min(ambigdoca_,rstraw_);
       double nullvar = (rmax*rmax)/3.0; // range is +- doca
       // null time shift
-      double nulldt = 0.5*ambigdoca_/sdrift_;
+      double nulldt = 0.5*ambigdoca_/sdrift_; // the shift should be the average drift time over this distance
       WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
       auto sxing = std::make_shared<STRAWXING>(tp,smat_);
