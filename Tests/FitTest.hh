@@ -161,7 +161,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
   double seedsmear(10.0);
-  double momsigma(0.5);
+  double momsigma(0.2);
   bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
