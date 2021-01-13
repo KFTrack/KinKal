@@ -24,9 +24,9 @@
 #include <string>
 #include <map>
 
-#include "MatEnv/MatElementObj.hh"
-#include "MatEnv/MatElementList.hh"
-#include "MatEnv/FileFinderInterface.hh"
+#include "KinKal/MatEnv/MatElementObj.hh"
+#include "KinKal/MatEnv/MatElementList.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------

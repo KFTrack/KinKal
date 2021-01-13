@@ -20,10 +20,10 @@
 #ifndef MATDBINFO_HH
 #define MATDBINFO_HH
 
-#include "MatEnv/MaterialInfo.hh"
-#include "MatEnv/RecoMatFactory.hh"
-#include "MatEnv/MtrPropObj.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MaterialInfo.hh"
+#include "KinKal/MatEnv/RecoMatFactory.hh"
+#include "KinKal/MatEnv/MtrPropObj.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 #include <string>
 #include <map>
 

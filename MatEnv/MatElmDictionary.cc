@@ -23,13 +23,13 @@
 #include <string>
 #include <vector>
 #include <algorithm>
-#include "MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
 
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatElmDictionary.hh"
-#include "MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/MatElmDictionary.hh"
+#include "KinKal/MatEnv/ErrLog.hh"
 using std::fstream;
 
 namespace MatEnv {

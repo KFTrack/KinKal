@@ -19,7 +19,7 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatIsotopeObj.hh"
+#include "KinKal/MatEnv/MatIsotopeObj.hh"
 
 //-------------------------------
 // Collaborating Class Headers --

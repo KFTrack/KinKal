@@ -21,7 +21,7 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MatIsotopeObj.hh"
+#include "KinKal/MatEnv/MatIsotopeObj.hh"
 
 #include <string>
 #include <vector>
