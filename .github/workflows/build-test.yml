@@ -1,4 +1,4 @@
-name: "Build + Test KinKal"
+name: "KinKal"
 
 on: [push, pull_request]
 
