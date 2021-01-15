@@ -213,35 +213,33 @@ namespace MatEnv {
     }
 
 //////////////////BEGIN EDITS BY ON/////////////////////
-//Replacement for dEdx function: Most probable energy loss per thickness x, delta_p/x or delpx, 
+//Replacement for dEdx function: Most probable energy loss
 //from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf 
   double
-    DetMaterial::delpx(double mom, double pathlen, double mass) const {
+    DetMaterial::energyLossDelp(double mom, double pathlen, double mass) const {
       if(mom>0.0){
 	//taking positive lengths
 	pathlen = fabs(pathlen) ;
 	
 	// New energy loss implementation
 
-	double gamma2,beta2,bg2,delta,x, xi, deltapx, sh ;
+	double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
 	double beta  = particleBeta(mom,mass) ;
 	double gamma = particleGamma(mom,mass) ;
 	double j = 0.200 ; 
-	   
-    	double thickness = _density*pathlen ; //pathlen in mm
-   
-   	double tau = gamma-1;
+  	double thickness = _density*pathlen ; 
+    	double tau = gamma-1;
 
-	// most probable energy loss function from PDG link above
+	// most probable energy loss function 
 
 	beta2 = beta*beta ;
 	gamma2 = gamma*gamma ;
 	bg2 = beta2*gamma2 ;
-        xi = _dgev*_za * thickness / beta2 ; // in MeV; dgev in MeV mm^2 /g, thickness in g/mm^2
+	xi = _dgev*_za * thickness / beta2 ; 
 
-	deltapx = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
-	deltapx -= beta2 ;
-	deltapx += j ;
+	deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
+	deltap -= beta2 ;
+	deltap += j ;
 
 	// density correction 
 	x = log(bg2)/twoln10 ;
@@ -277,29 +275,14 @@ namespace MatEnv {
 	  sh *= log(tau/_taul)/log(taulim/_taul);
 	}	
 
-
-	deltapx -= delta + sh ;  
-	
-	deltapx *= -xi ;     
-    	deltapx = deltapx/pathlen ; 
-
-	return deltapx;
+	deltap -= delta + sh ;  
+	deltap *= -xi ; 
+    
+	return deltap;
       } else
 	return 0.0;
-
     
     }
-
-  //the following returns the most probable energy loss 
-  double 
-    DetMaterial::energyLossDelp(double mom, double pathlen,double mass) const {
-      // make sure we take positive lengths!
-      pathlen = fabs(pathlen);
-      double deltapx = delpx(mom,pathlen,mass);
-      
-      return deltapx*pathlen;
-      
-    }  
 
 /////////////////END EDITS BY ON////////////////////////
 
@@ -487,6 +470,8 @@ namespace MatEnv {
 	
 //////////////////BEGIN EDITS BY ON/////////////////////
 //Calculations of the closed-form Moyal distribution mean and RMS, which utilizes the most probable energy loss function
+//reference for Moyal dist.: https://reference.wolfram.com/language/ref/MoyalDistribution.html
+//where in the ref. above, mu is the most probable energy loss, and sigma is xi
 
 //calculation of the Moyal mean
   double
@@ -504,8 +489,9 @@ namespace MatEnv {
 
     	//forming the Moyal Mean
 
-	double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate
-
+	double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
+	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
 	return mmean;
       } else
 	return 0.0;
@@ -526,8 +512,9 @@ namespace MatEnv {
 
     	//forming the Moyal RMS
 
-	double mrms = 2.22 * xi ; //approximately pi/sqrt(2)  * xi
-
+	static const double pisqrt2 = M_PI / sqrt(2) ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2)
+	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
 	return mrms;
       } else
 	return 0.0;
