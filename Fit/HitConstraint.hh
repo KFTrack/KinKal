@@ -100,7 +100,7 @@ namespace KinKal {
     if( !KKEFF::wasProcessed(TimeDir::forwards) || !KKEFF::wasProcessed(TimeDir::backwards))
       throw  std::invalid_argument("Can't compute unbiased parameters for unprocessed constraint");
     // Invert the cache to get unbiased parameters at this constraint
-      return Parameters(wcache_);
+    return Parameters(wcache_);
   }
 
   template <class KTRAJ> void HitConstraint<KTRAJ>::print(std::ostream& ost, int detail) const {
