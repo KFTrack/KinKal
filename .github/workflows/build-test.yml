@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build-test-kinkal:
-    name: Build+Test (${{ matrix.python-version }}, ${{ matrix.os }}, ${{ matrix.build-type }})
+    name: Build+Test (${{ matrix.build-type }}, ${{ matrix.os }}, ${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -26,6 +26,7 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build (${{ matrix.build-type }})
         run: |
+          cd ..
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
           make -C KinKal_${{ matrix.build-type }}
       - name: Test (${{ matrix.build-type }})
