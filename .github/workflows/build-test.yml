@@ -21,13 +21,15 @@ jobs:
         shell: bash -l {0}
         run: conda info
       - name: Conda Install
-        shell: bash
+        shell: bash -l {0}
         run: conda install -c conda-forge cxx-compiler root cmake
       - uses: actions/checkout@v2
       - name: Build (${{ matrix.build-type }})
+        shell: bash -l {0}
         run: |
           cd ..
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
           make -C KinKal_${{ matrix.build-type }}
       - name: Test (${{ matrix.build-type }})
+        shell: bash -l {0}
         run: make -C KinKal_${{ matrix.build-type }} test
