@@ -1,6 +1,0 @@
-*.cc
-SConscript
-*~
-*.sh
-*.old
-*.sav

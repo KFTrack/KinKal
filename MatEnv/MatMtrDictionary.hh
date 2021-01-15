@@ -24,10 +24,10 @@
 #include <string>
 #include <map>
 
-#include "MatEnv/BbrCollectionUtils.hh"
-#include "MatEnv/MatMaterialObj.hh"
-#include "MatEnv/MatMaterialList.hh"
-#include "MatEnv/FileFinderInterface.hh"
+#include "KinKal/MatEnv/BbrCollectionUtils.hh"
+#include "KinKal/MatEnv/MatMaterialObj.hh"
+#include "KinKal/MatEnv/MatMaterialList.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------

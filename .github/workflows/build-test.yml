@@ -1,0 +1,42 @@
+name: "KinKal"
+
+on: [push, pull_request]
+
+jobs:
+  build-test-kinkal:
+    name: Build+Test (${{ matrix.build-type }}, ${{ matrix.os }}, root ${{ matrix.root-version }}, py${{ matrix.python-version }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ["ubuntu-latest", "macos-latest"]
+        python-version: ["3.7"]
+        root-version: ["6.22.6"]
+        build-type: ["Debug", "Release"]
+    steps:
+      - uses: conda-incubator/setup-miniconda@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+          mamba-version: "*"
+          channels: conda-forge,defaults
+      - name: Conda info
+        shell: bash -l {0}
+        run: conda info
+        
+      - name: Conda/Mamba Install
+        shell: bash -l {0}
+        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake
+        
+      - uses: actions/checkout@v2
+        
+      - name: Build (${{ matrix.build-type }})
+        shell: bash -l {0}
+        
+        run: |
+          cd ..
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+          make -C KinKal_${{ matrix.build-type }} -j4
+          
+      - name: Test (${{ matrix.build-type }})
+        shell: bash -l {0}
+        run: cd .. && env CTEST_OUTPUT_ON_FAILURE=1 make -C KinKal_${{ matrix.build-type }} test

@@ -21,7 +21,7 @@
 //----------------------
 // Base Class Headers --
 //----------------------
-#include "MatEnv/MtrPropObj.hh"
+#include "KinKal/MatEnv/MtrPropObj.hh"
 
 #include <iostream>
 #include <math.h>
@@ -30,10 +30,10 @@
 //-------------------------------
 // Collaborating Class Headers --
 //-------------------------------
-#include "MatEnv/ErrLog.hh"
-#include "MatEnv/ElmPropObj.hh"
-#include "MatEnv/MatMaterialObj.hh"
-#include "CLHEP/Units/PhysicalConstants.h"
+#include "KinKal/MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/ElmPropObj.hh"
+#include "KinKal/MatEnv/MatMaterialObj.hh"
+#include "KinKal/General/PhysicalConstants.h"
 #include <string>
 #include <vector>
 using std::endl;
