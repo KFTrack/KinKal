@@ -58,9 +58,11 @@ namespace KinKal {
 	}
       }
       // Mask Off unused parameters
-      auto wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
-      auto wvec = weight_.weightVec()*mask_;
-      weight_ = Weights(wvec, wmat);
+      DMAT wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
+      // 2 steps needed her, as otherwise root caching results in incomplete objects
+      DVEC wvec = weight_.weightVec();
+      DVEC wreduced = wvec*mask_;
+      weight_ = Weights(wreduced, wmat);
     }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {
