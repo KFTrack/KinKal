@@ -1,3 +1,7 @@
+name: "Build + Test KinKal"
+
+on: [push, pull_request]
+
 jobs:
   build-test-kinkal:
     name: Build+Test (${{ matrix.python-version }}, ${{ matrix.os }})
@@ -9,7 +13,6 @@ jobs:
         python-version: ["3.7"]
         build-type: ["Debug", "Release"]
     steps:
-    
       - uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
@@ -17,7 +20,7 @@ jobs:
       - name: Conda info
         shell: bash -l {0}
         run: conda info
-      - name: Conda: Install Dependencies
+      - name: Conda Install
         shell: bash
         run: conda install -c conda-forge cxx-compiler root cmake
       - uses: actions/checkout@v2
