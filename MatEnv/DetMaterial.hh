@@ -10,6 +10,7 @@
 //	Copyright (C) 1996	Lawrence Berkeley Laboratory
 //
 //  Authors: Dave Brown, 11/21/96
+//	     Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
 #ifndef DETECTORMATERIAL_HH 
 #define DETECTORMATERIAL_HH
@@ -45,6 +46,16 @@ namespace MatEnv {
 	return _name == other._name; }
 
       double dEdx(double mom,dedxtype type,double mass) const;
+	  
+      /////////////////BEGIN ON EDITS////////////////////////
+      double energyLossDelp(double mom, double pathlen, double mass) const; // this will be most probable energy loss
+
+      //for Moyal functions
+      double moyalMean(double mom, double pathlen, double mass) const; //this gets the calculated Moyal Mean Energy Loss
+      double moyalRMS(double mom, double pathlen, double mass) const; //this gets the calculated Moyal RMS
+
+      ////////////////END ON EDITS/////////////////////////
+	  
       double energyLoss(double mom,double pathlen,double mass) const;
       double energyLossRMS(double mom,double pathlen,double mass) const;
       double energyLossVar(double mom,double pathlen,double mass) const {

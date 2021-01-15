@@ -12,6 +12,7 @@
 //
 //  Authors: Dave Brown, 11/21/96
 //           Matthias Steinke 04/09/99
+//	     Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include <iostream>
@@ -211,7 +212,79 @@ namespace MatEnv {
 	return 0.0;
     }
 
+//////////////////BEGIN EDITS BY ON/////////////////////
+//Replacement for dEdx function: Most probable energy loss
+//from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf 
+  double
+    DetMaterial::energyLossDelp(double mom, double pathlen, double mass) const {
+      if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	// New energy loss implementation
 
+	double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
+	double beta  = particleBeta(mom,mass) ;
+	double gamma = particleGamma(mom,mass) ;
+	double j = 0.200 ; 
+  	double thickness = _density*pathlen ; 
+    	double tau = gamma-1;
+
+	// most probable energy loss function 
+
+	beta2 = beta*beta ;
+	gamma2 = gamma*gamma ;
+	bg2 = beta2*gamma2 ;
+	xi = _dgev*_za * thickness / beta2 ; 
+
+	deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
+	deltap -= beta2 ;
+	deltap += j ;
+
+	// density correction 
+	x = log(bg2)/twoln10 ;
+	if ( x < _x0 ) {
+	  if(_delta0 > 0) {
+	    delta = _delta0*pow(10.0,2*(x-_x0));
+	  }
+	  else {
+	    delta = 0.;
+	  }
+	} else {
+	  delta = twoln10*x - _bigc;
+	  if ( x < _x1 )
+	    delta += _afactor * pow((_x1 - x), _mpower);
+	} 
+
+    // shell correction          
+	if ( bg2 > bg2lim ) {
+	  sh = 0. ;      
+	  x = 1. ;
+	  for (int k=0; k<=2; k++) {
+	    x *= bg2 ;
+	    sh += (*_shellCorrectionVector)[k]/x;
+	  }
+	}
+	else {
+	  sh = 0. ;      
+	  x = 1. ;
+	  for (int k=0; k<2; k++) {
+	    x *= bg2lim ;
+	    sh += (*_shellCorrectionVector)[k]/x;
+	  }
+	  sh *= log(tau/_taul)/log(taulim/_taul);
+	}	
+
+	deltap -= delta + sh ;  
+	deltap *= -xi ; 
+    
+	return deltap;
+      } else
+	return 0.0;
+    
+    }
+
+/////////////////END EDITS BY ON////////////////////////
 
   double 
     DetMaterial::energyLoss(double mom, double pathlen,double mass) const {
@@ -393,4 +466,63 @@ namespace MatEnv {
       } else
 	return 1.0;
     }
+    
+	
+//////////////////BEGIN EDITS BY ON/////////////////////
+//Calculations of the closed-form Moyal distribution mean and RMS, which utilizes the most probable energy loss function
+//reference for Moyal dist.: https://reference.wolfram.com/language/ref/MoyalDistribution.html
+//where in the ref. above, mu is the most probable energy loss, and sigma is xi
+
+//calculation of the Moyal mean
+  double
+    DetMaterial::moyalMean(double mom, double pathlen, double mass) const {
+      if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	double beta = particleBeta(mom, mass) ;
+	
+    	//getting most probable energy loss, or mpv:
+    	double energylossmpv = fabs(energyLossDelp(mom, pathlen, mass));
+    	//getting xi by itself:
+    	double xi = eloss_xi(beta, pathlen);
+
+    	//forming the Moyal Mean
+
+	double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
+	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
+	return mmean;
+      } else
+	return 0.0;
+
+    }
+
+//calculation of the Moyal RMS
+  double
+    DetMaterial::moyalRMS(double mom, double pathlen, double mass) const {
+      if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	double beta = particleBeta(mom, mass) ;
+    
+    	//getting xi by itself:
+    	double xi = eloss_xi(beta, pathlen);
+
+    	//forming the Moyal RMS
+
+	static const double pisqrt2 = M_PI / sqrt(2) ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2)
+	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
+	return mrms;
+      } else
+	return 0.0;
+
+    }
+
+
+	
+/////////////////END EDITS BY ON////////////////////////
+
 }
