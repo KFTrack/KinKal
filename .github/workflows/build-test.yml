@@ -15,16 +15,16 @@ jobs:
     steps:
       - uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-update-conda: true
           python-version: ${{ matrix.python-version }}
-
+          mamba-version: "*"
+          channels: conda-forge,defaults
       - name: Conda info
         shell: bash -l {0}
         run: conda info
         
-      - name: Conda Install
+      - name: Conda/Mamba Install
         shell: bash -l {0}
-        run: conda install -c conda-forge cxx-compiler root cmake
+        run: mamba install -c conda-forge cxx-compiler root cmake
         
       - uses: actions/checkout@v2
         
