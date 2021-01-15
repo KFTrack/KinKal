@@ -32,4 +32,4 @@ jobs:
           make -C KinKal_${{ matrix.build-type }}
       - name: Test (${{ matrix.build-type }})
         shell: bash -l {0}
-        run: make -C KinKal_${{ matrix.build-type }} test
+        run: cd .. && make -C KinKal_${{ matrix.build-type }} test
