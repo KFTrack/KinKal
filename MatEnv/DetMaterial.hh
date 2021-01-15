@@ -48,7 +48,6 @@ namespace MatEnv {
       double dEdx(double mom,dedxtype type,double mass) const;
 	  
       /////////////////BEGIN ON EDITS////////////////////////
-      double delpx(double mom, double pathlen, double mass) const; //this is most probable energy loss/x function
       double energyLossDelp(double mom, double pathlen, double mass) const; // this will be most probable energy loss
 
       //for Moyal functions
