@@ -4,13 +4,14 @@ on: [push, pull_request]
 
 jobs:
   build-test-kinkal:
-    name: Build+Test (${{ matrix.build-type }}, ${{ matrix.os }}, ${{ matrix.python-version }})
+    name: Build+Test (${{ matrix.build-type }}, ${{ matrix.os }}, root ${{ matrix.root-version }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
         python-version: ["3.7"]
+        root-version: ["6.22.6"]
         build-type: ["Debug", "Release"]
     steps:
       - uses: conda-incubator/setup-miniconda@v2
@@ -24,7 +25,7 @@ jobs:
         
       - name: Conda/Mamba Install
         shell: bash -l {0}
-        run: mamba install -c conda-forge cxx-compiler root cmake
+        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake
         
       - uses: actions/checkout@v2
         
