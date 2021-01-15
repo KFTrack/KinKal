@@ -4,7 +4,7 @@ on: [push, pull_request]
 
 jobs:
   build-test-kinkal:
-    name: Build+Test (${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Build+Test (${{ matrix.python-version }}, ${{ matrix.os }}, ${{ matrix.build-type }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -24,11 +24,9 @@ jobs:
         shell: bash
         run: conda install -c conda-forge cxx-compiler root cmake
       - uses: actions/checkout@v2
-        with:
-          path: "KinKal-src"
-      - name: Build ({{ matrix.build-type }})
+      - name: Build (${{ matrix.build-type }})
         run: |
-          cmake -S KinKal-src -B KinKal_{{ matrix.build-type }} -DCMAKE_BUILD_TYPE={{ matrix.build-type }}
-          make -C KinKal_{{ matrix.build-type }}
-      - name: Test ({{ matrix.build-type }})
-        run: make -C KinKal_{{ matrix.build-type }} test
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
+          make -C KinKal_${{ matrix.build-type }}
+      - name: Test (${{ matrix.build-type }})
+        run: make -C KinKal_${{ matrix.build-type }} test
