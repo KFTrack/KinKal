@@ -495,7 +495,7 @@ namespace MatEnv {
     	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 
     	//forming the Moyal RMS
-    	static const double pisqrt2 = M_PI / sqrt(2) ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2)
+    	constexpr double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
 	mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 	
       } else {
