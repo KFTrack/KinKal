@@ -476,8 +476,8 @@ namespace MatEnv {
 //and https://arxiv.org/pdf/1702.06655.pdf
 	
 //calculation of the Moyal mean and RMS
-  double*
-    DetMaterial::moyalfuncs(double mom, double pathlen, double mass) const {
+  void
+    DetMaterial::moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const {
       if(mom>0.0){
 	//taking positive lengths
 	pathlen = fabs(pathlen) ;
@@ -491,19 +491,16 @@ namespace MatEnv {
 
     	//forming the Moyal Mean
 
-	double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
+	mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
     	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 
     	//forming the Moyal RMS
     	static const double pisqrt2 = M_PI / sqrt(2) ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2)
-	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
-
-    	double * moyalarr = new double[2]{mmean, mrms} ;
-
-	return moyalarr ;
+	mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
       } else {
-    	double * moyalarr = new double[2]{0.0, 0.0} ;
-	return moyalarr;
+    	mmean = 0.0;
+	mrms = 0.0;
     }
     }
 
