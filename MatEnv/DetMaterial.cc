@@ -472,10 +472,12 @@ namespace MatEnv {
 //Calculations of the closed-form Moyal distribution mean and RMS, which utilizes the most probable energy loss function
 //reference for Moyal dist.: https://reference.wolfram.com/language/ref/MoyalDistribution.html
 //where in the ref. above, mu is the most probable energy loss, and sigma is xi
-
-//calculation of the Moyal mean
-  double
-    DetMaterial::moyalMean(double mom, double pathlen, double mass) const {
+//more useful references: http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf
+//and https://arxiv.org/pdf/1702.06655.pdf
+	
+//calculation of the Moyal mean and RMS
+  void
+    DetMaterial::moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const {
       if(mom>0.0){
 	//taking positive lengths
 	pathlen = fabs(pathlen) ;
@@ -489,38 +491,18 @@ namespace MatEnv {
 
     	//forming the Moyal Mean
 
-	double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
-	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
-	
-	return mmean;
-      } else
-	return 0.0;
-
-    }
-
-//calculation of the Moyal RMS
-  double
-    DetMaterial::moyalRMS(double mom, double pathlen, double mass) const {
-      if(mom>0.0){
-	//taking positive lengths
-	pathlen = fabs(pathlen) ;
-	
-	double beta = particleBeta(mom, mass) ;
-    
-    	//getting xi by itself:
-    	double xi = eloss_xi(beta, pathlen);
+	mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
+    	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 
     	//forming the Moyal RMS
-
-	static const double pisqrt2 = M_PI / sqrt(2) ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2)
-	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+    	constexpr double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+	mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 	
-	return mrms;
-      } else
-	return 0.0;
-
+      } else {
+    	mmean = 0.0;
+	mrms = 0.0;
     }
-
+    }
 
 	
 /////////////////END EDITS BY ON////////////////////////

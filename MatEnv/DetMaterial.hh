@@ -51,8 +51,7 @@ namespace MatEnv {
       double energyLossDelp(double mom, double pathlen, double mass) const; // this will be most probable energy loss
 
       //for Moyal functions
-      double moyalMean(double mom, double pathlen, double mass) const; //this gets the calculated Moyal Mean Energy Loss
-      double moyalRMS(double mom, double pathlen, double mass) const; //this gets the calculated Moyal RMS
+      void moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const ; //gets the calculated Moyal mean energy loss and RMS
 
       ////////////////END ON EDITS/////////////////////////
 	  
