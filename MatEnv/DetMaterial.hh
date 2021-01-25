@@ -48,14 +48,17 @@ namespace MatEnv {
       double dEdx(double mom,dedxtype type,double mass) const;
 	  
       /////////////////BEGIN ON EDITS////////////////////////
-      double energyLossDelp(double mom, double pathlen, double mass) const; // this will be most probable energy loss
+      double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old dE/dx-based energy loss function from Geant3
 
       //for Moyal functions
       void moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const ; //gets the calculated Moyal mean energy loss and RMS
 
-      ////////////////END ON EDITS/////////////////////////
-	  
+
+      //below, 'energyLoss' now refers to the MPV-based energy loss (not dE/dx)	      
       double energyLoss(double mom,double pathlen,double mass) const;
+      
+      ////////////////END ON EDITS/////////////////////////
+      
       double energyLossRMS(double mom,double pathlen,double mass) const;
       double energyLossVar(double mom,double pathlen,double mass) const {
 	double elrms = energyLossRMS(mom,pathlen,mass);

@@ -213,10 +213,10 @@ namespace MatEnv {
     }
 
 //////////////////BEGIN EDITS BY ON/////////////////////
-//Replacement for dEdx function: Most probable energy loss
+//Replacement for dEdx-based energy loss function: Most probable energy loss is now used
 //from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf 
   double
-    DetMaterial::energyLossDelp(double mom, double pathlen, double mass) const {
+    DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
       if(mom>0.0){
 	//taking positive lengths
 	pathlen = fabs(pathlen) ;
@@ -286,8 +286,11 @@ namespace MatEnv {
 
 /////////////////END EDITS BY ON////////////////////////
 
+//below, the old 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)
+//and now 'energyLoss' refers to the new most probable energy loss method
+
   double 
-    DetMaterial::energyLoss(double mom, double pathlen,double mass) const {
+    DetMaterial::energyLossG3(double mom, double pathlen,double mass) const {
       // make sure we take positive lengths!
       pathlen = fabs(pathlen);
       double dedx = dEdx(mom,_elossType,mass);
@@ -485,7 +488,7 @@ namespace MatEnv {
 	double beta = particleBeta(mom, mass) ;
 	
     	//getting most probable energy loss, or mpv:
-    	double energylossmpv = fabs(energyLossDelp(mom, pathlen, mass));
+    	double energylossmpv = fabs(energyLoss(mom, pathlen, mass));
     	//getting xi by itself:
     	double xi = eloss_xi(beta, pathlen);
 
