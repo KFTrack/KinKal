@@ -82,12 +82,22 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot) : LoopHelix(other) {
-    setBNom(trot,bnom);
+  LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref) : LoopHelix(other) {
+    setBNom(tref,bnom);
   }
 
   LoopHelix::LoopHelix( Parameters const& pdata, LoopHelix const& other) : LoopHelix(other) {
     pars_ = pdata;
+  }
+
+  LoopHelix::LoopHelix( Parameters const& pars, TimeRange const& trange, double mass, int charge, VEC3 const& bnom) : 
+  trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
+    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
+    // set reduced mass
+    mbar_ = -mass_*momToRad;
+    // set the transforms
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
   }
 
   LoopHelix::LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
