@@ -33,8 +33,8 @@ namespace KinKal {
       BFieldEffect(BFieldEffect const& ) = delete; 
       BFieldEffect& operator =(BFieldEffect const& ) = delete; 
       // create from the domain range, the effect, and the
-      BFieldEffect(Config const& config, PKTRAJ const& pktraj,TimeRange const& drange) : 
-	bfield_(config.bfield_), drange_(drange), active_(false), bfcorr_(config.bfcorr_) {}
+      BFieldEffect(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj,TimeRange const& drange) : 
+	bfield_(bfield), drange_(drange), active_(false), bfcorr_(config.bfcorr_) {}
       VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
       TimeRange const& range() const { return drange_; }
 

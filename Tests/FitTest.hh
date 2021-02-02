@@ -311,13 +311,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
-  KKCONFIGPTR configptr = make_shared<Config>(*BF);
-  configptr->dwt_ = dwt;
-  configptr->maxniter_ = maxniter;
-  configptr->bfcorr_ = bfcorr;
-  configptr->addmat_ = fitmat;
-  configptr->tol_ = tol;
-  configptr->plevel_ = (Config::printLevel)detail;
+  Config config; 
+  config.dwt_ = dwt;
+  config.maxniter_ = maxniter;
+  config.bfcorr_ = bfcorr;
+  config.addmat_ = fitmat;
+  config.tol_ = tol;
+  config.plevel_ = (Config::printLevel)detail;
   // read the schedule from the file
   string fullfile;
   if(strncmp(sfile.c_str(),"/",1) == 0) {
@@ -343,10 +343,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       istringstream ss(line);
       MetaIterConfig mconfig(ss);
       mconfig.miter_ = nmiter++;
-      configptr->schedule_.push_back(mconfig);
+      config.schedule_.push_back(mconfig);
     }
   }
-  if(nevents < 0)cout << *configptr << endl;
+  if(nevents < 0)cout << config << endl;
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -363,7 +363,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
 // create and fit the track
-  KKTRK kktrk(configptr,seedtraj,thits,dxings);
+  KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
@@ -545,7 +545,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     double duration (0.0);
     unsigned nfail(0), ndiv(0);
 
-    configptr->plevel_ = Config::none;
+    config.plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
     // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
@@ -574,7 +574,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
-      KKTRK kktrk(configptr,seedtraj,thits,dxings);
+      KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       auto const& fstat = kktrk.fitStatus();
