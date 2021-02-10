@@ -53,7 +53,6 @@ namespace KinKal {
     unsigned minndof_; // minimum number of DOFs to continue fit
     bool addmat_; // add material effects in the fit
     BFCorr bfcorr_; // how to make BFieldMap corrections in the fit
-    VEC3 origin_; // nominal origin for defining BNom
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
     MetaIterConfigCol schedule_; 

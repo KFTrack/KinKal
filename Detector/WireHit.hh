@@ -58,8 +58,10 @@ namespace KinKal {
       Residual const& timeResidual() const { return rresid_[WireHitState::time]; }
       Residual const& spaceResidual() const { return rresid_[WireHitState::distance]; }
       Line const& wire() const { return wire_; }
+      BFieldMap const& bfield() const { return bfield_; }
       // constructor
       WireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const&);
+      WireHit(BFieldMap const& bfield, PTCA const& ptca, EXINGPTR const& dxing, WireHitState const&);
       virtual ~WireHit(){}
     protected:
       void setHitState(WireHitState const& newstate) { wstate_ = newstate; }
@@ -78,6 +80,11 @@ namespace KinKal {
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const& wstate) : 
     bfield_(bfield), wire_(wire), wstate_(wstate), dxing_(dxing), precision_(1e-6) {}
+
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, EXINGPTR const& dxing, WireHitState const& wstate) : 
+    WireHit(bfield,ptca.sensorTraj(),dxing,wstate) {
+      tpdata_ = ptca.tpData();
+    }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA.  Default hint is the wire middle
@@ -109,7 +116,7 @@ namespace KinKal {
       // compute the precise drift
       // translate PTCA to residual
       VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
-      auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BFieldMap
+      auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
       VEC3 dvec = tpoca.delta().Vect();
       double phi = asin(double(dvec.Unit().Dot(pdir)));
       // must use absolute DOCA to call distanceToTime

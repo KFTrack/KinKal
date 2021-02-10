@@ -67,7 +67,7 @@ int test(int argc, char **argv) {
   double pmass, ox(0.0), oy(10.0), oz(100.0), ot(0.0);
   double tmin(-5.0), tmax(5.0);
   double ltime(3.0), vprop(0.8), gap(2.0);
-  double hlen(500.0); // half-length of the wire
+  double wlen(1000.0); // length of the wire
   double By(0.0);
   int invert(0);
 
@@ -266,9 +266,7 @@ int test(int argc, char **argv) {
   // shift the position
   VEC3 perpdir(-sin(phi),cos(phi),0.0);
   VEC3 ppos = pos + gap*perpdir;
-// time range;
-  TimeRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
-  Line tline(ppos, pvel,ltime,prange);
+  Line tline(ppos, ltime, pvel, wlen);
 // find ClosestApproach
   CAHint hint(ltime,ltime);
   ClosestApproach<KTRAJ,Line> tp(lhel,tline,hint, 1e-6);

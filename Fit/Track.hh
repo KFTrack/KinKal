@@ -65,9 +65,9 @@ namespace KinKal {
       using KKEND = TrackEnd<KTRAJ>;
       using KKBFIELD = BFieldEffect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using MEAS = Hit<KTRAJ>;
-      using MEASPTR = std::shared_ptr<MEAS>;
-      using MEASCOL = std::vector<MEASPTR>;
+      using HIT = Hit<KTRAJ>;
+      using HITPTR = std::shared_ptr<HIT>;
+      using HITCOL = std::vector<HITPTR>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
@@ -81,7 +81,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, MEASCOL& thits, EXINGCOL& dxings ); 
+      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& thits, EXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<Status> const& history() const { return history_; }
@@ -91,7 +91,7 @@ namespace KinKal {
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return config_; }
       BFieldMap const& bfield() const { return bfield_; }
-      MEASCOL const& timeHits() const { return thits_; } 
+      HITCOL const& hits() const { return thits_; } 
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
@@ -107,12 +107,12 @@ namespace KinKal {
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
-      MEASCOL thits_; // shared collection of hits
+      HITCOL thits_; // shared collection of hits
   };
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  MEASCOL& thits, EXINGCOL& dxings) : 
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& thits, EXINGCOL& dxings) : 
     config_(cfg), bfield_(bfield), thits_(thits) {
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);

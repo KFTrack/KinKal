@@ -8,14 +8,13 @@ using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-  Line::Line(VEC4 const& pos0, VEC3 const& svel, TimeRange const& range,bool forcerange) : Line(pos0.Vect(), svel, pos0.T(), range, forcerange) {}
-  Line::Line(VEC3 const& pos0, VEC3 const& svel, double tmeas, TimeRange const& range, bool forcerange)  : trange_(range), 
-  t0_(tmeas), speed_(sqrt(svel.Mag2())), pos0_(pos0), dir_(svel.Unit()), forcerange_(forcerange) {
-  }
+  Line::Line(VEC4 const& pos0, VEC3 const& svel, double length ) : Line(pos0.Vect(), pos0.T(), svel, length) {}
+  Line::Line(VEC3 const& pos0, double tmeas , VEC3 const& svel, double length )  : 
+    pos0_(pos0), dir_(svel.Unit()), t0_(tmeas), speed_(sqrt(svel.Mag2())), length_(length) {}
+  Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : pos0_(p0), dir_((p0-p1).Unit()), t0_(t0), speed_(speed), length_((p1-p0).R()) {}
 
   VEC3 Line::position3(double time) const {
-    if(forceRange()) range().forceRange(time);
-    return pos0() + ((time-t0())*speed())*dir_;
+    return pos0_ + ((time-t0_)*speed_)*dir_;
   }
 
   VEC4 Line::position4(double time) const {
@@ -24,24 +23,19 @@ namespace KinKal {
   }
 
   VEC3 Line::velocity(double time) const {
-    return dir_*speed();
-  }
-
-  double Line::speed(double time) const {
-    return speed();
+    return dir_*speed_;
   }
 
   double Line::TOCA(VEC3 point) const {
-    double s = (point - pos0()).Dot(dir_);
-    return s/speed_ - t0();
+    double s = (point - pos0_).Dot(dir_);
+    return s/speed_ - t0_;
   }
 
   void Line::print(std::ostream& ost, int detail) const {
-    ost << " Line " <<  range()
+    ost << " Line, intial position " << pos0_
     << " t0 " << t0_
-    << " speed " << speed_
-    << " intial position " << pos0_
-    << " direction " << dir_ << endl;
+    << " direction " << dir_
+    << " speed " << speed_ << endl;
   }
 
   std::ostream& operator <<(std::ostream& ost, Line const& tline) {

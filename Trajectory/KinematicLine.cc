@@ -93,7 +93,7 @@ namespace KinKal {
   }
 
   VEC3 KinematicLine::position3(double time) const {
-    return (pos0() + flightLength(time) * dir());
+    return (pos0() + flightLength(time) * direction());
   }
 
   VEC4 KinematicLine::position4(double time) const {
@@ -139,7 +139,7 @@ namespace KinKal {
       return VEC3(-sinPhi0(), cosPhi0(), 0.0);
       break;
     case MomBasis::momdir_: // along momentum
-      return dir();
+      return direction();
       break;
     default:
       throw std::invalid_argument("Invalid direction");

@@ -39,7 +39,7 @@ namespace KKTest {
 	bfield_(bfield), mom_(mom), icharge_(icharge),
 	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
-	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), sigt_(3.0), ineff_(0.05),
+	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
 	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_) {}
@@ -74,7 +74,7 @@ namespace KKTest {
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
       double zrange_, rmax_, rstraw_; // tracker dimension
-      double rwire_, wthick_;
+      double rwire_, wthick_, wlen_; // wire radius, thickness, length
       double sigt_; // drift time resolution in ns
       double ineff_; // hit inefficiency
       // time hit parameters
@@ -106,10 +106,8 @@ namespace KKTest {
     double tmeas = htime + dprop/sprop_ + fabs(rdrift)/sdrift_;
     // smear measurement time
     tmeas = tr_.Gaus(tmeas,sigt_);
-    // range doesn't really matter
-    TimeRange trange(tmeas-dprop/sprop_,tmeas+dprop/sprop_);
     // construct the trajectory for this hit
-    return Line(mpos,vprop,tmeas,trange);
+    return Line(mpos,tmeas,vprop,wlen_);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings) {
@@ -218,8 +216,8 @@ namespace KKTest {
     double tmeas = tr_.Gaus(ltime+(lmeas.Z()-shmpos.Z())/cprop_,ttsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-    TimeRange trange(cstart,cstart+clen_/cprop_);
-    Line lline(lmeas,lvel,tmeas,trange);
+//    TimeRange trange(cstart,cstart+clen_/cprop_);
+    Line lline(lmeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
     thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
   }
