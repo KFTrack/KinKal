@@ -6,6 +6,7 @@
 //
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
@@ -15,20 +16,23 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      // construct from PTCA (for use with hits)
+      using STRAWHIT = WireHit<KTRAJ>;
+      using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+      // construct from PTCA (no hit)
       StrawXing(PTCA const& tpoca, StrawMat const& smat) : EXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
       void update(PKTRAJ const& pktraj,double precision) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      // specific interface: this xing is based on PTCA
+     // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
       // accessors
       StrawMat const& strawMat() const { return smat_; }
     private:
       StrawMat const& smat_;
       Line axis_; // straw axis, expressed as a timeline
+      // should add state for displace wire TODO
   };
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PTCA const& tpoca) {

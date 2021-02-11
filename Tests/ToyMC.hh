@@ -52,7 +52,7 @@ namespace KKTest {
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings);
-      double createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing);
+      double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
       // accessors
@@ -142,16 +142,13 @@ namespace KKTest {
       double nulldt = 0.5*ambigdoca_/sdrift_; // the shift should be the average drift time over this distance
       WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
-      auto sxing = std::make_shared<STRAWXING>(tp,smat_);
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, sxing, whstate,
-	sdrift_, sigt_*sigt_, rstraw_));
-      } else {
-	dxings.push_back(sxing);
+	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, whstate, sdrift_, sigt_*sigt_, rstraw_));
       }
+      dxings.push_back(std::make_shared<STRAWXING>(tp,smat_));
       // compute material effects and change trajectory accordingly
       if(simmat_){
-	double defrac = createStrawMaterial(pktraj, *sxing.get());
+	double defrac = createStrawMaterial(pktraj, dxings.back().get());
 	// terminate if there is catastrophic energy loss
 	if(fabs(defrac) > 0.1)break;
       }
@@ -163,15 +160,15 @@ namespace KKTest {
     if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
   }
 
-  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, STRAWXING const& sxing) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing) {
     double desum = 0.0;
-    double tstraw = sxing.crossingTime();
+    double tstraw = sxing->crossingTime();
     auto const& endpiece = pktraj.nearestPiece(tstraw);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
     std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing.materialEffects(pktraj,TimeDir::forwards, dmom, momvar);
+    sxing->materialEffects(pktraj,TimeDir::forwards, dmom, momvar);
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
       auto mdir = static_cast<MomBasis::Direction>(idir);
       double momsig = sqrt(momvar[idir]);

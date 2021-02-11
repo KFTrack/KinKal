@@ -119,12 +119,9 @@ namespace KinKal {
       // create the effects.  First, loop over the hits
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
-	// if there's associated material, create an effect for that too
 	effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
-	if(config_.addmat_ && thit->hasMaterial())
-	  effects_.emplace_back(std::make_unique<KKMAT>(thit->detXingPtr(),reftraj_));
       }
-      //add pure material effects
+      //add material effects
       if(config_.addmat_){
 	for(auto& dxing : dxings) {
 	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
