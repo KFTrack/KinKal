@@ -288,7 +288,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   MEASCOL thits; // this program shares hit ownership with Track
   EXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
-  toy.simulateParticle(tptraj, thits, dxings);
+  toy.simulateParticle(tptraj, thits, dxings,fitmat);
   if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
@@ -315,7 +315,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   config.dwt_ = dwt;
   config.maxniter_ = maxniter;
   config.bfcorr_ = bfcorr;
-  config.addmat_ = fitmat;
   config.tol_ = tol;
   config.plevel_ = (Config::printLevel)detail;
   // read the schedule from the file
@@ -552,7 +551,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
-      toy.simulateParticle(tptraj,thits,dxings);
+      toy.simulateParticle(tptraj,thits,dxings,fitmat);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum4(tmid);

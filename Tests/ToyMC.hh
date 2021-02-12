@@ -51,7 +51,7 @@ namespace KKTest {
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
-      void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings);
+      void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
       double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
@@ -110,7 +110,7 @@ namespace KKTest {
     return Line(mpos,tmeas,vprop,wlen_);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
     createTraj(pktraj);
     // divide time range
@@ -145,10 +145,11 @@ namespace KKTest {
       if(tr_.Uniform(0.0,1.0) > ineff_){
 	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, whstate, sdrift_, sigt_*sigt_, rstraw_));
       }
-      dxings.push_back(std::make_shared<STRAWXING>(tp,smat_));
       // compute material effects and change trajectory accordingly
+      auto xing = std::make_shared<STRAWXING>(tp,smat_);
+      if(addmat)dxings.push_back(xing);
       if(simmat_){
-	double defrac = createStrawMaterial(pktraj, dxings.back().get());
+	double defrac = createStrawMaterial(pktraj, xing.get());
 	// terminate if there is catastrophic energy loss
 	if(fabs(defrac) > 0.1)break;
       }

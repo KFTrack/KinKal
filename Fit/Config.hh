@@ -41,7 +41,7 @@ namespace KinKal {
     enum BFCorr {nocorr=0, fixed, variable, both };
     typedef std::vector<MetaIterConfig> MetaIterConfigCol;
     Config(std::vector<MetaIterConfig>const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  tbuff_(1.0), tol_(0.1), minndof_(5), addmat_(true), bfcorr_(fixed), plevel_(none) {} 
+    Config() : maxniter_(10), dwt_(1.0e6),  tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
     MetaIterConfigCol const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
     bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }
@@ -51,7 +51,6 @@ namespace KinKal {
     double tbuff_; // time buffer for final fit (ns)
     double tol_; // tolerance on position change in BFieldMap integration (mm)
     unsigned minndof_; // minimum number of DOFs to continue fit
-    bool addmat_; // add material effects in the fit
     BFCorr bfcorr_; // how to make BFieldMap corrections in the fit
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure

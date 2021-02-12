@@ -122,10 +122,8 @@ namespace KinKal {
 	effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
       }
       //add material effects
-      if(config_.addmat_){
-	for(auto& dxing : dxings) {
-	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
-	}
+      for(auto& dxing : dxings) {
+	effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
       }
       // preliminary sort; this makes sure the range is accurate when computing BField corrections
       std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
