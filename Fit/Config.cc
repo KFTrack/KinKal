@@ -2,16 +2,10 @@
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, MetaIterConfig miconfig ) {
       ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;
-      if(miconfig.updatemat_)
-	ost << " Update Material Xings";
-      if(miconfig.updatebfcorr_)
-	ost << " Update BFieldMap Correction";
-      if(miconfig.updatehits_)
-	ost << " Update Hit Internals";
       ost << miconfig.updaters_.size() << " Dedicated Updaters" << std::endl;
       ost << " converge, diverge, oscillating dchisq " << miconfig.convdchisq_ 
       << " "<< miconfig.divdchisq_  
-      << " "<< miconfig.oscdchisq_;
+      << " "<< miconfig.oscdchisq_ << " time precision " << miconfig.tprec_;
     return ost;
   }
 

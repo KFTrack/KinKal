@@ -145,7 +145,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double simmass, fitmass;
   unsigned maxniter(10);
   double dwt(1.0e6);
-  unsigned nevents(100);
+  unsigned nevents(1000);
   bool ttree(true), printbad(false);
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);

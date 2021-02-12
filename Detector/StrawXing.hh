@@ -23,7 +23,7 @@ namespace KinKal {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
-      void update(PKTRAJ const& pktraj,double precision) override;
+      void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
      // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
@@ -44,10 +44,10 @@ namespace KinKal {
       throw std::runtime_error("CA failure");
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,double precision) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     // use current xing time create a hint to the CA calculation: this speeds it up
     CAHint tphint(EXING::crossingTime(), EXING::crossingTime());
-    PTCA tpoca(pktraj,axis_,tphint,precision);
+    PTCA tpoca(pktraj,axis_,tphint,miconfig.tprec_);
     update(tpoca);
   }
 

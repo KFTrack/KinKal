@@ -77,8 +77,8 @@ namespace KinKal {
     // reset the annealing temp and hit precision
     vscale_ = miconfig.varianceScale();
     precision_ = miconfig.tprec_;
-    // update the hit's internal state; this depends on the configuration parameters
-    if(miconfig.updatehits_)hit_->updateState(pktraj,miconfig );
+    // update the hit's internal state; the actual update depends on the hit
+    hit_->updateState(pktraj,miconfig );
     // update the state of this object
     update(pktraj);
   }

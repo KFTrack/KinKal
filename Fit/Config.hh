@@ -18,9 +18,6 @@
 
 namespace KinKal {
   struct MetaIterConfig {
-    bool updatemat_; // update material effects
-    bool updatebfcorr_; // update magnetic field inhomogeneity effects
-    bool updatehits_; // update the internal state of the hits
     double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
     double convdchisq_; // maximum change in chisquared/dof for convergence
     double divdchisq_; // minimum change in chisquared/dof for divergence
@@ -29,9 +26,9 @@ namespace KinKal {
     int miter_; // count of meta-iteration
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
-    MetaIterConfig() : updatemat_(false), updatebfcorr_(false), updatehits_(false), temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), tprec_(1e-6), miter_(-1) {}
+    MetaIterConfig() : temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), tprec_(1e-6), miter_(-1) {}
     MetaIterConfig(std::istream& is) : miter_(-1) {
-      is >> updatemat_ >> updatebfcorr_ >> updatehits_ >> temp_ >> convdchisq_ >> divdchisq_ >> oscdchisq_ >> tprec_;
+      is >> temp_ >> convdchisq_ >> divdchisq_ >> oscdchisq_ >> tprec_;
     }
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };

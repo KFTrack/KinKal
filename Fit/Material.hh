@@ -79,11 +79,9 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-    if(miconfig.updatemat_){
       // update the detector Xings for this effect
-      dxing_->update(ref,miconfig.tprec_);
-      update(ref);
-    }
+    dxing_->update(ref,miconfig);
+    update(ref);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache() {
