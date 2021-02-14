@@ -213,10 +213,10 @@ namespace MatEnv {
     }
 
 //////////////////BEGIN EDITS BY ON/////////////////////
-//Replacement for dEdx function: Most probable energy loss
+//Replacement for dEdx-based energy loss function: Most probable energy loss is now used
 //from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf 
   double
-    DetMaterial::energyLossDelp(double mom, double pathlen, double mass) const {
+    DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
       if(mom>0.0){
 	//taking positive lengths
 	pathlen = fabs(pathlen) ;
@@ -284,10 +284,12 @@ namespace MatEnv {
     
     }
 
-/////////////////END EDITS BY ON////////////////////////
+
+//below, the old 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)
+//and now 'energyLoss' above refers to the new most probable energy loss method
 
   double 
-    DetMaterial::energyLoss(double mom, double pathlen,double mass) const {
+    DetMaterial::energyLossG3(double mom, double pathlen,double mass) const {
       // make sure we take positive lengths!
       pathlen = fabs(pathlen);
       double dedx = dEdx(mom,_elossType,mass);
@@ -322,6 +324,7 @@ namespace MatEnv {
       }
     }  
 
+/////////////////END EDITS BY ON////////////////////////
 
   double 
     DetMaterial::energyGain(double mom, double pathlen, double mass) const {
@@ -365,12 +368,41 @@ namespace MatEnv {
 
   /********************** end of New Routines **************************/ 
 
+//////////////////BEGIN EDITS BY ON/////////////////////
+
+//this 'energyLossRMS' now refers to the closed-form Moyal distribution RMS
+//see 'moyalfuncs' at end of file for more information
+
+  double
+    DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
+	if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	double beta = particleBeta(mom, mass) ;
+	
+    	double xi = eloss_xi(beta, pathlen);
+
+
+    	//forming the Moyal RMS
+    	constexpr double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
+	return mrms;
+	
+      } else {
+    	return 0.0 ;
+    }
+    }
+
+
+//below, the old 'energyLossRMS' function, which has been renamed (G3 for geant3)
   //
   //  RMS of energy loss.  This is a gaussian approximation, stolen from
   //  Geant3 (see Phys332)
   //
   double
-    DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
+    DetMaterial::energyLossRMSG3(double mom,double pathlen,double mass) const {
 //      double beta = particleBeta(mom,mass);
 //      double emax = eloss_emax(mom,mass);
 //      double xi = eloss_xi(beta,fabs(pathlen));
@@ -391,8 +423,11 @@ namespace MatEnv {
 //      //       << " elossrms = " << elossrms << endl;
 //      // this value is way too big: scale it down for now but this function needs a rewrite FIXME!
 //      return elossrms;
-      return 0.5*energyLoss(mom,pathlen,mass);
+      return 0.5*energyLossG3(mom,pathlen,mass);
     }
+
+/////////////////END EDITS BY ON////////////////////////
+
 
   //
   //  Functions needed for energy loss calculation, see reference above
@@ -469,6 +504,9 @@ namespace MatEnv {
     
 	
 //////////////////BEGIN EDITS BY ON/////////////////////
+
+//the function below is not currently being used, but might be integrated later for efficiency, since it calculates all quantities needed for Moyal closed-form mean and RMS once
+
 //Calculations of the closed-form Moyal distribution mean and RMS, which utilizes the most probable energy loss function
 //reference for Moyal dist.: https://reference.wolfram.com/language/ref/MoyalDistribution.html
 //where in the ref. above, mu is the most probable energy loss, and sigma is xi
@@ -485,7 +523,7 @@ namespace MatEnv {
 	double beta = particleBeta(mom, mass) ;
 	
     	//getting most probable energy loss, or mpv:
-    	double energylossmpv = fabs(energyLossDelp(mom, pathlen, mass));
+    	double energylossmpv = fabs(energyLoss(mom, pathlen, mass));
     	//getting xi by itself:
     	double xi = eloss_xi(beta, pathlen);
 
