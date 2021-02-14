@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/KFTrack/KinKal.svg?branch=master)](https://travis-ci.org/KFTrack/KinKal)
+[![Build Status](https://github.com/KFTrack/KinKal/workflows/KinKal/badge.svg)](https://github.com/KFTrack/KinKal/actions)
 
 # Kinematic Kalman filter track fit code package
 
@@ -75,7 +75,7 @@ cd build_profile
 
 ### CMake
 
-3. Generate the build system, and build
+3. Run `cmake`, and build with `make`
 
 ```bash
 
@@ -92,11 +92,24 @@ make test
 Test programs will be built in the `bin/` directory. Run them with `--help` in the `build` directory to get a list of run parameters.
 
 ### Build FAQ
+### Running `clang-tidy`
+
+Make sure `clang-tidy` is installed, and add an extra argument to the `cmake` command.
+
+```bash
+mkdir build_clangtidy 
+cd build_clangtidy
+cmake ../KinKal -DCMAKE_BUILD_TYPE=[Release/Debug] -DENABLE_CLANG_TIDY=ON
+make -j <jobs to run>
+```
+
+The code will appear to compile as normal, although in this case `clang-tidy` is actually checking the code for problems. No warnings or errors mean that no problems were found.
+
 #### (MacOS) Brew not working
-The build tries to find ROOT with the `root-config` executable. You should ensure before building that `brew` added the ROOT `bin/` directory correctly to the `$PATH` environment variable. Sometimes re-installing the package can fix the issue.
+The build tries to find ROOT using `cmake`. You should ensure before building that `brew` added the ROOT `bin/` directory correctly to the `$PATH` environment variable. Sometimes re-installing the package can fix the issue.
 
 #### Problems building against a ROOT binary or manually compiled release
-You should make sure to source the `<root_location>/bin/thisroot.sh` shell script before building. This sets all the necessary environment variables needed by KinKal.
+If not installed via a package manager, you should make sure to source the `<root_location>/bin/thisroot.sh` shell script before building.
 ```bash
 
 source <ROOT>/bin/thisroot.sh
@@ -104,3 +117,5 @@ source <ROOT>/bin/thisroot.sh
 ```
 
 The ROOT binaries need to be compiled with C++17 (`-std=c++17`) support.
+
+
