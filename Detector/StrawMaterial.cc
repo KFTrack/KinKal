@@ -1,10 +1,10 @@
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>
 
 namespace KinKal {
-  double StrawMat::gasPath(double doca, double ddoca, double adot) const {
+  double StrawMaterial::gasPath(double doca, double ddoca, double adot) const {
     doca = std::min(fabs(doca),srad_);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     if(!isfinite(afac))throw std::runtime_error("Invalid angle");
@@ -27,7 +27,7 @@ namespace KinKal {
     return retval;
   }
 
-  double StrawMat::wallPath(double doca, double ddoca, double adot) const{
+  double StrawMaterial::wallPath(double doca, double ddoca, double adot) const{
     doca = std::min(fabs(doca),srad_);
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     double retval(-1.0);
@@ -47,7 +47,7 @@ namespace KinKal {
     return retval;
   }
 
-  void StrawMat::findXings(double doca, double ddoca, double adot, std::vector<MaterialXing>& mxings) const {
+  void StrawMaterial::findXings(double doca, double ddoca, double adot, std::vector<MaterialXing>& mxings) const {
     mxings.clear();
     double wpath = wallPath(doca,ddoca,adot);
     if(wpath > 0.0) mxings.push_back(MaterialXing(*wallmat_,wpath));

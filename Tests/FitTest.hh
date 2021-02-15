@@ -7,7 +7,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Tests/SimpleWireHit.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
 #include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"

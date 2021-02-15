@@ -5,7 +5,7 @@
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/Detector/ElementXing.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -19,7 +19,7 @@ namespace KinKal {
       using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       // construct from PTCA (no hit)
-      StrawXing(PTCA const& tpoca, StrawMat const& smat) : EXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
+      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
@@ -28,9 +28,9 @@ namespace KinKal {
      // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
       // accessors
-      StrawMat const& strawMat() const { return smat_; }
+      StrawMaterial const& strawMaterial() const { return smat_; }
     private:
-      StrawMat const& smat_;
+      StrawMaterial const& smat_;
       Line axis_; // straw axis, expressed as a timeline
       // should add state for displace wire TODO
   };

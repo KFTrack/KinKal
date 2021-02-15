@@ -9,7 +9,7 @@
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Tests/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
@@ -60,7 +60,7 @@ namespace KKTest {
       double chVar() const {return ttsig_*ttsig_;}
       double rStraw() const { return rstraw_; }
       double zRange() const { return zrange_; }
-      StrawMat const& strawMaterial() const { return smat_; }
+      StrawMaterial const& strawMaterial() const { return smat_; }
 
     private:
       BFieldMap const& bfield_;
@@ -83,7 +83,7 @@ namespace KKTest {
       double tbuff_;
       double tol_; // tolerance on spatial accuracy for 
       double tprec_; // time precision on TCA
-      StrawMat smat_; // straw material
+      StrawMaterial smat_; // straw material
     
   };
 

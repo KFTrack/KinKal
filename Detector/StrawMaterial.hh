@@ -1,5 +1,5 @@
-#ifndef KinKal_StrawMat_hh
-#define KinKal_StrawMat_hh
+#ifndef KinKal_StrawMaterial_hh
+#define KinKal_StrawMaterial_hh
 //
 //  description of a local segment of a straw, including a
 //  mixture for the straw, the gas, and the wire,
@@ -9,10 +9,10 @@
 #include "KinKal/MatEnv/MatDBInfo.hh"
 
 namespace KinKal {
-  class StrawMat {
+  class StrawMaterial {
     public:
     // explicit constructor from geometry and materials
-      StrawMat(double srad, double thick, double wrad,
+      StrawMaterial(double srad, double thick, double wrad,
 	  const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
 	srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
 	  srad2_ = srad_*srad_;
@@ -21,8 +21,8 @@ namespace KinKal {
 	  ddmax_ = 0.05*srad_;
 	}
       // construct using default materials
-      StrawMat(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad) :
-	StrawMat(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
+      StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad) :
+	StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
 	matdbinfo.findDetMaterial("straw-gas"),
 	matdbinfo.findDetMaterial("straw-wire")) {}
       // pathlength through gas, give DOCA to the axis, uncertainty on that,

@@ -9,7 +9,7 @@
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Tests/SimpleWireHit.hh"
 #include "KinKal/Tests/ScintHit.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
@@ -156,7 +156,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   toy.setInefficiency(0.0);
   PKTRAJ tptraj;
 //  cout << "True " << tptraj << endl;
-  StrawMat const& smat = toy.strawMaterial();
+  StrawMaterial const& smat = toy.strawMaterial();
   TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
   TGraph* gwplen = new TGraph(nhits); gwplen->SetTitle("Wall Pathlength;Doca (mm);Pathlength (mm)"); gwplen->SetMinimum(0.0);
   TGraph* ggeloss = new TGraph(nhits); ggeloss->SetTitle("Gas Energy Change;Doca (mm);Energy Change (MeV)"); ggeloss->SetMaximum(0.0);
