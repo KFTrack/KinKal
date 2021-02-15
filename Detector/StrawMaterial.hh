@@ -31,12 +31,8 @@ namespace KinKal {
 	StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
 	    matdbinfo.findDetMaterial("straw-gas"),
 	    matdbinfo.findDetMaterial("straw-wire")) {}
-      // pathlength through gas, give DOCA to the axis, uncertainty on that,
-      // and the dot product of the path direction WRT the axis.
-      double gasPath(ClosestApproachData const& cadata,StrawXingConfig const& caconfig) const;
-      // same for wall material
-      double wallPath(ClosestApproachData const& cadata,StrawXingConfig const& caconfig) const; 
-      double wirePath(ClosestApproachData const& tpdata,StrawXingConfig const& config) const;
+      // pathlength through straw components, given closest approach
+      void pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, double& wallpath, double& gaspath, double& wirepath) const;
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO
       void findXings(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, std::vector<MaterialXing>& mxings) const;
       double strawRadius() const { return srad_; }

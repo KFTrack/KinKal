@@ -216,19 +216,19 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     // compute material effects
     if(strawhit && strawhit_){
       double doca = fabs(tpdata.doca());
-      double gpath = smat.gasPath(tpdata,sxconfig);
-      double wpath = smat.wallPath(tpdata,sxconfig);
-      ggplen->SetPoint(ihit,doca,gpath );
-      gwplen->SetPoint(ihit,doca,wpath);
+      double gaspath, wirepath, wallpath;
+      smat.pathLengths(tpdata,sxconfig,wallpath,gaspath,wirepath);
+      ggplen->SetPoint(ihit,doca,gaspath);
+      gwplen->SetPoint(ihit,doca,wallpath);
       // compute material effects
-      double geloss = smat.gasMaterial().energyLoss(mom,gpath,pmass);
-      double weloss = smat.wallMaterial().energyLoss(mom,wpath,pmass);
-      double gscat = smat.gasMaterial().scatterAngleRMS(mom,gpath,pmass);
-      double wscat = smat.wallMaterial().scatterAngleRMS(mom,wpath,pmass);
-      ggeloss->SetPoint(ihit,gpath,geloss);
-      gweloss->SetPoint(ihit,wpath,weloss);
-      ggscat->SetPoint(ihit,gpath,gscat);
-      gwscat->SetPoint(ihit,wpath,wscat);
+      double geloss = smat.gasMaterial().energyLoss(mom,gaspath,pmass);
+      double weloss = smat.wallMaterial().energyLoss(mom,wallpath,pmass);
+      double gscat = smat.gasMaterial().scatterAngleRMS(mom,gaspath,pmass);
+      double wscat = smat.wallMaterial().scatterAngleRMS(mom,wallpath,pmass);
+      ggeloss->SetPoint(ihit,gaspath,geloss);
+      gweloss->SetPoint(ihit,wallpath,weloss);
+      ggscat->SetPoint(ihit,gaspath,gscat);
+      gwscat->SetPoint(ihit,wallpath,wscat);
     }
     ihit++;
   }

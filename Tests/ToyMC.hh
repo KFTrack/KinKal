@@ -39,7 +39,7 @@ namespace KKTest {
 	bfield_(bfield), mom_(mom), icharge_(icharge),
 	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
-	zrange_(zrange), rmax_(800.0), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
+	zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
 	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_) {}
@@ -60,6 +60,7 @@ namespace KKTest {
       double chVar() const {return ttsig_*ttsig_;}
       double rStraw() const { return rstraw_; }
       double zRange() const { return zrange_; }
+      double strawRadius() const { return rstraw_; }
       StrawMaterial const& strawMaterial() const { return smat_; }
 
     private:
@@ -73,7 +74,7 @@ namespace KKTest {
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
-      double zrange_, rmax_, rstraw_; // tracker dimension
+      double zrange_, rstraw_; // tracker dimension
       double rwire_, wthick_, wlen_; // wire radius, thickness, length
       double sigt_; // drift time resolution in ns
       double ineff_; // hit inefficiency
@@ -99,7 +100,7 @@ namespace KKTest {
     VEC3 drift = (sdir.Cross(hdir)).Unit();
     VEC3 dpos = hpos.Vect() + rdrift*drift;
     //  cout << "Generating hit at position " << dpos << endl;
-    double dprop = tr_.Uniform(0.0,rmax_);
+    double dprop = tr_.Uniform(-0.5*wlen_,0.0);
     VEC3 mpos = dpos + sdir*dprop;
     VEC3 vprop = sdir*sprop_;
     // measured time is after propagation and drift

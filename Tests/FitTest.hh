@@ -79,7 +79,7 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
-  unsigned maxniter(100);
+  unsigned maxniter(1000);
   unsigned niter(0);
   VEC3 pos2;
 //  double delta;
