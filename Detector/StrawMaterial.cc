@@ -17,12 +17,12 @@ namespace KinKal {
       double rad = std::min(doca,srad_-thick_);
       retval = 2.0*sqrt(srad2_-rad*rad); 
     } else { 
-      // integrate +- 1 sigma from DOCA.  Restrict rmax to physical values
-      // Note that negative rdmin is handled naturally
-      double rdmax = std::min(rdmax_,(doca+sigdoca)/srad_);
-      double rdmin = std::min(std::max(wrad_,doca-sigdoca)/srad_,rdmax-thick_);
-      retval = srad_*(asin(rdmax) - asin(rdmin) +
-	  rdmax*sqrt(1.0-rdmax*rdmax) - rdmin*sqrt(1.0-rdmin*rdmin) )/(rdmax-rdmin);
+      // integrate +- N sigma from DOCA.  Restrict rmax to physical values
+      // Note that negative rmin is handled naturally
+      double rmax = std::min(srad_-thick_,(doca+caconfig.nsig_*sigdoca))/srad_;
+      double rmin = std::min(std::max(wrad_,doca-caconfig.nsig_*sigdoca)/srad_,rmax-thick_);
+      retval = srad_*(asin(rmax) - asin(rmin) +
+	  rmax*sqrt(1.0-rmax*rmax) - rmin*sqrt(1.0-rmin*rmin) )/(rmax-rmin);
       if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     }
     // correct for the angle
@@ -41,11 +41,11 @@ namespace KinKal {
       double rad = std::min(doca,srad_-thick_);
       retval = 2.0*thick_*srad_/sqrt(srad2_-rad*rad);
     } else {
-      // integrate +- 1 sigma from DOCA.  Restrict rmax to physical values
-      // Note that negative rdmin is handled naturally
-      double rdmax = std::min(rdmax_,(doca+sigdoca)/srad_);
-      double rdmin = std::min(std::max(wrad_,doca-sigdoca)/srad_,rdmax-thick_);
-      retval = 2.0*thick_*(asin(rdmax) - asin(rdmin))/(rdmax-rdmin);
+      // integrate +- N sigma from DOCA.  Restrict rmax to physical values
+      // Note that negative rmin is handled naturally
+      double rmax = std::min(srad_-thick_,(doca+caconfig.nsig_*sigdoca))/srad_;
+      double rmin = std::min(std::max(wrad_,doca-caconfig.nsig_*sigdoca)/srad_,rmax-thick_);
+      retval = 2.0*thick_*(asin(rmax) - asin(rmin))/(rmax-rmin);
       if(isnan(retval))throw std::runtime_error("Invalid pathlength");
     }
     // correct for the angle

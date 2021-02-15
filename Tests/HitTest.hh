@@ -49,7 +49,7 @@ using namespace std;
 using KinKal::Line;
 
 void print_usage() {
-  printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --ddoca f --By f --Bgrad f --simmat_ i --prec f\n");
+  printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --By f --Bgrad f --simmat_ i --prec f\n");
 }
 
 template <class KTRAJ>
@@ -79,7 +79,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   double pmass;
   unsigned nhits(40);
   int iseed(124223);
-  double ddoca(0.1);
   double Bgrad(0.0), By(0.0);
   bool simmat_(true), scinthit_(true), strawhit_(true);
   double precision(1e-8);
@@ -97,7 +96,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     {"strawhit",     required_argument, 0, 'S'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"ddoca",     required_argument, 0, 'x'  },
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"prec",     required_argument, 0, 'P'  },
@@ -129,8 +127,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       case 'b' : simmat_ = atoi(optarg);
 		 break;
       case 's' : iseed = atoi(optarg);
-		 break;
-      case 'x' : ddoca = atof(optarg);
 		 break;
       case 'y' : By = atof(optarg);
 		 break;
