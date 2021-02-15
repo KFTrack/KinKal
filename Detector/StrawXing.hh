@@ -19,7 +19,9 @@ namespace KinKal {
       using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       // construct from PTCA (no hit)
-      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
+      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat),
+      sxconfig_(0.05*smat.strawRadius(),1.0),
+      axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
@@ -29,8 +31,10 @@ namespace KinKal {
       void update(PTCA const& tpoca);
       // accessors
       StrawMaterial const& strawMaterial() const { return smat_; }
+      StrawXingConfig const& config() const { return sxconfig_; }
     private:
       StrawMaterial const& smat_;
+      StrawXingConfig sxconfig_;
       Line axis_; // straw axis, expressed as a timeline
       // should add state for displace wire TODO
   };
@@ -38,7 +42,7 @@ namespace KinKal {
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PTCA const& tpoca) {
     if(tpoca.usable()){
       EXING::matXings().clear();
-      smat_.findXings(tpoca.doca(),sqrt(tpoca.docaVar()),tpoca.dirDot(),EXING::matXings());
+      smat_.findXings(tpoca.tpData(),sxconfig_,EXING::matXings());
       EXING::crossingTime() = tpoca.particleToca();
     } else
       throw std::runtime_error("CA failure");

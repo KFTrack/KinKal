@@ -159,10 +159,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   StrawMaterial const& smat = toy.strawMaterial();
   TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
   TGraph* gwplen = new TGraph(nhits); gwplen->SetTitle("Wall Pathlength;Doca (mm);Pathlength (mm)"); gwplen->SetMinimum(0.0);
-  TGraph* ggeloss = new TGraph(nhits); ggeloss->SetTitle("Gas Energy Change;Doca (mm);Energy Change (MeV)"); ggeloss->SetMaximum(0.0);
-  TGraph* gweloss = new TGraph(nhits); gweloss->SetTitle("Wall Energy Change;Doca (mm);Energy Change (MeV)"); gweloss->SetMaximum(0.0);
-  TGraph* ggscat = new TGraph(nhits); ggscat->SetTitle("Gas Scattering;Doca (mm);Scattering (radians)"); ggscat->SetMinimum(0.0);
-  TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;Doca (mm);Scattering (radians)"); gwscat->SetMinimum(0.0);
+  TGraph* ggeloss = new TGraph(nhits); ggeloss->SetTitle("Gas Energy Change;Pathlength (mm);Energy Change (MeV)"); ggeloss->SetMaximum(0.0);
+  TGraph* gweloss = new TGraph(nhits); gweloss->SetTitle("Wall Energy Change;Pathlength (mm);Energy Change (MeV)"); gweloss->SetMaximum(0.0);
+  TGraph* ggscat = new TGraph(nhits); ggscat->SetTitle("Gas Scattering;Pathlength (mm);Scattering (radians)"); ggscat->SetMinimum(0.0);
+  TGraph* gwscat = new TGraph(nhits); gwscat->SetTitle("Wall Scattering;Pathlength (mm);Scattering (radians)"); gwscat->SetMinimum(0.0);
   std::vector<TPolyLine3D*> tpl;
   // generate hits
   HITCOL thits;
@@ -182,6 +182,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   hel->SetLineColor(kBlue);
   hel->Draw();
   unsigned ihit(0);
+  StrawXingConfig sxconfig(toy.strawMaterial().strawRadius()*0.05,1.0);
   for(auto& thit : thits) {
     Residual res;
     ClosestApproachData tpdata;
@@ -217,25 +218,22 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     line->Draw();
     tpl.push_back(line);
     // compute material effects
-//    double adot = tp.dirDot();
-    double adot =0.0; // transverse
-//    double adot = tp.dirDot();
-    double doca = fabs(tpdata.doca());
-    double gpath = smat.gasPath(doca,ddoca,adot);
-    double wpath = smat.wallPath(doca,ddoca,adot);
-    ggplen->SetPoint(ihit,doca,gpath );
-    gwplen->SetPoint(ihit,doca,wpath);
-//    cout << "Residual " << res << " gas path " << smat.gasPath(doca,ddoca,adot)
-//    << " wall path " << smat.wallPath(doca,ddoca,adot) << endl;
-    // compute material effects
-    double geloss = smat.gasMaterial().energyLoss(mom,gpath,pmass);
-    double weloss = smat.wallMaterial().energyLoss(mom,wpath,pmass);
-    double gscat = smat.gasMaterial().scatterAngleRMS(mom,gpath,pmass);
-    double wscat = smat.wallMaterial().scatterAngleRMS(mom,wpath,pmass);
-    ggeloss->SetPoint(ihit,doca,geloss);
-    gweloss->SetPoint(ihit,doca,weloss);
-    ggscat->SetPoint(ihit,doca,gscat);
-    gwscat->SetPoint(ihit,doca,wscat);
+    if(strawhit && strawhit_){
+      double doca = fabs(tpdata.doca());
+      double gpath = smat.gasPath(tpdata,sxconfig);
+      double wpath = smat.wallPath(tpdata,sxconfig);
+      ggplen->SetPoint(ihit,doca,gpath );
+      gwplen->SetPoint(ihit,doca,wpath);
+      // compute material effects
+      double geloss = smat.gasMaterial().energyLoss(mom,gpath,pmass);
+      double weloss = smat.wallMaterial().energyLoss(mom,wpath,pmass);
+      double gscat = smat.gasMaterial().scatterAngleRMS(mom,gpath,pmass);
+      double wscat = smat.wallMaterial().scatterAngleRMS(mom,wpath,pmass);
+      ggeloss->SetPoint(ihit,gpath,geloss);
+      gweloss->SetPoint(ihit,wpath,weloss);
+      ggscat->SetPoint(ihit,gpath,gscat);
+      gwscat->SetPoint(ihit,wpath,wscat);
+    }
     ihit++;
   }
   // draw the origin and axes
@@ -248,7 +246,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
   hcan->Write();
-// test updating the hit residual and derivatives with different trajectories
+  // test updating the hit residual and derivatives with different trajectories
   unsigned nsteps(10);
   vector<TGraph*> hderivg(NParams());
   for(size_t ipar=0;ipar < NParams();ipar++){
@@ -258,7 +256,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     hderivg[ipar]->SetTitle(title.c_str());
   }
   unsigned ipt(0);
-//  cout << tptraj << endl;
+  //  cout << tptraj << endl;
   for(auto& thit : thits) {
     KKHIT kkhit(thit,tptraj,precision);
     Residual ores;
@@ -314,7 +312,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   TCanvas* hderivgc = new TCanvas("hderiv","hderiv",800,600);
   hderivgc->Divide(3,2);
   for(size_t ipar=0;ipar<6;++ipar){
-    if(fabs(hderivg[ipar]->GetMaximum()-hderivg[ipar]->GetMinimum())>1e-10){
+    if(fabs(hderivg[ipar]->GetRMS(1)) > 1e-10 && fabs(hderivg[ipar]->GetRMS(2)) > 1e-10){
       pline->SetParameters(0.0,1.0);
       hderivgc->cd(ipar+1);
       TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
