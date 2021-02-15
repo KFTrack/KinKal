@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -162,6 +162,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nsteps(200); // steps for traj comparison
   double seedsmear(10.0);
   double momsigma(0.2);
+  double ineff(0.05);
   bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
@@ -197,6 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"Schedule",     required_argument, 0, 'u'  },
     {"seedsmear",     required_argument, 0, 'M' },
     {"constrainpar",     required_argument, 0, 'c' },
+    {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
     {NULL, 0,0,0}
   };
@@ -261,6 +263,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 		 break;
       case 't' : tol = atof(optarg);
 		 break;
+      case 'E' : ineff = atof(optarg);
+		 break;
       case 'T' : tfname = optarg;
 		 break;
       case 'u' : sfile = optarg;
@@ -284,6 +288,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
+  toy.setInefficiency(ineff);
   // generate hits
   MEASCOL thits; // this program shares hit ownership with Track
   EXINGCOL dxings; // this program shares det xing ownership with Track

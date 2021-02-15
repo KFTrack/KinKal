@@ -40,7 +40,7 @@ namespace KKTest {
 	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
 	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
 	zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
-	ttsig_(0.5), twsig_(10.0), shmax_(80.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+	scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
 	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
 	smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
@@ -57,7 +57,7 @@ namespace KKTest {
       void setInefficiency(double ineff) { ineff_ = ineff; }
       // accessors
       double shVar() const {return sigt_*sigt_;}
-      double chVar() const {return ttsig_*ttsig_;}
+      double chVar() const {return scitsig_*scitsig_;}
       double rStraw() const { return rstraw_; }
       double zRange() const { return zrange_; }
       double strawRadius() const { return rstraw_; }
@@ -79,7 +79,7 @@ namespace KKTest {
       double sigt_; // drift time resolution in ns
       double ineff_; // hit inefficiency
       // time hit parameters
-      double ttsig_, twsig_, shmax_, clen_, cprop_;
+      double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tbuff_;
       double tol_; // tolerance on spatial accuracy for 
@@ -201,24 +201,23 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
-    VEC3 shmpos, hend, lmeas;
-    double cstart = pktraj.range().end() + tbuff_;
-    hend = pktraj.position3(cstart);
-    double ltime = cstart + shmax_/pktraj.speed(cstart);
-    shmpos = pktraj.position3(ltime); // true position at shower-max
+    VEC3 shmaxTrue, hend, shmaxMeas;
+    double shstart = pktraj.range().end() + coff_;
+    hend = pktraj.position3(shstart);
+    double shmaxtime = shstart + shmax_/pktraj.speed(shstart);
+    shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max
     // smear the x-y position by the transverse variance.
-    lmeas.SetX(tr_.Gaus(shmpos.X(),twsig_));
-    lmeas.SetY(tr_.Gaus(shmpos.Y(),twsig_));
+    shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
+    shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
     // set the z position to the sensor plane (end of the crystal)
-    lmeas.SetZ(hend.Z()+clen_);
+    shmaxMeas.SetZ(hend.Z()+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
-    double tmeas = tr_.Gaus(ltime+(lmeas.Z()-shmpos.Z())/cprop_,ttsig_);
+    double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-//    TimeRange trange(cstart,cstart+clen_/cprop_);
-    Line lline(lmeas,tmeas,lvel,clen_);
+    Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
-    thits.push_back(std::make_shared<SCINTHIT>(lline, ttsig_*ttsig_, twsig_*twsig_));
+    thits.push_back(std::make_shared<SCINTHIT>(lline, scitsig_*scitsig_, shPosSig_*shPosSig_));
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){
