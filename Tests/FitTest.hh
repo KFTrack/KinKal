@@ -146,7 +146,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned maxniter(10);
   double dwt(1.0e6);
   unsigned nevents(1000);
-  bool ttree(true), printbad(false);
+  bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
@@ -579,6 +579,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       }
       auto start = Clock::now();
       KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+      auto const& fptraj = kktrk.fitTraj();
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       auto const& fstat = kktrk.fitStatus();
@@ -643,12 +644,18 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
 	    hinfo.dim_ = -1000;
+	    auto hpos = fptraj.position3(kkhit->hit()->time());
+	    hinfo.xpos_ = hpos.X();
+	    hinfo.ypos_ = hpos.Y();
+	    hinfo.zpos_ = hpos.Z();
+	    hinfo.t0_ = 0.0;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
 	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
 	    if(strawhit != 0){
 	      hinfo.ambig_ = strawhit->hitState().lrambig_;
 	      hinfo.dim_ = strawhit->hitState().dimension_;
+	      hinfo.t0_ = strawhit->wire().t0();
 	      // straw hits can have multiple residuals
 	      if(strawhit->activeRes(WireHitState::time)){
 		hinfo.type_ = HitInfo::strawtime;
@@ -667,6 +674,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	      hinfo.type_ = HitInfo::scint;
 	      hinfo.resid_ = scinthit->residual().value();
 	      hinfo.residvar_ = scinthit->residual().variance();
+	      hinfo.t0_ = scinthit->sensorAxis().t0();
 	      hinfovec.push_back(hinfo);
 	    } else if(constraint != 0){
 	      hinfo.type_ = HitInfo::constraint;

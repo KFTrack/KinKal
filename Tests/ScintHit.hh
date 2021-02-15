@@ -58,7 +58,9 @@ namespace KinKal {
   template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA
     CAHint tphint( saxis_.t0(), saxis_.t0());
-    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
+    // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
+    // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
+//    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
     PTCA tpoca(pktraj,saxis_,tphint,precision_);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();
