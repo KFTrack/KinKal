@@ -53,14 +53,19 @@ namespace KinKal {
     return retval;
   }
 
+  double StrawMaterial::wirePath(ClosestApproachData const& cadata,StrawXingConfig const& caconfig) const{
+  // Model the wire as a diffuse gas, spread given by the DOCA sigma.  This gives a probabilistic interpretation of the material
+    return -1.0; //TODO
+  }
+
   void StrawMaterial::findXings(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, std::vector<MaterialXing>& mxings) const {
     mxings.clear();
     double wpath = wallPath(cadata,caconfig);
     if(wpath > 0.0) mxings.push_back(MaterialXing(*wallmat_,wpath));
     double gpath = gasPath(cadata,caconfig);
     if(gpath > 0.0) mxings.push_back(MaterialXing(*gasmat_,gpath));
-// for now, ignore the wire: this should be based on the probability that the wire was hit given doca and sigdoca FIXME!
-    if(wrad_<0.0) mxings.push_back(MaterialXing(*wiremat_,0.0));
+    double wirepath = wirePath(cadata,caconfig);
+    if(wirepath > 0.0) mxings.push_back(MaterialXing(*wiremat_,wirepath));
   }
 
 }

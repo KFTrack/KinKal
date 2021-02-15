@@ -37,7 +37,7 @@ namespace KinKal {
       double gasPath(ClosestApproachData const& cadata,StrawXingConfig const& caconfig) const;
       // same for wall material
       double wallPath(ClosestApproachData const& cadata,StrawXingConfig const& caconfig) const; 
-      // should add function to compute wire effect (probabilstically) TODO
+      double wirePath(ClosestApproachData const& tpdata,StrawXingConfig const& config) const;
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO
       void findXings(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, std::vector<MaterialXing>& mxings) const;
       double strawRadius() const { return srad_; }
