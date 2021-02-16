@@ -24,7 +24,6 @@ namespace KinKal {
 	  const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
 	srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
 	  srad2_ = srad_*srad_;
-	  wpmax_ = sqrt(8.0*srad_*thick_);
 	}
       // construct using default materials
       StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad) :
@@ -44,7 +43,6 @@ namespace KinKal {
     private:
       double srad_; // outer transverse radius of the straw
       double srad2_; // outer transverse radius of the straw squared
-      double wpmax_; // maximum wall path
       double thick_; // straw wall thickness
       double wrad_; // transverse radius of the wire
       const MatEnv::DetMaterial* wallmat_; // material of the straw wall

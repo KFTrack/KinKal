@@ -14,6 +14,10 @@ namespace KinKal {
       double rad = std::min(doca,srad_-thick_);
       wallpath = 2.0*thick_*srad_/sqrt(srad2_-rad*rad);
       gaspath = 2.0*sqrt(srad2_-rad*rad); 
+    } else if (sigdoca*caconfig.nsig_ > srad_ ) {
+    // errors are large WRT the size of the straw, or DOCA is very far from the wire: just take the average over all impact parameters
+      wallpath = M_PI*thick_;
+      gaspath = 0.5*M_PI*srad_;
     } else {
       // integrate +- N sigma from DOCA.  Restrict rmax to physical values
       // Note that negative rmin is handled naturally
@@ -29,8 +33,7 @@ namespace KinKal {
     double afac = 1.0/sqrt(1.0-adot*adot); // angle factor, =1.0/sin(theta)
     wallpath *= afac;
     gaspath *= afac;
-
-    // Model the wire as a diffuse gas, spread given by the DOCA sigma.  This gives a probabilistic interpretation of the material; TODO
+    // Model the wire as a diffuse gas, density constrained by DOCA TODO
   }
 
   void StrawMaterial::findXings(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, std::vector<MaterialXing>& mxings) const {
