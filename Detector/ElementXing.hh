@@ -8,6 +8,8 @@
 #include "KinKal/Detector/MaterialXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/General/TimeDir.hh"
+#include "KinKal/Detector/Hit.hh"
+#include "KinKal/Fit/Config.hh"
 #include <vector>
 #include <stdexcept>
 #include <array>
@@ -21,8 +23,10 @@ namespace KinKal {
       // construct from a time
       ElementXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
       virtual ~ElementXing() {}
-      virtual void update(PKTRAJ const& pktraj,double precision) =0;
+      virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) =0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
+      // crossings  without material are inactive
+      bool active() const { return mxings_.size() > 0; }
       // accessors
       double crossingTime() const { return xtime_; }
       double& crossingTime() { return xtime_; }

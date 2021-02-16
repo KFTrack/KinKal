@@ -45,7 +45,9 @@ namespace KinKal {
       // same, including covariance information
       LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // copy payload and adjust parameters to correspond to a different BField at a particular time
-      LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot);
+      LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref);
+      // create from parameters and kinematics separately
+      LoopHelix( Parameters const& pars, TimeRange const& trange, double mass, int charge, VEC3 const& bnom);
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
       VEC4 position4(double time) const;

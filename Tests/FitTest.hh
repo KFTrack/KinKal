@@ -7,7 +7,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Tests/SimpleWireHit.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
 #include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -79,7 +79,7 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
-  unsigned maxniter(100);
+  unsigned maxniter(1000);
   unsigned niter(0);
   VEC3 pos2;
 //  double delta;
@@ -145,8 +145,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double simmass, fitmass;
   unsigned maxniter(10);
   double dwt(1.0e6);
-  unsigned nevents(100);
-  bool ttree(true), printbad(false);
+  unsigned nevents(1000);
+  bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::minimal), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
@@ -162,6 +162,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nsteps(200); // steps for traj comparison
   double seedsmear(10.0);
   double momsigma(0.2);
+  double ineff(0.05);
   bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
@@ -197,6 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"Schedule",     required_argument, 0, 'u'  },
     {"seedsmear",     required_argument, 0, 'M' },
     {"constrainpar",     required_argument, 0, 'c' },
+    {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
     {NULL, 0,0,0}
   };
@@ -261,6 +263,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 		 break;
       case 't' : tol = atof(optarg);
 		 break;
+      case 'E' : ineff = atof(optarg);
+		 break;
       case 'T' : tfname = optarg;
 		 break;
       case 'u' : sfile = optarg;
@@ -284,11 +288,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
+  toy.setInefficiency(ineff);
   // generate hits
   MEASCOL thits; // this program shares hit ownership with Track
   EXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
-  toy.simulateParticle(tptraj, thits, dxings);
+  toy.simulateParticle(tptraj, thits, dxings,fitmat);
   if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
@@ -311,13 +316,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
-  KKCONFIGPTR configptr = make_shared<Config>(*BF);
-  configptr->dwt_ = dwt;
-  configptr->maxniter_ = maxniter;
-  configptr->bfcorr_ = bfcorr;
-  configptr->addmat_ = fitmat;
-  configptr->tol_ = tol;
-  configptr->plevel_ = (Config::printLevel)detail;
+  Config config; 
+  config.dwt_ = dwt;
+  config.maxniter_ = maxniter;
+  config.bfcorr_ = bfcorr;
+  config.tol_ = tol;
+  config.plevel_ = (Config::printLevel)detail;
   // read the schedule from the file
   string fullfile;
   if(strncmp(sfile.c_str(),"/",1) == 0) {
@@ -343,10 +347,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       istringstream ss(line);
       MetaIterConfig mconfig(ss);
       mconfig.miter_ = nmiter++;
-      configptr->schedule_.push_back(mconfig);
+      config.schedule_.push_back(mconfig);
     }
   }
-  if(nevents < 0)cout << *configptr << endl;
+  if(nevents < 0)cout << config << endl;
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -363,7 +367,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
 // create and fit the track
-  KKTRK kktrk(configptr,seedtraj,thits,dxings);
+  KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
@@ -545,14 +549,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     double duration (0.0);
     unsigned nfail(0), ndiv(0);
 
-    configptr->plevel_ = Config::none;
+    config.plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
     // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
-      toy.simulateParticle(tptraj,thits,dxings);
+      toy.simulateParticle(tptraj,thits,dxings,fitmat);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum4(tmid);
@@ -574,7 +578,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
       auto start = Clock::now();
-      KKTRK kktrk(configptr,seedtraj,thits,dxings);
+      KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+      auto const& fptraj = kktrk.fitTraj();
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       auto const& fstat = kktrk.fitStatus();
@@ -639,12 +644,18 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	    hinfo.ndof_ = kkhit->chisq().nDOF();
 	    hinfo.ambig_ = -1000;
 	    hinfo.dim_ = -1000;
+	    auto hpos = fptraj.position3(kkhit->hit()->time());
+	    hinfo.xpos_ = hpos.X();
+	    hinfo.ypos_ = hpos.Y();
+	    hinfo.zpos_ = hpos.Z();
+	    hinfo.t0_ = 0.0;
 	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
 	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
 	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
 	    if(strawhit != 0){
 	      hinfo.ambig_ = strawhit->hitState().lrambig_;
 	      hinfo.dim_ = strawhit->hitState().dimension_;
+	      hinfo.t0_ = strawhit->wire().t0();
 	      // straw hits can have multiple residuals
 	      if(strawhit->activeRes(WireHitState::time)){
 		hinfo.type_ = HitInfo::strawtime;
@@ -663,6 +674,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	      hinfo.type_ = HitInfo::scint;
 	      hinfo.resid_ = scinthit->residual().value();
 	      hinfo.residvar_ = scinthit->residual().variance();
+	      hinfo.t0_ = scinthit->sensorAxis().t0();
 	      hinfovec.push_back(hinfo);
 	    } else if(constraint != 0){
 	      hinfo.type_ = HitInfo::constraint;

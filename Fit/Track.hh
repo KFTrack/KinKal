@@ -44,6 +44,7 @@
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/Status.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Detector/BFieldUtils.hh"
 #include "TMath.h"
 #include <set>
@@ -63,11 +64,10 @@ namespace KinKal {
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
       using KKBFIELD = BFieldEffect<KTRAJ>;
-      using KKCONFIGPTR = std::shared_ptr<Config>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using MEAS = Hit<KTRAJ>;
-      using MEASPTR = std::shared_ptr<MEAS>;
-      using MEASCOL = std::vector<MEASPTR>;
+      using HIT = Hit<KTRAJ>;
+      using HITPTR = std::shared_ptr<HIT>;
+      using HITCOL = std::vector<HITPTR>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
@@ -81,7 +81,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(KKCONFIGPTR config, KTRAJ const& seedtraj, MEASCOL& thits, EXINGCOL& dxings ); 
+      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& thits, EXINGCOL& dxings ); 
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<Status> const& history() const { return history_; }
@@ -89,8 +89,9 @@ namespace KinKal {
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
-      Config const& config() const { return *config_; }
-      MEASCOL const& timeHits() const { return thits_; } 
+      Config const& config() const { return config_; }
+      BFieldMap const& bfield() const { return bfield_; }
+      HITCOL const& hits() const { return thits_; } 
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
@@ -100,57 +101,53 @@ namespace KinKal {
       bool oscillating(Status const& status, MetaIterConfig const& miconfig) const;
       void createRefTraj(KTRAJ const& seedtraj);
       // payload
-      KKCONFIGPTR config_; // configuration
+      Config const& config_; // configuration
+      BFieldMap const& bfield_; // magnetic field map
       std::vector<Status> history_; // fit status history; records the current iteration
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
-      MEASCOL thits_; // shared collection of hits
+      HITCOL thits_; // shared collection of hits
   };
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(KKCONFIGPTR cfg, KTRAJ const& seedtraj,  MEASCOL& thits, EXINGCOL& dxings) : 
-    config_(cfg), thits_(thits) {
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& thits, EXINGCOL& dxings) : 
+    config_(cfg), bfield_(bfield), thits_(thits) {
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);
       // create the effects.  First, loop over the hits
       for(auto& thit : thits_ ) {
 	// create the hit effects and insert them in the set
-	// if there's associated material, create an effect for that too
 	effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
-	if(config_->addmat_ && thit->hasMaterial())
-	  effects_.emplace_back(std::make_unique<KKMAT>(thit->detXingPtr(),reftraj_));
       }
-      //add pure material effects
-      if(config_->addmat_){
-	for(auto& dxing : dxings) {
-	  effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
-	}
+      //add material effects
+      for(auto& dxing : dxings) {
+	effects_.emplace_back(std::make_unique<KKMAT>(dxing,reftraj_));
       }
       // preliminary sort; this makes sure the range is accurate when computing BField corrections
       std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
       // reset the range 
-      reftraj_.setRange(TimeRange(std::min(reftraj_.range().begin(),effects_.begin()->get()->time() - config().tbuff_),
-	    std::max(reftraj_.range().end(),effects_.rbegin()->get()->time() + config().tbuff_)));
+      reftraj_.setRange(TimeRange(std::min(reftraj_.range().begin(),effects_.begin()->get()->time() - config_.tbuff_),
+	    std::max(reftraj_.range().end(),effects_.rbegin()->get()->time() + config_.tbuff_)));
       // create the end effects: these help manage the fit
-      effects_.emplace_back(std::make_unique<KKEND>(config(), reftraj_,TimeDir::forwards));
-      effects_.emplace_back(std::make_unique<KKEND>(config(), reftraj_,TimeDir::backwards));
+      effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::forwards));
+      effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::backwards));
       // now fit the track
       fit();
-      if(config_->plevel_ > Config::none)print(std::cout, config_->plevel_);
+      if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
     }
 
   // fit iteration management 
   template <class KTRAJ> void Track<KTRAJ>::fit() {
     // execute the schedule of meta-iterations
-    for(auto imiconfig=config().schedule().begin(); imiconfig != config().schedule().end(); imiconfig++){
+    for(auto imiconfig=config_.schedule().begin(); imiconfig != config_.schedule().end(); imiconfig++){
       auto miconfig  = *imiconfig;
-      miconfig.miter_  = std::distance(config().schedule().begin(),imiconfig);
+      miconfig.miter_  = std::distance(config_.schedule().begin(),imiconfig);
       // algebraic convergence iteration
       Status fstat(miconfig.miter_);
       history_.push_back(fstat);
-      if(config_->plevel_ >= Config::basic)std::cout << "Processing fit meta-iteration " << miconfig << std::endl;
+      if(config_.plevel_ >= Config::basic)std::cout << "Processing fit meta-iteration " << miconfig << std::endl;
       while(canIterate()) {
 	// catch exceptions and record them in the status
 	try {
@@ -169,7 +166,7 @@ namespace KinKal {
 
   // single algebraic iteration 
   template <class KTRAJ> void Track<KTRAJ>::fitIteration(Status& fstat, MetaIterConfig const& miconfig) {
-    if(config_->plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fstat.iter_ << std::endl;
+    if(config_.plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fstat.iter_ << std::endl;
     // reset counters
     fstat.chisq_ = Chisq(0.0, -(int)NParams());
     fstat.iter_++;
@@ -184,9 +181,9 @@ namespace KinKal {
       fstat.chisq_ += dchisq;
       // process
       ieff->process(forwardstate,TimeDir::forwards);
-      if(config_->plevel_ >= Config::detailed){
+      if(config_.plevel_ >= Config::detailed){
 	std::cout << "Chisq total " << fstat.chisq_ << " increment " << dchisq << " ";
-	ieff->print(std::cout,config_->plevel_);
+	ieff->print(std::cout,config_.plevel_);
       }
       feff++;
     }
@@ -207,11 +204,11 @@ namespace KinKal {
     // trim the range to the physical elements (past the end sites)
     feff = effects_.begin(); feff++;
     beff = effects_.rbegin(); beff++;
-    fittraj_.front().range().begin() = (*feff)->time() - config().tbuff_;
-    fittraj_.back().range().end() = (*beff)->time() + config().tbuff_;
+    fittraj_.front().range().begin() = (*feff)->time() - config_.tbuff_;
+    fittraj_.back().range().end() = (*beff)->time() + config_.tbuff_;
     // update status.  Convergence criteria is iteration-dependent.
     double dchisq = fstat.chisq_.chisqPerNDOF() - fitStatus().chisq_.chisqPerNDOF();
-    if (fstat.chisq_.nDOF() < config().minndof_){
+    if (fstat.chisq_.nDOF() < config_.minndof_){
       fstat.status_ = Status::lowNDOF;
     } else if(fabs(dchisq) < miconfig.convdchisq_) {
       fstat.status_ = Status::converged;
@@ -240,7 +237,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool Track<KTRAJ>::canIterate() const {
-    return fitStatus().needsFit() && fitStatus().iter_ < config().maxniter_;
+    return fitStatus().needsFit() && fitStatus().iter_ < config_.maxniter_;
   }
 
   template<class KTRAJ> bool Track<KTRAJ>::oscillating(Status const& fstat, MetaIterConfig const& miconfig) const {
@@ -254,15 +251,15 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj ) {
-    if(config_->bfcorr_ != Config::nocorr) {
+    if(config_.bfcorr_ != Config::nocorr) {
     // find the nominal BField.  This can be fixed or variable
       VEC3 bf;
       // use the seed to set the range
       double tstart = seedtraj.range().begin();
-      if(config_->bfcorr_ == Config::fixed) // fixed field: take the middle of the range
-	bf = config_->bfield_.fieldVect(seedtraj.position3(seedtraj.range().mid()));
+      if(config_.bfcorr_ == Config::fixed) // fixed field: take the middle of the range
+	bf = bfield_.fieldVect(seedtraj.position3(seedtraj.range().mid()));
       else // this will change with piece: start with the begining
-	bf = config_->bfield_.fieldVect(seedtraj.position3(tstart));
+	bf = bfield_.fieldVect(seedtraj.position3(tstart));
 	// create the first piece
       KTRAJ newpiece(seedtraj,bf,tstart);
       reftraj_ = PKTRAJ(newpiece);
@@ -271,28 +268,28 @@ namespace KinKal {
       do {
 	// see how far we can go on the current traj before the BField change causes it to go out of tolerance
 	// that defines the end of this domain
-	tend = BFieldUtils::rangeInTolerance(tstart,config_->bfield_, reftraj_, config_->tol_);
+	tend = BFieldUtils::rangeInTolerance(tstart,bfield_, reftraj_, config_.tol_);
 	// for local correction there is also tolerance coming from 2nd order terms in the rotation of the BField: this is proportional
 	// to the lever arm.
-	if(config_->localBFieldCorr()){
+	if(config_.localBFieldCorr()){
 	  double dx;
 	  do{
 	    auto epos = reftraj_.position3(tend);
-	    auto ebf = config_->bfield_.fieldVect(epos);
+	    auto ebf = bfield_.fieldVect(epos);
 	    dx = epos.R()*(1.0-bf.Dot(ebf)/(bf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
-	    if(dx > config_->tol_){
-	      double factor = std::min(0.9,0.9*config_->tol_/dx);
+	    if(dx > config_.tol_){
+	      double factor = std::min(0.9,0.9*config_.tol_/dx);
 	      // decrease the time step
 	      tend = tstart + factor*(tend-tstart);
 	    }
-	  } while(dx > config_->tol_);
+	  } while(dx > config_.tol_);
 	}
 	// create the BField effect for integrated differences over this range
-	effects_.emplace_back(std::make_unique<KKBFIELD>(config(),reftraj_,TimeRange(tstart,tend)));
+	effects_.emplace_back(std::make_unique<KKBFIELD>(config_,bfield_,reftraj_,TimeRange(tstart,tend)));
 	// if we're using a local BField correction, create a new piece that uses the local BField
-	if(tend < reftraj_.range().end() && config_->localBFieldCorr()) {
+	if(tend < reftraj_.range().end() && config_.localBFieldCorr()) {
 	  // update the BF for the next piece: it is at the end of this one
-	  bf = config_->bfield_.fieldVect(reftraj_.position3(tend));
+	  bf = bfield_.fieldVect(reftraj_.position3(tend));
 	  // update the trajectory parameters to correspond to the same particle state but referencing the local field.
 	  // this allows the effects built on this traj to reference the correct parameterization
 	  KTRAJ newpiece(reftraj_.back(),bf,tend);

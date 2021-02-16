@@ -39,7 +39,7 @@ namespace MatEnv {
     public:
 
       // Constructor 
-      MatIsoDictionary(FileFinderInterface const& interface =SimpleFileFinder());
+      MatIsoDictionary(FileFinderInterface const& interface );
 
       // Destructor
       virtual ~MatIsoDictionary();

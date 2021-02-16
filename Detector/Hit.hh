@@ -8,7 +8,6 @@
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/Chisq.hh"
-#include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Fit/Config.hh"
 #include <ostream>
@@ -17,8 +16,6 @@ namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using EXING = ElementXing<KTRAJ>;
-      using EXINGPTR = std::shared_ptr<EXING>;
       // default
       Hit(){}
       virtual ~Hit(){}
@@ -27,7 +24,7 @@ namespace KinKal {
       Hit& operator =(Hit const& ) = delete;
       // the constraint this hit implies WRT the current reference, expressed as a weight
       virtual Weights weight() const =0;
-      // hits are active if any residual is active
+      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual Chisq chisq() const =0; // least-squares distance to reference parameters
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
@@ -36,9 +33,6 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj) = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) = 0;
-      // associated material information; null means no material
-      virtual EXINGPTR const& detXingPtr() const = 0;
-      bool hasMaterial() const { return (bool)detXingPtr(); }
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
   };
 

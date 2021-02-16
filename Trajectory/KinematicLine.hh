@@ -90,7 +90,7 @@ class KinematicLine {
     double tanTheta() const { return sqrt(1.0 - cost() * cost()) / cost(); }
     VEC3 pos0() const { return VEC3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
     double flightLength(double t)const { return (t-t0())*speed(); }
-    VEC3 dir() const { double st = sinTheta(); return VEC3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
+    VEC3 direction() const { double st = sinTheta(); return VEC3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
 
     TimeRange const &range() const { return trange_; }
     TimeRange &range() {return trange_; }
@@ -104,7 +104,7 @@ class KinematicLine {
     VEC3 position3(double time) const;
     VEC4 position4(double time) const;
 
-    VEC3 velocity(double time) const { return dir() * speed(); }
+    VEC3 velocity(double time) const { return direction() * speed(); }
     void print(std::ostream &ost, int detail) const;
     void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {}; 
 
@@ -116,7 +116,7 @@ class KinematicLine {
     // some possibly useful equations:
     double mass() const { return mass_; }
     double ztime(double zpos) const {
-      return (t0() + zpos / ((speed() * dir()).z()));
+      return (t0() + zpos / ((speed() * direction()).z()));
     } // time to travel Z
 
     int charge() const { return charge_; }

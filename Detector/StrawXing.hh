@@ -5,7 +5,8 @@
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/Detector/ElementXing.hh"
-#include "KinKal/Detector/StrawMat.hh"
+#include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
@@ -15,35 +16,52 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      // construct from PTCA (for use with hits)
-      StrawXing(PTCA const& tpoca, StrawMat const& smat) : EXING(tpoca.particleToca()) , smat_(smat), axis_(tpoca.sensorTraj()) {
+      using STRAWHIT = WireHit<KTRAJ>;
+      using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+      // construct from PTCA (no hit)
+      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat),
+      sxconfig_(0.05*smat.strawRadius(),1.0),
+      axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
-      void update(PKTRAJ const& pktraj,double precision) override;
+      void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      // specific interface: this xing is based on PTCA
+     // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
       // accessors
-      StrawMat const& strawMat() const { return smat_; }
+      StrawMaterial const& strawMaterial() const { return smat_; }
+      StrawXingConfig const& config() const { return sxconfig_; }
     private:
-      StrawMat const& smat_;
+      StrawMaterial const& smat_;
+      StrawXingConfig sxconfig_;
       Line axis_; // straw axis, expressed as a timeline
+      // should add state for displace wire TODO
   };
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PTCA const& tpoca) {
     if(tpoca.usable()){
       EXING::matXings().clear();
-      smat_.findXings(tpoca.doca(),sqrt(tpoca.docaVar()),tpoca.dirDot(),EXING::matXings());
+      smat_.findXings(tpoca.tpData(),sxconfig_,EXING::matXings());
       EXING::crossingTime() = tpoca.particleToca();
     } else
       throw std::runtime_error("CA failure");
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,double precision) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+  // search for an update to the xing configuration among this meta-iteration payload
+    const StrawXingConfig* sxconfig(0);
+    for(auto const& uparams : miconfig.updaters_){
+      auto const* sxc = std::any_cast<StrawXingConfig>(&uparams);
+      if(sxc != 0){
+	if(sxconfig !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");
+	sxconfig = sxc;
+      }
+    }
+    if(sxconfig != 0) sxconfig_ = *sxconfig;
     // use current xing time create a hint to the CA calculation: this speeds it up
     CAHint tphint(EXING::crossingTime(), EXING::crossingTime());
-    PTCA tpoca(pktraj,axis_,tphint,precision);
+    PTCA tpoca(pktraj,axis_,tphint,miconfig.tprec_);
     update(tpoca);
   }
 

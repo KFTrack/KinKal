@@ -221,7 +221,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   TimeRange prange(ptraj.range().mid()-hlen/pspeed, ptraj.range().mid()+hlen/pspeed);
   // shift the position
   VEC3 lpos = midpos + gap*rdir;
-  Line tline(lpos, pvel,ptraj.range().mid(),prange);
+  double wlen(1000.0);
+  Line tline(lpos, ptraj.range().mid(), pvel, wlen);
   // create ClosestApproach from these
   CAHint tphint(ptraj.range().mid(),0.0);
   PTCA tp(ptraj,tline, tphint,1e-8);
