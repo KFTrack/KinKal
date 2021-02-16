@@ -12,6 +12,7 @@
 //
 //  Authors: Dave Brown, 11/21/96
 //           Matthias Steinke 04/09/99
+//	     Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include <iostream>
@@ -211,10 +212,84 @@ namespace MatEnv {
 	return 0.0;
     }
 
+//////////////////BEGIN EDITS BY ON/////////////////////
+//Replacement for dEdx-based energy loss function: Most probable energy loss is now used
+//from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf 
+  double
+    DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
+      if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	// New energy loss implementation
 
+	double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
+	double beta  = particleBeta(mom,mass) ;
+	double gamma = particleGamma(mom,mass) ;
+	double j = 0.200 ; 
+  	double thickness = _density*pathlen ; 
+    	double tau = gamma-1;
+
+	// most probable energy loss function 
+
+	beta2 = beta*beta ;
+	gamma2 = gamma*gamma ;
+	bg2 = beta2*gamma2 ;
+	xi = _dgev*_za * thickness / beta2 ; 
+
+	deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
+	deltap -= beta2 ;
+	deltap += j ;
+
+	// density correction 
+	x = log(bg2)/twoln10 ;
+	if ( x < _x0 ) {
+	  if(_delta0 > 0) {
+	    delta = _delta0*pow(10.0,2*(x-_x0));
+	  }
+	  else {
+	    delta = 0.;
+	  }
+	} else {
+	  delta = twoln10*x - _bigc;
+	  if ( x < _x1 )
+	    delta += _afactor * pow((_x1 - x), _mpower);
+	} 
+
+    // shell correction          
+	if ( bg2 > bg2lim ) {
+	  sh = 0. ;      
+	  x = 1. ;
+	  for (int k=0; k<=2; k++) {
+	    x *= bg2 ;
+	    sh += (*_shellCorrectionVector)[k]/x;
+	  }
+	}
+	else {
+	  sh = 0. ;      
+	  x = 1. ;
+	  for (int k=0; k<2; k++) {
+	    x *= bg2lim ;
+	    sh += (*_shellCorrectionVector)[k]/x;
+	  }
+	  sh *= log(tau/_taul)/log(taulim/_taul);
+	}	
+
+	deltap -= delta + sh ;  
+	deltap *= -xi ; 
+    
+	return deltap;
+      } else
+	return 0.0;
+    
+    }
+
+
+//below, the old 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)
+//and now 'energyLoss' above refers to the new most probable energy loss method
 
   double 
-    DetMaterial::energyLoss(double mom, double pathlen,double mass) const {
+    DetMaterial::energyLossG3(double mom, double pathlen,double mass) const {
       // make sure we take positive lengths!
       pathlen = fabs(pathlen);
       double dedx = dEdx(mom,_elossType,mass);
@@ -249,6 +324,7 @@ namespace MatEnv {
       }
     }  
 
+/////////////////END EDITS BY ON////////////////////////
 
   double 
     DetMaterial::energyGain(double mom, double pathlen, double mass) const {
@@ -292,12 +368,41 @@ namespace MatEnv {
 
   /********************** end of New Routines **************************/ 
 
+//////////////////BEGIN EDITS BY ON/////////////////////
+
+//this 'energyLossRMS' now refers to the closed-form Moyal distribution RMS
+//see 'moyalfuncs' at end of file for more information
+
+  double
+    DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
+	if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	double beta = particleBeta(mom, mass) ;
+	
+    	double xi = eloss_xi(beta, pathlen);
+
+
+    	//forming the Moyal RMS
+    	constexpr double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+	double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
+	return mrms;
+	
+      } else {
+    	return 0.0 ;
+    }
+    }
+
+
+//below, the old 'energyLossRMS' function, which has been renamed (G3 for geant3)
   //
   //  RMS of energy loss.  This is a gaussian approximation, stolen from
   //  Geant3 (see Phys332)
   //
   double
-    DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
+    DetMaterial::energyLossRMSG3(double mom,double pathlen,double mass) const {
 //      double beta = particleBeta(mom,mass);
 //      double emax = eloss_emax(mom,mass);
 //      double xi = eloss_xi(beta,fabs(pathlen));
@@ -318,8 +423,11 @@ namespace MatEnv {
 //      //       << " elossrms = " << elossrms << endl;
 //      // this value is way too big: scale it down for now but this function needs a rewrite FIXME!
 //      return elossrms;
-      return 0.5*energyLoss(mom,pathlen,mass);
+      return 0.5*energyLossG3(mom,pathlen,mass);
     }
+
+/////////////////END EDITS BY ON////////////////////////
+
 
   //
   //  Functions needed for energy loss calculation, see reference above
@@ -393,4 +501,48 @@ namespace MatEnv {
       } else
 	return 1.0;
     }
+    
+	
+//////////////////BEGIN EDITS BY ON/////////////////////
+
+//the function below is not currently being used, but might be integrated later for efficiency, since it calculates all quantities needed for Moyal closed-form mean and RMS once
+
+//Calculations of the closed-form Moyal distribution mean and RMS, which utilizes the most probable energy loss function
+//reference for Moyal dist.: https://reference.wolfram.com/language/ref/MoyalDistribution.html
+//where in the ref. above, mu is the most probable energy loss, and sigma is xi
+//more useful references: http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf
+//and https://arxiv.org/pdf/1702.06655.pdf
+	
+//calculation of the Moyal mean and RMS
+  void
+    DetMaterial::moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const {
+      if(mom>0.0){
+	//taking positive lengths
+	pathlen = fabs(pathlen) ;
+	
+	double beta = particleBeta(mom, mass) ;
+	
+    	//getting most probable energy loss, or mpv:
+    	double energylossmpv = fabs(energyLoss(mom, pathlen, mass));
+    	//getting xi by itself:
+    	double xi = eloss_xi(beta, pathlen);
+
+    	//forming the Moyal Mean
+
+	mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
+    	//formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+
+    	//forming the Moyal RMS
+    	constexpr double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+	mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+	
+      } else {
+    	mmean = 0.0;
+	mrms = 0.0;
+    }
+    }
+
+	
+/////////////////END EDITS BY ON////////////////////////
+
 }
