@@ -2,11 +2,10 @@
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, MetaIterConfig miconfig ) {
       ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;
+      ost << " time precision " << miconfig.tprec_;
+      ost << " converge, diverge delta-chisq," << miconfig.convdchisq_ << " "<< miconfig.divdchisq_;
       ost << miconfig.updaters_.size() << " Dedicated Updaters" << std::endl;
-      ost << " converge, diverge, oscillating dchisq " << miconfig.convdchisq_ 
-      << " "<< miconfig.divdchisq_  
-      << " "<< miconfig.oscdchisq_ << " time precision " << miconfig.tprec_;
-    return ost;
+      return ost;
   }
 
   std::ostream& operator <<(std::ostream& ost, Config kkconfig ) {

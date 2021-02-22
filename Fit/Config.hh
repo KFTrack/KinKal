@@ -19,16 +19,15 @@
 namespace KinKal {
   struct MetaIterConfig {
     double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
+    double tprec_; // time precision for TOCA calculations
     double convdchisq_; // maximum change in chisquared/dof for convergence
     double divdchisq_; // minimum change in chisquared/dof for divergence
-    double oscdchisq_; // maximum change in chisquared/dof for oscillation
-    double tprec_; // time precision for TOCA calculations
     int miter_; // count of meta-iteration
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
-    MetaIterConfig() : temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), oscdchisq_(1.0), tprec_(1e-6), miter_(-1) {}
+    MetaIterConfig() : temp_(0.0), tprec_(1e-6), convdchisq_(0.01), divdchisq_(10.0), miter_(-1) {}
     MetaIterConfig(std::istream& is) : miter_(-1) {
-      is >> temp_ >> convdchisq_ >> divdchisq_ >> oscdchisq_ >> tprec_;
+      is >> temp_ >> tprec_ >> convdchisq_ >> divdchisq_ ;
     }
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };
@@ -39,6 +38,7 @@ namespace KinKal {
     typedef std::vector<MetaIterConfig> MetaIterConfigCol;
     Config(std::vector<MetaIterConfig>const& schedule) : Config() { schedule_ = schedule; }
     Config() : maxniter_(10), dwt_(1.0e6),  tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    MetaIterConfigCol& schedule() { return schedule_; }
     MetaIterConfigCol const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
     bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }

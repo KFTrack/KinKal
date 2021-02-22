@@ -81,7 +81,7 @@ namespace KinKal {
       };
       typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
       // construct from a set of hits and passive material crossings
-      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& thits, EXINGCOL& dxings ); 
+      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& thits, EXINGCOL& dxings );
       void fit(); // process the effects.  This creates the fit
       // accessors
       std::vector<Status> const& history() const { return history_; }
@@ -98,7 +98,6 @@ namespace KinKal {
       void update(Status const& fstat, MetaIterConfig const& miconfig);
       void fitIteration(Status& status, MetaIterConfig const& miconfig);
       bool canIterate() const;
-      bool oscillating(Status const& status, MetaIterConfig const& miconfig) const;
       void createRefTraj(KTRAJ const& seedtraj);
       // payload
       Config const& config_; // configuration
@@ -214,8 +213,6 @@ namespace KinKal {
       fstat.status_ = Status::converged;
     } else if (dchisq > miconfig.divdchisq_) {
       fstat.status_ = Status::diverged;
-    } else if(oscillating(fstat,miconfig)){
-      fstat.status_ = Status::oscillating;
     } else
       fstat.status_ = Status::unconverged;
   }
@@ -238,16 +235,6 @@ namespace KinKal {
 
   template<class KTRAJ> bool Track<KTRAJ>::canIterate() const {
     return fitStatus().needsFit() && fitStatus().iter_ < config_.maxniter_;
-  }
-
-  template<class KTRAJ> bool Track<KTRAJ>::oscillating(Status const& fstat, MetaIterConfig const& miconfig) const {
-    if(history_.size()>=3 &&history_[history_.size()-3].miter_ == fstat.miter_ ){
-      double d1 = fstat.chisq_.chisqPerNDOF() - history_.back().chisq_.chisqPerNDOF();
-      double d2 = fstat.chisq_.chisqPerNDOF() - history_[history_.size()-2].chisq_.chisqPerNDOF();
-      double d3 = history_.back().chisq_.chisqPerNDOF() - history_[history_.size()-3].chisq_.chisqPerNDOF();
-      if(d1*d2 < 0.0 && d1*d3 > 0.0 && fabs(d1) - fabs(d2) < miconfig.oscdchisq_ && fabs(fabs(d2) - fabs(d3)) < miconfig.oscdchisq_) return true;
-    }
-    return false;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj ) {
