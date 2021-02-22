@@ -5,6 +5,7 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Detector/ResidualHit.hh"
+#include "KinKal/Detector/WireHitStructs.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Detector/BFieldMap.hh"
@@ -12,26 +13,6 @@
 #include <stdexcept>
 namespace KinKal {
 
-// struct describing local drift info
-  struct DriftInfo {
-    DriftInfo() : tdrift_(0.0), tdriftvar_(0.0), vdrift_(0.0) {}
-    double tdrift_; // drift time
-    double tdriftvar_; // variance on drift time
-    double vdrift_; // instantanious drift speed
-  };
-
-  // struct describing wire hit internal state
-  struct WireHitState {
-    enum LRAmbig { left=-1, null=0, right=1};  // ambiguity
-    enum Dimension {none=-1, time=0, distance=1, both=2}; // what gets constrained
-    LRAmbig lrambig_; // left-right ambiguity
-    Dimension dimension_; // physical dimensions being constrained
-    double nullvar_, nulldt_ ; // spatial variance and offset for null ambiguity hits
-    WireHitState(LRAmbig lrambig, Dimension dim,double nvar, double ndt) : lrambig_(lrambig), dimension_(dim), nullvar_(nvar), nulldt_(ndt) {
-      if(dimension_ > time && (lrambig_ != null)) throw std::invalid_argument("Inconsistant wire hit state");
-    }
-    WireHitState() : WireHitState(null,none,1.0,0.0) {}
-  };
 
   template <class KTRAJ> class WireHit : public ResidualHit<KTRAJ> {
     public:
@@ -51,6 +32,7 @@ namespace KinKal {
       // WireHit specific functions
       ClosestApproachData const& closestApproach() const { return tpdata_; }
       WireHitState const& hitState() const { return wstate_; }
+      WireHitState& hitState() { return wstate_; }
       Residual const& timeResidual() const { return rresid_[WireHitState::time]; }
       Residual const& spaceResidual() const { return rresid_[WireHitState::distance]; }
       Line const& wire() const { return wire_; }

@@ -8,7 +8,7 @@
 namespace KinKal {
 // struct to define fit status
   struct Status {
-    enum status {unfit=-1,converged,unconverged,oscillating,diverged,lowNDOF,failed}; // fit status
+    enum status {unfit=-1,converged,unconverged,diverged,lowNDOF,failed}; // fit status
     int miter_; // meta-iteration number;
     int iter_; // iteration number;
     status status_; // current status

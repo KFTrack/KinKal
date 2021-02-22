@@ -1,9 +1,9 @@
 #
 #  Configuration file for iteration schedule
 #  Order:
-#  temperature dchisquared_converge dchisquared_diverge dchisquared_oscillation timeprecision
-2.0 10.0 100.0 1.0 1e-6
-1.0 1.0 50.0 1.0 1e-6
-0.0 0.1 10.0 1.0 1e-6
-#0.0 0.01 10.0 1.0 1e-6
-# 0.0 0.01 10.0 1.0 1e-6
+#  temperature timeprecision dchisquared_converge dchisquared_diverge 
+2.0  1e-6 10.0 100.0
+1.0  1e-6 1.0  50.0 
+0.0  1e-6 0.1  10.0 
+#0.0 1e-6 0.01 10.0
+#0.0 1e-6 0.01 10.0

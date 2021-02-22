@@ -18,7 +18,7 @@ namespace KinKal {
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
-      // construct from PTCA (no hit)
+      // construct from PTCA
       StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat),
       sxconfig_(0.05*smat.strawRadius(),1.0),
       axis_(tpoca.sensorTraj()) {
