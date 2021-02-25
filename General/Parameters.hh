@@ -4,7 +4,7 @@
 //  Data object describing fit parameters
 //  used as part of the kinematic kalman fit
 //
-#include "KinKal/Fit/FitData.hh"
+#include "KinKal/General/FitData.hh"
 #include <ostream>
 namespace KinKal {
   class Weights;
