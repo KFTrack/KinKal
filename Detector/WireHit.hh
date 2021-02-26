@@ -161,6 +161,9 @@ namespace KinKal {
 	ost << " Distance Residual " << rresid_[WireHitState::distance];
       ost << std::endl;
     }
+    if(detail > 1) {
+      ost << "Propagation speed " << wire_.speed() << " TPOCA " << tpdata_ << std::endl;
+    }
   }
 
 

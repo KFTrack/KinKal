@@ -70,6 +70,7 @@ namespace KinKal {
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
+      double paramVar(size_t index) const { return pars_.covariance()(index,index); }
       Parameters const& params() const { return pars_; }
       Parameters& params() { return pars_; }
       // named parameter accessors
