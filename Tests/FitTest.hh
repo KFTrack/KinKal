@@ -377,6 +377,30 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
   float maxgap_, avgap_;
 
+  // test parameterstate
+  auto const& traj = kktrk.fitTraj().front();
+  auto pstate = traj.stateEstimate(traj.t0());
+  double momvar1 = traj.momentumVar(traj.t0());
+  double momvar2 = pstate.momentumVar();
+  if(fabs(momvar1-momvar2)>1e-10){
+    std::cout << "Momentum variance error " << momvar1 << " " << momvar2 << std::endl;
+    return -3;
+  }
+  // full reversibility
+  KTRAJ testtraj(pstate,traj.charge(),traj.bnom(),traj.range());
+  for(size_t ipar=0; ipar < NParams(); ipar++){
+    if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
+      std::cout << "Parameter error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+      return -3;
+    }
+    for(size_t jpar=0; jpar < NParams(); jpar++){
+      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-10){
+	std::cout << "Covariance error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+	return -3;
+      }
+    }
+  }
+  std::cout << "Passed ParameterState tests" << std::endl;
   if(nevents <=0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);

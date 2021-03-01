@@ -41,61 +41,50 @@ namespace KinKal {
     mom = g2l_(mom);
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
-    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
+    // kinematic to geometric conversion
+    double radToMom = fabs(BFieldUtils::cbar()*charge_*bnom_.R());
+    double momToRad = 1.0/radToMom;
     mbar_ = -mass_ * momToRad;
-
+    // caches
     double pt = sqrt(mom.perp2());
-    double radius = fabs(pt*momToRad);
-
-    double lambda = -mom.z()*momToRad;
-    double amsign = copysign(1.0, mbar_);
-
-    VEC3 center = VEC3(pos.x() + mom.y()*momToRad, pos.y() - mom.x()*momToRad, 0.0);
-    double rcent = sqrt(center.perp2());
-    double fcent = center.phi();
-    double centerx = rcent*cos(fcent);
-    double centery = rcent*sin(fcent);
-
-    param(omega_) = amsign/radius;
-    param(tanDip_) = amsign*lambda/radius;
-    param(d0_) = amsign*(rcent - radius);
-    param(phi0_) = atan2(-amsign * centerx, amsign * centery);
-
-    VEC3 pos3 = VEC3(pos.x(), pos.y(), pos.z());
-    double fz0 = (pos3 - center).phi() - pos3.z() / lambda;
-    deltaPhi(fz0);
-    double refphi = fz0+amsign*M_PI_2;
-    double phival = phi0();
-    double dphi = deltaPhi(phival, refphi);
-    param(z0_) = dphi * tanDip() / omega();
-
-    param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
     vt_ = CLHEP::c_light * pt / mom.E();
-    vz_ = CLHEP::c_light * mom.z() / mom.E();
-    // test position and momentum function
-    // std::cout << "Testpos " << testpos << std::endl;
+    double radius = fabs(pt*momToRad);
+    double amsign = copysign(1.0,charge_*bnom_.Z());
+    param(omega_) = -amsign/radius;
+    param(tanDip_) = mom.Z()/pt; 
+// vector pointing from the center to the measurement point; this is perp to the transverse momentum
+    double phimom = atan2(mom.Y(),mom.X());
+    double phirm = phimom + amsign*M_PI_2;
+    auto relpos = radius*VEC3(cos(phirm),sin(phirm),0.0);
+// center of the circle
+    auto center = pos.Vect()  - relpos;
+    double rcent = sqrt(center.perp2());
+    // central helix undefined for small center radius
+    if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
+    double phicent = atan2(center.Y(),center.X());
+    param(phi0_) = phicent + amsign*M_PI_2;
+    param(d0_) = -amsign*(rcent-radius);
+    // preliminary z0: this doesn't have winding correction yet
+    double z0 = pos.Z() + amsign*tanDip()*(phimom-phi0())/omega();
+    // Z change for 1 revolution; sign is irrelevant
+    double deltaz = 2*M_PI*tanDip()/omega();
+    // compute the winding; it should minimize |z0|
+    double nwind = round(z0/deltaz);
+    param(z0_) = z0 - nwind*deltaz;
+    // t0, also correcting for winding
+    param(t0_) = pos.T() +amsign*(phimom-phi0() + 2*M_PI*nwind)/Omega();
+    // test
     auto testpos = position3(pos0.T());
     auto testmom = momentum3(pos0.T());
     auto dp = testpos - pos0.Vect();
     auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
-  }
-
-  double CentralHelix::deltaPhi(double &phi, double refphi) const
-  {
-    double dphi = phi - refphi;
-    static const double twopi = 2 * M_PI;
-    while (dphi > M_PI)
-    {
-      dphi -= twopi;
-      phi -= twopi;
+    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5){
+      print(std::cout,0);
+      cout << "Original Pos " << pos0 << " Test " << testpos << endl;
+      cout << "Original Mom " << mom0 << " Test " << testmom << endl;
+      cout << "radius " << radius << " Center " << center << " nwind " << nwind << " radius vector " << relpos << endl;
+      throw invalid_argument("Rotation Error");
     }
-    while (dphi <= -M_PI)
-    {
-      dphi += twopi;
-      phi += twopi;
-    }
-    return dphi;
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
@@ -129,21 +118,20 @@ namespace KinKal {
 
   VEC3 CentralHelix::position3(double time) const
   {
-    double cDip = cosDip();
-    double phi00 = phi0();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double ang = phi00 + l * omega();
-    double cang = cos(ang);
-    double sang = sin(ang);
-    double sphi0 = sin(phi00);
-    double cphi0 = cos(phi00);
+    double phit = phi(time);
+    double cphit = cos(phit);
+    double sphit = sin(phit);
+    double sphi0 = sin(phi0());
+    double cphi0 = cos(phi0());
+    double rho = 1.0/omega();
 
-    return l2g_(VEC3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip()));
+    return l2g_(  rho*VEC3((sphit - sphi0),  -(cphit - cphi0), tanDip()*(phit-phi0())) +
+	VEC3(- d0()*sphi0, d0()*cphi0, z0()) );
   }
 
   VEC3 CentralHelix::momentum3(double time) const
   {
-    return direction(time)* betaGamma()*mass_;
+    return direction(time)*momentum();
   }
 
   MOM4 CentralHelix::momentum4(double time) const
@@ -152,32 +140,26 @@ namespace KinKal {
     return MOM4(mom3.X(), mom3.Y(), mom3.Z(), mass_);
   }
 
-  double CentralHelix::angle(const double &f) const
-  {
-    return phi0() + arc(f);
-  }
-
   VEC3 CentralHelix::velocity(double time) const
   {
-    MOM4 mom = momentum4(time);
-    return mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
+    return CLHEP::c_light * beta()*direction(time,MomBasis::momdir_);
   }
 
   VEC3 CentralHelix::direction(double time,MomBasis::Direction mdir) const
   {
-    double cosval = cosDip();
-    double sinval = sinDip();
-    double phival = phi(time);
+    double cosdip = cosDip();
+    double sindip = sinDip();
+    double phit = phi(time);
+    double cphit = cos(phit);
+    double sphit = sin(phit);
 
     switch ( mdir ) {
       case MomBasis::perpdir_:
-        return l2g_(VEC3(-sinval * cos(phival), -sinval * sin(phival), cosval));
+        return l2g_(VEC3(-sindip * cphit, -sindip * sphit, cosdip));
       case MomBasis::phidir_:
-        return l2g_(VEC3(-sin(phival), cos(phival), 0.0));
+        return l2g_(VEC3(-sphit, cphit, 0.0));
       case MomBasis::momdir_:
-        return l2g_(VEC3(Q() / omega() * cos(phival),
-                         Q() / omega() * sin(phival),
-                         Q() / omega() * tanDip()).Unit());
+        return l2g_(VEC3(cosdip * cphit, cosdip* sphit, sindip));
       default:
         throw std::invalid_argument("Invalid direction");
     }
@@ -368,12 +350,17 @@ namespace KinKal {
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
-  std::ostream& operator <<(std::ostream& ost, CentralHelix const& hhel) {
+  void CentralHelix::print(std::ostream& ost, int detail) const { 
     ost << " CentralHelix parameters: ";
     for(size_t ipar=0;ipar < CentralHelix::npars_;ipar++){
-      ost << CentralHelix::paramName(static_cast<CentralHelix::ParamIndex>(ipar) ) << " : " << hhel.paramVal(ipar);
+      ost << CentralHelix::paramName(static_cast<CentralHelix::ParamIndex>(ipar) ) << " : " << paramVal(ipar);
       if(ipar < CentralHelix::npars_-1) ost << " , ";
     }
+    ost << std::endl;
+  }
+
+  std::ostream& operator <<(std::ostream& ost, CentralHelix const& hhel) {
+    hhel.print(ost,0);
     return ost;
   }
 

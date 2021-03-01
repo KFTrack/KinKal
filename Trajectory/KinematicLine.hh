@@ -61,7 +61,7 @@ class KinematicLine {
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
     double momentum(double time) const { return mom(); }
 
-    double momentumVar(double time) const { return -1.0; }
+    double momentumVar(double time) const { return pars_.covariance()(mom_,mom_); }
     double energy() const { double momval = mom(); return sqrt(momval*momval+mass_*mass_); }
     double energy(double time) const { return energy(); }
 

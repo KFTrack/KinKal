@@ -57,13 +57,13 @@ namespace KinKal {
       VEC3 velocity(double time) const;
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
-      double momentum(double time) const  { return mass_ * pbar() / mbar_; }
-      double momentumVar(double time) const  { return -1.0; }//TODO
-      double energy(double time) const  { return mass_ * ebar() / mbar_; }
+      double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar_); }
+      double momentumVar(double time=0) const  { return -1.0; }//TODO
+      double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar_); }
       // speed in mm/ns
-      double speed(double time) const  { return CLHEP::c_light * beta(); }
+      double speed(double time=0) const  { return CLHEP::c_light * beta(); }
       // local momentum direction basis
-      void print(std::ostream& ost, int detail) const  {} // TODO
+      void print(std::ostream& ost, int detail) const;
       TimeRange const& range() const { return trange_; }
       TimeRange& range() { return trange_; }
       void setRange(TimeRange const& trange) { trange_ = trange; }
@@ -91,24 +91,20 @@ namespace KinKal {
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
-      double pbar() const { return 1./ omega() * sqrt( 1 + tanDip() * tanDip() ); } // momentum in mm
+      double pbar() const { return 1./ (omega() * cosDip() ); } // momentum in mm
       double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double vt() const { return vt_; }
-      double vz() const { return vz_; }
       double Q() const { return mass_/mbar_; } // reduced charge
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
-      double dphi(double t) const { return omega()*vt()*(t - t0()); }
-      double phi(double t) const { return dphi(t) + phi0(); }
-      double deltaPhi(double &phi, double refphi=0.) const;
-      double angle(const double &f) const;
-      double translen(const double &f) const { return cosDip() * f; }
-      double arc(const double &f) const { return translen(f) * omega(); }
-      double ztime(double zpos) const { return t0() + zpos / vz(); }
+      double Omega() const { return omega()*vt(); } // true angular velocity
+      double dphi(double t) const { return Omega()*(t - t0()); } // rotation WRT 0 at a given time
+      double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
+      double ztime(double zpos) const { return t0() + zpos / (vt()*tanDip()); } // time the particle reaches given z value
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       DPDV dPardX(double time) const; // TODO
@@ -145,7 +141,6 @@ namespace KinKal {
       const static std::vector<std::string> paramUnits_;
       const static std::string trajName_;
       double vt_; // transverse velocity
-      double vz_; // z velocity
       // non-const accessors
       double &param(size_t index) { return pars_.parameters()[index]; }
   };
