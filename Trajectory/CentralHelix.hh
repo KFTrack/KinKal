@@ -46,9 +46,9 @@ namespace KinKal {
       // copy and override parameters
       CentralHelix(Parameters const &pdata, CentralHelix const& other);
       // construct from the particle state at a given time, plus mass and charge
-      CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); // TODO
+      CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange()); //TODO
+      CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
@@ -58,7 +58,7 @@ namespace KinKal {
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
       double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar_); }
-      double momentumVar(double time=0) const  { return -1.0; }//TODO
+      double momentumVar(double time=0) const;
       double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar_); }
       // speed in mm/ns
       double speed(double time=0) const  { return CLHEP::c_light * beta(); }
@@ -67,7 +67,7 @@ namespace KinKal {
       TimeRange const& range() const { return trange_; }
       TimeRange& range() { return trange_; }
       void setRange(TimeRange const& trange) { trange_ = trange; }
-      void setBNom(double time, VEC3 const& bnom) {} // TODO
+      void setBNom(double time, VEC3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
@@ -87,7 +87,7 @@ namespace KinKal {
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const {  return ParticleState(position4(time),momentum4(time)); }
-      ParticleStateEstimate stateEstimate(double time) const { return ParticleStateEstimate(); } // TODO
+      ParticleStateEstimate stateEstimate(double time) const;
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
@@ -97,7 +97,7 @@ namespace KinKal {
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double vt() const { return vt_; }
-      double Q() const { return mass_/mbar_; } // reduced charge
+      double Q() const { return -mass_/mbar_; } // reduced charge
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
@@ -107,28 +107,31 @@ namespace KinKal {
       double ztime(double zpos) const { return t0() + zpos / (vt()*tanDip()); } // time the particle reaches given z value
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
-      DPDV dPardX(double time) const; // TODO
-      DPDV dPardM(double time) const; // TODO
-      DVDP dXdPar(double time) const; // TODO
-      DVDP dMdPar(double time) const; // TODO
-      PSMAT dPardState(double time) const { return PSMAT(); } // TODO
-      PSMAT dStatedPar(double time) const { return PSMAT(); } // TODO
+      DPDV dPardX(double time) const; 
+      DPDV dPardM(double time) const;
+      DVDP dXdPar(double time) const;
+      DVDP dMdPar(double time) const;
+      PSMAT dPardState(double time) const;
+      PSMAT dStatedPar(double time) const;
       // package the above for full (global) state
       // Parameter derivatives given a change in BFieldMap
       DVEC dPardB(double time) const { return DVEC(); } // TODO
       DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); } //TODO
 
       // flip the helix in time and charge; it remains unchanged geometrically
-      void invertCT()
+      void invertCT() // broken! TODO
       {
         mbar_ *= -1.0;
         charge_ *= -1;
-        pars_.parameters()[t0_] *= -1.0;
+	pars_.parameters()[t0_] *= -1.0;
       }
       //
     private :
+      VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
+      VEC3 localMomentum(double time) const;
+      VEC3 localPosition(double time) const;
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
-      DPDV dPardXLoc(double time) const;
+      DPDV dPardXLoc(double time) const; // TODO
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2

@@ -65,11 +65,11 @@ namespace KinKal {
     param(cx_) = pos.X() + mom.Y()*momToRad;
     param(cy_) = pos.Y() - mom.X()*momToRad;
     // test position and momentum function
-    auto testpos = position3(pos0.T());
-    auto testmom = momentum3(pos0.T());
-    auto dp = testpos - pos0.Vect();
-    auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+//    auto testpos = position3(pos0.T());
+//    auto testmom = momentum3(pos0.T());
+//    auto dp = testpos - pos0.Vect();
+//    auto dm = testmom - mom0.Vect();
+//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
@@ -123,9 +123,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::position3(double time) const {
-    double df = dphi(time);
-    double phival = df + phi0();
-    return l2g_(VEC3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam()));
+    return l2g_(localPosition(time));
   } 
 
   MOM4 LoopHelix::momentum4(double time) const{
@@ -134,7 +132,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::momentum3(double time) const{
-    return direction(time)*betaGamma()*mass();
+    return direction(time)*momentum();
   }
 
   VEC3 LoopHelix::velocity(double time) const{
@@ -157,7 +155,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::localMomentum(double time) const{
-    return betaGamma()*mass()*localDirection(time);
+    return localDirection(time)*momentum();
   }
 
   VEC3 LoopHelix::localPosition(double time) const {

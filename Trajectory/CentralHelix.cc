@@ -78,13 +78,17 @@ namespace KinKal {
     auto testmom = momentum3(pos0.T());
     auto dp = testpos - pos0.Vect();
     auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5){
-      print(std::cout,0);
-      cout << "Original Pos " << pos0 << " Test " << testpos << endl;
-      cout << "Original Mom " << mom0 << " Test " << testmom << endl;
-      cout << "radius " << radius << " Center " << center << " nwind " << nwind << " radius vector " << relpos << endl;
-      throw invalid_argument("Rotation Error");
-    }
+    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+  }
+
+  void CentralHelix::setBNom(double time, VEC3 const& bnom) {
+    // adjust the parameters for the change in bnom
+    mbar_ *= bnom_.R()/bnom.R();
+    pars_.parameters() += dPardB(time,bnom);
+    bnom_ = bnom;
+    // adjust rotations to global space
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
@@ -110,13 +114,23 @@ namespace KinKal {
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
+  double CentralHelix::momentumVar(double time) const {
+    DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
+    dMomdP *= momentum(time);
+    return ROOT::Math::Similarity(dMomdP,params().covariance());
+  }
+
   VEC4 CentralHelix::position4(double time) const
  {
     VEC3 pos3 = position3(time);
     return VEC4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
 
-  VEC3 CentralHelix::position3(double time) const
+  VEC3 CentralHelix::position3(double time) const {
+    return l2g_(localPosition(time));
+  } 
+
+  VEC3 CentralHelix::localPosition(double time) const
   {
     double phit = phi(time);
     double cphit = cos(phit);
@@ -125,8 +139,8 @@ namespace KinKal {
     double cphi0 = cos(phi0());
     double rho = 1.0/omega();
 
-    return l2g_(  rho*VEC3((sphit - sphi0),  -(cphit - cphi0), tanDip()*(phit-phi0())) +
-	VEC3(- d0()*sphi0, d0()*cphi0, z0()) );
+    return rho*VEC3((sphit - sphi0),  -(cphit - cphi0), tanDip()*(phit-phi0())) +
+	VEC3(- d0()*sphi0, d0()*cphi0, z0());
   }
 
   VEC3 CentralHelix::momentum3(double time) const
@@ -145,7 +159,15 @@ namespace KinKal {
     return CLHEP::c_light * beta()*direction(time,MomBasis::momdir_);
   }
 
-  VEC3 CentralHelix::direction(double time,MomBasis::Direction mdir) const
+  VEC3 CentralHelix::localMomentum(double time) const{
+    return betaGamma()*mass()*localDirection(time);
+  }
+
+  VEC3 CentralHelix::direction(double time, MomBasis::Direction mdir) const {
+    return l2g_(localDirection(time,mdir));
+  }
+
+  VEC3 CentralHelix::localDirection(double time,MomBasis::Direction mdir) const
   {
     double cosdip = cosDip();
     double sindip = sinDip();
@@ -155,11 +177,11 @@ namespace KinKal {
 
     switch ( mdir ) {
       case MomBasis::perpdir_:
-        return l2g_(VEC3(-sindip * cphit, -sindip * sphit, cosdip));
+        return VEC3(-sindip * cphit, -sindip * sphit, cosdip);
       case MomBasis::phidir_:
-        return l2g_(VEC3(-sphit, cphit, 0.0));
+        return VEC3(-sphit, cphit, 0.0);
       case MomBasis::momdir_:
-        return l2g_(VEC3(cosdip * cphit, cosdip* sphit, sindip));
+        return VEC3(cosdip * cphit, cosdip* sphit, sindip);
       default:
         throw std::invalid_argument("Invalid direction");
     }
@@ -348,6 +370,32 @@ namespace KinKal {
     auto dir = direction(time,mdir);
     double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
+  }
+
+  PSMAT CentralHelix::dPardState(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    DPDV dPdX = dPardX(time);
+    DPDV dPdM = dPardM(time);
+    PSMAT dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
+  }
+
+  PSMAT CentralHelix::dStatedPar(double time) const {
+  // aggregate state from separate X and M derivatives; parameter space is column
+    DVDP dXdP = dXdPar(time);
+    DVDP dMdP = dMdPar(time);
+    PSMAT dsdp;
+    dsdp.Place_at(dXdP,0,0);
+    dsdp.Place_at(dMdP,3,0);
+    return dsdp;
+  }
+
+  ParticleStateEstimate CentralHelix::stateEstimate(double time) const {
+  // express the parameter space covariance in global state space
+    PSMAT dsdp = dStatedPar(time);
+    return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
   void CentralHelix::print(std::ostream& ost, int detail) const { 
