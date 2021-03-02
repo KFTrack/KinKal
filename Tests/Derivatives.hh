@@ -110,13 +110,15 @@ int test(int argc, char **argv) {
   auto refmom = refhel.momentum4(ttest);
   int ndel(50);
   // graphs to compare parameter change
-  std::vector<TGraph*> pgraphs[3];
+  std::vector<TGraph*> pmomgraphs[3];
+  std::vector<TGraph*> pposgraphs[3];
   // graphs to compare momentum change
   TGraph* momgraph[3];
   // gaps
   TGraph* gapgraph[3][3];
   // canvases
   TCanvas* dhcan[3];
+  TCanvas* dphcan[3];
   TCanvas* dmomcan[3];
   std::string tfname = KTRAJ::trajName() + "Derivs.root";
   TFile lhderiv(tfname.c_str(),"RECREATE");
@@ -127,12 +129,17 @@ int test(int argc, char **argv) {
     MomBasis::Direction tdir =static_cast<MomBasis::Direction>(idir);
 //    cout << "testing direction " << MomBasis::directionName(tdir) << endl;
     // parameter change
-    pgraphs[idir] = std::vector<TGraph*>(NParams(),0); 
+    pmomgraphs[idir] = std::vector<TGraph*>(NParams(),0); 
+    pposgraphs[idir] = std::vector<TGraph*>(NParams(),0); 
     for(size_t ipar = 0; ipar < NParams(); ipar++){
-      pgraphs[idir][ipar] = new TGraph(ndel);
+      pmomgraphs[idir][ipar] = new TGraph(ndel);
       string title = KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar));
-      title += ";exact;1st derivative";
-      pgraphs[idir][ipar]->SetTitle(title.c_str());
+      title += "#DeltaP;exact;1st derivative";
+      pmomgraphs[idir][ipar]->SetTitle(title.c_str());
+      pposgraphs[idir][ipar] = new TGraph(ndel);
+      title = KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar));
+      title += "#DeltaX;exact;1st derivative";
+      pposgraphs[idir][ipar]->SetTitle(title.c_str());
     }
     momgraph[idir] = new TGraph(ndel);
     momgraph[idir]->SetTitle("Momentum Direction;exact;1st derivative");
@@ -144,6 +151,9 @@ int test(int argc, char **argv) {
     }
     // scan range of change
     DVEC pder = refhel.momDeriv(ttest,tdir);
+    auto dPdX = refhel.dPardX(ttest);
+    DVEC ppder;
+
     for(int id=0;id<ndel;++id){
       double dval = dmin + del*id;
 //      cout << "Delta = " << dval << endl;
@@ -174,18 +184,30 @@ int test(int argc, char **argv) {
       }
       // parameter diff
       for(size_t ipar = 0; ipar < NParams(); ipar++){
-	pgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
+	pmomgraphs[idir][ipar]->SetPoint(id,xhel.paramVal(ipar)-refhel.paramVal(ipar),dhel.paramVal(ipar)-refhel.paramVal(ipar));
       }
       // compare momenta after change
       //
       VEC3 dxmom = momv.Vect() - refmom.Vect();
       VEC3 ddmom = dmom.Vect() - refmom.Vect();
       momgraph[idir]->SetPoint(id,dxmom.Dot(dmomdir),ddmom.Dot(dmomdir));
+      // now same for position
+      auto newpos4 = refpos4 + VEC4(dval*dmomdir.X(),dval*dmomdir.Y(),dval*dmomdir.Z(),0.0);
+      KTRAJ xphel(newpos4,refmom,icharge,bnom);
+//      cout << "derivative vector" << pder << endl;
+// now derivatives
+      ppder = dPdX*SVEC3(dmomdir.X(), dmomdir.Y(), dmomdir.Z());
+      dvec = refhel.params().parameters() + dval*ppder;
+      pdata = Parameters(dvec,refhel.params().covariance());
+      KTRAJ dphel(pdata,refhel);
+      for(size_t ipar = 0; ipar < NParams(); ipar++){
+	pposgraphs[idir][ipar]->SetPoint(id,xphel.paramVal(ipar)-refhel.paramVal(ipar),dphel.paramVal(ipar)-refhel.paramVal(ipar));
+      }
     }
     char gtitle[80];
     char gname[80];
-    snprintf(gname,80,"dh%s",MomBasis::directionName(tdir).c_str());
-    snprintf(gtitle,80,"KTraj Change %s",MomBasis::directionName(tdir).c_str());
+    snprintf(gname,80,"dhMom%s",MomBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"KTraj Change momentum %s",MomBasis::directionName(tdir).c_str());
     dhcan[idir] = new TCanvas(gname,gtitle,1200,800);
     dhcan[idir]->Divide(3,2);
     TF1* pline = new TF1("pline","[0]+[1]*x");
@@ -194,10 +216,10 @@ int test(int argc, char **argv) {
       // if this is non-trivial, fit
       if(fabs(pder[ipar])>1e-9){
 	pline->SetParameters(0.0,1.0);
-	TFitResultPtr pfitr = pgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
-	pgraphs[idir][ipar]->Draw("AC*");
+	TFitResultPtr pfitr = pmomgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
+	pmomgraphs[idir][ipar]->Draw("AC*");
 	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
-	  cout << "Parameter " 
+	  cout << "Momentum derivative for parameter " 
 	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	    << " in direction " << MomBasis::directionName(tdir)
 	    << " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
@@ -208,6 +230,30 @@ int test(int argc, char **argv) {
     dhcan[idir]->Draw();
     dhcan[idir]->Write();
 
+    snprintf(gname,80,"dhPos%s",MomBasis::directionName(tdir).c_str());
+    snprintf(gtitle,80,"KTraj Change position %s",MomBasis::directionName(tdir).c_str());
+    dphcan[idir] = new TCanvas(gname,gtitle,1200,800);
+    dphcan[idir]->Divide(3,2);
+    pline = new TF1("pline","[0]+[1]*x");
+    for(size_t ipar = 0; ipar < NParams(); ipar++){
+      dphcan[idir]->cd(ipar+1);
+      // if this is non-trivial, fit
+      if(fabs(ppder[ipar])>1e-9){
+	pline->SetParameters(0.0,1.0);
+	TFitResultPtr pfitr = pposgraphs[idir][ipar]->Fit(pline,"SQ","AC*");
+	pposgraphs[idir][ipar]->Draw("AC*");
+	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
+	  cout << "Position deriviative for parameter " 
+	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+	    << " in direction " << MomBasis::directionName(tdir)
+	    << " Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+	  status = 1;
+	}
+      }
+    }
+    dphcan[idir]->Draw();
+    dphcan[idir]->Write();
+    //
     snprintf(gname,80,"dm%s",MomBasis::directionName(tdir).c_str());
     snprintf(gtitle,80,"Mom Change %s",MomBasis::directionName(tdir).c_str());
     dmomcan[idir] = new TCanvas(gname,gtitle,800,800);
@@ -279,18 +325,18 @@ int test(int argc, char **argv) {
 
 // test changes due to BFieldMap
   TCanvas* dbcan[3]; // 3 directions
-  std::vector<TGraph*> bpgraphs[3];
+  std::vector<TGraph*> bpmomgraphs[3];
   std::array<VEC3,3> basis = {VEC3(1.0,0.0,0.0), VEC3(0.0,1.0,0.0), VEC3(0.0,0.0,1.0) };
   std::array<std::string,3> anames = {"X", "Y", "Z"};
   // gaps
   TGraph* bgapgraph[3];
   for(int idir=0;idir<3;++idir){
-    bpgraphs[idir] = std::vector<TGraph*>(NParams(),0); 
+    bpmomgraphs[idir] = std::vector<TGraph*>(NParams(),0); 
     for(size_t ipar = 0; ipar < NParams(); ipar++){
-      bpgraphs[idir][ipar] = new TGraph(ndel);
+      bpmomgraphs[idir][ipar] = new TGraph(ndel);
       string title = KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar));
       title += ";exact;1st derivative";
-      bpgraphs[idir][ipar]->SetTitle(title.c_str());
+      bpmomgraphs[idir][ipar]->SetTitle(title.c_str());
     }
     bgapgraph[idir] = new TGraph(ndel);
     string title = "Gap for #Delta B in " + anames[idir] + ";Fractional change;Gap value (mm)";
@@ -312,7 +358,7 @@ int test(int argc, char **argv) {
       KTRAJ dbtraj(refhel,bf,ttest);
       DVEC dpdb = dbtraj.params().parameters() - refhel.params().parameters();
       for(size_t ipar = 0; ipar < NParams(); ipar++){
-	bpgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
+	bpmomgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
       bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-newbfhel.position3(ttest)).R());
     }
@@ -324,7 +370,7 @@ int test(int argc, char **argv) {
     dbcan[idir]->Divide(3,2);
     for(size_t ipar = 0; ipar < NParams(); ipar++){
       dbcan[idir]->cd(ipar+1);
-      bpgraphs[idir][ipar]->Draw("AC*");
+      bpmomgraphs[idir][ipar]->Draw("AC*");
     }
     dbcan[idir]->Draw();
     dbcan[idir]->Write();
