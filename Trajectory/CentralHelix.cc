@@ -42,7 +42,7 @@ namespace KinKal {
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
-    double radToMom = fabs(BFieldUtils::cbar()*charge_*bnom_.R());
+    double radToMom = BFieldUtils::cbar()*charge_*bnom_.R();
     double momToRad = 1.0/radToMom;
     mbar_ = -mass_ * momToRad;
     // caches
@@ -57,11 +57,11 @@ namespace KinKal {
     double phirm = phimom + amsign*M_PI_2;
     auto relpos = radius*VEC3(cos(phirm),sin(phirm),0.0);
 // center of the circle
-    auto center = pos.Vect()  - relpos;
-    double rcent = sqrt(center.perp2());
+    lcent_ = pos.Vect()  - relpos;
+    double rcent = sqrt(lcent_.perp2());
     // central helix undefined for small center radius
     if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
-    double phicent = atan2(center.Y(),center.X());
+    double phicent = atan2(lcent_.Y(),lcent_.X());
     param(phi0_) = phicent + amsign*M_PI_2;
     param(d0_) = -amsign*(rcent-radius);
     // preliminary z0: this doesn't have winding correction yet
@@ -69,16 +69,30 @@ namespace KinKal {
     // Z change for 1 revolution; sign is irrelevant
     double deltaz = 2*M_PI*tanDip()/omega();
     // compute the winding; it should minimize |z0|
-    double nwind = round(z0/deltaz);
-    param(z0_) = z0 - nwind*deltaz;
+    nwind_ = round(z0/deltaz);
+    param(z0_) = z0 - nwind_*deltaz;
     // t0, also correcting for winding
-    param(t0_) = pos.T() +amsign*(phimom-phi0() + 2*M_PI*nwind)/Omega();
+    param(t0_) = pos.T() +amsign*(phimom-phi0() + 2*M_PI*nwind_)/Omega();
     // test
     auto testpos = position3(pos0.T());
     auto testmom = momentum3(pos0.T());
     auto dp = testpos - pos0.Vect();
     auto dm = testmom - mom0.Vect();
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+    // check
+    auto lpos = localPosition(pos0.T());
+    auto lmom = localMomentum(pos0.T());
+    VEC3 lcent(lpos.X()-lmom.Y()/Q(),lpos.Y()+lmom.X()/Q(),0.0);
+    if(fabs(lcent_.phi()-lcent.phi())>1e-5){
+      cout << "center " << lcent_ << " test center " << lcent << endl;
+    }
+    if(fabs(tan(phi0()) +1.0/tan(lcent.phi())) > 1e-5){
+      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl; 
+    }
+    double d0t = sign()*lcent.R()-sqrt(lmom.perp2())/Q();
+    if(fabs(d0t - d0()) > 1e-5){
+      cout  << " d0 " << d0() << " d0 test " << d0t << endl;
+    }
   }
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
@@ -186,58 +200,84 @@ namespace KinKal {
         throw std::invalid_argument("Invalid direction");
     }
   }
-
+  
   DPDV CentralHelix::dPardMLoc(double time) const {
+    auto locmom = localMomentum(time);
+    double pt2 = locmom.perp2();
+    double pt = sqrt(pt2);
+    double fx = locmom.X()/pt2;
+    double fy = locmom.Y()/pt2;
+    double invqval = 1.0/Q();
+    double cphi0 = cos(phi0());
+    double sphi0 = sin(phi0());
+    double invrc = 1.0/sqrt(lcent_.perp2());
+    double omval = Omega();
+//    double deltaphi = dphi(time);
+    double inve = 1.0/energy();
+    double dt = time-t0();
+    double invc = 1.0/CLHEP::c_light;
+
+    SVEC3 domega_dM (-omega()*fx, -omega()*fy,0.0);
+    SVEC3 dtanDip_dM (-tanDip()*fx, -tanDip()*fy,1.0/pt);
+    SVEC3 dphi0_dM = sign()*invrc*invqval*SVEC3(-sphi0,cphi0,0.0);
+    SVEC3 dd0_dM = invqval*(sign()*invrc*SVEC3( lcent_.Y(), -lcent_.X(), 0.0) -
+     (1.0/pt)*SVEC3(locmom.X(),locmom.Y(), 0.0));
+    SVEC3 dt0_dM = -sign()*invqval*inve*invc*dphi(time)*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) -
+      (sign()/omval)*(SVEC3(-fy,fx,0) - dphi0_dM);
+    SVEC3 dz0_dM = locmom.Z()*inve*inve*inve*CLHEP::c_light*dt*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) + 
+      locmom.Z()*inve*CLHEP::c_light*dt0_dM -
+      inve*CLHEP::c_light*dt*SVEC3(0.0,0.0,1.0);
+
     // euclidean space is column, parameter space is row
-    double phi00 = phi0();
-    double cDip = cosDip();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double rho = 1.0/omega();
-    double sphi0 = sin(phi00);
-    double cphi0 = cos(phi00);
-    double ang = phi00 + l * omega();
-    double cang = cos(ang);
-    double sang = sin(ang);
-    double x = (sang - sphi0) / omega() - d0() * sphi0;
-    double y = -(cang - cphi0) / omega() + d0() * cphi0;
-    double px = Q()/omega()*cang;
-    double py = Q()/omega()*sang;
-    double phip = atan2(py,px);
-    double cx = x-rho*sin(phip);
-    double cy = y+rho*cos(phip);
-
-    double omval = omega();
-    double tanval = tanDip();
-
-    // SVEC3 dz0_dM(0,0,0);
-    SVEC3 dt0_dM (CLHEP::c_light * beta() * cDip * Q() * Q() * sang,
-                  -CLHEP::c_light * beta() * cDip * Q() * Q() * cang,
-                  0);
-    SVEC3 domega_dM (-omval*omval*cang, -omval*omval*sang, 0);
-    SVEC3 dtanDip_dM (-omval*cang*tanval, -omval*sang*tanval, omval);
-    SVEC3 dphi0_dM (cx/(cx*cx+cy*cy), cy/(cx*cx+cy*cy), 0);
-
-    dphi0_dM /= Q();
-    domega_dM /= Q();
-    dtanDip_dM /= Q();
-
-    if( (cy*cphi0-cx*sphi0)*rho < 0.0 ){
-    // wrong angular momentum: fix
-      phi00 = phi00+CLHEP::pi;
-      sphi0 = -sphi0;
-      cphi0 = -cphi0;
-    }
-
-    double drho_dPx = omval*px/(Q()*Q());
-    double drho_dPy = omval*py/(Q()*Q());
-
-    SVEC3 dd0_dM(1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[0]) - drho_dPx,
-                 1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[1] + 1./Q()) - drho_dPy,
-                 0);
-    if(fabs(sphi0)<=0.5)
-      SVEC3 dd0_dM(1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[0] + 1./Q()) - drho_dPx,
-                   1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[1]) - drho_dPy,
-                   0);
+//    double phi00 = phi0();
+//    double cDip = cosDip();
+//    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
+//    double rho = 1.0/omega();
+//    double sphi0 = sin(phi00);
+//    double cphi0 = cos(phi00);
+//    double ang = phi00 + l * omega();
+//    double cang = cos(ang);
+//    double sang = sin(ang);
+//    double x = (sang - sphi0) / omega() - d0() * sphi0;
+//    double y = -(cang - cphi0) / omega() + d0() * cphi0;
+//    double px = Q()/omega()*cang;
+//    double py = Q()/omega()*sang;
+//    double phip = atan2(py,px);
+//    double cx = x-rho*sin(phip);
+//    double cy = y+rho*cos(phip);
+//
+//    double omval = omega();
+//    double tanval = tanDip();
+//
+//    // SVEC3 dz0_dM(0,0,0);
+//    SVEC3 dt0_dM (CLHEP::c_light * beta() * cDip * Q() * Q() * sang,
+//                  -CLHEP::c_light * beta() * cDip * Q() * Q() * cang,
+//                  0);
+//    SVEC3 domega_dM (-omval*omval*cang, -omval*omval*sang, 0);
+//    SVEC3 dtanDip_dM (-omval*cang*tanval, -omval*sang*tanval, omval);
+//    SVEC3 dphi0_dM (cx/(cx*cx+cy*cy), cy/(cx*cx+cy*cy), 0);
+//
+//    dphi0_dM /= Q();
+//    domega_dM /= Q();
+//    dtanDip_dM /= Q();
+//
+//    if( (cy*cphi0-cx*sphi0)*rho < 0.0 ){
+//    // wrong angular momentum: fix
+//      phi00 = phi00+CLHEP::pi;
+//      sphi0 = -sphi0;
+//      cphi0 = -cphi0;
+//    }
+//
+//    double drho_dPx = omega()*locmom.X()/(Q()*Q());
+//    double drho_dPy = omega()*locmom.Y()/(Q()*Q());
+//
+//    SVEC3 dd0_dM(1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[0]) - drho_dPx,
+//                 1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[1] + 1./Q()) - drho_dPy,
+//                 0);
+//    if(fabs(sphi0)<=0.5)
+//      SVEC3 dd0_dM(1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[0] + 1./Q()) - drho_dPx,
+//                   1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[1]) - drho_dPy,
+//                   0);
 
     // SVEC3 dz0_dM(- dtanDip_dM[0]*(phip-phi00)/omval
     //              + tanDip()*domega_dM[0]*(phip-phi00)/(omval*omval)
@@ -246,8 +286,6 @@ namespace KinKal {
     //              + tanDip()*domega_dM[1]*(phip-phi00)/(omval*omval)
     //              - tanDip()*(omval/Q()*cang-dphi0_dM[1])/omval,
     //              dtanDip_dM[2]*(phip-phi00)/omval);
-
-    SVEC3 dz0_dM(0,0,0);
 
     DPDV dPdM;
     dPdM.Place_in_row(dd0_dM,d0_,0);
@@ -301,20 +339,24 @@ namespace KinKal {
   }
 
   DPDV CentralHelix::dPardXLoc(double time) const {
-    // euclidean space is column, parameter space is row
-    SVEC3 dd0_dX (0,0,0);
-    SVEC3 dz0_dX (0,0,0);
-    SVEC3 dphi0_dX (0,0,0);
-    SVEC3 dt0_dX (0,0,0);
+    double invrc = 1.0/sqrt(lcent_.perp2());
+    double cphi0 = cos(phi0());
+    double sphi0 = sin(phi0());
+
     SVEC3 domega_dX (0,0,0);
     SVEC3 dtanDip_dX (0,0,0);
+    SVEC3 dphi0_dX = (sign()*invrc)*SVEC3(-cphi0,sphi0,0.0);
+    // euclidean space is column, parameter space is row
+    SVEC3 dd0_dX = (sign()*invrc)*SVEC3(lcent_.X(), lcent_.Y(), 0.0);
+    SVEC3 dt0_dX = (-sign()/Omega())*dphi0_dX;
+    SVEC3 dz0_dX = SVEC3(0.0,0.0,1.0) + (tanDip()*Omega()/omega())*dt0_dX;
     DPDV dPdX;
-    dPdX.Place_in_row(dd0_dX,d0_,0); // TODO
-    dPdX.Place_in_row(dphi0_dX,phi0_,0); // TODO
-    dPdX.Place_in_row(domega_dX,omega_,0); // TODO
-    dPdX.Place_in_row(dz0_dX,z0_,0); // TODO
-    dPdX.Place_in_row(dtanDip_dX,tanDip_,0); // TODO
-    dPdX.Place_in_row(dt0_dX,t0_,0); // TODO
+    dPdX.Place_in_row(dd0_dX,d0_,0);
+    dPdX.Place_in_row(dphi0_dX,phi0_,0);
+    dPdX.Place_in_row(domega_dX,omega_,0);
+    dPdX.Place_in_row(dz0_dX,z0_,0);
+    dPdX.Place_in_row(dtanDip_dX,tanDip_,0);
+    dPdX.Place_in_row(dt0_dX,t0_,0);
     return dPdX;
   }
 

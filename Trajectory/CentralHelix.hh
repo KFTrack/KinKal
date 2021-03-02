@@ -96,8 +96,7 @@ namespace KinKal {
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
-      double vt() const { return vt_; }
-      double Q() const { return -mass_/mbar_; } // reduced charge
+      double Q() const { return mass_/mbar_; } // reduced charge
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
@@ -127,6 +126,8 @@ namespace KinKal {
       }
       //
     private :
+      double vt() const { return vt_; }
+      VEC3 localCenter() const { return lcent_; }
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       VEC3 localMomentum(double time) const;
       VEC3 localPosition(double time) const;
@@ -143,7 +144,10 @@ namespace KinKal {
       const static std::vector<std::string> paramNames_;
       const static std::vector<std::string> paramUnits_;
       const static std::string trajName_;
+      // caches, to speed up some calculations
       double vt_; // transverse velocity
+      VEC3 lcent_; // position of center
+      double nwind_;
       // non-const accessors
       double &param(size_t index) { return pars_.parameters()[index]; }
   };
