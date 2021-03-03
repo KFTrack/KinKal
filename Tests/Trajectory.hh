@@ -202,7 +202,7 @@ int test(int argc, char **argv) {
   auto imompos = ilhel.position3(ot);
   mdir =ilhel.direction(ot);
   VEC3 imomvec =mom*mdir;
-  drawMom(imompos,imomvec,kBlack,imref);
+  drawMom(imompos,imomvec,kRed,imref);
   //
   imompos  = lhel.position3(tmin);
   mdir = lhel.direction(tmin);
@@ -248,6 +248,8 @@ int test(int argc, char **argv) {
   leg->AddEntry(hel,title,"L");
   snprintf(title,80,"Ref. Momentum, t=%4.2g ns",ot);
   leg->AddEntry(mref.arrow,title,"L");
+  snprintf(title,80,"Inverted Momentum, t=%4.2g ns",ot);
+  leg->AddEntry(imref.arrow,title,"L");
   snprintf(title,80,"Start Momentum, t=%4.2g ns",ot+tmin);
   leg->AddEntry(mstart.arrow,title,"L");
   snprintf(title,80,"End Momentum, t=%4.2g ns",ot+tmax);

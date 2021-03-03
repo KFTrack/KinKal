@@ -16,7 +16,7 @@ namespace KinKal {
     "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
   const vector<string> CentralHelix::paramNames_ = {
-  "d_{0}","#phi_{0}","#omega","z_{0}","tan#lambda","t_{0}"};
+  "D0","Phi0","Omega","Z0","TanDip","Time0"};
   const vector<string> CentralHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
   const string CentralHelix::trajName_("CentralHelix");
@@ -41,61 +41,66 @@ namespace KinKal {
     mom = g2l_(mom);
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
-    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
+    // kinematic to geometric conversion
+    double radToMom = BFieldUtils::cbar()*charge_*bnom_.R();
+    double momToRad = 1.0/radToMom;
     mbar_ = -mass_ * momToRad;
-
+    // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
-
-    double lambda = -mom.z()*momToRad;
-    double amsign = copysign(1.0, mbar_);
-
-    VEC3 center = VEC3(pos.x() + mom.y()*momToRad, pos.y() - mom.x()*momToRad, 0.0);
-    double rcent = sqrt(center.perp2());
-    double fcent = center.phi();
-    double centerx = rcent*cos(fcent);
-    double centery = rcent*sin(fcent);
-
-    param(omega_) = amsign/radius;
-    param(tanDip_) = amsign*lambda/radius;
-    param(d0_) = amsign*(rcent - radius);
-    param(phi0_) = atan2(-amsign * centerx, amsign * centery);
-
-    VEC3 pos3 = VEC3(pos.x(), pos.y(), pos.z());
-    double fz0 = (pos3 - center).phi() - pos3.z() / lambda;
-    deltaPhi(fz0);
-    double refphi = fz0+amsign*M_PI_2;
-    double phival = phi0();
-    double dphi = deltaPhi(phival, refphi);
-    param(z0_) = dphi * tanDip() / omega();
-
-    param(t0_) = pos.T() - (pos.Z() - param(z0_)) / (sinDip() * CLHEP::c_light * beta());
-    vt_ = CLHEP::c_light * pt / mom.E();
-    vz_ = CLHEP::c_light * mom.z() / mom.E();
-    // test position and momentum function
-    // std::cout << "Testpos " << testpos << std::endl;
+    double amsign = copysign(1.0,charge_*bnom_.Z());
+    param(omega_) = -amsign/radius;
+    param(tanDip_) = mom.Z()/pt; 
+// vector pointing from the center to the measurement point; this is perp to the transverse momentum
+    double phimom = atan2(mom.Y(),mom.X());
+    double phirm = phimom + amsign*M_PI_2;
+    auto relpos = radius*VEC3(cos(phirm),sin(phirm),0.0);
+// center of the circle
+    auto lcent = pos.Vect()  - relpos;
+    double rcent = sqrt(lcent.perp2());
+    // central helix undefined for small center radius
+    if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
+    double phicent = atan2(lcent.Y(),lcent.X());
+    param(phi0_) = phicent + amsign*M_PI_2;
+    param(d0_) = -amsign*(rcent-radius);
+    // preliminary z0: this doesn't have winding correction yet
+    double z0 = pos.Z() + amsign*tanDip()*(phimom-phi0())/omega();
+    // Z change for 1 revolution; sign is irrelevant
+    double deltaz = 2*M_PI*tanDip()/omega();
+    // compute the winding; it should minimize |z0|
+    double nwind = round(z0/deltaz);
+    param(z0_) = z0 - nwind*deltaz;
+    // t0, also correcting for winding
+    param(t0_) = pos.T() +amsign*(phimom-phi0() + 2*M_PI*nwind)/Omega();
+    // test
     auto testpos = position3(pos0.T());
     auto testmom = momentum3(pos0.T());
     auto dp = testpos - pos0.Vect();
     auto dm = testmom - mom0.Vect();
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+    // check
+    auto lmom = localMomentum(pos0.T());
+    VEC3 tcent = center();
+    if(fabs(lcent.phi()-tcent.phi())>1e-5 || fabs(lcent.perp2()-tcent.perp2()) > 1e-5){
+      cout << "center " << lcent << " test center " << tcent << endl;
+    }
+    if(fabs(tan(phi0()) +1.0/tan(lcent.phi())) > 1e-5){
+      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl; 
+    }
+    double d0t = sign()*sqrt(lcent.perp2())-sqrt(lmom.perp2())/Q();
+    if(fabs(d0t - d0()) > 1e-5){
+      cout  << " d0 " << d0() << " d0 test " << d0t << endl;
+    }
   }
 
-  double CentralHelix::deltaPhi(double &phi, double refphi) const
-  {
-    double dphi = phi - refphi;
-    static const double twopi = 2 * M_PI;
-    while (dphi > M_PI)
-    {
-      dphi -= twopi;
-      phi -= twopi;
-    }
-    while (dphi <= -M_PI)
-    {
-      dphi += twopi;
-      phi += twopi;
-    }
-    return dphi;
+  void CentralHelix::setBNom(double time, VEC3 const& bnom) {
+    // adjust the parameters for the change in bnom
+    mbar_ *= bnom_.R()/bnom.R();
+    pars_.parameters() += dPardB(time,bnom);
+    bnom_ = bnom;
+    // adjust rotations to global space
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
@@ -121,29 +126,38 @@ namespace KinKal {
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
+  double CentralHelix::momentumVar(double time) const {
+    DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
+    dMomdP *= momentum(time);
+    return ROOT::Math::Similarity(dMomdP,params().covariance());
+  }
+
   VEC4 CentralHelix::position4(double time) const
  {
     VEC3 pos3 = position3(time);
     return VEC4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
 
-  VEC3 CentralHelix::position3(double time) const
-  {
-    double cDip = cosDip();
-    double phi00 = phi0();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double ang = phi00 + l * omega();
-    double cang = cos(ang);
-    double sang = sin(ang);
-    double sphi0 = sin(phi00);
-    double cphi0 = cos(phi00);
+  VEC3 CentralHelix::position3(double time) const {
+    return l2g_(localPosition(time));
+  } 
 
-    return l2g_(VEC3((sang - sphi0) / omega() - d0() * sphi0, -(cang - cphi0) / omega() + d0() * cphi0, z0() + l * tanDip()));
+  VEC3 CentralHelix::localPosition(double time) const
+  {
+    double phit = phi(time);
+    double cphit = cos(phit);
+    double sphit = sin(phit);
+    double sphi0 = sin(phi0());
+    double cphi0 = cos(phi0());
+    double rho = 1.0/omega();
+
+    return rho*VEC3((sphit - sphi0),  -(cphit - cphi0), tanDip()*(phit-phi0())) +
+	VEC3(- d0()*sphi0, d0()*cphi0, z0());
   }
 
   VEC3 CentralHelix::momentum3(double time) const
   {
-    return direction(time)* betaGamma()*mass_;
+    return direction(time)*momentum();
   }
 
   MOM4 CentralHelix::momentum4(double time) const
@@ -152,106 +166,73 @@ namespace KinKal {
     return MOM4(mom3.X(), mom3.Y(), mom3.Z(), mass_);
   }
 
-  double CentralHelix::angle(const double &f) const
-  {
-    return phi0() + arc(f);
-  }
-
   VEC3 CentralHelix::velocity(double time) const
   {
-    MOM4 mom = momentum4(time);
-    return mom.Vect() * (CLHEP::c_light * fabs(Q() / ebar()));
+    return CLHEP::c_light * beta()*direction(time,MomBasis::momdir_);
   }
 
-  VEC3 CentralHelix::direction(double time,MomBasis::Direction mdir) const
+  VEC3 CentralHelix::localMomentum(double time) const{
+    return betaGamma()*mass()*localDirection(time);
+  }
+
+  VEC3 CentralHelix::direction(double time, MomBasis::Direction mdir) const {
+    return l2g_(localDirection(time,mdir));
+  }
+
+  VEC3 CentralHelix::localDirection(double time,MomBasis::Direction mdir) const
   {
-    double cosval = cosDip();
-    double sinval = sinDip();
-    double phival = phi(time);
+    double cosdip = cosDip();
+    double sindip = sinDip();
+    double phit = phi(time);
+    double cphit = cos(phit);
+    double sphit = sin(phit);
 
     switch ( mdir ) {
       case MomBasis::perpdir_:
-        return l2g_(VEC3(-sinval * cos(phival), -sinval * sin(phival), cosval));
+        return VEC3(-sindip * cphit, -sindip * sphit, cosdip);
       case MomBasis::phidir_:
-        return l2g_(VEC3(-sin(phival), cos(phival), 0.0));
+        return VEC3(-sphit, cphit, 0.0);
       case MomBasis::momdir_:
-        return l2g_(VEC3(Q() / omega() * cos(phival),
-                         Q() / omega() * sin(phival),
-                         Q() / omega() * tanDip()).Unit());
+        return VEC3(cosdip * cphit, cosdip* sphit, sindip);
       default:
         throw std::invalid_argument("Invalid direction");
     }
   }
-
+  
   DPDV CentralHelix::dPardMLoc(double time) const {
+    auto locmom = localMomentum(time);
+    double pt2 = locmom.perp2();
+    double pt = sqrt(pt2);
+    double fx = locmom.X()/pt2;
+    double fy = locmom.Y()/pt2;
+    double invqval = 1.0/Q();
+    double cphi0 = cos(phi0());
+    double sphi0 = sin(phi0());
+    double invrc = 1.0/sqrt(center().perp2());
+    double omval = Omega();
+    double inve = 1.0/energy();
+    double dt = time-t0();
+    double invc = 1.0/CLHEP::c_light;
+
+    SVEC3 domega_dM (-omega()*fx, -omega()*fy,0.0);
+    SVEC3 dtanDip_dM (-tanDip()*fx, -tanDip()*fy,1.0/pt);
+    SVEC3 dphi0_dM = sign()*invrc*invqval*SVEC3(-sphi0,cphi0,0.0);
+    SVEC3 dd0_dM = invqval*(sign()*invrc*SVEC3( center().Y(), -center().X(), 0.0) -
+     (1.0/pt)*SVEC3(locmom.X(),locmom.Y(), 0.0));
+    SVEC3 dt0_dM = -sign()*invqval*inve*invc*dphi(time)*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) -
+      (sign()/omval)*(SVEC3(-fy,fx,0) - dphi0_dM);
+    SVEC3 dz0_dM = locmom.Z()*inve*inve*inve*CLHEP::c_light*dt*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) + 
+      locmom.Z()*inve*CLHEP::c_light*dt0_dM -
+      inve*CLHEP::c_light*dt*SVEC3(0.0,0.0,1.0);
+
     // euclidean space is column, parameter space is row
-    double phi00 = phi0();
-    double cDip = cosDip();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double rho = 1.0/omega();
-    double sphi0 = sin(phi00);
-    double cphi0 = cos(phi00);
-    double ang = phi00 + l * omega();
-    double cang = cos(ang);
-    double sang = sin(ang);
-    double x = (sang - sphi0) / omega() - d0() * sphi0;
-    double y = -(cang - cphi0) / omega() + d0() * cphi0;
-    double px = Q()/omega()*cang;
-    double py = Q()/omega()*sang;
-    double phip = atan2(py,px);
-    double cx = x-rho*sin(phip);
-    double cy = y+rho*cos(phip);
-
-    double omval = omega();
-    double tanval = tanDip();
-
-    // SVEC3 dz0_dM(0,0,0);
-    SVEC3 dt0_dM (CLHEP::c_light * beta() * cDip * Q() * Q() * sang,
-                  -CLHEP::c_light * beta() * cDip * Q() * Q() * cang,
-                  0);
-    SVEC3 domega_dM (-omval*omval*cang, -omval*omval*sang, 0);
-    SVEC3 dtanDip_dM (-omval*cang*tanval, -omval*sang*tanval, omval);
-    SVEC3 dphi0_dM (cx/(cx*cx+cy*cy), cy/(cx*cx+cy*cy), 0);
-
-    dphi0_dM /= Q();
-    domega_dM /= Q();
-    dtanDip_dM /= Q();
-
-    if( (cy*cphi0-cx*sphi0)*rho < 0.0 ){
-    // wrong angular momentum: fix
-      phi00 = phi00+CLHEP::pi;
-      sphi0 = -sphi0;
-      cphi0 = -cphi0;
-    }
-
-    double drho_dPx = omval*px/(Q()*Q());
-    double drho_dPy = omval*py/(Q()*Q());
-
-    SVEC3 dd0_dM(1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[0]) - drho_dPx,
-                 1./sphi0 * (cx*cphi0/sphi0 * dphi0_dM[1] + 1./Q()) - drho_dPy,
-                 0);
-    if(fabs(sphi0)<=0.5)
-      SVEC3 dd0_dM(1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[0] + 1./Q()) - drho_dPx,
-                   1./cphi0 * (cy*sphi0/cphi0 * dphi0_dM[1]) - drho_dPy,
-                   0);
-
-    // SVEC3 dz0_dM(- dtanDip_dM[0]*(phip-phi00)/omval
-    //              + tanDip()*domega_dM[0]*(phip-phi00)/(omval*omval)
-    //              - tanDip()*(-omval/Q()*sang-dphi0_dM[0])/omval,
-    //              - dtanDip_dM[1]*(phip-phi00)/omval
-    //              + tanDip()*domega_dM[1]*(phip-phi00)/(omval*omval)
-    //              - tanDip()*(omval/Q()*cang-dphi0_dM[1])/omval,
-    //              dtanDip_dM[2]*(phip-phi00)/omval);
-
-    SVEC3 dz0_dM(0,0,0);
-
     DPDV dPdM;
     dPdM.Place_in_row(dd0_dM,d0_,0);
     dPdM.Place_in_row(dphi0_dM,phi0_,0);
     dPdM.Place_in_row(domega_dM,omega_,0);
     dPdM.Place_in_row(dtanDip_dM,tanDip_,0);
-    dPdM.Place_in_row(dz0_dM,z0_,0); // TODO
-    dPdM.Place_in_row(dt0_dM,t0_,0); // TODO
+    dPdM.Place_in_row(dz0_dM,z0_,0);
+    dPdM.Place_in_row(dt0_dM,t0_,0);
     return dPdM;
   }
 
@@ -263,22 +244,23 @@ namespace KinKal {
   }
 
   DVDP CentralHelix::dMdPar(double time) const {
-    double phi00 = phi0();
     double cDip = cosDip();
+//    double sDip = tanDip()*cDip;
     double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double omval = omega();
-    double factor = Q()/omval;
-    double ang = phi00 + l * omval;
+    double factor = Q()/omega();
+    double dp = dphi(time);
+    double ang = phi0()+dp;
     double cang = cos(ang);
     double sang = sin(ang);
+    double bta = beta();
+    auto lmom = localMomentum(time);
+    SVEC3 momv(lmom.X(),lmom.Y(),lmom.Z());
+    SVEC3 momperpv(-lmom.Y(), lmom.X(),0.0);
+
     SVEC3 dM_dd0 (0,0,0);
     SVEC3 dM_dphi0 (-factor*sang, factor*cang, 0);
-    SVEC3 dM_domega (-factor/omval*(l*omval*sang+cang),
-                     factor/omval*(l*omval*cang-sang),
-                     -factor/omval);
-    SVEC3 dM_dtanDip (Q() * l * tanDip() * sang,
-                      -Q() * l * tanDip() * cang,
-                      factor);
+    SVEC3 dM_domega = (1.0/omega())*(-momv + bta*bta*dp*momperpv);
+    SVEC3 dM_dtanDip = (Q()/omega())*(SVEC3(0.0,0.0,1.0)- dp*bta*bta*cDip*cDip*tanDip()*SVEC3(-sang,cang,0.0)); 
     SVEC3 dM_dz0 (0,0,0);
     SVEC3 dM_dt0 (l/(time-t0()) * Q() * sang,
                   -l/(time-t0()) * Q() * cang,
@@ -297,48 +279,47 @@ namespace KinKal {
   }
 
   DPDV CentralHelix::dPardXLoc(double time) const {
-    // euclidean space is column, parameter space is row
-    SVEC3 dd0_dX (0,0,0);
-    SVEC3 dz0_dX (0,0,0);
-    SVEC3 dphi0_dX (0,0,0);
-    SVEC3 dt0_dX (0,0,0);
+    double invrc = 1.0/sqrt(center().perp2());
+    double cphi0 = cos(phi0());
+    double sphi0 = sin(phi0());
+
     SVEC3 domega_dX (0,0,0);
     SVEC3 dtanDip_dX (0,0,0);
+    SVEC3 dphi0_dX = (sign()*invrc)*SVEC3(-cphi0,-sphi0,0.0);
+    // euclidean space is column, parameter space is row
+    SVEC3 dd0_dX = (sign()*invrc)*SVEC3(center().X(), center().Y(), 0.0);
+    SVEC3 dt0_dX = (sign()/Omega())*dphi0_dX;
+    SVEC3 dz0_dX = (sign()*tanDip()/omega())*dphi0_dX + SVEC3(0.0,0.0,1.0);
     DPDV dPdX;
-    dPdX.Place_in_row(dd0_dX,d0_,0); // TODO
-    dPdX.Place_in_row(dphi0_dX,phi0_,0); // TODO
-    dPdX.Place_in_row(domega_dX,omega_,0); // TODO
-    dPdX.Place_in_row(dz0_dX,z0_,0); // TODO
-    dPdX.Place_in_row(dtanDip_dX,tanDip_,0); // TODO
-    dPdX.Place_in_row(dt0_dX,t0_,0); // TODO
+    dPdX.Place_in_row(dd0_dX,d0_,0);
+    dPdX.Place_in_row(dphi0_dX,phi0_,0);
+    dPdX.Place_in_row(domega_dX,omega_,0);
+    dPdX.Place_in_row(dz0_dX,z0_,0);
+    dPdX.Place_in_row(dtanDip_dX,tanDip_,0);
+    dPdX.Place_in_row(dt0_dX,t0_,0);
     return dPdX;
   }
 
   DVDP CentralHelix::dXdPar(double time) const {
     // first find the derivatives wrt local cartesian coordinates
     // euclidean space is row, parameter space is column
-    double phi00 = phi0();
-    double omval = omega();
-    double d0val = d0();
+    double dp = dphi(time);
+    double phit = dp+phi0();
     double cDip = cosDip();
-    double sDip = sinDip();
+    double sphi = sin(phit);
+    double cphi = cos(phit);
+    double sphi0 = sin(phi0());
+    double cphi0 = cos(phi0());
+    double bta = beta();
+    double invom = 1.0/omega();
     double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double sang = sin(phi00+omval*l);
-    double cang = cos(phi00+omval*l);
-    SVEC3 dX_dd0 (-sin(phi00), cos(phi00), 0);
-    SVEC3 dX_dphi0 (1./omval*cang - (1./omval+d0val)*cang,
-                    1./omval*sang - (1./omval+d0val)*sang,
-                    0);
-    SVEC3 dX_domega ((l*omval*cang - sang + sin(phi00))/omval/omval,
-                     (l*omval*sang + cang - cos(phi00))/omval/omval,
-                     0);
+
+    SVEC3 dX_dd0 (-sphi0, cphi0, 0);
+    SVEC3 dX_dphi0 = invom*SVEC3( cphi - cphi0, sphi - sphi0, 0.0) - d0()*SVEC3( cphi0, sphi0, 0.0);
+    SVEC3 dX_domega = invom*invom*(-SVEC3(sphi-sphi0,-cphi+cphi0,dp*tanDip()) + dp*bta*bta*SVEC3(cphi,sphi,tanDip()));
     SVEC3 dX_dz0 (0,0,1);
-    SVEC3 dX_dtanDip (-l*sDip*cDip*cang,
-                      -l*sDip*cDip*sang,
-                      l*cDip*cDip);
-    SVEC3 dX_dt0 (-l/(time-t0())*cang,
-                  -l/(time-t0())*sang,
-                  -l/(time-t0())*tanDip());
+    SVEC3 dX_dtanDip = dp*invom*( -bta*bta*cDip*cDip*tanDip()*SVEC3(cphi,sphi,tanDip())  + SVEC3(0.0,0.0,1.0));
+    SVEC3 dX_dt0 = (-l/(time-t0()))*SVEC3(cphi, sphi, tanDip());
     DVDP dXdP;
     dXdP.Place_in_col(dX_dd0,0,d0_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
@@ -368,12 +349,43 @@ namespace KinKal {
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
-  std::ostream& operator <<(std::ostream& ost, CentralHelix const& hhel) {
+  PSMAT CentralHelix::dPardState(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    DPDV dPdX = dPardX(time);
+    DPDV dPdM = dPardM(time);
+    PSMAT dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
+  }
+
+  PSMAT CentralHelix::dStatedPar(double time) const {
+  // aggregate state from separate X and M derivatives; parameter space is column
+    DVDP dXdP = dXdPar(time);
+    DVDP dMdP = dMdPar(time);
+    PSMAT dsdp;
+    dsdp.Place_at(dXdP,0,0);
+    dsdp.Place_at(dMdP,3,0);
+    return dsdp;
+  }
+
+  ParticleStateEstimate CentralHelix::stateEstimate(double time) const {
+  // express the parameter space covariance in global state space
+    PSMAT dsdp = dStatedPar(time);
+    return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
+  }
+
+  void CentralHelix::print(std::ostream& ost, int detail) const { 
     ost << " CentralHelix parameters: ";
     for(size_t ipar=0;ipar < CentralHelix::npars_;ipar++){
-      ost << CentralHelix::paramName(static_cast<CentralHelix::ParamIndex>(ipar) ) << " : " << hhel.paramVal(ipar);
+      ost << CentralHelix::paramName(static_cast<CentralHelix::ParamIndex>(ipar) ) << " : " << paramVal(ipar);
       if(ipar < CentralHelix::npars_-1) ost << " , ";
     }
+    ost << std::endl;
+  }
+
+  std::ostream& operator <<(std::ostream& ost, CentralHelix const& hhel) {
+    hhel.print(ost,0);
     return ost;
   }
 

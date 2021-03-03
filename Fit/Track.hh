@@ -113,6 +113,8 @@ namespace KinKal {
 // can contain associated materials.
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& thits, EXINGCOL& dxings) : 
     config_(cfg), bfield_(bfield), thits_(thits) {
+      // configuation check
+      if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule"); 
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);
       // create the effects.  First, loop over the hits

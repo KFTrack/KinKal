@@ -63,13 +63,14 @@ namespace KinKal {
       bool inRange(double time) const { return trange_.inRange(time); }
       VEC3 momentum3(double time) const;
       MOM4 momentum4(double time) const;
-      double momentum(double time) const  { return  fabs(mass_*betaGamma()); }
-      double momentumVar(double time) const;
-      double energy(double time) const  { return  fabs(mass_*ebar()/mbar_); }
+      double momentum(double time=0) const  { return  fabs(mass_*betaGamma()); }
+      double momentumVar(double time=0) const;
+      double energy(double time=0) const  { return  fabs(mass_*ebar()/mbar_); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
+      double paramVar(size_t index) const { return pars_.covariance()(index,index); }
       Parameters const& params() const { return pars_; }
       Parameters& params() { return pars_; }
       // named parameter accessors
