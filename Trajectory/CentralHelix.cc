@@ -16,7 +16,7 @@ namespace KinKal {
     "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
   const vector<string> CentralHelix::paramNames_ = {
-  "d_{0}","#phi_{0}","#omega","z_{0}","tan#lambda","t_{0}"};
+  "D0","Phi0","Omega","Z0","TanDip","Time0"};
   const vector<string> CentralHelix::paramUnits_ = {
       "mm", "rad", "rad", "mm", "", "ns"};
   const string CentralHelix::trajName_("CentralHelix");
@@ -212,7 +212,6 @@ namespace KinKal {
     double sphi0 = sin(phi0());
     double invrc = 1.0/sqrt(lcent_.perp2());
     double omval = Omega();
-//    double deltaphi = dphi(time);
     double inve = 1.0/energy();
     double dt = time-t0();
     double invc = 1.0/CLHEP::c_light;
@@ -234,8 +233,8 @@ namespace KinKal {
     dPdM.Place_in_row(dphi0_dM,phi0_,0);
     dPdM.Place_in_row(domega_dM,omega_,0);
     dPdM.Place_in_row(dtanDip_dM,tanDip_,0);
-    dPdM.Place_in_row(dz0_dM,z0_,0); // TODO
-    dPdM.Place_in_row(dt0_dM,t0_,0); // TODO
+    dPdM.Place_in_row(dz0_dM,z0_,0);
+    dPdM.Place_in_row(dt0_dM,t0_,0);
     return dPdM;
   }
 
@@ -249,20 +248,22 @@ namespace KinKal {
   DVDP CentralHelix::dMdPar(double time) const {
     double phi00 = phi0();
     double cDip = cosDip();
+//    double sDip = tanDip()*cDip;
     double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double omval = omega();
-    double factor = Q()/omval;
-    double ang = phi00 + l * omval;
+    double factor = Q()/omega();
+    double ang = phi00 + l * omega();
     double cang = cos(ang);
     double sang = sin(ang);
+    double dp = dphi(time);
+    double bta = beta();
+    auto lmom = localMomentum(time);
+    SVEC3 momv(lmom.X(),lmom.Y(),lmom.Z());
+    SVEC3 momperpv(-lmom.Y(), lmom.X(),0.0);
+
     SVEC3 dM_dd0 (0,0,0);
     SVEC3 dM_dphi0 (-factor*sang, factor*cang, 0);
-    SVEC3 dM_domega (-factor/omval*(l*omval*sang+cang),
-                     factor/omval*(l*omval*cang-sang),
-                     -factor/omval);
-    SVEC3 dM_dtanDip (Q() * l * tanDip() * sang,
-                      -Q() * l * tanDip() * cang,
-                      factor);
+    SVEC3 dM_domega = (1.0/omega())*(-momv + bta*bta*dp*momperpv);
+    SVEC3 dM_dtanDip = lmom.R()*cDip*SVEC3(0.0,0.0,1.0);
     SVEC3 dM_dz0 (0,0,0);
     SVEC3 dM_dt0 (l/(time-t0()) * Q() * sang,
                   -l/(time-t0()) * Q() * cang,
@@ -306,27 +307,34 @@ namespace KinKal {
     // first find the derivatives wrt local cartesian coordinates
     // euclidean space is row, parameter space is column
     double phi00 = phi0();
+    double phit = phi(time);
     double omval = omega();
-    double d0val = d0();
     double cDip = cosDip();
-    double sDip = sinDip();
+    double sang = sin(phit);
+    double cang = cos(phit);
     double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
-    double sang = sin(phi00+omval*l);
-    double cang = cos(phi00+omval*l);
+
     SVEC3 dX_dd0 (-sin(phi00), cos(phi00), 0);
-    SVEC3 dX_dphi0 (1./omval*cang - (1./omval+d0val)*cang,
-                    1./omval*sang - (1./omval+d0val)*sang,
-                    0);
+
+
+//    SVEC3 dX_dphi0 (1./omval*cang - (1./omval+d0val)*cang,
+//                    1./omval*sang - (1./omval+d0val)*sang,
+//                    0);
+    SVEC3 dX_dphi0 = (1.0/omega())*SVEC3( cos(phit) - cos(phi0()), sin(phit) - sin(phi0()), 0.0) -
+      d0()*SVEC3( cos(phi0()), sin(phi0()), 0.0);
+
     SVEC3 dX_domega ((l*omval*cang - sang + sin(phi00))/omval/omval,
                      (l*omval*sang + cang - cos(phi00))/omval/omval,
                      0);
     SVEC3 dX_dz0 (0,0,1);
-    SVEC3 dX_dtanDip (-l*sDip*cDip*cang,
-                      -l*sDip*cDip*sang,
-                      l*cDip*cDip);
-    SVEC3 dX_dt0 (-l/(time-t0())*cang,
-                  -l/(time-t0())*sang,
-                  -l/(time-t0())*tanDip());
+
+//    SVEC3 dX_dtanDip (-l*sDip*cDip*cang,
+//                      -l*sDip*cDip*sang,
+//                      l*cDip*cDip - phi0()/omega());
+//
+    SVEC3 dX_dtanDip = (dphi(time)/omega())*SVEC3(0.0,0.0,1.0);
+
+    SVEC3 dX_dt0 = (-l/(time-t0()))*SVEC3(cang, sang, tanDip());
     DVDP dXdP;
     dXdP.Place_in_col(dX_dd0,0,d0_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
