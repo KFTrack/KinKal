@@ -342,10 +342,13 @@ int test(int argc, char **argv) {
       DVEC dp = jvec*dXdP;
       DVEC dm = jvec*dMdP;
       dparcan[ipar]->cd(idir+1);
-      if(fabs(dp[ipar])>1e-4){
+      // exclude quadratic terms
+      double pdiff = pospgraphs[ipar][idir]->GetPointX(ndel-1)-pospgraphs[ipar][idir]->GetPointX(0);
+      double pmid = pospgraphs[ipar][idir]->GetPointX(ndel/2-1)-pospgraphs[ipar][idir]->GetPointX(0);
+      if(fabs(dp[ipar])>1e-4 && fabs(pdiff)>fabs(pmid)){
 	pline->SetParameters(0.0,1.0);
 	TFitResultPtr pfitr = pospgraphs[ipar][idir]->Fit(pline,"SQ","AC*");
-	if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
+	if( fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
 	  cout << "dXdP for parameter " 
 	    << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	    << " in direction " << MomBasis::directionName(tdir)

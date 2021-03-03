@@ -100,10 +100,12 @@ namespace KinKal {
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
-      double Omega() const { return omega()*vt(); } // true angular velocity
+      double Omega() const { return Q()*CLHEP::c_light/energy(); } // true angular velocity
       double dphi(double t) const { return Omega()*(t - t0()); } // rotation WRT 0 at a given time
       double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
-      double ztime(double zpos) const { return t0() + zpos / (vt()*tanDip()); } // time the particle reaches given z value
+      double ztime(double zpos) const { return t0() + zpos*omega()/(Omega()*tanDip()); } // time the particle reaches given z value
+      double rc() const { return -1.0/omega() - d0(); }
+      VEC3 center() const { return VEC3(rc()*sin(phi0()), -rc()*cos(phi0()), 0.0); } // circle center (2d)
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       DPDV dPardX(double time) const; 
@@ -126,8 +128,6 @@ namespace KinKal {
       }
       //
     private :
-      double vt() const { return vt_; }
-      VEC3 localCenter() const { return lcent_; }
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       VEC3 localMomentum(double time) const;
       VEC3 localPosition(double time) const;
@@ -144,10 +144,7 @@ namespace KinKal {
       const static std::vector<std::string> paramNames_;
       const static std::vector<std::string> paramUnits_;
       const static std::string trajName_;
-      // caches, to speed up some calculations
-      double vt_; // transverse velocity
-      VEC3 lcent_; // position of center
-      double nwind_;
+      // DO NOT CACHE ANYTHING that depends on parameters.  it will break the parameter-based constructors
       // non-const accessors
       double &param(size_t index) { return pars_.parameters()[index]; }
   };
