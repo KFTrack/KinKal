@@ -48,30 +48,31 @@ namespace KinKal {
     // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
-    double amsign = copysign(1.0,charge_*bnom_.Z());
-    param(omega_) = -amsign/radius;
+    double amsign = sign();
+    param(omega_) = amsign/radius;
     param(tanDip_) = mom.Z()/pt; 
-// vector pointing from the center to the measurement point; this is perp to the transverse momentum
+// vector pointing to the circle center from the measurement point; this is perp to the transverse momentum
     double phimom = atan2(mom.Y(),mom.X());
     double phirm = phimom + amsign*M_PI_2;
     auto relpos = radius*VEC3(cos(phirm),sin(phirm),0.0);
 // center of the circle
-    auto lcent = pos.Vect()  - relpos;
+    auto lcent = pos.Vect() + relpos;
     double rcent = sqrt(lcent.perp2());
     // central helix undefined for small center radius
     if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
     double phicent = atan2(lcent.Y(),lcent.X());
-    param(phi0_) = phicent + amsign*M_PI_2;
-    param(d0_) = -amsign*(rcent-radius);
+    param(phi0_) = phicent - amsign*M_PI_2;
+    param(d0_) = amsign*(rcent-radius);
     // preliminary z0: this doesn't have winding correction yet
-    double z0 = pos.Z() + amsign*tanDip()*(phimom-phi0())/omega();
+    double dphi = phimom-phi0();
+    double z0 = pos.Z() - tanDip()*dphi/omega();
     // Z change for 1 revolution; sign is irrelevant
     double deltaz = 2*M_PI*tanDip()/omega();
     // compute the winding; it should minimize |z0|
     double nwind = round(z0/deltaz);
     param(z0_) = z0 - nwind*deltaz;
     // t0, also correcting for winding
-    param(t0_) = pos.T() +amsign*(phimom-phi0() + 2*M_PI*nwind)/Omega();
+    param(t0_) = pos.T() -(dphi + 2*M_PI*nwind)/Omega();
     // test
     auto testpos = position3(pos0.T());
     auto testmom = momentum3(pos0.T());
@@ -219,8 +220,8 @@ namespace KinKal {
     SVEC3 dphi0_dM = sign()*invrc*invqval*SVEC3(-sphi0,cphi0,0.0);
     SVEC3 dd0_dM = invqval*(sign()*invrc*SVEC3( center().Y(), -center().X(), 0.0) -
      (1.0/pt)*SVEC3(locmom.X(),locmom.Y(), 0.0));
-    SVEC3 dt0_dM = -sign()*invqval*inve*invc*dphi(time)*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) -
-      (sign()/omval)*(SVEC3(-fy,fx,0) - dphi0_dM);
+    SVEC3 dt0_dM = -invqval*inve*invc*dphi(time)*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) -
+      (1.0/omval)*(SVEC3(-fy,fx,0) - dphi0_dM);
     SVEC3 dz0_dM = locmom.Z()*inve*inve*inve*CLHEP::c_light*dt*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) + 
       locmom.Z()*inve*CLHEP::c_light*dt0_dM -
       inve*CLHEP::c_light*dt*SVEC3(0.0,0.0,1.0);
@@ -288,8 +289,8 @@ namespace KinKal {
     SVEC3 dphi0_dX = (sign()*invrc)*SVEC3(-cphi0,-sphi0,0.0);
     // euclidean space is column, parameter space is row
     SVEC3 dd0_dX = (sign()*invrc)*SVEC3(center().X(), center().Y(), 0.0);
-    SVEC3 dt0_dX = (sign()/Omega())*dphi0_dX;
-    SVEC3 dz0_dX = (sign()*tanDip()/omega())*dphi0_dX + SVEC3(0.0,0.0,1.0);
+    SVEC3 dt0_dX = (1.0/Omega())*dphi0_dX;
+    SVEC3 dz0_dX = (tanDip()/omega())*dphi0_dX + SVEC3(0.0,0.0,1.0);
     DPDV dPdX;
     dPdX.Place_in_row(dd0_dX,d0_,0);
     dPdX.Place_in_row(dphi0_dX,phi0_,0);
