@@ -350,6 +350,16 @@ namespace KinKal {
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
+  PSMAT CentralHelix::dPardStateLoc(double time) const{
+  // aggregate state from separate X and M derivatives; parameter space is row
+    DPDV dPdX = dPardXLoc(time);
+    DPDV dPdM = dPardMLoc(time);
+    PSMAT dpds;
+    dpds.Place_at(dPdX,0,0);
+    dpds.Place_at(dPdM,0,3);
+    return dpds;
+  }
+
   PSMAT CentralHelix::dPardState(double time) const{
   // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
@@ -374,6 +384,36 @@ namespace KinKal {
   // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
+  }
+
+  DVEC CentralHelix::dPardB(double time) const { 
+    DVEC retval;
+    retval[omega_] = omega();
+    retval[tanDip_] = 0.0;
+    retval[d0_] = 0.0; // TODO
+    retval[phi0_] = 0.0; // TODO
+    retval[z0_] = 0.0; // TODO
+    retval[t0_] = 0.0;
+    return (1.0/bnom_.R())*retval;
+  }
+
+  DVEC CentralHelix::dPardB(double time, VEC3 const& BPrime) const {
+  // rotate new B field difference into local coordinate system
+    VEC3 dB = g2l_(BPrime-bnom_);
+    // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
+    DVEC retval = dPardB(time)*dB.Z();
+    // find the change in (local) position and momentum due to the rotation implied by the B direction change
+    // work in local coordinate system to avoid additional matrix mulitplications
+    auto xvec = localPosition(time);
+    auto mvec = localMomentum(time);
+    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    VEC3 dx = xvec.Cross(BxdB);
+    VEC3 dm = mvec.Cross(BxdB);
+    // convert these to a full state vector change
+    ParticleState dstate(dx,dm,time,mass());
+    // convert the change in (local) state due to rotation to parameter space
+    retval += dPardStateLoc(time)*dstate.state();
+    return retval;
   }
 
   void CentralHelix::print(std::ostream& ost, int detail) const { 

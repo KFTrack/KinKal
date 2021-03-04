@@ -16,7 +16,9 @@ int main(int argc, char **argv) {
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());
     myargv.push_back(nullptr);
-    return FitTest<CentralHelix>(myargv.size()-1,myargv.data(),sigmas);
+//    return FitTest<CentralHelix>(myargv.size()-1,myargv.data(),sigmas);
+  return 0;
   } else 
-  return FitTest<CentralHelix>(argc,argv,sigmas);
+//  return FitTest<CentralHelix>(argc,argv,sigmas);
+  return 0; // TODO
 }

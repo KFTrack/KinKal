@@ -116,14 +116,17 @@ namespace KinKal {
       PSMAT dStatedPar(double time) const;
       // package the above for full (global) state
       // Parameter derivatives given a change in BFieldMap
-      DVEC dPardB(double time) const { return DVEC(); } // TODO
-      DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); } //TODO
+      DVEC dPardB(double time) const;
+      DVEC dPardB(double time, VEC3 const& BPrime) const;
 
       // flip the helix in time and charge; it remains unchanged geometrically
-      void invertCT() // broken! TODO
-      {
+      void invertCT() {
         mbar_ *= -1.0;
         charge_ *= -1;
+	pars_.parameters()[omega_] *= -1.0;
+	pars_.parameters()[tanDip_] *= -1.0;
+	pars_.parameters()[d0_] *= -1.0;
+	pars_.parameters()[phi0_] += M_PI;
 	pars_.parameters()[t0_] *= -1.0;
       }
       //
@@ -132,7 +135,8 @@ namespace KinKal {
       VEC3 localMomentum(double time) const;
       VEC3 localPosition(double time) const;
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
-      DPDV dPardXLoc(double time) const; // TODO
+      DPDV dPardXLoc(double time) const;
+      PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2
