@@ -294,7 +294,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   EXINGCOL dxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings,fitmat);
-  if(nevents < 0)cout << "True initial " << tptraj.front() << endl;
+  if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
 //  cout << "vector of hit points " << thits.size() << endl;
 //  cout << "True " << tptraj << endl;
   double startmom = tptraj.momentum(tptraj.range().begin());
@@ -303,7 +303,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bend = tptraj.front().direction(tptraj.range().end());
   end = tptraj.back().direction(tptraj.range().end());
   double angle = ROOT::Math::VectorUtil::Angle(bend,end);
-  if(nevents < 0)cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
+  if(nevents == 0)cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
   // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
   auto const& midhel = tptraj.nearestPiece(0.0);
   auto seedmom = midhel.momentum4(0.0);
@@ -313,7 +313,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
   if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(seedtraj,sigmas,seedsmear);
-  if(nevents < 0)cout << "Seed Traj " << seedtraj << endl;
+  if(nevents == 0)cout << "Seed Traj " << seedtraj << endl;
   // Create the Track from these hits
   //
   Config config; 
@@ -350,7 +350,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       config.schedule_.push_back(mconfig);
     }
   }
-  if(nevents < 0)cout << config << endl;
+  if(nevents == 0)cout << config << endl;
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -401,11 +401,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
   }
   std::cout << "Passed ParameterState tests" << std::endl;
-  if(nevents <=0 ){
+  if(nevents ==0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
     auto const& fptraj = kktrk.fitTraj();
-    unsigned np = fptraj.range().range()*fptraj.speed(fptraj.range().mid());
+//    unsigned np = fptraj.range().range()*fptraj.speed(fptraj.range().mid());
+    unsigned np=1000;
     TPolyLine3D* fitpl = new TPolyLine3D(np);
     fitpl->SetLineColor(kBlue);
     fitpl->SetLineStyle(kSolid);
@@ -431,6 +432,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     std::vector<TPolyLine3D*> htpls;
     for(auto const& thit : thits) {
       TPolyLine3D* line = new TPolyLine3D(2);
+      TPolyMarker3D* hpos = new TPolyMarker3D(1,21);
+      TPolyMarker3D* tpos = new TPolyMarker3D(1,22);
       VEC3 plow, phigh;
       STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
@@ -439,15 +442,29 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	plow = tline.position3(tline.range().begin());
 	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kRed);
+	auto hitpos = tline.position3(shptr->closestApproach().sensorToca());
+	auto trkpos = fptraj.position3(shptr->closestApproach().particleToca());
+	hpos->SetPoint(1,hitpos.X(),hitpos.Y(),hitpos.Z());
+	hpos->SetMarkerColor(kRed);
+	tpos->SetPoint(1,trkpos.X(),trkpos.Y(),trkpos.Z());
+	tpos->SetMarkerColor(kGreen);
       } else if (lhptr.use_count() > 0){
 	auto const& tline = lhptr->sensorAxis();
 	plow = tline.position3(tline.range().begin());
 	phigh = tline.position3(tline.range().end());
 	line->SetLineColor(kCyan);
+      	auto hitpos = tline.position3(lhptr->closestApproach().sensorToca());
+	auto trkpos = fptraj.position3(lhptr->closestApproach().particleToca());
+	hpos->SetPoint(1,hitpos.X(),hitpos.Y(),hitpos.Z());
+	hpos->SetMarkerColor(kCyan);
+      	tpos->SetPoint(1,trkpos.X(),trkpos.Y(),trkpos.Z());
+	tpos->SetMarkerColor(kGreen);
       }
       line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
       line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
       line->Draw();
+      hpos->Draw();
+      tpos->Draw();
       htpls.push_back(line);
     }
 
