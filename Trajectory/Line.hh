@@ -24,7 +24,7 @@ namespace KinKal {
       double length() const { return length_; }
       VEC3 const& direction() const { return dir_; }
       // TOCA to a point
-      double TOCA(VEC3 point) const;
+      double TOCA(VEC3 const& point) const;
       // geometric accessors
       VEC3 position3(double time) const;
       VEC4 position4(double time) const;

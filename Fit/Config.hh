@@ -53,7 +53,7 @@ namespace KinKal {
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
     MetaIterConfigCol schedule_; 
   };
-  std::ostream& operator <<(std::ostream& os, Config kkconfig );
-  std::ostream& operator <<(std::ostream& os, MetaIterConfig miconfig );
+  std::ostream& operator <<(std::ostream& os, Config const& kkconfig );
+  std::ostream& operator <<(std::ostream& os, MetaIterConfig const& miconfig );
 }
 #endif

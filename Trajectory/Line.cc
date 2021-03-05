@@ -26,7 +26,7 @@ namespace KinKal {
     return dir_*speed_;
   }
 
-  double Line::TOCA(VEC3 point) const {
+  double Line::TOCA(VEC3 const& point) const {
     double s = (point - pos0_).Dot(dir_);
     return s/speed_ - t0_;
   }

@@ -1,7 +1,7 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "KinKal/Tests/FitTest.hh"
 int main(int argc, char **argv) {
-  KinKal::DVEC sigmas(0.5, 0.01, 0.001, 0.5, 0.01, 0.5); // expected parameter sigmas
+  KinKal::DVEC sigmas(0.5, 0.003, 0.00001, 3.0 , 0.004, 0.1); // expected parameter sigmas
   if(argc == 1){
 //    cout << "Testing gradient field, correction 2" << endl;
     std::vector<std::string> arguments;
@@ -17,6 +17,8 @@ int main(int argc, char **argv) {
       myargv.push_back((char*)arg.data());
     myargv.push_back(nullptr);
     return FitTest<CentralHelix>(myargv.size()-1,myargv.data(),sigmas);
+//  return 0;
   } else 
   return FitTest<CentralHelix>(argc,argv,sigmas);
+//  return 0; // TODO
 }
