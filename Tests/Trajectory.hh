@@ -293,7 +293,7 @@ int test(int argc, char **argv) {
   }
   // test particle state back-and-forth
   ParticleStateEstimate pmeas = lhel.stateEstimate(ltime);
-  KTRAJ newhel(pmeas,lhel.charge(),lhel.bnom());
+  KTRAJ newhel(pmeas,lhel.bnom());
   for(size_t ipar=0;ipar < NParams();ipar++){
     if(fabs(lhel.paramVal(ipar)-newhel.paramVal(ipar)) > 1e-9){
       cout << "Parameter check failed par " << ipar << endl;

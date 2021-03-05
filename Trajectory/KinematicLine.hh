@@ -48,9 +48,9 @@ class KinematicLine {
 
     // copy and override parameters
     KinematicLine(Parameters const &pdata, KinematicLine const& other); 
-    KinematicLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
-    KinematicLine(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
     virtual ~KinematicLine() {}
 

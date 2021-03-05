@@ -41,9 +41,9 @@ namespace KinKal {
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange()); // do I really need this?
       // construct from the particle state at a given time, plus mass and charge
-      LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref);
       // create from parameters and kinematics separately
@@ -81,7 +81,7 @@ namespace KinKal {
       double phi0() const { return paramVal(phi0_); }
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
-      ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time)); }
+      ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time),charge()); }
       ParticleStateEstimate stateEstimate(double time) const;
       // simple functions; these can be cached if they cause performance problems
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge

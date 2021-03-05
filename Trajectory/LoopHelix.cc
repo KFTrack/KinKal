@@ -100,12 +100,12 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LoopHelix::LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    LoopHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
+  LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
+    LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range) 
   {}
 
-  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix(pstate.stateVector(),charge,bnom,range) {
+  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
+  LoopHelix(pstate.stateVector(),bnom,range) {
   // derive the parameter space covariance from the global state space covariance
     PSMAT dpds = dPardState(pstate.stateVector().time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
@@ -259,7 +259,7 @@ namespace KinKal {
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
-    ParticleState dstate(dx,dm,time,mass());
+    ParticleState dstate(dx,dm,time,mass(),charge());
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;

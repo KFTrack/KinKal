@@ -45,10 +45,10 @@ namespace KinKal {
       CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot);
       // copy and override parameters
       CentralHelix(Parameters const &pdata, CentralHelix const& other);
-      // construct from the particle state at a given time, plus mass and charge
-      CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      // construct from the particle state.  Requires the BField
+      CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
@@ -86,7 +86,7 @@ namespace KinKal {
       double tanDip() const { return paramVal(tanDip_); }
       double t0() const { return paramVal(t0_); }
       // express fit results as a state vector (global coordinates)
-      ParticleState state(double time) const {  return ParticleState(position4(time),momentum4(time)); }
+      ParticleState state(double time) const {  return ParticleState(position4(time),momentum4(time),charge()); }
       ParticleStateEstimate stateEstimate(double time) const;
 
       // simple functions

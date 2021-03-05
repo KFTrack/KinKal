@@ -456,7 +456,7 @@ int test(int argc, char **argv) {
       VEC3 bf = bnom + basis[idir]*dval;
       auto state = refhel.stateEstimate(ttest);
       // exact traj given the full state
-      KTRAJ newbfhel(state,refhel.charge(),bf);
+      KTRAJ newbfhel(state,bf);
       auto newstate = newbfhel.stateEstimate(ttest);
       for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
 	if(fabs(state.stateVector().state()[ipar] - newstate.stateVector().state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "

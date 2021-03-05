@@ -18,11 +18,11 @@ namespace KinKal {
       static std::string const& stateTitle(size_t index);
 
       // construct from position and momentum vectors
-      ParticleState(VEC3 const& pos, VEC3 const& mom, double time, double mass) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()), time_(time), mass_(mass) {}
-      ParticleState(VEC4 const& pos4, MOM4 const& mom4) : state_(pos4.Vect().X(),pos4.Vect().Y(),pos4.Vect().Z(),mom4.Vect().X(),mom4.Vect().Y(),mom4.Vect().Z()), time_(pos4.E()), mass_(mom4.M()) {}
+      ParticleState(VEC3 const& pos, VEC3 const& mom, double time, double mass, int charge) : state_(pos.X(),pos.Y(),pos.Z(),mom.X(),mom.Y(),mom.Z()), time_(time), mass_(mass), charge_(charge) {}
+      ParticleState(VEC4 const& pos4, MOM4 const& mom4, int charge) : state_(pos4.Vect().X(),pos4.Vect().Y(),pos4.Vect().Z(),mom4.Vect().X(),mom4.Vect().Y(),mom4.Vect().Z()), time_(pos4.E()), mass_(mom4.M()) , charge_(charge){}
       // construct from raw information
-      ParticleState(SVEC6 const& state, double time, double mass) : state_(state), time_(time), mass_(mass) {}
-      ParticleState() : time_(0.0), mass_(0.0) {}
+      ParticleState(SVEC6 const& state, double time, double mass, int charge) : state_(state), time_(time), mass_(mass), charge_(charge) {}
+      ParticleState() : time_(0.0), mass_(0.0), charge_(0) {}
       // direct accessor to the state content in its algebraic form.
       SVEC6 const& state() const { return state_; }
       // explicit component accessors.  Note these return by value.  Unfortunately Root doesn't provide a more elegant conversion operator
@@ -32,11 +32,13 @@ namespace KinKal {
       MOM4 momentum4() const { return MOM4(state_[3],state_[4],state_[5],mass_); }
       double mom() const { return momentum3().R(); }
       double mass() const { return mass_; } 
-      double time() const { return time_; } 
+      double time() const { return time_; }
+      int charge() const { return charge_; }
     private:
       SVEC6 state_; // state vector payload of this particle, with position and momentum information
       double time_; // time particle had this state
       double mass_; // particle mass
+      int charge_; // charge in units of the proton charge
       const static std::vector<std::string> stateTitles_;
       const static std::vector<std::string> stateNames_;
       const static std::vector<std::string> stateUnits_;
@@ -49,7 +51,7 @@ namespace KinKal {
     public:
     // construct from from raw information
       ParticleStateEstimate(ParticleState const& state, DMAT const& scovar) : state_(state), scovar_(scovar) {}
-      ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass) : state_(state, time, mass), scovar_(scovar) {}
+      ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass, int charge) : state_(state, time, mass, charge), scovar_(scovar) {}
       ParticleStateEstimate() {}
       ParticleState const& stateVector() const { return state_; }
       DMAT const& stateCovariance() const { return scovar_; }
