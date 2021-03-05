@@ -313,7 +313,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       hderivgc->cd(ipar+1);
       TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
       hderivg[ipar]->Draw("AC*");
-      if(fabs(pfitr->Parameter(0))> 10*delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
+      if(fabs(pfitr->Parameter(0))> 100*delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
 	cout << "Parameter " 
 	  << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	  << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
