@@ -41,14 +41,16 @@ namespace KinKal {
       // This also requires the nominal BFieldMap, which can be a vector (3d) or a scalar (B along z)
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
+      // construct from explicit parametric and kinematic info
+      CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range);
       // copy payload and adjust for a different BFieldMap and range
       CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot);
       // copy and override parameters
       CentralHelix(Parameters const &pdata, CentralHelix const& other);
       // construct from the particle state.  Requires the BField
-      CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      explicit CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      explicit CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
@@ -58,7 +60,7 @@ namespace KinKal {
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
       double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar_); }
-      double momentumVar(double time=0) const;
+      double momentumVariance(double time=0) const;
       double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar_); }
       // speed in mm/ns
       double speed(double time=0) const  { return CLHEP::c_light * beta(); }

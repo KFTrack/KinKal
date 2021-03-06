@@ -30,10 +30,13 @@ namespace KinKal {
       VEC4 position4() const { return VEC4(state_[0],state_[1],state_[2],time_); }
       VEC3 momentum3() const { return VEC3(state_[3],state_[4],state_[5]); }
       MOM4 momentum4() const { return MOM4(state_[3],state_[4],state_[5],mass_); }
-      double mom() const { return momentum3().R(); }
+      double momentum() const { return momentum3().R(); }
       double mass() const { return mass_; } 
       double time() const { return time_; }
       int charge() const { return charge_; }
+      double energy() const { auto mom = momentum(); return sqrt(mom*mom + mass_*mass_); }
+      double beta() const { auto mom = momentum(); return mom/sqrt(mom*mom + mass_*mass_); }
+      double betaGamma() const { return energy()/mass_; }
     private:
       SVEC6 state_; // state vector payload of this particle, with position and momentum information
       double time_; // time particle had this state
@@ -47,18 +50,16 @@ namespace KinKal {
   // particle state with estimated errors (covariance), used to seed a fit,
   // or to express a fit result as a particle state with errors.  Transforming between ParticleStateEstimate
   // and a kinematic trajectory is lossless.
-  class ParticleStateEstimate  {
+  class ParticleStateEstimate : public ParticleState {
     public:
     // construct from from raw information
-      ParticleStateEstimate(ParticleState const& state, DMAT const& scovar) : state_(state), scovar_(scovar) {}
-      ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass, int charge) : state_(state, time, mass, charge), scovar_(scovar) {}
+      ParticleStateEstimate(ParticleState const& state, DMAT const& scovar) : ParticleState(state), scovar_(scovar) {}
+      ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass, int charge) : ParticleState(state, time, mass, charge), scovar_(scovar) {}
       ParticleStateEstimate() {}
-      ParticleState const& stateVector() const { return state_; }
       DMAT const& stateCovariance() const { return scovar_; }
       // project the variance onto the scalar momentum
-      double momentumVar() const;
+      double momentumVariance() const;
     private:
-      ParticleState state_; // state
       DMAT scovar_; // covariance of state vector
   };
 }

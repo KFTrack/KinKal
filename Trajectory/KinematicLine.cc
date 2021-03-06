@@ -83,9 +83,9 @@ namespace KinKal {
   {}
 
   KinematicLine::KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  KinematicLine(pstate.stateVector(),bnom,range) {
+  KinematicLine((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 

@@ -112,6 +112,12 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), charge_(charge), bnom_(VEC3(0.0,0.0,bnom)){
+    // compute kinematic cache
+    double momToRad = 1.0/BFieldUtils::cbar()*charge_*bnom;
+    mbar_ = -mass_ * momToRad;
+  }
+
   CentralHelix::CentralHelix(Parameters const &pdata, CentralHelix const& other) : CentralHelix(other) {
     pars_ = pdata;
   }
@@ -121,13 +127,13 @@ namespace KinKal {
   {}
 
   CentralHelix::CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  CentralHelix(pstate.stateVector(),bnom,range) {
+  CentralHelix((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  double CentralHelix::momentumVar(double time) const {
+  double CentralHelix::momentumVariance(double time) const {
     DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
     dMomdP *= momentum(time);
     return ROOT::Math::Similarity(dMomdP,params().covariance());

@@ -41,13 +41,13 @@ namespace KinKal {
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange()); // do I really need this?
       // construct from the particle state at a given time, plus mass and charge
-      LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      explicit LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
-      LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      explicit LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref);
       // create from parameters and kinematics separately
-      LoopHelix( Parameters const& pars, TimeRange const& trange, double mass, int charge, VEC3 const& bnom);
+      LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
       VEC4 position4(double time) const;
@@ -64,7 +64,7 @@ namespace KinKal {
       VEC3 momentum3(double time) const;
       MOM4 momentum4(double time) const;
       double momentum(double time=0) const  { return  fabs(mass_*betaGamma()); }
-      double momentumVar(double time=0) const;
+      double momentumVariance(double time=0) const;
       double energy(double time=0) const  { return  fabs(mass_*ebar()/mbar_); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass 

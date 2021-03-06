@@ -90,7 +90,7 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  LoopHelix::LoopHelix( Parameters const& pars, TimeRange const& trange, double mass, int charge, VEC3 const& bnom) : 
+  LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
   trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
     double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
     // set reduced mass
@@ -105,13 +105,13 @@ namespace KinKal {
   {}
 
   LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix(pstate.stateVector(),bnom,range) {
+  LoopHelix((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  double LoopHelix::momentumVar(double time) const {
+  double LoopHelix::momentumVariance(double time) const {
     DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());

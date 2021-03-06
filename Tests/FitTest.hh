@@ -380,8 +380,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // test parameterstate
   auto const& traj = kktrk.fitTraj().front();
   auto pstate = traj.stateEstimate(traj.t0());
-  double momvar1 = traj.momentumVar(traj.t0());
-  double momvar2 = pstate.momentumVar();
+  double momvar1 = traj.momentumVariance(traj.t0());
+  double momvar2 = pstate.momentumVariance();
   if(fabs(momvar1-momvar2)>1e-10){
     std::cout << "Momentum variance error " << momvar1 << " " << momvar2 << std::endl;
     return -3;
@@ -827,9 +827,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	ffmom_ = fptraj.momentum(ftlow);
 	mfmom_ = fptraj.momentum(ftmid);
 	bfmom_ = fptraj.momentum(fthigh);
-	ffmomerr_ = sqrt(fptraj.momentumVar(ftlow));
-	mfmomerr_ = sqrt(fptraj.momentumVar(ftmid));
-	bfmomerr_ = sqrt(fptraj.momentumVar(fthigh));
+	ffmomerr_ = sqrt(fptraj.momentumVariance(ftlow));
+	mfmomerr_ = sqrt(fptraj.momentumVariance(ftmid));
+	bfmomerr_ = sqrt(fptraj.momentumVariance(fthigh));
 	fft_ = fptraj.range().begin();
 	mft_ = fptraj.range().mid();
 	bft_ = fptraj.range().end();
