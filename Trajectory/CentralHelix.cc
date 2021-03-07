@@ -253,7 +253,6 @@ namespace KinKal {
   DVDP CentralHelix::dMdPar(double time) const {
     double cDip = cosDip();
 //    double sDip = tanDip()*cDip;
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
     double factor = Q()/omega();
     double dp = dphi(time);
     double ang = phi0()+dp;
@@ -269,9 +268,7 @@ namespace KinKal {
     SVEC3 dM_domega = (1.0/omega())*(-momv + bta*bta*dp*momperpv);
     SVEC3 dM_dtanDip = (Q()/omega())*(SVEC3(0.0,0.0,1.0)- dp*bta*bta*cDip*cDip*tanDip()*SVEC3(-sang,cang,0.0)); 
     SVEC3 dM_dz0 (0,0,0);
-    SVEC3 dM_dt0 (l/(time-t0()) * Q() * sang,
-                  -l/(time-t0()) * Q() * cang,
-                  0);
+    SVEC3 dM_dt0 = -bta*cDip*omega()*CLHEP::c_light*momperpv;
     DVDP dMdP;
     dMdP.Place_in_col(dM_dd0,0,d0_);
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
@@ -319,14 +316,13 @@ namespace KinKal {
     double cphi0 = cos(phi0());
     double bta = beta();
     double invom = 1.0/omega();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
 
     SVEC3 dX_dd0 (-sphi0, cphi0, 0);
     SVEC3 dX_dphi0 = invom*SVEC3( cphi - cphi0, sphi - sphi0, 0.0) - d0()*SVEC3( cphi0, sphi0, 0.0);
     SVEC3 dX_domega = invom*invom*(-SVEC3(sphi-sphi0,-cphi+cphi0,dp*tanDip()) + dp*bta*bta*SVEC3(cphi,sphi,tanDip()));
     SVEC3 dX_dz0 (0,0,1);
     SVEC3 dX_dtanDip = dp*invom*( -bta*bta*cDip*cDip*tanDip()*SVEC3(cphi,sphi,tanDip())  + SVEC3(0.0,0.0,1.0));
-    SVEC3 dX_dt0 = (-l/(time-t0()))*SVEC3(cphi, sphi, tanDip());
+    SVEC3 dX_dt0 = -CLHEP::c_light*beta()*cDip*SVEC3(cphi, sphi, tanDip());
     DVDP dXdP;
     dXdP.Place_in_col(dX_dd0,0,d0_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
