@@ -380,14 +380,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // test parameterstate
   auto const& traj = kktrk.fitTraj().front();
   auto pstate = traj.stateEstimate(traj.t0());
-  double momvar1 = traj.momentumVar(traj.t0());
-  double momvar2 = pstate.momentumVar();
+  double momvar1 = traj.momentumVariance(traj.t0());
+  double momvar2 = pstate.momentumVariance();
   if(fabs(momvar1-momvar2)>1e-10){
     std::cout << "Momentum variance error " << momvar1 << " " << momvar2 << std::endl;
     return -3;
   }
   // full reversibility
-  KTRAJ testtraj(pstate,traj.charge(),traj.bnom(),traj.range());
+  KTRAJ testtraj(pstate,traj.bnom(),traj.range());
   for(size_t ipar=0; ipar < NParams(); ipar++){
     if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
       std::cout << "Parameter error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
@@ -772,9 +772,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	dTraj(tptraj,fptraj,ttlow,ftlow);
 	dTraj(tptraj,fptraj,ttmid,ftmid);
 	dTraj(tptraj,fptraj,tthigh,fthigh);
-	KTRAJ fftraj(fptraj.stateEstimate(ftlow),fptraj.charge(),tptraj.bnom(ttlow),fptraj.nearestPiece(ftlow).range());
-	KTRAJ mftraj(fptraj.stateEstimate(ftmid),fptraj.charge(),tptraj.bnom(ttmid),fptraj.nearestPiece(ftmid).range());
-	KTRAJ bftraj(fptraj.stateEstimate(fthigh),fptraj.charge(),tptraj.bnom(tthigh),fptraj.nearestPiece(fthigh).range());
+	KTRAJ fftraj(fptraj.stateEstimate(ftlow),tptraj.bnom(ttlow),fptraj.nearestPiece(ftlow).range());
+	KTRAJ mftraj(fptraj.stateEstimate(ftmid),tptraj.bnom(ttmid),fptraj.nearestPiece(ftmid).range());
+	KTRAJ bftraj(fptraj.stateEstimate(fthigh),tptraj.bnom(tthigh),fptraj.nearestPiece(fthigh).range());
 	// fit parameters
 	auto const& ffpars = fftraj.params();
 	auto const& mfpars = mftraj.params();
@@ -827,9 +827,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	ffmom_ = fptraj.momentum(ftlow);
 	mfmom_ = fptraj.momentum(ftmid);
 	bfmom_ = fptraj.momentum(fthigh);
-	ffmomerr_ = sqrt(fptraj.momentumVar(ftlow));
-	mfmomerr_ = sqrt(fptraj.momentumVar(ftmid));
-	bfmomerr_ = sqrt(fptraj.momentumVar(fthigh));
+	ffmomerr_ = sqrt(fptraj.momentumVariance(ftlow));
+	mfmomerr_ = sqrt(fptraj.momentumVariance(ftmid));
+	bfmomerr_ = sqrt(fptraj.momentumVariance(fthigh));
 	fft_ = fptraj.range().begin();
 	mft_ = fptraj.range().mid();
 	bft_ = fptraj.range().end();

@@ -112,22 +112,28 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), charge_(charge), bnom_(VEC3(0.0,0.0,bnom)){
+    // compute kinematic cache
+    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom);
+    mbar_ = -mass_ * momToRad;
+  }
+
   CentralHelix::CentralHelix(Parameters const &pdata, CentralHelix const& other) : CentralHelix(other) {
     pars_ = pdata;
   }
 
-  CentralHelix::CentralHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    CentralHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range)
+  CentralHelix::CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
+    CentralHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range)
   {}
 
-  CentralHelix::CentralHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  CentralHelix(pstate.stateVector(),charge,bnom,range) {
+  CentralHelix::CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
+  CentralHelix((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  double CentralHelix::momentumVar(double time) const {
+  double CentralHelix::momentumVariance(double time) const {
     DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
     dMomdP *= momentum(time);
     return ROOT::Math::Similarity(dMomdP,params().covariance());
@@ -247,7 +253,6 @@ namespace KinKal {
   DVDP CentralHelix::dMdPar(double time) const {
     double cDip = cosDip();
 //    double sDip = tanDip()*cDip;
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
     double factor = Q()/omega();
     double dp = dphi(time);
     double ang = phi0()+dp;
@@ -263,9 +268,7 @@ namespace KinKal {
     SVEC3 dM_domega = (1.0/omega())*(-momv + bta*bta*dp*momperpv);
     SVEC3 dM_dtanDip = (Q()/omega())*(SVEC3(0.0,0.0,1.0)- dp*bta*bta*cDip*cDip*tanDip()*SVEC3(-sang,cang,0.0)); 
     SVEC3 dM_dz0 (0,0,0);
-    SVEC3 dM_dt0 (l/(time-t0()) * Q() * sang,
-                  -l/(time-t0()) * Q() * cang,
-                  0);
+    SVEC3 dM_dt0 = -bta*cDip*omega()*CLHEP::c_light*momperpv;
     DVDP dMdP;
     dMdP.Place_in_col(dM_dd0,0,d0_);
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
@@ -313,14 +316,13 @@ namespace KinKal {
     double cphi0 = cos(phi0());
     double bta = beta();
     double invom = 1.0/omega();
-    double l = CLHEP::c_light * beta() * (time - t0()) * cDip;
 
     SVEC3 dX_dd0 (-sphi0, cphi0, 0);
     SVEC3 dX_dphi0 = invom*SVEC3( cphi - cphi0, sphi - sphi0, 0.0) - d0()*SVEC3( cphi0, sphi0, 0.0);
     SVEC3 dX_domega = invom*invom*(-SVEC3(sphi-sphi0,-cphi+cphi0,dp*tanDip()) + dp*bta*bta*SVEC3(cphi,sphi,tanDip()));
     SVEC3 dX_dz0 (0,0,1);
     SVEC3 dX_dtanDip = dp*invom*( -bta*bta*cDip*cDip*tanDip()*SVEC3(cphi,sphi,tanDip())  + SVEC3(0.0,0.0,1.0));
-    SVEC3 dX_dt0 = (-l/(time-t0()))*SVEC3(cphi, sphi, tanDip());
+    SVEC3 dX_dt0 = -CLHEP::c_light*beta()*cDip*SVEC3(cphi, sphi, tanDip());
     DVDP dXdP;
     dXdP.Place_in_col(dX_dd0,0,d0_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
@@ -410,7 +412,7 @@ namespace KinKal {
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
-    ParticleState dstate(dx,dm,time,mass());
+    ParticleState dstate(dx,dm,time,mass(),charge());
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;

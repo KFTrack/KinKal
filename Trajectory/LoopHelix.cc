@@ -90,7 +90,7 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  LoopHelix::LoopHelix( Parameters const& pars, TimeRange const& trange, double mass, int charge, VEC3 const& bnom) : 
+  LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
   trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
     double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
     // set reduced mass
@@ -100,18 +100,18 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LoopHelix::LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    LoopHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
+  LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
+    LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range) 
   {}
 
-  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix(pstate.stateVector(),charge,bnom,range) {
+  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
+  LoopHelix((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  double LoopHelix::momentumVar(double time) const {
+  double LoopHelix::momentumVariance(double time) const {
     DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());
@@ -259,7 +259,7 @@ namespace KinKal {
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
-    ParticleState dstate(dx,dm,time,mass());
+    ParticleState dstate(dx,dm,time,mass(),charge());
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;
