@@ -107,6 +107,7 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
       double ztime(double zpos) const { return t0() + zpos*omega()/(Omega()*tanDip()); } // time the particle reaches given z value
       double rc() const { return -1.0/omega() - d0(); }
+      double bendRadius() const { return fabs(1.0/omega()); }
       VEC3 center() const { return VEC3(rc()*sin(phi0()), -rc()*cos(phi0()), 0.0); } // circle center (2d)
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }

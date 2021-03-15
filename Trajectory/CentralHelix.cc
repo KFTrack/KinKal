@@ -81,7 +81,7 @@ namespace KinKal {
     if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
     // check
     auto lmom = localMomentum(pos0.T());
-    VEC3 tcent = center();
+    auto tcent = center();
     if(fabs(lcent.phi()-tcent.phi())>1e-5 || fabs(lcent.perp2()-tcent.perp2()) > 1e-5){
       cout << "center " << lcent << " test center " << tcent << endl;
     }
@@ -388,21 +388,27 @@ namespace KinKal {
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
-  DVEC CentralHelix::dPardB(double time) const { 
+  DVEC CentralHelix::dPardB(double time) const {
+    auto lpos =localPosition(time);
+    auto pdir = localDirection(time,MomBasis::phidir_);
+    auto mperp = VEC3(pdir.Y(),-pdir.X(),0.0); 
+    auto cent = center();
+    double rcval = rc();
+    double rad = bendRadius();
     DVEC retval;
     retval[omega_] = omega();
     retval[tanDip_] = 0.0;
-    retval[d0_] = 0.0; // TODO
-    retval[phi0_] = 0.0; // TODO
-    retval[z0_] = 0.0; // TODO
-    retval[t0_] = 0.0;
+    retval[d0_] = sign()*( rad + cent.Dot(pdir)*rad/rcval); 
+    retval[phi0_] = -sign()*rad*cent.Dot(mperp)/(rcval*rcval);
+    retval[z0_] = lpos.Z()-z0() + tanDip()*retval[phi0_]/omega();
+    retval[t0_] = time-t0() + retval[phi0_]/Omega();
     return (1.0/bnom_.R())*retval;
   }
 
   DVEC CentralHelix::dPardB(double time, VEC3 const& BPrime) const {
-  // rotate new B field difference into local coordinate system
+  // rotate Bfield difference into local coordinate system
     VEC3 dB = g2l_(BPrime-bnom_);
-    // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
+    // find the parameter change due to BField magnitude change using component parallel to the local nominal Bfield (always along z)
     DVEC retval = dPardB(time)*dB.Z();
     // find the change in (local) position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
