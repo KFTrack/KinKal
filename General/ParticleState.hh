@@ -3,6 +3,7 @@
 // Describe the state vector (position and momentum) of a particle.  This (with mass and charge) unambgiuously defines the particle kinematics
 // so this class can provide a full kinematic interface.  The algebraic parameterization can be used as both input and output to a fit.
 #include "KinKal/General/Vectors.hh"
+#include "KinKal/General/PhysicalConstants.h"
 #include "Math/SMatrix.h"
 #include "Math/SVector.h"
 #include <vector>
@@ -37,6 +38,8 @@ namespace KinKal {
       double energy() const { auto mom = momentum(); return sqrt(mom*mom + mass_*mass_); }
       double beta() const { auto mom = momentum(); return mom/sqrt(mom*mom + mass_*mass_); }
       double betaGamma() const { return energy()/mass_; }
+      double speed() const { return CLHEP::c_light*beta(); }
+      VEC3 velocity() const { return speed()*momentum3()/momentum(); }
     private:
       SVEC6 state_; // state vector payload of this particle, with position and momentum information
       double time_; // time particle had this state

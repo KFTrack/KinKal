@@ -62,6 +62,9 @@ namespace KinKal {
     if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
     double phicent = atan2(lcent.Y(),lcent.X());
     param(phi0_) = phicent - amsign*M_PI_2;
+    // force phi0 in the range [-pi,pi];
+    double nrot = round(phi0()/(2*M_PI));
+    param(phi0_) -= nrot*2*M_PI;
     param(d0_) = amsign*(rcent-radius);
     // preliminary z0: this doesn't have winding correction yet
     double dphi = phimom-phi0();
