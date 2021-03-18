@@ -214,13 +214,12 @@ namespace KinKal {
     double dpar = fparams.delta(sparams);
     // update status.  Convergence criteria is iteration-dependent.
     double dchisq = fstat.chisq_.chisqPerNDOF() - fitStatus().chisq_.chisqPerNDOF();
-    if(fabs(dchisq) < miconfig.convdchisq_) {
-      fstat.status_ = Status::converged;
-    } else if ( (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) ||
-      dpar > config().pdchi2_  ) {
+    if (dpar > config().pdchi2_ || (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) ) {
       fstat.status_ = Status::diverged;
     } else if (fstat.chisq_.nDOF() < config_.minndof_){
       fstat.status_ = Status::lowNDOF;
+    } else if(fabs(dchisq) < miconfig.convdchisq_) {
+      fstat.status_ = Status::converged;
     } else
       fstat.status_ = Status::unconverged;
   }
