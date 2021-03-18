@@ -86,12 +86,12 @@ namespace KinKal {
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
+      KTRAJ const& seedTraj() const { return seedtraj_; }
       PKTRAJ const& refTraj() const { return reftraj_; }
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return config_; }
       BFieldMap const& bfield() const { return bfield_; }
-      HITCOL const& hits() const { return thits_; } 
       void print(std::ostream& ost=std::cout,int detail=0) const;
     private:
       // helper functions
@@ -103,22 +103,22 @@ namespace KinKal {
       Config const& config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
       std::vector<Status> history_; // fit status history; records the current iteration
+      KTRAJ seedtraj_; // seed for the fit
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
-      HITCOL thits_; // shared collection of hits
   };
 
 // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
 // can contain associated materials.
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& thits, EXINGCOL& dxings) : 
-    config_(cfg), bfield_(bfield), thits_(thits) {
+    config_(cfg), bfield_(bfield), seedtraj_(seedtraj) {
       // configuation check
       if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule"); 
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);
       // create the effects.  First, loop over the hits
-      for(auto& thit : thits_ ) {
+      for(auto& thit : thits ) {
 	// create the hit effects and insert them in the set
 	effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
       }
@@ -188,7 +188,7 @@ namespace KinKal {
       }
       feff++;
     }
-    // reset the fit information and process backwards (the order does not matter)
+    // reset the fit information and process backwards
     FitState backwardstate;
     auto beff = effects_.rbegin();
     while(beff != effects_.rend()){
@@ -207,13 +207,19 @@ namespace KinKal {
     beff = effects_.rbegin(); beff++;
     fittraj_.front().range().begin() = (*feff)->time() - config_.tbuff_;
     fittraj_.back().range().end() = (*beff)->time() + config_.tbuff_;
+    // compute parameter change WRT seed.  Compare in the middle
+    auto const& ftraj = fittraj_.nearestPiece(fittraj_.range().mid());
+    auto const& fparams = ftraj.params(); 
+    auto const& sparams = seedtraj_.params();
+    double dpar = fparams.delta(sparams);
     // update status.  Convergence criteria is iteration-dependent.
     double dchisq = fstat.chisq_.chisqPerNDOF() - fitStatus().chisq_.chisqPerNDOF();
     if (fstat.chisq_.nDOF() < config_.minndof_){
       fstat.status_ = Status::lowNDOF;
     } else if(fabs(dchisq) < miconfig.convdchisq_) {
       fstat.status_ = Status::converged;
-    } else if (dchisq > miconfig.divdchisq_) {
+    } else if ( (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) ||
+      dpar > config().pdchi2_  ) {
       fstat.status_ = Status::diverged;
     } else
       fstat.status_ = Status::unconverged;
