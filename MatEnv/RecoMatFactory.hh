@@ -36,6 +36,7 @@
 //-------------------------------
 #include "KinKal/MatEnv/MatMtrDictionary.hh"
 #include "KinKal/MatEnv/MatElmDictionary.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 
 
 #include <string>
@@ -54,7 +55,7 @@ namespace MatEnv {
   class RecoMatFactory {
     public:
 
-      static RecoMatFactory* getInstance();
+      static RecoMatFactory* getInstance(FileFinderInterface const& interface );
 
       // Destructor
       virtual ~RecoMatFactory();
@@ -75,7 +76,7 @@ namespace MatEnv {
     private:
 
       // Singleton: constructor private
-      RecoMatFactory(); 
+      RecoMatFactory(FileFinderInterface const& interface); 
 
       // Data members
       MatElmDictionary* _theElmDict;

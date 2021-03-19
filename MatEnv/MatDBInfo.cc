@@ -21,8 +21,8 @@
 #include <map>
 namespace MatEnv {
 
-  MatDBInfo::MatDBInfo() :
-    _genMatFactory(0)
+  MatDBInfo::MatDBInfo(FileFinderInterface const& interface ) :
+    _genMatFactory(RecoMatFactory::getInstance(interface))
   {;}
 
   MatDBInfo::~MatDBInfo() {
@@ -48,9 +48,6 @@ namespace MatEnv {
   const DetMaterial*
     MatDBInfo::findDetMaterial( const std::string& matName ) const
     {
-      if (_genMatFactory == 0)
-	that()->_genMatFactory = RecoMatFactory::getInstance();
-
       DetMaterial* theMat;
       std::map< std::string*, DetMaterial*, PtrLess >::const_iterator pos;
       if ((pos = _matList.find((std::string*)&matName)) != _matList.end()) {

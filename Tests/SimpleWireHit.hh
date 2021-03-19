@@ -17,10 +17,8 @@ namespace KinKal {
   template <class KTRAJ> class SimpleWireHit : public WireHit<KTRAJ> {
     public:
       using WIREHIT = WireHit<KTRAJ>;
-      using EXING = ElementXing<KTRAJ>;
-      using EXINGPTR = std::shared_ptr<EXING>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      SimpleWireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const& whstate,
+      SimpleWireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& whstate,
       double driftspeed, double tvar, double rcell);
 // WireHit and Hit interface implementations
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
@@ -35,9 +33,9 @@ namespace KinKal {
       double rcell_; // straw radius
   };
 
-  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const& whstate,
+  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& whstate,
       double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,wire,dxing,whstate), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
+    WIREHIT(bfield,wire,whstate), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
 
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
