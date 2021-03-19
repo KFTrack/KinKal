@@ -24,6 +24,8 @@ namespace KinKal {
       FitData& fitData() { return fitdata_; }
       // scale the matrix
       void scale(double sfac) { fitdata_.scale(sfac); }
+      // dimensionless (chisquared) difference WRT another parameter set
+      double delta(Parameters const& other) const;
 // addition: only works for other parameters
       Parameters & operator +=(Parameters const& other) {
 	fitdata_ += other.fitdata_;

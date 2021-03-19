@@ -37,7 +37,7 @@ namespace KinKal {
     enum BFCorr {nocorr=0, fixed, variable, both };
     typedef std::vector<MetaIterConfig> MetaIterConfigCol;
     Config(std::vector<MetaIterConfig>const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
     MetaIterConfigCol& schedule() { return schedule_; }
     MetaIterConfigCol const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
@@ -45,6 +45,7 @@ namespace KinKal {
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
     double dwt_; // dweighting of initial seed covariance
+    double pdchi2_; // maximum allowed parameter change (units of chisqred) WRT initial seed
     double tbuff_; // time buffer for final fit (ns)
     double tol_; // tolerance on position change in BFieldMap integration (mm)
     unsigned minndof_; // minimum number of DOFs to continue fit
