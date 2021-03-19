@@ -121,6 +121,7 @@ add_compile_options(
     "-Winit-self" 
     "-Woverloaded-virtual" 
     "-ftrapping-math"
+    "-fdiagnostics-color=always"
 
     # debug flags
     "$<$<CONFIG:DEBUG>:-O0;-g>"

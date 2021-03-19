@@ -9,8 +9,6 @@ namespace KinKal {
 	return "Unconverged ";
       case Status::converged: 
 	return "Converged ";
-      case Status::oscillating: 
-	return "Oscillating ";
       case Status::diverged: 
 	return "Diverged ";
       case Status::lowNDOF: 

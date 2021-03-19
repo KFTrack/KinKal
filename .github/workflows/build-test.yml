@@ -1,10 +1,15 @@
 name: "KinKal"
 
 on: [push, pull_request]
-
+defaults:
+  run:
+    shell: bash -l {0}
+env:
+  CLICOLOR_FORCE: 1
+  
 jobs:
   build-test-kinkal:
-    name: Build+Test (${{ matrix.build-type }}, ${{ matrix.os }}, root ${{ matrix.root-version }}, py${{ matrix.python-version }})
+    name: Tests (${{ matrix.build-type }}, ${{ matrix.os }}, root ${{ matrix.root-version }}, py${{ matrix.python-version }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -13,30 +18,31 @@ jobs:
         python-version: ["3.7"]
         root-version: ["6.22.6"]
         build-type: ["Debug", "Release"]
+
     steps:
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
           mamba-version: "*"
-          channels: conda-forge,defaults
+          channels: defaults,conda-forge
+      
       - name: Conda info
-        shell: bash -l {0}
         run: conda info
         
       - name: Conda/Mamba Install
-        shell: bash -l {0}
-        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake
+        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake clang-tools
         
       - uses: actions/checkout@v2
         
+      - name: CMake (${{ matrix.build-type }})
+        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON
+      
       - name: Build (${{ matrix.build-type }})
-        shell: bash -l {0}
-        
-        run: |
-          cd ..
-          cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }}
-          make -C KinKal_${{ matrix.build-type }} -j4
+        run: cd .. && make -C KinKal_${{ matrix.build-type }} -j8
           
-      - name: Test (${{ matrix.build-type }})
-        shell: bash -l {0}
+      - name: Run tests
         run: cd .. && env CTEST_OUTPUT_ON_FAILURE=1 make -C KinKal_${{ matrix.build-type }} test
+        
+      - name: Run clang-tidy
+        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON -DENABLE_CLANG_TIDY=ON && make -C KinKal_${{ matrix.build-type }}_ClangTidy -j8
+        

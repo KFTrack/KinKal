@@ -33,7 +33,7 @@ namespace KinKal {
       VEC3 momentum3(double time) const  { return PTTRAJ::nearestPiece(time).momentum3(time); }
       MOM4 momentum4(double time) const  { return PTTRAJ::nearestPiece(time).momentum4(time); }
       double momentum(double time) const  { return PTTRAJ::nearestPiece(time).momentum(time); }
-      double momentumVar(double time) const  { return PTTRAJ::nearestPiece(time).momentumVar(time); }
+      double momentumVariance(double time) const  { return PTTRAJ::nearestPiece(time).momentumVariance(time); }
       double energy(double time) const  { return PTTRAJ::nearestPiece(time).energy(time); }
       double mass() const { return PTTRAJ::front().mass(); } // this will throw for empty
       double charge() const { return PTTRAJ::front().charge(); } // this will throw for empty 

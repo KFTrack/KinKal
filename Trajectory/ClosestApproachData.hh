@@ -6,6 +6,7 @@
 #include "KinKal/General/Vectors.hh"
 #include <string>
 #include <vector>
+#include <ostream>
 namespace KinKal {
 
   struct ClosestApproachData {
@@ -37,6 +38,6 @@ namespace KinKal {
     void reset() {status_ = unconverged;}
     const static std::vector<std::string> statusNames_;
   };
-
+  std::ostream& operator << (std::ostream& ost, ClosestApproachData const& cadata);
 }
 #endif

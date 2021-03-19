@@ -9,38 +9,35 @@
 namespace KinKal {
   class Line {
     public:
-      // construct from a spacepoint and propagation velocity (mm/ns)
-      // by default, the line has infinite unforced range
-      Line(VEC4 const& p0, VEC3 const& svel, TimeRange const& range=TimeRange(),bool forcerange=false);
-      Line(VEC3 const& p0, VEC3 const& svel, double tmeas, TimeRange const& range=TimeRange(),bool forcerange=false);
+      // construct from a spacetime point (typically the measurement position and time) and propagation velocity (mm/ns).
+      Line(VEC4 const& p0, VEC3 const& svel, double length);
+      Line(VEC3 const& p0, double t0, VEC3 const& svel, double length);
+      // construct from 2 points plus timing information.  P0 is the measurement (near) end, p1 the far end.  Signals propagate from far to near
+      Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed );
       // accessors
       double t0() const { return t0_; }
-      VEC3 const& pos0() const { return pos0_; }
+      double& t0() { return t0_; } // detector updates need to refine t0
+      VEC3 const& startPosition() const { return pos0_; }
+      VEC3 endPosition() const { return pos0_ + length_*dir_; }
       double speed() const { return speed_; }
-      // are we forcing the range?
-      bool forceRange() const { return forcerange_; }
-      // TOCA for a given point
-      double TOCA(VEC3 point) const;
-
+      double speed(double time) const { return speed_; }
+      double length() const { return length_; }
+      VEC3 const& direction() const { return dir_; }
+      // TOCA to a point
+      double TOCA(VEC3 const& point) const;
       // geometric accessors
       VEC3 position3(double time) const;
       VEC4 position4(double time) const;
       VEC3 velocity(double time) const;
       VEC3 const& direction(double time) const { return dir_; }
-      VEC3 const& dir() const { return dir_; }
-      double speed(double time) const;
       void print(std::ostream& ost, int detail) const;
-      TimeRange const& range() const { return trange_; }
-      TimeRange& range() { return trange_; }
-      void setRange(TimeRange const& trange) { trange_ = trange; }
-      bool inRange(double time) const { return trange_.inRange(time); }
+      TimeRange range() const { return TimeRange(t0_,t0_ +length_/speed_); }
 
     private:
-      TimeRange trange_;
+      VEC3 pos0_, dir_; // position and direction
       double t0_; // intial time (at pos0)
       double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
-      VEC3 pos0_, dir_; // caches
-      bool forcerange_; // if set, strictly enforce the range
+      double length_; // line length
   };
   std::ostream& operator <<(std::ostream& ost, Line const& tline);
 }

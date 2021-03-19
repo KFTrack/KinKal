@@ -24,6 +24,7 @@
 #include "KinKal/MatEnv/RecoMatFactory.hh"
 #include "KinKal/MatEnv/MtrPropObj.hh"
 #include "KinKal/MatEnv/ErrLog.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 #include <string>
 #include <map>
 
@@ -35,7 +36,7 @@ namespace MatEnv {
 
   class MatDBInfo : public MaterialInfo {
     public:
-      MatDBInfo();
+      MatDBInfo(FileFinderInterface const& interface =SimpleFileFinder());
       virtual ~MatDBInfo();
       //  Find the material, given the name
       virtual const DetMaterial* findDetMaterial( const std::string& matName ) const;
@@ -56,9 +57,6 @@ namespace MatEnv {
       MatDBInfo* that() const {
 	return const_cast<MatDBInfo*>(this);
       }
-      // allow MatBuildEnv to mess with me
-      friend class MatBuildEnv;
-      friend class MatBuildCoreEnv;
   };
 
   template <class T> T*
@@ -67,9 +65,6 @@ namespace MatEnv {
     {
       MtrPropObj* genMtrProp;
       T* theMat;
-
-      if (_genMatFactory == 0)
-	that()->_genMatFactory = RecoMatFactory::getInstance();
 
       genMtrProp = _genMatFactory->GetMtrProperties(db_name);
       if(genMtrProp != 0){
@@ -84,8 +79,6 @@ namespace MatEnv {
   template <class T> const T*
     MatDBInfo::findDetMaterial( const std::string& matName ) const
     {
-      if (_genMatFactory == 0)
-	that()->_genMatFactory = RecoMatFactory::getInstance();
 
       T* theMat;
       std::map< std::string*, DetMaterial*, PtrLess >::const_iterator pos;
