@@ -5,7 +5,7 @@
 //  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Detector/ResidualHit.hh"
-#include "KinKal/Detector/ElementXing.hh"
+#include "KinKal/Detector/WireHitStructs.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Detector/BFieldMap.hh"
@@ -13,33 +13,11 @@
 #include <stdexcept>
 namespace KinKal {
 
-// struct describing local drift info
-  struct DriftInfo {
-    DriftInfo() : tdrift_(0.0), tdriftvar_(0.0), vdrift_(0.0) {}
-    double tdrift_; // drift time
-    double tdriftvar_; // variance on drift time
-    double vdrift_; // instantanious drift speed
-  };
-
-  // struct describing wire hit internal state
-  struct WireHitState {
-    enum LRAmbig { left=-1, null=0, right=1};  // ambiguity
-    enum Dimension {none=-1, time=0, distance=1, both=2}; // what gets constrained
-    LRAmbig lrambig_; // left-right ambiguity
-    Dimension dimension_; // physical dimensions being constrained
-    double nullvar_, nulldt_ ; // spatial variance and offset for null ambiguity hits
-    WireHitState(LRAmbig lrambig, Dimension dim,double nvar, double ndt) : lrambig_(lrambig), dimension_(dim), nullvar_(nvar), nulldt_(ndt) {
-      if(dimension_ > time && (lrambig_ != null)) throw std::invalid_argument("Inconsistant wire hit state");
-    }
-    WireHitState() : WireHitState(null,none,1.0,0.0) {}
-  };
 
   template <class KTRAJ> class WireHit : public ResidualHit<KTRAJ> {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using EXING = ElementXing<KTRAJ>;
-      using EXINGPTR = std::shared_ptr<EXING>;
       
      // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
@@ -47,7 +25,6 @@ namespace KinKal {
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
-      EXINGPTR const& detXingPtr() const override { return dxing_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
@@ -55,11 +32,14 @@ namespace KinKal {
       // WireHit specific functions
       ClosestApproachData const& closestApproach() const { return tpdata_; }
       WireHitState const& hitState() const { return wstate_; }
+      WireHitState& hitState() { return wstate_; }
       Residual const& timeResidual() const { return rresid_[WireHitState::time]; }
       Residual const& spaceResidual() const { return rresid_[WireHitState::distance]; }
       Line const& wire() const { return wire_; }
+      BFieldMap const& bfield() const { return bfield_; }
       // constructor
-      WireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const&);
+      WireHit(BFieldMap const& bfield, Line const& wire, WireHitState const&);
+      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const&);
       virtual ~WireHit(){}
     protected:
       void setHitState(WireHitState const& newstate) { wstate_ = newstate; }
@@ -69,15 +49,19 @@ namespace KinKal {
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       Line wire_; // local linear approximation to the wire of this hit.  The range describes the active wire length
       WireHitState wstate_; // current state
-      EXINGPTR dxing_; // material xing
       // caches used in processing
       ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
       double precision_; // precision for PTCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, EXINGPTR const& dxing, WireHitState const& wstate) : 
-    bfield_(bfield), wire_(wire), wstate_(wstate), dxing_(dxing), precision_(1e-6) {}
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& wstate) : 
+    bfield_(bfield), wire_(wire), wstate_(wstate), precision_(1e-6) {}
+
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) : 
+    WireHit(bfield,ptca.sensorTraj(),wstate) {
+      tpdata_ = ptca.tpData();
+    }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA.  Default hint is the wire middle
@@ -109,7 +93,7 @@ namespace KinKal {
       // compute the precise drift
       // translate PTCA to residual
       VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
-      auto pdir = bvec.Cross(wire_.dir()).Unit(); // direction perp to wire and BFieldMap
+      auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
       VEC3 dvec = tpoca.delta().Vect();
       double phi = asin(double(dvec.Unit().Dot(pdir)));
       // must use absolute DOCA to call distanceToTime
@@ -176,6 +160,9 @@ namespace KinKal {
       if(activeRes(WireHitState::distance))
 	ost << " Distance Residual " << rresid_[WireHitState::distance];
       ost << std::endl;
+    }
+    if(detail > 1) {
+      ost << "Propagation speed " << wire_.speed() << " TPOCA " << tpdata_ << std::endl;
     }
   }
 

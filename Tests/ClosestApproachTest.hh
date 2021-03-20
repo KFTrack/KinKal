@@ -51,7 +51,7 @@ int ClosestApproachTest(int argc, char **argv) {
   int icharge(-1);
   double pmass(0.511), oz(0.0), ot(0.0);
   double tmin(-10.0), tmax(10.0);
-  double hlen(500.0); // half-length of the wire
+  double wlen(1000.0); //length of the wire
   double gap(2.0); // distance between Line and KTRAJ 
   double vprop(0.7);
   double eta(0.0);
@@ -131,10 +131,8 @@ int ClosestApproachTest(int argc, char **argv) {
     VEC3 pvel = pdir*pspeed;
     // shift the position
     VEC3 ppos = pos + gap*docadir;
-    // time range;
-    TimeRange prange(time-hlen/pspeed, time+hlen/pspeed);
     // create the Line
-    Line tline(ppos, pvel,time,prange);
+    Line tline(ppos, time, pvel, wlen);
     // create ClosestApproach from these
     CAHint tphint(time,time);
     TCA tp(ktraj,tline,tphint,1e-8);

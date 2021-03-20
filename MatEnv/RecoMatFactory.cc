@@ -38,18 +38,18 @@ namespace MatEnv {
 
   // Constructors 
 
-  RecoMatFactory::RecoMatFactory()
-    : _theElmDict( new MatElmDictionary ),
-    _theMtrDict( new MatMtrDictionary ),
+  RecoMatFactory::RecoMatFactory(FileFinderInterface const& interface)
+    : _theElmDict( new MatElmDictionary(interface )),
+    _theMtrDict( new MatMtrDictionary(interface ) ),
     _theElmPropDict( new std::map< std::string*, ElmPropObj*, PtrLess >),
     _theMtrPropDict( new std::map< std::string*, MtrPropObj*, PtrLess >)
   {
   }
 
   RecoMatFactory*
-    RecoMatFactory::getInstance()
+    RecoMatFactory::getInstance(FileFinderInterface const& interface)
     {
-      static RecoMatFactory theFactory;
+      static RecoMatFactory theFactory(interface);
 
       return &theFactory;
     }

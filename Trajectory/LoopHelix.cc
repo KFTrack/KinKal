@@ -65,11 +65,11 @@ namespace KinKal {
     param(cx_) = pos.X() + mom.Y()*momToRad;
     param(cy_) = pos.Y() - mom.X()*momToRad;
     // test position and momentum function
-    auto testpos = position3(pos0.T());
-    auto testmom = momentum3(pos0.T());
-    auto dp = testpos - pos0.Vect();
-    auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+//    auto testpos = position3(pos0.T());
+//    auto testmom = momentum3(pos0.T());
+//    auto dp = testpos - pos0.Vect();
+//    auto dm = testmom - mom0.Vect();
+//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
@@ -82,26 +82,36 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double trot) : LoopHelix(other) {
-    setBNom(trot,bnom);
+  LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref) : LoopHelix(other) {
+    setBNom(tref,bnom);
   }
 
   LoopHelix::LoopHelix( Parameters const& pdata, LoopHelix const& other) : LoopHelix(other) {
     pars_ = pdata;
   }
 
-  LoopHelix::LoopHelix(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    LoopHelix(pstate.position4(),pstate.momentum4(),charge,bnom,range) 
+  LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
+  trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
+    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
+    // set reduced mass
+    mbar_ = -mass_*momToRad;
+    // set the transforms
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
+  }
+
+  LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
+    LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range) 
   {}
 
-  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix(pstate.stateVector(),charge,bnom,range) {
+  LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
+  LoopHelix((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
-  double LoopHelix::momentumVar(double time) const {
+  double LoopHelix::momentumVariance(double time) const {
     DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
     dMomdP *= mass()/(pbar()*mbar());
     return ROOT::Math::Similarity(dMomdP,params().covariance());
@@ -113,9 +123,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::position3(double time) const {
-    double df = dphi(time);
-    double phival = df + phi0();
-    return l2g_(VEC3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam()));
+    return l2g_(localPosition(time));
   } 
 
   MOM4 LoopHelix::momentum4(double time) const{
@@ -124,7 +132,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::momentum3(double time) const{
-    return direction(time)*betaGamma()*mass();
+    return direction(time)*momentum();
   }
 
   VEC3 LoopHelix::velocity(double time) const{
@@ -147,7 +155,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::localMomentum(double time) const{
-    return betaGamma()*mass()*localDirection(time);
+    return localDirection(time)*momentum();
   }
 
   VEC3 LoopHelix::localPosition(double time) const {
@@ -194,15 +202,13 @@ namespace KinKal {
     double cphi = cos(phival);
     double inve2 = 1.0/ebar2();
     SVEC3 T2(-sphi,cphi,0.0);
-    SVEC3 T3(cphi,sphi,0.0);
-    SVEC3 zdir(0.0,0.0,1.0);
-    SVEC3 mdir = rad()*T3 + lam()*zdir; 
-    SVEC3 dR_dM = T3; 
-    SVEC3 dL_dM = zdir; 
+    SVEC3 dR_dM(cphi,sphi,0.0);
+    SVEC3 dL_dM(0.0,0.0,1.0);
+    SVEC3 mdir = rad()*dR_dM + lam()*dL_dM; 
     SVEC3 dCx_dM (0.0,-1.0,0.0);
     SVEC3 dCy_dM (1.0,0.0,0.0);
-    SVEC3 dphi0_dM = T2/rad() + (dphi/lam())*zdir;
-    SVEC3 dt0_dM = -dt*(inve2*mdir - zdir/lam());
+    SVEC3 dphi0_dM = T2/rad() + (dphi/lam())*dL_dM;
+    SVEC3 dt0_dM = -dt*(inve2*mdir - dL_dM/lam());
     DPDV dPdM;
     dPdM.Place_in_row(dR_dM,rad_,0);
     dPdM.Place_in_row(dL_dM,lam_,0);
@@ -253,7 +259,7 @@ namespace KinKal {
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
-    ParticleState dstate(dx,dm,time,mass());
+    ParticleState dstate(dx,dm,time,mass(),charge());
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;

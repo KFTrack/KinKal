@@ -14,8 +14,6 @@ namespace KinKal {
       using PMASK = std::array<bool,NParams()>; // parameter mask
       using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using EXING = ElementXing<KTRAJ>;
-      using EXINGPTR = std::shared_ptr<EXING>;
 
       // Hit interface overrrides
       Weights weight() const override { return weight_; }
@@ -26,7 +24,6 @@ namespace KinKal {
       // parameter constraints are absolute and can't be updated
       void update(PKTRAJ const& pktraj) override { refparams_ = pktraj.nearestPiece(time()).params(); }
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
-      EXINGPTR const& detXingPtr() const override { return null_; } // no material associated with a parameter constraint
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
@@ -43,7 +40,6 @@ namespace KinKal {
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask off unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
-      EXINGPTR null_; // null detector material crossing 
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :

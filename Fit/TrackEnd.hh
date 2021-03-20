@@ -5,6 +5,7 @@
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/Config.hh"
+#include "KinKal/Detector/BFieldMap.hh"
 #include <stdexcept>
 #include <limits>
 #include <ostream>
@@ -32,9 +33,14 @@ namespace KinKal {
       Weights const& endEffect() const { return endeff_; }
 
       // construct from trajectory and direction.  Deweighting must be tuned to balance stability vs bias
-      TrackEnd(Config const& config, PKTRAJ const& pktraj,TimeDir tdir); 
+      TrackEnd(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj,TimeDir tdir);
+      // disallow
+      TrackEnd() = delete;
+      TrackEnd(TrackEnd const& other) = delete;
+      TrackEnd& operator =(TrackEnd const& other) = delete; 
     private:
       Config const& config_; // cache configuration
+      BFieldMap const& bfield_; // BField; needed to define reference
       TimeDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       VEC3 bnom_; // nominal BField
       double vscale_; // variance scale (from annealing)
@@ -45,8 +51,8 @@ namespace KinKal {
 
   template <class KTRAJ> double TrackEnd<KTRAJ>::tbuff_ = 1.0; // this should come from the config FIXME!
 
-  template <class KTRAJ> TrackEnd<KTRAJ>::TrackEnd(Config const& config, PKTRAJ const& pktraj, TimeDir tdir) :
-    config_(config), tdir_(tdir) , vscale_(1.0),
+  template <class KTRAJ> TrackEnd<KTRAJ>::TrackEnd(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj, TimeDir tdir) :
+    config_(config), bfield_(bfield), tdir_(tdir) , vscale_(1.0),
     endtraj_(tdir == TimeDir::forwards ? pktraj.front() : pktraj.back()){
       update(pktraj);
     }
@@ -74,7 +80,7 @@ namespace KinKal {
     }
     // update BField reference
     double endtime = (tdir_ == TimeDir::forwards) ? ref.range().begin() : ref.range().end();
-    bnom_ = config_.bfield_.fieldVect(ref.position3(endtime));
+    bnom_ = bfield_.fieldVect(ref.position3(endtime));
     KKEFF::updateState();
   }
 

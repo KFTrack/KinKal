@@ -67,7 +67,7 @@ int test(int argc, char **argv) {
   double pmass, ox(0.0), oy(10.0), oz(100.0), ot(0.0);
   double tmin(-5.0), tmax(5.0);
   double ltime(3.0), vprop(0.8), gap(2.0);
-  double hlen(500.0); // half-length of the wire
+  double wlen(1000.0); // length of the wire
   double By(0.0);
   int invert(0);
 
@@ -202,7 +202,7 @@ int test(int argc, char **argv) {
   auto imompos = ilhel.position3(ot);
   mdir =ilhel.direction(ot);
   VEC3 imomvec =mom*mdir;
-  drawMom(imompos,imomvec,kBlack,imref);
+  drawMom(imompos,imomvec,kRed,imref);
   //
   imompos  = lhel.position3(tmin);
   mdir = lhel.direction(tmin);
@@ -248,6 +248,8 @@ int test(int argc, char **argv) {
   leg->AddEntry(hel,title,"L");
   snprintf(title,80,"Ref. Momentum, t=%4.2g ns",ot);
   leg->AddEntry(mref.arrow,title,"L");
+  snprintf(title,80,"Inverted Momentum, t=%4.2g ns",ot);
+  leg->AddEntry(imref.arrow,title,"L");
   snprintf(title,80,"Start Momentum, t=%4.2g ns",ot+tmin);
   leg->AddEntry(mstart.arrow,title,"L");
   snprintf(title,80,"End Momentum, t=%4.2g ns",ot+tmax);
@@ -266,9 +268,7 @@ int test(int argc, char **argv) {
   // shift the position
   VEC3 perpdir(-sin(phi),cos(phi),0.0);
   VEC3 ppos = pos + gap*perpdir;
-// time range;
-  TimeRange prange(ltime-hlen/pspeed, ltime+hlen/pspeed);
-  Line tline(ppos, pvel,ltime,prange);
+  Line tline(ppos, ltime, pvel, wlen);
 // find ClosestApproach
   CAHint hint(ltime,ltime);
   ClosestApproach<KTRAJ,Line> tp(lhel,tline,hint, 1e-6);
@@ -293,7 +293,7 @@ int test(int argc, char **argv) {
   }
   // test particle state back-and-forth
   ParticleStateEstimate pmeas = lhel.stateEstimate(ltime);
-  KTRAJ newhel(pmeas,lhel.charge(),lhel.bnom());
+  KTRAJ newhel(pmeas,lhel.bnom());
   for(size_t ipar=0;ipar < NParams();ipar++){
     if(fabs(lhel.paramVal(ipar)-newhel.paramVal(ipar)) > 1e-9){
       cout << "Parameter check failed par " << ipar << endl;

@@ -39,7 +39,7 @@ namespace MatEnv {
     public:
 
       // Constructor 
-      MatMtrDictionary(FileFinderInterface const& interface =SimpleFileFinder());
+      MatMtrDictionary(FileFinderInterface const& interface);
 
       // Destructor
       virtual ~MatMtrDictionary();

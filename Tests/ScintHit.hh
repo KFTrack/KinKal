@@ -6,7 +6,6 @@
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/ElementXing.hh"
 #include <stdexcept>
 namespace KinKal {
 
@@ -14,8 +13,6 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using EXING = ElementXing<KTRAJ>;
-      using EXINGPTR = std::shared_ptr<EXING>;
 
       // Hit interface overrrides
       unsigned nResid() const override { return 1; } // 1 time residual
@@ -24,7 +21,6 @@ namespace KinKal {
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
-      EXINGPTR const& detXingPtr() const override { return null_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
       ScintHit(Line const& sensorAxis, double tvar, double wvar) : 
@@ -41,7 +37,6 @@ namespace KinKal {
       double tvar_; // variance in the time measurement: assumed independent of propagation distance/time
       double wvar_; // variance in transverse position of the sensor/measurement in mm.  Assumes cylindrical error, could be more general
       bool active_; // active or not
-      EXINGPTR null_; // no detector material xing: should be added
       ClosestApproachData tpdata_; // reference time and distance of closest approach to the axis.
       // caches
       Residual rresid_; // residual WRT most recent reference parameters
@@ -63,7 +58,9 @@ namespace KinKal {
   template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA
     CAHint tphint( saxis_.t0(), saxis_.t0());
-    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
+    // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
+    // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
+//    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
     PTCA tpoca(pktraj,saxis_,tphint,precision_);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();

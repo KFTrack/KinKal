@@ -78,14 +78,14 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  KinematicLine::KinematicLine(ParticleState const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-    KinematicLine(pstate.position4(),pstate.momentum4(), charge,bnom,range) 
+  KinematicLine::KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
+    KinematicLine(pstate.position4(),pstate.momentum4(), pstate.charge(),bnom,range) 
   {}
 
-  KinematicLine::KinematicLine(ParticleStateEstimate const& pstate, int charge, VEC3 const& bnom, TimeRange const& range) :
-  KinematicLine(pstate.stateVector(),charge,bnom,range) {
+  KinematicLine::KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
+  KinematicLine((ParticleState)pstate,bnom,range) {
   // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.stateVector().time());
+    PSMAT dpds = dPardState(pstate.time());
     pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
   }
 
@@ -93,7 +93,7 @@ namespace KinKal {
   }
 
   VEC3 KinematicLine::position3(double time) const {
-    return (pos0() + flightLength(time) * dir());
+    return (pos0() + flightLength(time) * direction());
   }
 
   VEC4 KinematicLine::position4(double time) const {
@@ -111,7 +111,7 @@ namespace KinKal {
   }
 
   ParticleState KinematicLine::state(double time) const {
-    return ParticleState(position4(time),momentum4(time));
+    return ParticleState(position4(time),momentum4(time), charge());
   }
 
   ParticleStateEstimate KinematicLine::stateEstimate(double time) const {
@@ -139,7 +139,7 @@ namespace KinKal {
       return VEC3(-sinPhi0(), cosPhi0(), 0.0);
       break;
     case MomBasis::momdir_: // along momentum
-      return dir();
+      return direction();
       break;
     default:
       throw std::invalid_argument("Invalid direction");

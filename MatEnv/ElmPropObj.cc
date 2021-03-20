@@ -22,7 +22,7 @@
 #include "KinKal/MatEnv/ElmPropObj.hh"
 
 #include <iostream>
-#include <math.h>
+#include <cmath>
 
 //-------------------------------
 // Collaborating Class Headers --
@@ -178,7 +178,7 @@ namespace MatEnv {
       const double logZ3 = log((double)_elmZ)/3.;
 
       double Lrad, Lprad;
-      int iz = (int)(_elmZ+0.5) - 1 ;
+      int iz = (int)round(_elmZ) - 1 ;
       if (iz <= 3) { Lrad = Lrad_light[iz] ;  Lprad = Lprad_light[iz] ; }
       else { Lrad = log(184.15) - logZ3 ; Lprad = log(1194.) - 2*logZ3 ; }
 
