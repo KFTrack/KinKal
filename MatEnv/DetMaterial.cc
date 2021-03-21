@@ -288,9 +288,10 @@ namespace MatEnv {
     	  double energylossmpv = fabs(deltap);
 
     	  //forming the Moyal Mean
-
-	  double mmean = energylossmpv + xi * (0.577 + log(2)); //approximate Euler-gamma constant
-    	  //formula above from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
+    	  
+    	  //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
+	  constexpr double eulergamma = 0.57721566490153286 ; //approximate Euler-Mascheroni (also known as gamma) constant, see https://mathworld.wolfram.com/Euler-MascheroniConstant.html
+	  double mmean = energylossmpv + xi * (eulergamma + log(2)); //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
 	
 	  return -1*mmean;
 	
