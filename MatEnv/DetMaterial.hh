@@ -47,21 +47,19 @@ namespace MatEnv {
 
       double dEdx(double mom,dedxtype type,double mass) const;
 	  
-      /////////////////BEGIN ON EDITS////////////////////////
-      double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old dE/dx-based energy loss function from Geant3
-
-      double energyLossRMSG3(double mom,double pathlen,double mass) const; //this is the old energy loss RMS approx. from Geant3
+      enum energylossmode {mpv=0, moyalmean};
+      energylossmode _elossmode;
       
-      //for Moyal functions
-      void moyalfuncs(double mom, double pathlen, double mass, double& mmean, double& mrms) const ; //gets the calculated Moyal mean energy loss and RMS
+      void setEnergyLossMode(energylossmode elossmode) {_elossmode = elossmode;}
+      
+      double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old BTrk model dE/dx-based energy loss function from Geant3
 
+      double energyLossRMSG3(double mom,double pathlen,double mass) const; //this is the old BTrk model energy loss RMS approx. from Geant3
 
-      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations	      
+      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters	      
       double energyLoss(double mom,double pathlen,double mass) const;
       
       double energyLossRMS(double mom,double pathlen,double mass) const;
-      
-      ////////////////END ON EDITS/////////////////////////
       
 
       double energyLossVar(double mom,double pathlen,double mass) const {
