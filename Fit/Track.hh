@@ -270,10 +270,12 @@ namespace KinKal {
 	// to the lever arm.
 	if(config_.localBFieldCorr()){
 	  double dx;
+	  auto spos = reftraj_.position3(tstart);
+	  auto sbf = bfield_.fieldVect(spos);
 	  do{
 	    auto epos = reftraj_.position3(tend);
 	    auto ebf = bfield_.fieldVect(epos);
-	    dx = epos.R()*(1.0-bf.Dot(ebf)/(bf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
+	    dx = (epos-spos).R()*(1.0-ebf.Dot(sbf)/(sbf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
 	    if(dx > config_.tol_){
 	      double factor = std::min(0.9,0.9*config_.tol_/dx);
 	      // decrease the time step
