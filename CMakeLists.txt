@@ -122,7 +122,7 @@ add_compile_options(
     "-Woverloaded-virtual" 
     "-ftrapping-math"
     "-fdiagnostics-color=always"
-    "-Wshadow"
+#    "-Wshadow"
 
     # debug flags
     "$<$<CONFIG:DEBUG>:-O0;-g>"
