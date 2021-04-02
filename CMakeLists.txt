@@ -61,7 +61,7 @@ if(GIT_FOUND)
   )
   message( STATUS "git describes this revision as: ${_build_version}")
 
-  if (_build_version MATCHES  "^[vV]?([0-9]+)[._]([0-9]+)[._]([0-9]+)(.+)$")
+  if (_build_version MATCHES  "^[vV]?([0-9]+)[._]([0-9]+)[._]([0-9]+)(.*)$")
     set (_build_ver_maj ${CMAKE_MATCH_1})
     set (_build_ver_min ${CMAKE_MATCH_2})
     set (_build_ver_patch ${CMAKE_MATCH_3})
