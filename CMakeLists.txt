@@ -61,7 +61,7 @@ if(GIT_FOUND)
   )
   message( STATUS "git describes this revision as: ${_build_version}")
 
-if (_build_version MATCHES  "^[vV]?([0-9]+)[._]([0-9]+)[._]([0-9]+)([A-Za-z0-9_]*)$")
+  if (_build_version MATCHES  "^[vV]?([0-9]+)[._]([0-9]+)[._]([0-9]+)(.+)$")
     set (_build_ver_maj ${CMAKE_MATCH_1})
     set (_build_ver_min ${CMAKE_MATCH_2})
     set (_build_ver_patch ${CMAKE_MATCH_3})
@@ -122,6 +122,7 @@ add_compile_options(
     "-Woverloaded-virtual" 
     "-ftrapping-math"
     "-fdiagnostics-color=always"
+    "-Wshadow"
 
     # debug flags
     "$<$<CONFIG:DEBUG>:-O0;-g>"
@@ -137,7 +138,11 @@ include(GNUInstallDirs)
 # clang tidy
 
 if(ENABLE_CLANG_TIDY)
-    set(CMAKE_CXX_CLANG_TIDY clang-tidy) 
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy") 
+endif()
+
+if(ENABLE_CLANG_TIDY_WITH_FIXES)
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-fix") 
 endif()
 
 
