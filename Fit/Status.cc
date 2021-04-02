@@ -13,6 +13,8 @@ namespace KinKal {
 	return "Diverged ";
       case Status::lowNDOF: 
 	return "LowNDOF ";
+      case Status::paramsdiverged: 
+	return "ParametersDiverged ";
       case Status::failed: 
 	return "Failed ";
     }
