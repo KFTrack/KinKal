@@ -47,17 +47,32 @@ jobs:
         with:
           fetch-depth: 0        
       - name: CMake (${{ matrix.build-type }})
-        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON
+        run: |
+          cd ..
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_COLOR_MAKEFILE=ON
       
       - name: Build (${{ matrix.build-type }})
-        run: cd .. && make -C KinKal_${{ matrix.build-type }} -j8
-          
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          make -j8
+
       - name: Run tests
-        run: cd .. && env CTEST_OUTPUT_ON_FAILURE=1 make -C KinKal_${{ matrix.build-type }} test
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
         
       - name: Run clang-tidy
-        if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request' }}
-        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON -DENABLE_CLANG_TIDY_WITH_FIXES=ON && make -C KinKal_${{ matrix.build-type }}_ClangTidy -j8 && cd KinKal
+        if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
+        run: |
+          cd ..
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_COLOR_MAKEFILE=ON \
+                -DENABLE_CLANG_TIDY_WITH_FIXES=ON 
+          cd KinKal_${{ matrix.build-type }}_ClangTidy
+          make -j8
 
       - name: suggester / clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request' }}
