@@ -13,6 +13,7 @@
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/ParticleState.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Detector/BFieldUtils.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
@@ -63,9 +64,9 @@ namespace KinKal {
       bool inRange(double time) const { return trange_.inRange(time); }
       VEC3 momentum3(double time) const;
       MOM4 momentum4(double time) const;
-      double momentum(double time=0) const  { return  fabs(mass_*betaGamma()); }
+      double momentum(double time=0) const  { return  mass_*betaGamma(); }
       double momentumVariance(double time=0) const;
-      double energy(double time=0) const  { return  fabs(mass_*ebar()/mbar_); }
+      double energy(double time=0) const  { return  ebar()*Q(); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass 
       int charge() const { return charge_;} // charge in proton charge units
@@ -83,18 +84,20 @@ namespace KinKal {
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time),charge()); }
       ParticleStateEstimate stateEstimate(double time) const;
-      // simple functions; these can be cached if they cause performance problems
-      double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
+      // simple functions
+      double sign() const { return copysign(1.0,charge()); } // charge sign
+      // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
+      double helicity() const { return copysign(1.0,lam()); }
       double pbar2() const { return  rad()*rad() + lam()*lam(); } 
       double pbar() const { return  sqrt(pbar2()); } // momentum in mm
-      double ebar2() const { return  pbar2() + mbar_*mbar_; }
+      double ebar2() const { double mb = mbar(); return  pbar2() + mb*mb; }
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
-      double mbar() const { return mbar_; } // mass in mm; includes charge information!
-      double Q() const { return mass_/mbar_; } // reduced charge
-      double omega() const { return CLHEP::c_light*sign()/ ebar(); } // rotational velocity, sign set by magnetic force
+      double mbar() const { return fabs(mass_/Q()); } // mass in mm
+      double Q() const { return -BFieldUtils::cbar()*charge()*bnom_.R(); } // reduced charge
+      double omega() const { return -CLHEP::c_light*sign()/ ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
-      double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
-      double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
+      double gamma() const { return ebar()/mbar(); } // relativistic gamma
+      double betaGamma() const { return pbar()/mbar(); } // relativistic betagamma
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
       double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
@@ -103,7 +106,6 @@ namespace KinKal {
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
-	mbar_ *= -1.0;
 	charge_ *= -1;
 	pars_.parameters()[t0_] *= -1.0;
       }
@@ -132,7 +134,6 @@ namespace KinKal {
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2
       int charge_; // charge in units of proton charge
-      double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       VEC3 bnom_; // nominal BField, in global coordinate system
       ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
       const static std::vector<std::string> paramTitles_;
