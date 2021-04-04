@@ -20,12 +20,23 @@ jobs:
         build-type: ["Debug", "Release"]
 
     steps:
+      - name: Cache conda
+        uses: actions/cache@v1
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          # This will be necessary to update e.g. the version of cmake, cxx-compiler, or clang-tools that is used
+          CACHE_NUMBER: 0
+        with:
+          path: ~/conda_pkgs_dir
+          key:
+            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ matrix.root-version }}-${{ matrix.python-version }}
       - uses: conda-incubator/setup-miniconda@v2
         with:
           python-version: ${{ matrix.python-version }}
           mamba-version: "*"
           channels: defaults,conda-forge
-      
+          channel-priority: strict
+          use-only-tar-bz2: true
       - name: Conda info
         run: conda info
         
@@ -33,16 +44,38 @@ jobs:
         run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake clang-tools
         
       - uses: actions/checkout@v2
-        
+        with:
+          fetch-depth: 0        
       - name: CMake (${{ matrix.build-type }})
-        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }} -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON
+        run: |
+          cd ..
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_COLOR_MAKEFILE=ON
       
       - name: Build (${{ matrix.build-type }})
-        run: cd .. && make -C KinKal_${{ matrix.build-type }} -j8
-          
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          make -j8
+
       - name: Run tests
-        run: cd .. && env CTEST_OUTPUT_ON_FAILURE=1 make -C KinKal_${{ matrix.build-type }} test
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          env CTEST_OUTPUT_ON_FAILURE=1 make test
         
       - name: Run clang-tidy
-        run: cd .. && cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} -DCMAKE_COLOR_MAKEFILE=ON -DENABLE_CLANG_TIDY=ON && make -C KinKal_${{ matrix.build-type }}_ClangTidy -j8
-        
+        if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
+        run: |
+          cd ..
+          cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy \
+                -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
+                -DCMAKE_COLOR_MAKEFILE=ON \
+                -DENABLE_CLANG_TIDY_WITH_FIXES=ON 
+          cd KinKal_${{ matrix.build-type }}_ClangTidy
+          make -j8
+
+      - name: suggester / clang-tidy
+        if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' && github.event_name == 'pull_request' }}
+        uses: reviewdog/action-suggester@v1
+        with:
+          tool_name: clang-tidy
