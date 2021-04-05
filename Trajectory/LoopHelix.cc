@@ -1,5 +1,4 @@
 #include "KinKal/Trajectory/LoopHelix.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
 #include <cmath>
 #include <stdexcept>
@@ -46,13 +45,11 @@ namespace KinKal {
     double pt = mom.Pt(); 
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
-    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
-    // reduced mass; note sign convention!
-    mbar_ = -mass()*momToRad;
+    double momToRad = 1.0/Q();
     // transverse radius of the helix
-    param(rad_) = -pt*momToRad;
+    param(rad_) = pt*momToRad;
     // longitudinal wavelength
-    param(lam_) = -mom.Z()*momToRad;
+    param(lam_) = mom.Z()*momToRad;
     // time at z=0
     double om = omega();
     param(t0_) = pos.T() - pos.Z()/(om*lam());
@@ -62,8 +59,8 @@ namespace KinKal {
     // azimuth at z=0
     param(phi0_) = phibar - om*(pos.T()-t0()) + twopi*nwind;
     // circle center
-    param(cx_) = pos.X() + mom.Y()*momToRad;
-    param(cy_) = pos.Y() - mom.X()*momToRad;
+    param(cx_) = pos.X() - mom.Y()*momToRad;
+    param(cy_) = pos.Y() + mom.X()*momToRad;
     // test position and momentum function
 //    auto testpos = position3(pos0.T());
 //    auto testmom = momentum3(pos0.T());
@@ -74,7 +71,6 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
     // adjust the parameters for the change in bnom
-    mbar_ *= bnom_.R()/bnom.R();
     pars_.parameters() += dPardB(time,bnom);
     bnom_ = bnom;
     // adjust rotations to global space
@@ -92,9 +88,6 @@ namespace KinKal {
 
   LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
   trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
-    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom_.R());
-    // set reduced mass
-    mbar_ = -mass_*momToRad;
     // set the transforms
     g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();
@@ -113,7 +106,7 @@ namespace KinKal {
 
   double LoopHelix::momentumVariance(double time) const {
     DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
-    dMomdP *= mass()/(pbar()*mbar());
+    dMomdP *= Q()/pbar();
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
 
@@ -141,7 +134,7 @@ namespace KinKal {
 
   VEC3 LoopHelix::localDirection(double time, MomBasis::Direction mdir) const {
     double phival = phi(time);
-    double invpb = sign()/pbar(); // need to sign
+    double invpb = -sign()/pbar(); // need to sign
     switch ( mdir ) {
       case MomBasis::perpdir_:
 	return VEC3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);

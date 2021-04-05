@@ -104,7 +104,6 @@ namespace KinKal {
       BFieldMap const& bfield_; // magnetic field map
       std::vector<Status> history_; // fit status history; records the current iteration
       KTRAJ seedtraj_; // seed for the fit
-      DMAT seedwt_; // weight matrix from seed fit, used in convergence testing 
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
@@ -116,9 +115,6 @@ namespace KinKal {
     config_(cfg), bfield_(bfield), seedtraj_(seedtraj) {
       // configuation check
       if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-      // check seed covariance is invertible
-      seedwt_ = seedtraj_.params().covariance();
-      if(!seedwt_.Invert())throw std::runtime_error("Seed covariance uninvertible");
       // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
       createRefTraj(seedtraj);
       // create the effects.  First, loop over the hits
@@ -211,13 +207,20 @@ namespace KinKal {
     beff = effects_.rbegin(); beff++;
     fittraj_.front().range().begin() = (*feff)->time() - config_.tbuff_;
     fittraj_.back().range().end() = (*beff)->time() + config_.tbuff_;
-    // compute parameter change WRT seed.  Compare in the middle
+    // compute parameter difference WRT reference.  Compare in the middle
     auto const& mtraj = fittraj_.nearestPiece(fittraj_.range().mid());
-    DVEC dpar = mtraj.params().parameters() - seedtraj_.params().parameters();
-    double delta = ROOT::Math::Similarity(dpar,seedwt_);
-    // update status.  Convergence criteria is iteration-dependent.
+    auto const& rtraj = reftraj_.nearestPiece(fittraj_.range().mid());
+    DVEC dpar = mtraj.params().parameters() - rtraj.params().parameters();
+    DMAT refwt = rtraj.params().covariance();
+    if(!refwt.Invert())throw std::runtime_error("Reference covariance uninvertible");
+    double delta = ROOT::Math::Similarity(dpar,refwt);
     double dchisq = fstat.chisq_.chisqPerNDOF() - fitStatus().chisq_.chisqPerNDOF();
-    if (delta > config().pdchi2_ || (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) ) {
+    // update status.  Convergence criteria is iteration-dependent.
+    if (delta > config().pdchi2_) {
+      fstat.status_ = Status::paramsdiverged;
+      // skip divergence comparsion in first iteration after a meta-iteration, as that
+      // is affected by the change in temperature
+    } else if (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) {
       fstat.status_ = Status::diverged;
     } else if (fstat.chisq_.nDOF() < config_.minndof_){
       fstat.status_ = Status::lowNDOF;
@@ -270,10 +273,12 @@ namespace KinKal {
 	// to the lever arm.
 	if(config_.localBFieldCorr()){
 	  double dx;
+	  auto spos = reftraj_.position3(tstart);
+	  auto sbf = bfield_.fieldVect(spos);
 	  do{
 	    auto epos = reftraj_.position3(tend);
 	    auto ebf = bfield_.fieldVect(epos);
-	    dx = epos.R()*(1.0-bf.Dot(ebf)/(bf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
+	    dx = (epos-spos).R()*(1.0-ebf.Dot(sbf)/(sbf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
 	    if(dx > config_.tol_){
 	      double factor = std::min(0.9,0.9*config_.tol_/dx);
 	      // decrease the time step
