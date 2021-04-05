@@ -119,3 +119,4 @@ source <ROOT>/bin/thisroot.sh
 The ROOT binaries need to be compiled with C++17 (`-std=c++17`) support.
 
 
+Adding a comment here to explore the consequences of renaming master->main.
