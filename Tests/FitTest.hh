@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -152,6 +152,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
+  bool extend(false);
+  double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
@@ -200,6 +202,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"constrainpar",     required_argument, 0, 'c' },
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
+    {"extendfrac",     required_argument, 0, 'X'  },
     {NULL, 0,0,0}
   };
 
@@ -269,6 +272,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 		 break;
       case 'u' : sfile = optarg;
 		 break;
+      case 'X' : extendfrac = atof(optarg);
+	extend = extendfrac != 0.0;
+		 break;
       default: print_usage();
 	       exit(EXIT_FAILURE);
     }
@@ -290,8 +296,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   toy.setInefficiency(ineff);
   // generate hits
-  MEASCOL thits; // this program shares hit ownership with Track
-  EXINGCOL dxings; // this program shares det xing ownership with Track
+  MEASCOL thits, exthits; // this program shares hit ownership with Track
+  EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
   PKTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings,fitmat);
   if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
@@ -339,7 +345,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     std::cerr << "Error opening " << fullfile << std::endl;
     return -1;
   }
-
+// config for extension
+  Config exconfig(config);
   string line;
   unsigned nmiter(0);
   while (getline(ifs,line)){ 
@@ -350,7 +357,26 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       config.schedule_.push_back(mconfig);
     }
   }
+  // extension just uses the last meta-iteration
+  exconfig.schedule_.push_back(config.schedule_.back());
   if(nevents == 0)cout << config << endl;
+  // if extending, take a random set of hits and materials out
+  if(extend){
+    for(auto ihit = thits.begin(); ihit != thits.end();){
+      if(tr_.Uniform(0.0,1.0) < extendfrac){
+	exthits.push_back(*ihit);
+	ihit = thits.erase(ihit);
+      } else
+	++ihit;
+    }
+    for(auto ixing = dxings.begin(); ixing != dxings.end();){
+      if(tr_.Uniform(0.0,1.0) < extendfrac){
+	exdxings.push_back(*ixing);
+	ixing = dxings.erase(ixing);
+      } else
+	++ixing;
+    }
+  }
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -368,6 +394,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   }
 // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+  if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
@@ -597,6 +624,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
+      exthits.clear();
+      exdxings.clear();
       toy.simulateParticle(tptraj,thits,dxings,fitmat);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
@@ -618,8 +647,25 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	}
 	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
+      if(extend){
+	for(auto ihit = thits.begin(); ihit != thits.end();){
+	  if(tr_.Uniform(0.0,1.0) < extendfrac){
+	    exthits.push_back(*ihit);
+	    ihit = thits.erase(ihit);
+	  } else
+	    ++ihit;
+	}
+	for(auto ixing = dxings.begin(); ixing != dxings.end();){
+	  if(tr_.Uniform(0.0,1.0) < extendfrac){
+	    exdxings.push_back(*ixing);
+	    ixing = dxings.erase(ixing);
+	  } else
+	    ++ixing;
+	}
+      }
       auto start = Clock::now();
       KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+      if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
       auto const& fptraj = kktrk.fitTraj();
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();

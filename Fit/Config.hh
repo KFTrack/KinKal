@@ -35,11 +35,11 @@ namespace KinKal {
   struct Config {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     enum BFCorr {nocorr=0, fixed, variable, both };
-    typedef std::vector<MetaIterConfig> MetaIterConfigCol;
-    Config(std::vector<MetaIterConfig>const& schedule) : Config() { schedule_ = schedule; }
+    using Schedule =  std::vector<MetaIterConfig>;
+    Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
     Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
-    MetaIterConfigCol& schedule() { return schedule_; }
-    MetaIterConfigCol const& schedule() const { return schedule_; }
+    Schedule& schedule() { return schedule_; }
+    Schedule const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
     bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }
     // algebraic iteration parameters
@@ -52,7 +52,7 @@ namespace KinKal {
     BFCorr bfcorr_; // how to make BFieldMap corrections in the fit
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
-    MetaIterConfigCol schedule_; 
+    Schedule schedule_; 
   };
   std::ostream& operator <<(std::ostream& os, Config const& kkconfig );
   std::ostream& operator <<(std::ostream& os, MetaIterConfig const& miconfig );

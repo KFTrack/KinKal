@@ -5,6 +5,7 @@
 //  Kinematic Kalman filter fit
 //
 #include "KinKal/General/TimeRange.hh"
+#include "KinKal/General/TimeDir.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Detector/BFieldMap.hh"
 #include <algorithm>
@@ -36,7 +37,7 @@ namespace KinKal {
     // estimate how long in time from the given start time the trajectory position will stay within the given tolerance
     // compared to the true particle motion, given the true magnetic field.  This measures the impact of the KTRAJ nominal field being
     // different from the true field
-    template<class KTRAJ> double rangeInTolerance(double tstart, BFieldMap const& bfield, KTRAJ const& ktraj, double tol) {
+    template<class KTRAJ> double rangeInTolerance(double tstart, BFieldMap const& bfield, KTRAJ const& ktraj, double tol,TimeDir tdir = TimeDir::forwards) {
       // compute scaling factor
       double spd = ktraj.speed(tstart);
       double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentum(tstart));
@@ -60,14 +61,14 @@ namespace KinKal {
       // advance till spatial distortion exceeds position tolerance or we reach the range limit
       do{
 	// increment the range
-	tend += tstep;
+	tend += (tdir == TimeDir::forwards) ? tstep : -tstep;
 	tpos = ktraj.position3(tend);
 	bvec = bfield.fieldVect(tpos);
 	// BFieldMap diff with nominal
 	auto db = (bvec - ktraj.bnom(tend)).R();
 	// spatial distortion accumulation; this goes as the square of the time times the field difference
 	dx += sfac*(tend-tstart)*tstep*db;
-      } while(fabs(dx) < tol && tend < ktraj.range().end());
+      } while(fabs(dx) < tol && ktraj.range().inRange(tend));
 //      std::cout << "tstep " << tstep << " tstart " << tstart << " tend " << tend  << std::endl;
       return tend;
     }
