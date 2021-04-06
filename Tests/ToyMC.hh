@@ -50,7 +50,7 @@ namespace KKTest {
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
-      void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
+      void createScintHit(PKTRAJ& pktraj, HITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
       double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
       // set functions, for special purposes
@@ -192,25 +192,28 @@ namespace KKTest {
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
     // generate a new piece and append
-    KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TimeRange(tstraw,pktraj.range().end()));
+    VEC3 bnom = bfield_.fieldVect(endpos.Vect());
+    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,pktraj.range().end()));
     //      newend.print(cout,1);
     pktraj.append(newend);
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, HITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ& pktraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
-    VEC3 shmaxTrue, hend, shmaxMeas;
-    double shstart = pktraj.range().end() + coff_;
-    hend = pktraj.position3(shstart);
-    double shmaxtime = shstart + shmax_/pktraj.speed(shstart);
+    VEC3 shmaxTrue,shmaxMeas;
+    double tend = thits.back()->time();
+    VEC3 pvel = pktraj.velocity(tend);
+    double shstart = tend + coff_/pvel.Z();
+    double shmaxtime = shstart + shmax_/pvel.R();
+    auto endpos = pktraj.position4(shstart);
     shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max
     // smear the x-y position by the transverse variance.
     shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
     shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
     // set the z position to the sensor plane (end of the crystal)
-    shmaxMeas.SetZ(hend.Z()+clen_);
+    shmaxMeas.SetZ(endpos.Z()+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
     double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation

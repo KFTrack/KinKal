@@ -97,7 +97,7 @@ namespace KinKal {
     private:
       // helper functions
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      void extendRange(); // extend the range after adding effects
+      void addEffects( HITCOL& thits, EXINGCOL& exings ); //  add hit and material effects
       void update(Status const& fstat, MetaIterConfig const& miconfig);
       void fitIteration(Status& status, MetaIterConfig const& miconfig);
       bool canIterate() const;
@@ -122,27 +122,16 @@ namespace KinKal {
     if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
     // Create the initial reference traj.  This also divides the range into domains of ~constant BField and creates correction effects for inhomogeneity
     createRefTraj(seedtraj);
-    // create the effects.  First, loop over the hits
-    for(auto& thit : thits ) {
-      // create the hit effects and insert them in the set
-      effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
-    }
-    //add material effects
-    for(auto& exing : exings) {
-      effects_.emplace_back(std::make_unique<KKMAT>(exing,reftraj_));
-    }
-    // preliminary sort; this makes sure the range is accurate when computing BField corrections
-    std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
-    // reset the range 
-    reftraj_.setRange(TimeRange(std::min(reftraj_.range().begin(),effects_.begin()->get()->time() - config_.tbuff_),
-	  std::max(reftraj_.range().end(),effects_.rbegin()->get()->time() + config_.tbuff_)));
     // create the end effects: these help manage the fit
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::forwards));
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::backwards));
+    // add hits and materials
+    addEffects(thits,exings);
     // now fit the track
     fit();
     if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
   }
+
 // extend an existing track 
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& thits, EXINGCOL& exings) {
     // update the configuration
@@ -151,7 +140,15 @@ namespace KinKal {
     if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
     // require the existing fit to be usable
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
-    // append the new effects.  First, loop over the hits
+    // add hits and materials
+    addEffects(thits,exings);
+    // now refit the track
+    fit();
+    if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::addEffects( HITCOL& thits, EXINGCOL& exings) {
+    // append the effects.  First, loop over the hits
     for(auto& thit : thits ) {
       // create the hit effects and insert them in the set
       effects_.emplace_back(std::make_unique<KKHIT>(thit,reftraj_));
@@ -162,22 +159,16 @@ namespace KinKal {
     }
     // sort
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
-    // extend the range as necessary
-    extendRange();
-    // now refit the track
-    fit();
-    if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
-  }
-
-  template <class KTRAJ> void Track<KTRAJ>::extendRange() {
-    // find the min and max time.  Include the buffer
-    double tmin = std::min(reftraj_.range().begin(),effects_.begin()->get()->time() - config_.tbuff_);
-    double tmax = std::max(reftraj_.range().end(),effects_.rbegin()->get()->time() + config_.tbuff_);
+    // find the min and max time.  Skip the TrackEnd effects.  Include the buffer
+    auto efirst = effects_.begin(); ++efirst;
+    auto elast = effects_.rbegin(); ++elast;
+    double tmin = std::min(reftraj_.range().begin(),(*efirst)->time() - config_.tbuff_);
+    double tmax = std::max(reftraj_.range().end(),(*elast)->time() + config_.tbuff_);
     reftraj_.setRange(TimeRange(tmin,tmax));
     // if we're making BField corrections, extend those as well.
     if(config_.bfcorr_ != Config::nocorr) {
     // first, find the first and last existing correction
-      const KKBFIELD *kkbfbegin, *kkbfend;
+      const KKBFIELD *kkbfbegin(0), *kkbfend(0);
       for(auto effptr = effects_.begin(); effptr != effects_.end(); ++effptr){
 	const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(effptr->get());
 	if(kkbf!=0){
@@ -197,7 +188,7 @@ namespace KinKal {
 	if(tmin < kkbfbegin->range().begin())
 	  extendRefTraj(kkbfbegin->range().begin(),TimeDir::backwards);
 	if(tmax > kkbfend->range().end())
-	  extendRefTraj(kkbfbegin->range().begin(),TimeDir::forwards);
+	  extendRefTraj(kkbfend->range().end(),TimeDir::forwards);
       }
     }
   }
@@ -352,16 +343,17 @@ namespace KinKal {
 	  auto ebf = bfield_.fieldVect(epos);
 	  dx = epos.R()*(1.0-ebf.Dot(sbf)/(sbf.R()*ebf.R())); // there may be magnitude-based 2nd order terms too TODO
 	  if(dx > config_.tol_){
-	    double factor = std::min(0.9,0.9*config_.tol_/dx);
+	    double factor = std::min(0.5,0.5*config_.tol_/dx);
 	    // decrease the time step
 	    tend = tstart + factor*(tend-tstart);
 	  }
 	} while(dx > config_.tol_);
       }
       // create the BField effect for integrated differences over this range
-      effects_.emplace_back(std::make_unique<KKBFIELD>(config_,bfield_,reftraj_,TimeRange(tstart,tend)));
+      TimeRange trange = (tdir == TimeDir::forwards) ? TimeRange(tstart,tend) : TimeRange(tend,tstart);
+      effects_.emplace_back(std::make_unique<KKBFIELD>(config_,bfield_,reftraj_,trange));
       // if we're using a local BField correction, create a new piece that uses the local BField
-      if(reftraj_.range().inRange(tend) && config_.localBFieldCorr()) {
+      if(config_.localBFieldCorr() && reftraj_.range().inRange(tend)) {
 	// update the BF for the next piece: it is at the end of this one
 	auto ebf = bfield_.fieldVect(reftraj_.position3(tend));
 	// update the trajectory parameters to correspond to the same particle state but referencing the local field.

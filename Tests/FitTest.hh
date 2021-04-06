@@ -79,22 +79,19 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
-  unsigned maxniter(1000);
+  unsigned maxniter(100);
   unsigned niter(0);
-  VEC3 pos2;
+  VEC3 pos2, v2, dp;
 //  double delta;
-  while(fabs(dt) > 1e-5 && niter < maxniter){
-    VEC3 v2 = kt2.velocity(t2);
+  while(fabs(dt) > 1e-3 && niter < maxniter){
+    v2 = kt2.velocity(t2);
     pos2 = kt2.position3(t2);
-    // test
-    //    delta = pos2.Z() - pos1.Z();
-    //    dt = delta/v2.Z();
-    VEC3 dp = kt2.position3(t2) - pos1;
+    dp = pos2 - pos1;
     dt = dp.Dot(v2)/v2.Mag2();
     t2 -= dt;
     niter++;
   }
-  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
+//  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return ((pos2-pos1).Cross(dir1)).R();
 }
 
@@ -394,7 +391,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   }
 // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
-  if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
+  if(extend && kktrk.fitStatus().usable() && (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
@@ -665,7 +662,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       }
       auto start = Clock::now();
       KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
-      if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
+      if(extend && kktrk.fitStatus().usable()&& (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
       auto const& fptraj = kktrk.fitTraj();
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();

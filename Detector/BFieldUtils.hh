@@ -70,8 +70,8 @@ namespace KinKal {
 	dx += sfac*(tend-tstart)*tstep*db;
       } while(fabs(dx) < tol && ktraj.range().inRange(tend));
 //      std::cout << "tstep " << tstep << " tstart " << tstart << " tend " << tend  << std::endl;
-      return tend;
-    }
+	return tend;
+      }
   }
 
 }
