@@ -34,10 +34,10 @@ namespace KinKal {
 
   struct Config {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
-    enum BFCorr {nocorr=0, fixed, variable, both };
+    enum BFCorr {nocorr=0, fixed, variable, both }; // this should be moved out of this class TODO
     using Schedule =  std::vector<MetaIterConfig>;
-    Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(0.1), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }

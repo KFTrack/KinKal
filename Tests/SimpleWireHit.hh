@@ -18,7 +18,8 @@ namespace KinKal {
     public:
       using WIREHIT = WireHit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      SimpleWireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& whstate,
+      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
       double driftspeed, double tvar, double rcell);
 // WireHit and Hit interface implementations
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
@@ -33,10 +34,9 @@ namespace KinKal {
       double rcell_; // straw radius
   };
 
-  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& whstate,
+  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
       double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,wire,whstate), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
-
+    WIREHIT(bfield,ptca,whstate), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // set precision

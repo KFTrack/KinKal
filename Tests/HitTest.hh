@@ -11,7 +11,7 @@
 #include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/General/PhysicalConstants.h"

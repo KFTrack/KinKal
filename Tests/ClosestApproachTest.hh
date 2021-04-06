@@ -5,7 +5,7 @@
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>

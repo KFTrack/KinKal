@@ -5,7 +5,7 @@
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include <stdexcept>
 #include <limits>
 #include <ostream>

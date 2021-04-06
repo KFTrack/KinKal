@@ -1,5 +1,4 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
 #include <stdexcept>
@@ -42,7 +41,7 @@ namespace KinKal {
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
-    double radToMom = BFieldUtils::cbar()*charge_*bnom_.R();
+    double radToMom = BFieldMap::cbar()*charge_*bnom_.R();
     double momToRad = 1.0/radToMom;
     mbar_ = -mass_ * momToRad;
     // caches
@@ -117,7 +116,7 @@ namespace KinKal {
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), charge_(charge), bnom_(VEC3(0.0,0.0,bnom)){
     // compute kinematic cache
-    double momToRad = 1.0/(BFieldUtils::cbar()*charge_*bnom);
+    double momToRad = 1.0/(BFieldMap::cbar()*charge_*bnom);
     mbar_ = -mass_ * momToRad;
   }
 

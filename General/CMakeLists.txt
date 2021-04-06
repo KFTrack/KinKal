@@ -12,6 +12,7 @@ add_library(General SHARED
     TimeDir.cc
     TimeRange.cc
     Weights.cc
+    BFieldMap.cc
 )
 
 # set top-level directory as include root

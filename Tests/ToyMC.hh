@@ -11,8 +11,7 @@
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Tests/ScintHit.hh"
-#include "KinKal/Detector/BFieldMap.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
@@ -144,7 +143,7 @@ namespace KKTest {
       WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, whstate, sdrift_, sigt_*sigt_, rstraw_));
+	thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
@@ -220,7 +219,9 @@ namespace KKTest {
     VEC3 lvel(0.0,0.0,cprop_);
     Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
-    thits.push_back(std::make_shared<SCINTHIT>(lline, scitsig_*scitsig_, shPosSig_*shPosSig_));
+    CAHint tphint(tmeas,tmeas);
+    PTCA tp(pktraj,lline,tphint,tprec_);
+    thits.push_back(std::make_shared<SCINTHIT>(tp, scitsig_*scitsig_, shPosSig_*shPosSig_));
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){
@@ -242,13 +243,13 @@ namespace KKTest {
 //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
       TimeRange prange(pktraj.back().range().begin(),pktraj.back().range().begin());
-      prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+      prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
       if(prange.end() > htime) {
 	return;
       } else {
 	prange.begin() = prange.end();
 	do {
-	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+	  prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
 	  VEC4 pos = pktraj.position4(prange.begin());
 	  MOM4 mom =  pktraj.momentum4(prange.begin());
 	  VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));

@@ -6,8 +6,7 @@
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/General/TimeDir.hh"
-#include "KinKal/Detector/BFieldMap.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
 #include <iostream>
 #include <stdexcept>
@@ -33,7 +32,7 @@ namespace KinKal {
       BFieldEffect(BFieldEffect const& ) = delete; 
       BFieldEffect& operator =(BFieldEffect const& ) = delete; 
       // create from the domain range, the effect, and the
-      BFieldEffect(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj,TimeRange const& drange) : 
+      BFieldEffect(Config const& config, BFieldMap const& bfield,TimeRange const& drange) : 
 	bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
       VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
       TimeRange const& range() const { return drange_; }
@@ -88,7 +87,7 @@ namespace KinKal {
   template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
     if(bfcorr_ == Config::fixed || bfcorr_ == Config::both){
       // integrate the fractional momentum change WRT this reference trajectory
-      VEC3 dp =  BFieldUtils::integrate(bfield_, ref, drange_);
+      VEC3 dp =  bfield_.integrate(ref, drange_);
       dp_ = SVEC3(dp.X(),dp.Y(),dp.Z()); //translate to SVec; this should be supported by SVector and GenVector
     }
     update(ref);
