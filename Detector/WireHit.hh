@@ -8,7 +8,7 @@
 #include "KinKal/Detector/WireHitStructs.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include <array>
 #include <stdexcept>
 namespace KinKal {
@@ -38,7 +38,6 @@ namespace KinKal {
       Line const& wire() const { return wire_; }
       BFieldMap const& bfield() const { return bfield_; }
       // constructor
-      WireHit(BFieldMap const& bfield, Line const& wire, WireHitState const&);
       WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const&);
       virtual ~WireHit(){}
     protected:
@@ -55,13 +54,8 @@ namespace KinKal {
       double precision_; // precision for PTCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, Line const& wire, WireHitState const& wstate) : 
-    bfield_(bfield), wire_(wire), wstate_(wstate), precision_(1e-6) {}
-
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) : 
-    WireHit(bfield,ptca.sensorTraj(),wstate) {
-      tpdata_ = ptca.tpData();
-    }
+    bfield_(bfield), wire_(ptca.sensorTraj()), wstate_(wstate), tpdata_(ptca.tpData()), precision_(1e-6) {}
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA.  Default hint is the wire middle

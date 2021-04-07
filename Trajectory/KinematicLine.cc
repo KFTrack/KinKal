@@ -4,7 +4,6 @@
 */
 
 #include "KinKal/Trajectory/KinematicLine.hh"
-#include "KinKal/Detector/BFieldMap.hh"
 #include "KinKal/Trajectory/POCAUtil.hh"
 #include "Math/AxisAngle.h"
 #include "Math/VectorUtil.h"

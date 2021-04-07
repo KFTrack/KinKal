@@ -12,6 +12,7 @@
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/ParticleState.hh"
 #include "KinKal/General/MomBasis.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "Math/Rotation3D.h"
 #include <vector>

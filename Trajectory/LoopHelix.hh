@@ -11,9 +11,9 @@
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/MomBasis.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/ParticleState.hh"
 #include "KinKal/General/PhysicalConstants.h"
-#include "KinKal/Detector/BFieldUtils.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
@@ -93,7 +93,7 @@ namespace KinKal {
       double ebar2() const { double mb = mbar(); return  pbar2() + mb*mb; }
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
       double mbar() const { return fabs(mass_/Q()); } // mass in mm
-      double Q() const { return -BFieldUtils::cbar()*charge()*bnom_.R(); } // reduced charge
+      double Q() const { return -BFieldMap::cbar()*charge()*bnom_.R(); } // reduced charge
       double omega() const { return -CLHEP::c_light*sign()/ ebar(); } // rotational velocity, sign set by magnetic force
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return ebar()/mbar(); } // relativistic gamma

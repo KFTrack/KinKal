@@ -6,8 +6,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Detector/BFieldMap.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
@@ -118,9 +117,9 @@ int BFieldMapTest(int argc, char **argv) {
   TimeRange prange = start.range();
   do {
     auto const& piece = xptraj.back();
-    prange.end() = BFieldUtils::rangeInTolerance(prange.begin(),*BF,piece, tol);
+    prange.end() = BF->rangeInTolerance(piece,prange.begin(), tol);
 // integrate the momentum change over this range
-    VEC3 dp = BFieldUtils::integrate(*BF,piece,prange);
+    VEC3 dp = BF->integrate(piece,prange);
     // approximate change in position
 //    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum4(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
@@ -153,10 +152,10 @@ int BFieldMapTest(int argc, char **argv) {
   }  while(prange.begin() < tptraj.range().end());
   // test integrating the field over the corrected trajectories: this should be small
   VEC3 tdp, xdp, ldp, ndp;
-  tdp = BFieldUtils::integrate(*BF, tptraj, tptraj.range());
-  xdp = BFieldUtils::integrate(*BF, xptraj, xptraj.range());
-  ldp = BFieldUtils::integrate(*BF, lptraj, lptraj.range());
-  ndp = BFieldUtils::integrate(*BF, start, start.range());
+  tdp = BF->integrate( tptraj, tptraj.range());
+  xdp = BF->integrate( xptraj, xptraj.range());
+  ldp = BF->integrate( lptraj, lptraj.range());
+  ndp = BF->integrate( start, start.range());
   cout << "TTraj " << tptraj << " integral " << tdp << endl;
   cout << "XTraj " << xptraj << " integral " << xdp << endl;
   cout << "LTraj " << lptraj << " integral " << ldp << endl;

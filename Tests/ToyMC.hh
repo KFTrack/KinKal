@@ -11,8 +11,7 @@
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Tests/ScintHit.hh"
-#include "KinKal/Detector/BFieldMap.hh"
-#include "KinKal/Detector/BFieldUtils.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
@@ -50,7 +49,7 @@ namespace KKTest {
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PKTRAJ& pktraj,double htime);
       void createTraj(PKTRAJ& pktraj);
-      void createScintHit(PKTRAJ const& pktraj, HITCOL& thits);
+      void createScintHit(PKTRAJ& pktraj, HITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
       double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
       // set functions, for special purposes
@@ -144,7 +143,7 @@ namespace KKTest {
       WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<WIREHIT>(bfield_, tline, whstate, sdrift_, sigt_*sigt_, rstraw_));
+	thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
@@ -192,32 +191,37 @@ namespace KKTest {
       endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     }
     // generate a new piece and append
-    KTRAJ newend(endpos,endmom,endpiece.charge(),endpiece.bnom(),TimeRange(tstraw,pktraj.range().end()));
+    VEC3 bnom = bfield_.fieldVect(endpos.Vect());
+    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,pktraj.range().end()));
     //      newend.print(cout,1);
     pktraj.append(newend);
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ const& pktraj, HITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ& pktraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
-    VEC3 shmaxTrue, hend, shmaxMeas;
-    double shstart = pktraj.range().end() + coff_;
-    hend = pktraj.position3(shstart);
-    double shmaxtime = shstart + shmax_/pktraj.speed(shstart);
+    VEC3 shmaxTrue,shmaxMeas;
+    double tend = thits.back()->time();
+    VEC3 pvel = pktraj.velocity(tend);
+    double shstart = tend + coff_/pvel.Z();
+    double shmaxtime = shstart + shmax_/pvel.R();
+    auto endpos = pktraj.position4(shstart);
     shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max
     // smear the x-y position by the transverse variance.
     shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
     shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
     // set the z position to the sensor plane (end of the crystal)
-    shmaxMeas.SetZ(hend.Z()+clen_);
+    shmaxMeas.SetZ(endpos.Z()+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
     double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
     Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
-    thits.push_back(std::make_shared<SCINTHIT>(lline, scitsig_*scitsig_, shPosSig_*shPosSig_));
+    CAHint tphint(tmeas,tmeas);
+    PTCA tp(pktraj,lline,tphint,tprec_);
+    thits.push_back(std::make_shared<SCINTHIT>(tp, scitsig_*scitsig_, shPosSig_*shPosSig_));
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){
@@ -239,13 +243,13 @@ namespace KKTest {
 //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
       TimeRange prange(pktraj.back().range().begin(),pktraj.back().range().begin());
-      prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+      prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
       if(prange.end() > htime) {
 	return;
       } else {
 	prange.begin() = prange.end();
 	do {
-	  prange.end() = BFieldUtils::rangeInTolerance(prange.begin(), bfield_, pktraj.back(), tol_);
+	  prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
 	  VEC4 pos = pktraj.position4(prange.begin());
 	  MOM4 mom =  pktraj.momentum4(prange.begin());
 	  VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));

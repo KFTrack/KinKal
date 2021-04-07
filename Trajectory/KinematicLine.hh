@@ -5,7 +5,7 @@
   Original Author: S Middleton 2020
 */
 #include "KinKal/General/PhysicalConstants.h"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/ParticleState.hh"
 #include "KinKal/General/Parameters.hh"

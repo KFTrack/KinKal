@@ -11,7 +11,7 @@
 #include "KinKal/Detector/ParameterHit.hh"
 #include "KinKal/Tests/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
-#include "KinKal/Detector/BFieldMap.hh"
+#include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/HitConstraint.hh"
 #include "KinKal/Fit/Material.hh"
@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -79,22 +79,19 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   VEC3 pos1 = kt1.position3(t1);
   VEC3 dir1 = kt1.direction(t1);
   t2 = t1;
-  unsigned maxniter(1000);
+  unsigned maxniter(100);
   unsigned niter(0);
-  VEC3 pos2;
+  VEC3 pos2, v2, dp;
 //  double delta;
-  while(fabs(dt) > 1e-5 && niter < maxniter){
-    VEC3 v2 = kt2.velocity(t2);
+  while(fabs(dt) > 1e-3 && niter < maxniter){
+    v2 = kt2.velocity(t2);
     pos2 = kt2.position3(t2);
-    // test
-    //    delta = pos2.Z() - pos1.Z();
-    //    dt = delta/v2.Z();
-    VEC3 dp = kt2.position3(t2) - pos1;
+    dp = pos2 - pos1;
     dt = dp.Dot(v2)/v2.Mag2();
     t2 -= dt;
     niter++;
   }
-  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
+//  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return ((pos2-pos1).Cross(dir1)).R();
 }
 
@@ -152,6 +149,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
+  bool extend(false);
+  double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
@@ -200,6 +199,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"constrainpar",     required_argument, 0, 'c' },
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
+    {"extendfrac",     required_argument, 0, 'X'  },
     {NULL, 0,0,0}
   };
 
@@ -269,6 +269,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 		 break;
       case 'u' : sfile = optarg;
 		 break;
+      case 'X' : extendfrac = atof(optarg);
+	extend = extendfrac != 0.0;
+		 break;
       default: print_usage();
 	       exit(EXIT_FAILURE);
     }
@@ -289,33 +292,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   fitmass = masses[ifitmass];
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   toy.setInefficiency(ineff);
-  // generate hits
-  MEASCOL thits; // this program shares hit ownership with Track
-  EXINGCOL dxings; // this program shares det xing ownership with Track
-  PKTRAJ tptraj;
-  toy.simulateParticle(tptraj, thits, dxings,fitmat);
-  if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
-//  cout << "vector of hit points " << thits.size() << endl;
-//  cout << "True " << tptraj << endl;
-  double startmom = tptraj.momentum(tptraj.range().begin());
-  double endmom = tptraj.momentum(tptraj.range().end());
-  VEC3 end, bend;
-  bend = tptraj.front().direction(tptraj.range().end());
-  end = tptraj.back().direction(tptraj.range().end());
-  double angle = ROOT::Math::VectorUtil::Angle(bend,end);
-  if(nevents == 0)cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
-  // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
-  auto const& midhel = tptraj.nearestPiece(0.0);
-  auto seedmom = midhel.momentum4(0.0);
-  seedmom.SetM(fitmass);
-  // buffer the seed range
-  TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-  KTRAJ seedtraj(midhel.position4(0.0),seedmom,midhel.charge(),bnom,seedrange);
-  if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj,sigmas,seedsmear);
-  if(nevents == 0)cout << "Seed Traj " << seedtraj << endl;
-  // Create the Track from these hits
-  //
+  // setup fit configuration
   Config config; 
   config.dwt_ = dwt;
   config.maxniter_ = maxniter;
@@ -339,7 +316,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     std::cerr << "Error opening " << fullfile << std::endl;
     return -1;
   }
-
+// config for extension
+  Config exconfig(config);
   string line;
   unsigned nmiter(0);
   while (getline(ifs,line)){ 
@@ -350,7 +328,41 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       config.schedule_.push_back(mconfig);
     }
   }
+  // extension just uses the last meta-iteration
+  exconfig.schedule_.clear();
+  exconfig.schedule_.push_back(config.schedule_.back());
   if(nevents == 0)cout << config << endl;
+
+  // generate hits
+  MEASCOL thits, exthits; // this program shares hit ownership with Track
+  EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
+  PKTRAJ tptraj;
+  toy.simulateParticle(tptraj, thits, dxings,fitmat);
+  if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
+//  cout << "vector of hit points " << thits.size() << endl;
+//  cout << "True " << tptraj << endl;
+  double startmom = tptraj.momentum(tptraj.range().begin());
+  double endmom = tptraj.momentum(tptraj.range().end());
+  VEC3 end, bend;
+  bend = tptraj.front().direction(tptraj.range().end());
+  end = tptraj.back().direction(tptraj.range().end());
+  double angle = ROOT::Math::VectorUtil::Angle(bend,end);
+  if(nevents == 0)cout << "total momentum change = " << endmom-startmom << " total angle change = " << angle << endl;
+  // create the fit seed by randomizing the parameters at the middle.  Overrwrite to use the fit BFieldMap
+  double tmid = tptraj.range().mid();
+  auto const& midhel = tptraj.nearestPiece(tmid);
+  auto seedmom = midhel.momentum4(tmid);
+  auto seedpos = midhel.position4(tmid);
+  auto bmid = BF->fieldVect(seedpos.Vect());
+  seedmom.SetM(fitmass);
+  // buffer the seed range
+  TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
+  KTRAJ seedtraj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
+  if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
+  toy.createSeed(seedtraj,sigmas,seedsmear);
+  if(nevents == 0)cout << "Seed Traj " << seedtraj << endl;
+  // Create the Track from these hits
+  //
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -366,8 +378,26 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
     thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
+  // if extending, take a random set of hits and materials out
+  if(extend){
+    for(auto ihit = thits.begin(); ihit != thits.end();){
+      if(tr_.Uniform(0.0,1.0) < extendfrac){
+	exthits.push_back(*ihit);
+	ihit = thits.erase(ihit);
+      } else
+	++ihit;
+    }
+    for(auto ixing = dxings.begin(); ixing != dxings.end();){
+      if(tr_.Uniform(0.0,1.0) < extendfrac){
+	exdxings.push_back(*ixing);
+	ixing = dxings.erase(ixing);
+      } else
+	++ixing;
+    }
+  }
 // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+  if(extend && kktrk.fitStatus().usable() && (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
 //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
@@ -375,6 +405,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
   float fft_,mft_, bft_;
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
+  float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
 
   // test parameterstate
@@ -506,6 +537,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ftree->Branch("niter", &niter_,"niter/I");
       ftree->Branch("nmeta", &nmeta_,"nmeta/I");
       ftree->Branch("status", &status_,"status/I");
+      ftree->Branch("seedbeg", &sbeg_,"seedbeg/F");
+      ftree->Branch("seedend", &send_,"seedend/F");
+      ftree->Branch("fitbeg", &fbeg_,"fitbeg/F");
+      ftree->Branch("fitend", &fend_,"fitend/F");
       ftree->Branch("ftmom", &ftmom_,"ftmom/F");
       ftree->Branch("mtmom", &mtmom_,"mtmom/F");
       ftree->Branch("btmom", &btmom_,"btmom/F");
@@ -588,22 +623,27 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
-    unsigned nfail(0), ndiv(0);
+    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0);
 
     config.plevel_ = Config::none;
+    exconfig.plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
     // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
       PKTRAJ tptraj;
       thits.clear();
       dxings.clear();
+      exthits.clear();
+      exdxings.clear();
       toy.simulateParticle(tptraj,thits,dxings,fitmat);
       double tmid = tptraj.range().mid();
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum4(tmid);
       seedmom.SetM(fitmass);
-      TimeRange seedrange(tptraj.range().begin()-0.5,tptraj.range().end()+0.5);
-      KTRAJ seedtraj(midhel.position4(tmid),seedmom,midhel.charge(),bnom,seedrange);
+      TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
+      auto seedpos = midhel.position4(tmid);
+      auto bmid = BF->fieldVect(seedpos.Vect());
+      KTRAJ seedtraj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
       if(invert)seedtraj.invertCT();
       toy.createSeed(seedtraj,sigmas,seedsmear);
   // if requested, constrain a parameter
@@ -618,14 +658,33 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	}
 	thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
       }
+      if(extend){
+	for(auto ihit = thits.begin(); ihit != thits.end();){
+	  if(tr_.Uniform(0.0,1.0) < extendfrac){
+	    exthits.push_back(*ihit);
+	    ihit = thits.erase(ihit);
+	  } else
+	    ++ihit;
+	}
+	for(auto ixing = dxings.begin(); ixing != dxings.end();){
+	  if(tr_.Uniform(0.0,1.0) < extendfrac){
+	    exdxings.push_back(*ixing);
+	    ixing = dxings.erase(ixing);
+	  } else
+	    ++ixing;
+	}
+      }
       auto start = Clock::now();
       KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
-      auto const& fptraj = kktrk.fitTraj();
+      if(extend && kktrk.fitStatus().usable()&& (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
       auto stop = Clock::now();
       duration += std::chrono::duration_cast<std::chrono::nanoseconds>(stop - start).count();
       auto const& fstat = kktrk.fitStatus();
       if(fstat.status_ == Status::failed)nfail++;
+      if(fstat.status_ == Status::converged)nconv++;
+      if(fstat.status_ == Status::lowNDOF)nlow++;
       if(fstat.status_ == Status::diverged)ndiv++;
+      if(fstat.status_ == Status::paramsdiverged)npdiv++;
       niter_ = 0;
       for(auto const& fstat: kktrk.history()){
 	if(fstat.status_ != Status::unfit)niter_++;
@@ -648,6 +707,92 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
+      // basic info
+      auto const& fptraj = kktrk.fitTraj();
+      sbeg_ = seedtraj.range().begin();
+      send_ = seedtraj.range().end();
+      fbeg_ = fptraj.range().begin();
+      fend_ = fptraj.range().end();
+
+      for(auto const& eff: kktrk.effects()) {
+	const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+	const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+	const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+	if(kkhit != 0){
+	  nkkhit_++;
+	  HitInfo hinfo;
+	  hinfo.active_ = kkhit->active();
+	  hinfo.time_ = kkhit->time();
+	  hinfo.chisq_ = kkhit->chisq().chisq();
+	  hinfo.ndof_ = kkhit->chisq().nDOF();
+	  hinfo.ambig_ = -1000;
+	  hinfo.dim_ = -1000;
+	  auto hpos = fptraj.position3(kkhit->hit()->time());
+	  hinfo.xpos_ = hpos.X();
+	  hinfo.ypos_ = hpos.Y();
+	  hinfo.zpos_ = hpos.Z();
+	  hinfo.t0_ = 0.0;
+	  const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+	  const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+	  const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+	  if(strawhit != 0){
+	    hinfo.ambig_ = strawhit->hitState().lrambig_;
+	    hinfo.dim_ = strawhit->hitState().dimension_;
+	    hinfo.t0_ = strawhit->wire().t0();
+	    // straw hits can have multiple residuals
+	    if(strawhit->activeRes(WireHitState::time)){
+	      hinfo.type_ = HitInfo::strawtime;
+	      hinfo.resid_ = strawhit->residual(WireHitState::time).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+	      hinfovec.push_back(hinfo);
+	    }
+	    //
+	    if(strawhit->activeRes(WireHitState::distance)){
+	      hinfo.type_ = HitInfo::strawdistance;
+	      hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
+	      hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+	      hinfovec.push_back(hinfo);
+	    }
+	  } else if(scinthit != 0){
+	    hinfo.type_ = HitInfo::scint;
+	    hinfo.resid_ = scinthit->residual().value();
+	    hinfo.residvar_ = scinthit->residual().variance();
+	    hinfo.t0_ = scinthit->sensorAxis().t0();
+	    hinfovec.push_back(hinfo);
+	  } else if(constraint != 0){
+	    hinfo.type_ = HitInfo::constraint;
+	    hinfo.resid_ = sqrt(constraint->chisq().chisq());
+	    hinfo.residvar_ = 1.0;
+	    hinfovec.push_back(hinfo);
+	  } else {
+	    hinfo.type_ = HitInfo::unknown;
+	    hinfo.resid_ =  0.0;
+	    hinfo.residvar_ = 1.0;
+	  }
+	}
+	if(kkmat != 0){
+	  nkkmat_++;
+	  KinKal::MaterialInfo minfo;
+	  minfo.time_ = kkmat->time();
+	  minfo.active_ = kkmat->active();
+	  minfo.nxing_ = kkmat->detXing().matXings().size();
+	  std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+	  kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
+	  minfo.dmomf_ = dmom[MomBasis::momdir_];
+	  minfo.momvar_ = momvar[MomBasis::momdir_];
+	  minfo.perpvar_ = momvar[MomBasis::perpdir_];
+	  minfovec.push_back(minfo);
+	}
+	if(kkbf != 0){
+	  nkkbf_++;
+	  BFieldInfo bfinfo;
+	  bfinfo.active_ = kkbf->active();
+	  bfinfo.time_ = kkbf->time();
+	  bfinfo.dp_ = kkbf->deltaP().R();
+	  bfinfo.range_ = kkbf->range().range();
+	  bfinfovec.push_back(bfinfo);
+	}
+      }
       if(fstat.usable()){
 	// truth parameters, front and back
 	double ttlow = tptraj.range().begin();
@@ -672,85 +817,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 	if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
 	hniter->Fill(niter_);
 	hnmeta->Fill(nmeta_);
-	for(auto const& eff: kktrk.effects()) {
-	  const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-	  const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
-	  const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-	  if(kkhit != 0){
-	    nkkhit_++;
-	    HitInfo hinfo;
-	    hinfo.active_ = kkhit->active();
-	    hinfo.time_ = kkhit->time();
-	    hinfo.chisq_ = kkhit->chisq().chisq();
-	    hinfo.ndof_ = kkhit->chisq().nDOF();
-	    hinfo.ambig_ = -1000;
-	    hinfo.dim_ = -1000;
-	    auto hpos = fptraj.position3(kkhit->hit()->time());
-	    hinfo.xpos_ = hpos.X();
-	    hinfo.ypos_ = hpos.Y();
-	    hinfo.zpos_ = hpos.Z();
-	    hinfo.t0_ = 0.0;
-	    const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-	    const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-	    const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
-	    if(strawhit != 0){
-	      hinfo.ambig_ = strawhit->hitState().lrambig_;
-	      hinfo.dim_ = strawhit->hitState().dimension_;
-	      hinfo.t0_ = strawhit->wire().t0();
-	      // straw hits can have multiple residuals
-	      if(strawhit->activeRes(WireHitState::time)){
-		hinfo.type_ = HitInfo::strawtime;
-		hinfo.resid_ = strawhit->residual(WireHitState::time).value();
-		hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
-		hinfovec.push_back(hinfo);
-	      }
-	      //
-	      if(strawhit->activeRes(WireHitState::distance)){
-		hinfo.type_ = HitInfo::strawdistance;
-		hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
-		hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
-		hinfovec.push_back(hinfo);
-	      }
-	    } else if(scinthit != 0){
-	      hinfo.type_ = HitInfo::scint;
-	      hinfo.resid_ = scinthit->residual().value();
-	      hinfo.residvar_ = scinthit->residual().variance();
-	      hinfo.t0_ = scinthit->sensorAxis().t0();
-	      hinfovec.push_back(hinfo);
-	    } else if(constraint != 0){
-	      hinfo.type_ = HitInfo::constraint;
-	      hinfo.resid_ = sqrt(constraint->chisq().chisq());
-	      hinfo.residvar_ = 1.0;
-	      hinfovec.push_back(hinfo);
-	    } else {
-	      hinfo.type_ = HitInfo::unknown;
-	      hinfo.resid_ =  0.0;
-	      hinfo.residvar_ = 1.0;
-	    }
-	  }
-	  if(kkmat != 0){
-	    nkkmat_++;
-	    KinKal::MaterialInfo minfo;
-	    minfo.time_ = kkmat->time();
-	    minfo.active_ = kkmat->active();
-	    minfo.nxing_ = kkmat->detXing().matXings().size();
-	    std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-	    kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
-	    minfo.dmomf_ = dmom[MomBasis::momdir_];
-	    minfo.momvar_ = momvar[MomBasis::momdir_];
-	    minfo.perpvar_ = momvar[MomBasis::perpdir_];
-	    minfovec.push_back(minfo);
-	  }
-	  if(kkbf != 0){
-	    nkkbf_++;
-	    BFieldInfo bfinfo;
-	    bfinfo.active_ = kkbf->active();
-	    bfinfo.time_ = kkbf->time();
-	    bfinfo.dp_ = kkbf->deltaP().R();
-	    bfinfo.range_ = kkbf->range().range();
-	    bfinfovec.push_back(bfinfo);
-	  }
-	}
 
 	// step through the fit traj and compare to the truth
 	auto const& fptraj = kktrk.fitTraj();
@@ -855,7 +921,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       if(ttree)ftree->Fill();
     }
 // Test fit success
-    cout << nfail << " Failed fits and " << ndiv << " Diverged fits " << endl;
+    cout
+      << nconv << " Converged fits "
+      << nfail << " Failed fits " 
+      << nlow << " low NDOF fits "
+      << ndiv << " Diverged fits "
+      << npdiv << " ParameterDiverged fits " << endl;
     hnfail->Fill(nfail);
     hndiv->Fill(ndiv);
     if(float(nfail+ndiv)/float(nevents)> 0.1){
