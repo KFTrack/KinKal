@@ -55,7 +55,7 @@ namespace KinKal {
   };
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) : 
-    bfield_(bfield), wire_(ptca.sensorTraj()), wstate_(wstate), tpdata_(ptca.tpData()), precision_(1e-6) {}
+    bfield_(bfield), wire_(ptca.sensorTraj()), wstate_(wstate), tpdata_(ptca.tpData()), precision_(ptca.precision()) {}
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     // compute PTCA.  Default hint is the wire middle

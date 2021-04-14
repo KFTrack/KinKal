@@ -39,8 +39,6 @@ namespace KinKal {
     WIREHIT(bfield,ptca,whstate), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
-    // set precision
-    WIREHIT::setPrecision(miconfig.tprec_);
     // update to move to the new trajectory
     this->update(pktraj);
     // find the wire hit updater in the update params.  There should be 0 or 1

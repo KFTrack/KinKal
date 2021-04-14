@@ -76,7 +76,6 @@ namespace KinKal {
 
   template <class KTRAJ> void ScintHit<KTRAJ>::updateState(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
-    precision_ = miconfig.tprec_;
     update(pktraj);
   }
 
