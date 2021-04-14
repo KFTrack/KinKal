@@ -19,7 +19,7 @@ namespace KinKal {
       using STRAWHIT = WireHit<KTRAJ>;
       using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       // construct from PTCA
-      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , smat_(smat),
+      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , tprec_(tpoca.precision()), smat_(smat),
       sxconfig_(0.05*smat.strawRadius(),1.0),
       axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
@@ -33,6 +33,7 @@ namespace KinKal {
       StrawMaterial const& strawMaterial() const { return smat_; }
       StrawXingConfig const& config() const { return sxconfig_; }
     private:
+      double tprec_;
       StrawMaterial const& smat_;
       StrawXingConfig sxconfig_;
       Line axis_; // straw axis, expressed as a timeline
@@ -61,7 +62,7 @@ namespace KinKal {
     if(sxconfig != 0) sxconfig_ = *sxconfig;
     // use current xing time create a hint to the CA calculation: this speeds it up
     CAHint tphint(EXING::crossingTime(), EXING::crossingTime());
-    PTCA tpoca(pktraj,axis_,tphint,miconfig.tprec_);
+    PTCA tpoca(pktraj,axis_,tphint,tprec_);
     update(tpoca);
   }
 
