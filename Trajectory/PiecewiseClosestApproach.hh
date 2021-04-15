@@ -78,14 +78,6 @@ namespace KinKal {
       tpdata_.status_ = ClosestApproachData::unconverged;
     // should test explicitly for piece oscillation FIXME!
     // test if the solution is on a cusp and if so, chose the one with the smallest DOCA TODO
-//    std::cout << "PTCA niter " << niter << " status " << status() << " in range " <<  inrange << std::endl;
-//    if(!inrange){
-//      auto const& piece = pktraj_.piece(pindex_);
-//      std::cout << "Out of range, TOCA = " << particleToca() << " range " << piece.range() 
-//      << " piece " << pindex_ << " nearest " << pktraj_.nearestIndex(particleToca())
-//      << " npieces " << pktraj_.pieces().size() << " full range " << pktraj_.range() 
-//      << std::endl;
-//    }
   }
   
 
