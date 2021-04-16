@@ -16,35 +16,38 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using STRAWHIT = WireHit<KTRAJ>;
-      using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
       // construct from PTCA
-      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : EXING(tpoca.particleToca()) , tprec_(tpoca.precision()), smat_(smat),
+      StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : tpdata_(tpoca.tpData()), tprec_(tpoca.precision()), smat_(smat),
       sxconfig_(0.05*smat.strawRadius(),1.0),
       axis_(tpoca.sensorTraj()) {
 	update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
       void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) override;
+      double crossingTime() const override { return tpdata_.particleToca(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
      // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
       // accessors
+      ClosestApproachData const& closestApproach() const { return tpdata_; }
+      double tpocaPrecision() const { return tprec_; }
       StrawMaterial const& strawMaterial() const { return smat_; }
       StrawXingConfig const& config() const { return sxconfig_; }
     private:
-      double tprec_;
+      ClosestApproachData tpdata_; // result of most recent TPOCA
+      double tprec_; // precision of TPOCA
       StrawMaterial const& smat_;
       StrawXingConfig sxconfig_;
       Line axis_; // straw axis, expressed as a timeline
+
       // should add state for displace wire TODO
   };
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PTCA const& tpoca) {
     if(tpoca.usable()){
       EXING::matXings().clear();
-      smat_.findXings(tpoca.tpData(),sxconfig_,EXING::matXings());
-      EXING::crossingTime() = tpoca.particleToca();
+      tpdata_ = tpoca.tpData();
+      smat_.findXings(tpdata_,sxconfig_,EXING::matXings());
     } else
       throw std::runtime_error("CA failure");
   }
@@ -61,7 +64,7 @@ namespace KinKal {
     }
     if(sxconfig != 0) sxconfig_ = *sxconfig;
     // use current xing time create a hint to the CA calculation: this speeds it up
-    CAHint tphint(EXING::crossingTime(), EXING::crossingTime());
+    CAHint tphint(this->crossingTime(), this->crossingTime());
     PTCA tpoca(pktraj,axis_,tphint,tprec_);
     update(tpoca);
   }

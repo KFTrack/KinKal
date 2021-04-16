@@ -21,27 +21,24 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // construct from a time
-      ElementXing(double time=-std::numeric_limits<double>::max()) : xtime_(time) {}
+      ElementXing() {}
       virtual ~ElementXing() {}
       virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) =0;
+      virtual double crossingTime() const=0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
       bool active() const { return mxings_.size() > 0; }
-      // accessors
-      double crossingTime() const { return xtime_; }
-      double& crossingTime() { return xtime_; }
-      std::vector<MaterialXing>const&  matXings() const { return mxings_; }
+            std::vector<MaterialXing>const&  matXings() const { return mxings_; }
       std::vector<MaterialXing>&  matXings() { return mxings_; }
       // calculate the cumulative material effect from these crossings
       void materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
     private:
-      double xtime_; // time on the reference trajectory when the xing occured
-      std::vector<MaterialXing> mxings_; // material crossings for this detector piece on this trajectory
+      std::vector<MaterialXing> mxings_; // Effect of each physical material component of this detector element on this trajectory
   };
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
-    double mom = pktraj.momentum(xtime_);
+    double mom = pktraj.momentum(crossingTime());
     double mass = pktraj.mass();
     double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     if(tdir == TimeDir::backwards)dmFdE *= -1.0;
