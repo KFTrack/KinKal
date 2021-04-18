@@ -94,6 +94,10 @@ namespace KinKal {
       Config const& config() const { return config_; }
       BFieldMap const& bfield() const { return bfield_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
+    protected:
+    // construct without fitting and without detailed content: this allows deferring the fit
+      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj );
+      void fit(HITCOL& hits, EXINGCOL& exings );
     private:
       // helper functions
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
@@ -112,16 +116,20 @@ namespace KinKal {
       KKEFFCOL effects_; // effects used in this fit, sorted by time
   };
 
-// construct from configuration, reference (seed) fit, hits,and materials specific to this fit.  Note that hits
-// can contain associated materials.
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : 
+// construct from configuration, reference (seed) fit, hits,and materials specific to this fit.
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield,seedtraj) {
+    fit(hits,exings);
+  }
+  // unfit constructor
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj) :
     config_(cfg), bfield_(bfield), seedtraj_(seedtraj)
   {
     // configuation check
     if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-  // find the min and max time from the effects
-//    double tmin = seedtraj.range().begin();
-//    double tmax = seedtraj.range().end(); 
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::fit(  HITCOL& hits, EXINGCOL& exings) {
+    // find the min and max time from the effects
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
     for(auto const& hit : hits){
@@ -135,9 +143,9 @@ namespace KinKal {
     TimeRange refrange(tmin-config_.tbuff_,tmax+config_.tbuff_);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config_.bfcorr_ != Config::nocorr) bfield_.setDomains(seedtraj,refrange,config_,domains);
+    if(config_.bfcorr_ != Config::nocorr) bfield_.setDomains(seedtraj_,refrange,config_,domains);
     // Create the initial reference trajectory
-    createRefTraj(seedtraj,refrange,domains);
+    createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::forwards));
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::backwards));
