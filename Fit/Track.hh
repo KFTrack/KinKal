@@ -147,6 +147,7 @@ namespace KinKal {
     // Create the initial reference trajectory
     createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
+    effects_.reserve(hits.size()+exings.size()+domains.size()+2);
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::forwards));
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::backwards));
     // add the other effects
@@ -239,6 +240,8 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createEffects( HITCOL& hits, EXINGCOL& exings,DOMAINCOL const& domains ) {
+    // pre-allocate as needed
+    effects_.reserve(effects_.size()+hits.size()+exings.size()+domains.size());
     // append the effects.  First, loop over the hits
     for(auto& hit : hits ) {
       // create the hit effects and insert them in the set
