@@ -48,10 +48,16 @@ class KinematicLine {
 
     // copy and override parameters
     KinematicLine(Parameters const &pdata, KinematicLine const& other); 
+    //New Constructor which used the parameters to construct trajectory
+    KinematicLine(Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
+    
+    KinematicLine(Parameters const& pars);
+    
     explicit KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
     explicit KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
+  
     virtual ~KinematicLine() {}
 
     // particle momentum as a function of time
@@ -67,6 +73,7 @@ class KinematicLine {
 
     // named parameter accessors
     double paramVal(size_t index) const { return pars_.parameters()[index]; }
+    double paramVar(size_t index) const { return pars_.covariance()(index,index); }
     Parameters const &params() const { return pars_; }
     Parameters &params() { return pars_; }
     double d0() const { return paramVal(d0_); }
