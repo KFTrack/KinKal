@@ -67,11 +67,18 @@ jobs:
           if [ "${{ matrix.build-type }}" = "Debug" ]; then
             if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
               mamba install -c conda-forge -y gcovr
-              gcovr -r ../KinKal . 
+              gcovr -r ../KinKal . --xml -o coverage.xml
               # --html --html-details -o test-coverage.html
             fi
           fi
-
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          files: ../KinKal_${{ matrix.build-type }}/coverage.xml # optional
+          flags: unittests # optional
+          name: codecov-umbrella # optional
+          verbose: true # optional (default = false)
+      
       - name: Run clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
         run: |
