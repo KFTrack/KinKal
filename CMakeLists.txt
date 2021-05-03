@@ -146,7 +146,7 @@ if(ENABLE_CLANG_TIDY_WITH_FIXES)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
-  link_libraries(-fprofile-arcs) # gcov symbols
+  link_libraries(-lgcov) # gcov symbols
 endif()
 
 # add shared library targets
