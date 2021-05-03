@@ -62,7 +62,16 @@ jobs:
         run: |
           cd ../KinKal_${{ matrix.build-type }}
           env CTEST_OUTPUT_ON_FAILURE=1 make test
-        
+          
+          # test coverage report
+          if [ "${{ matrix.build-type }}" = "Debug" ]; then
+            if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+              mamba install -c conda-forge -y gcovr
+              gcovr -r ../KinKal . 
+              # --html --html-details -o test-coverage.html
+            fi
+          fi
+
       - name: Run clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
         run: |

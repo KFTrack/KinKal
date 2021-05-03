@@ -125,7 +125,7 @@ add_compile_options(
 #    "-Wshadow"
 
     # debug flags
-    "$<$<CONFIG:DEBUG>:-O0;-g>"
+    "$<$<CONFIG:DEBUG>:-O0;-g;-fprofile-arcs;-ftest-coverage>"
 
     # release flags
     "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
