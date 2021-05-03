@@ -146,7 +146,20 @@ if(ENABLE_CLANG_TIDY_WITH_FIXES)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
-  link_libraries(-lgcov) # gcov symbols
+  if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+    # using Clang / LLVM
+    link_libraries(-fprofile-instr-generate)
+    add_custom_target(coverage
+      COMMAND gcovr --gcov-executable "llvm-cov gcov" -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    )
+  elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+    link_libraries(-lgcov) # gcov symbols
+    add_custom_target(coverage
+      COMMAND gcovr -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s
+      WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+    )
+  endif()
 endif()
 
 # add shared library targets
@@ -170,6 +183,10 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
         PATTERN ".git*" EXCLUDE
 )
 
+add_custom_target(coverage
+  COMMAND gcovr --gcov-executable "llvm-cov gcov" -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s
+
+)
 
 message (STATUS "Writing setup.sh...")
 
