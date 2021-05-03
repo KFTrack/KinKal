@@ -1,5 +1,8 @@
 [![Build Status](https://github.com/KFTrack/KinKal/workflows/KinKal/badge.svg)](https://github.com/KFTrack/KinKal/actions)
 
+[![codecov](https://codecov.io/gh/ryuwd/KinKal/branch/main/graph/badge.svg)](https://codecov.io/gh/ryuwd/KinKal)
+
+
 # Kinematic Kalman filter track fit code package
 
   KinKal implements a kinematic Kalman filter track fit (future ref to CTD/pub).
