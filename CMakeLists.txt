@@ -183,10 +183,6 @@ install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
         PATTERN ".git*" EXCLUDE
 )
 
-add_custom_target(coverage
-  COMMAND gcovr --gcov-executable "llvm-cov gcov" -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s
-
-)
 
 message (STATUS "Writing setup.sh...")
 
