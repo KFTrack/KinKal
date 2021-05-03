@@ -145,7 +145,9 @@ if(ENABLE_CLANG_TIDY_WITH_FIXES)
     set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-fix") 
 endif()
 
-
+if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
+  link_libraries(-fprofile-arcs) # gcov symbols
+endif()
 
 # add shared library targets
 add_subdirectory(MatEnv)
