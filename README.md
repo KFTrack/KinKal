@@ -1,6 +1,5 @@
 [![Build Status](https://github.com/KFTrack/KinKal/workflows/KinKal/badge.svg)](https://github.com/KFTrack/KinKal/actions)
-
-[![codecov](https://codecov.io/gh/ryuwd/KinKal/branch/main/graph/badge.svg)](https://codecov.io/gh/ryuwd/KinKal)
+[![codecov](https://codecov.io/gh/KFTrack/KinKal/branch/main/graph/badge.svg)](https://codecov.io/gh/KFTrack/KinKal)
 
 
 # Kinematic Kalman filter track fit code package
