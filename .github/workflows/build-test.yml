@@ -65,10 +65,13 @@ jobs:
           
           # test coverage report
           if [ "${{ matrix.build-type }}" = "Debug" ]; then
+            mamba install -c conda-forge -y gcovr
+
             if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-              mamba install -c conda-forge -y gcovr
               gcovr -r ../KinKal . --xml -o coverage.xml
-              # --html --html-details -o test-coverage.html
+            fi
+            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"
             fi
           fi
       - name: Upload coverage
