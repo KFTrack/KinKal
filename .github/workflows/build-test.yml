@@ -83,11 +83,10 @@ jobs:
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
-          files: ../KinKal_${{ matrix.build-type }}/coverage.xml # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          verbose: true # optional (default = false)
-      
+          files: ../KinKal_${{ matrix.build-type }}/coverage.xml
+          flags: unittests 
+          name: codecov-umbrella
+
       - name: Run clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
         run: |
