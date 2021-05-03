@@ -49,9 +49,17 @@ jobs:
       - name: CMake (${{ matrix.build-type }})
         run: |
           cd ..
+          ENABLE_COVERAGE=""
+          
+          if [ "${{ matrix.build-type }}" = "Debug" ]; then
+            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              ENABLE_COVERAGE="-DCOVERAGE=ON"
+            fi
+          fi
+
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DCMAKE_COLOR_MAKEFILE=ON
+                -DCMAKE_COLOR_MAKEFILE=ON ${ENABLE_COVERAGE}
       
       - name: Build (${{ matrix.build-type }})
         run: |
@@ -65,11 +73,8 @@ jobs:
           
           # test coverage report
           if [ "${{ matrix.build-type }}" = "Debug" ]; then
-            mamba install -c conda-forge -y gcovr
-            if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
-              gcovr -r ../KinKal . --xml -o coverage.xml
-            fi
             if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              mamba install -c conda-forge -y gcovr
               gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"
             fi
 
