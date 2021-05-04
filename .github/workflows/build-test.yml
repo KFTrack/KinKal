@@ -49,9 +49,17 @@ jobs:
       - name: CMake (${{ matrix.build-type }})
         run: |
           cd ..
+          ENABLE_COVERAGE=""
+          
+          if [ "${{ matrix.build-type }}" = "Debug" ]; then
+            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+              ENABLE_COVERAGE="-DCOVERAGE=ON"
+            fi
+          fi
+
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
-                -DCMAKE_COLOR_MAKEFILE=ON
+                -DCMAKE_COLOR_MAKEFILE=ON ${ENABLE_COVERAGE}
       
       - name: Build (${{ matrix.build-type }})
         run: |
@@ -62,7 +70,25 @@ jobs:
         run: |
           cd ../KinKal_${{ matrix.build-type }}
           env CTEST_OUTPUT_ON_FAILURE=1 make test
+
+      - name: Create coverage report
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          mamba install -c conda-forge -y gcovr
+
+          make coverage
+          gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"  --exclude-directories Tests
         
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v1
+        with:
+          files: ../KinKal_${{ matrix.build-type }}/coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
+
       - name: Run clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
         run: |

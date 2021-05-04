@@ -145,7 +145,25 @@ if(ENABLE_CLANG_TIDY_WITH_FIXES)
     set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-fix") 
 endif()
 
-
+if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
+  if (COVERAGE)
+    add_compile_options("-fprofile-arcs" "-ftest-coverage")
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
+      # using Clang / LLVM
+      link_libraries(-fprofile-instr-generate)
+      add_custom_target(coverage
+        COMMAND gcovr --gcov-executable "llvm-cov gcov" -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s --exclude-directories Tests
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+      )
+    elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+      link_libraries(-lgcov) # gcov symbols
+      add_custom_target(coverage
+        COMMAND gcovr -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s --exclude-directories Tests
+        WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
+      )
+    endif()
+  endif()
+endif()
 
 # add shared library targets
 add_subdirectory(MatEnv)
