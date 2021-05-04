@@ -70,22 +70,24 @@ jobs:
         run: |
           cd ../KinKal_${{ matrix.build-type }}
           env CTEST_OUTPUT_ON_FAILURE=1 make test
-          
-          # test coverage report
-          if [ "${{ matrix.build-type }}" = "Debug" ]; then
-            if [ "${{ matrix.os }}" = "macos-latest" ]; then
-              mamba install -c conda-forge -y gcovr --exclude-directories Tests
-              gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"
 
-              make coverage
-            fi
-          fi
+      - name: Create coverage report
+        run: |
+          cd ../KinKal_${{ matrix.build-type }}
+          mamba install -c conda-forge -y gcovr
+
+          make coverage
+          gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"  --exclude-directories Tests
+        
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
+
       - name: Upload coverage
         uses: codecov/codecov-action@v1
         with:
           files: ../KinKal_${{ matrix.build-type }}/coverage.xml
           flags: unittests
           name: codecov-umbrella
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
 
       - name: Run clang-tidy
         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
