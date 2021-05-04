@@ -74,7 +74,7 @@ jobs:
           # test coverage report
           if [ "${{ matrix.build-type }}" = "Debug" ]; then
             if [ "${{ matrix.os }}" = "macos-latest" ]; then
-              mamba install -c conda-forge -y gcovr
+              mamba install -c conda-forge -y gcovr --exclude-directories Tests
               gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"
 
               make coverage
@@ -84,7 +84,7 @@ jobs:
         uses: codecov/codecov-action@v1
         with:
           files: ../KinKal_${{ matrix.build-type }}/coverage.xml
-          flags: unittests 
+          flags: unittests
           name: codecov-umbrella
 
       - name: Run clang-tidy
