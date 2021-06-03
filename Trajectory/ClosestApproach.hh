@@ -24,7 +24,6 @@ namespace KinKal {
     public:
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
-      // default precision = ~3um along the particle trajectory (assuming speed of light)
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ptraj, STRAJ const& straj, double precision);

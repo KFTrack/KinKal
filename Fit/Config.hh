@@ -36,14 +36,13 @@ namespace KinKal {
     enum BFCorr {nocorr=0, fixed, variable, both }; // this should be moved out of this class TODO
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), tprec_(1e-6), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(0.1), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(0.1), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
     bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
-    double tprec_; // time precision for TOCA calculations
     double dwt_; // dweighting of initial seed covariance
     double pdchi2_; // maximum allowed parameter change (units of chisqred) WRT previous reference
     double tbuff_; // time buffer for final fit (ns)
