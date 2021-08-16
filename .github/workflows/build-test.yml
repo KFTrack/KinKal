@@ -34,7 +34,7 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           mamba-version: "*"
-          channels: defaults,conda-forge
+          channels: conda-forge,defaults
           channel-priority: strict
           use-only-tar-bz2: true
       - name: Conda info
