@@ -76,6 +76,11 @@ namespace KinKal {
   KinematicLine::KinematicLine(Parameters const &pdata, KinematicLine const &other) : KinematicLine(other) {
     pars_ = pdata;
   }
+    
+  KinematicLine::KinematicLine( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
+  bnom_(bnom), mass_(mass), charge_(charge), trange_(trange), pars_(pars) {}
+  
+  KinematicLine::KinematicLine( Parameters const& pars) : pars_(pars) {}
 
   KinematicLine::KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
     KinematicLine(pstate.position4(),pstate.momentum4(), pstate.charge(),bnom,range) 
