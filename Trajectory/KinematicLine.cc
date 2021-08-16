@@ -76,15 +76,6 @@ namespace KinKal {
   KinematicLine::KinematicLine(Parameters const &pdata, KinematicLine const &other) : KinematicLine(other) {
     pars_ = pdata;
   }
-  
-  VEC3 bnom_; // nominal BField: not used by this parameterization 
-    double mass_;   // mass in MeV/c2
-    int charge_; // charge in proton charge unites
-    TimeRange trange_;  // valid range
-    Parameters pars_;      // parameters
-    const static std::vector<std::string> paramTitles_;
-    const static std::vector<std::string> paramNames_;
-    const static std::vector<std::string> paramUnits_;
     
   KinematicLine::KinematicLine( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
   bnom_(bnom), mass_(mass), charge_(charge), trange_(trange), pars_(pars) {}
