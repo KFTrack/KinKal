@@ -70,7 +70,7 @@ foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # register the target as a test 
     add_test (NAME ${testname} COMMAND Test_${testname} )
     set_tests_properties(${testname} PROPERTIES TIMEOUT 250) 
-    set_tests_properties(${testname} PROPERTIES ENVIRONMENT "PACKAGE_SOURCE=${CMAKE_SOURCE_DIR}")
+    set_tests_properties(${testname} PROPERTIES ENVIRONMENT "KINKAL_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
 
     install( TARGETS Test_${testname}
              RUNTIME DESTINATION bin/ )

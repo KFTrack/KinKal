@@ -29,7 +29,7 @@ namespace MatEnv {
 
   class SimpleFileFinder : public FileFinderInterface {
     public:
-      SimpleFileFinder() :  project_(getenv("PACKAGE_SOURCE")) {}
+      SimpleFileFinder() :  project_(getenv("KINKAL_SOURCE_DIR")) {}
 
       virtual std::string matElmDictionaryFileName() const override { return findFile(std::string("/MatEnv/ElementsList.data")); }
       virtual std::string matIsoDictionaryFileName() const override { return findFile(std::string("/MatEnv/IsotopesList.data")); }
