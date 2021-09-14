@@ -32,12 +32,12 @@ namespace KinKal {
       VEC3 momentum3() const { return VEC3(state_[3],state_[4],state_[5]); }
       MOM4 momentum4() const { return MOM4(state_[3],state_[4],state_[5],mass_); }
       double momentum() const { return momentum3().R(); }
-      double mass() const { return mass_; } 
+      double mass() const { return mass_; }
       double time() const { return time_; }
       int charge() const { return charge_; }
       double energy() const { auto mom = momentum(); return sqrt(mom*mom + mass_*mass_); }
       double beta() const { auto mom = momentum(); return mom/sqrt(mom*mom + mass_*mass_); }
-      double betaGamma() const { return energy()/mass_; }
+      double gamma() const { return energy()/mass_; }
       double speed() const { return CLHEP::c_light*beta(); }
       VEC3 velocity() const { return speed()*momentum3()/momentum(); }
     private:
