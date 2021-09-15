@@ -5,7 +5,7 @@
 # Globbing is not recommended, see: https://cmake.org/cmake/help/v3.12/command/file.html#filesystem
 
 # you can regenerate this list easily by running in this directory: ls -1 *.cc
-add_library(General SHARED 
+add_library(General SHARED
     Chisq.cc
     Parameters.cc
     ParticleState.cc
@@ -13,6 +13,7 @@ add_library(General SHARED
     TimeRange.cc
     Weights.cc
     BFieldMap.cc
+    AxialBFieldMap.cc
 )
 
 # set top-level directory as include root
