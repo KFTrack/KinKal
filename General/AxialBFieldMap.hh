@@ -6,7 +6,8 @@
 namespace KinKal {
   class AxialBFieldMap : public BFieldMap {
     public:
-      AxialBFieldMap(double zmin, double zmax, std::vector<double> const& field);
+      AxialBFieldMap(std::string const& file); // read from a file of Z positions and field values; must be evenly spaced
+      AxialBFieldMap(double zmin, double zmax, std::vector<double> const& field); // field values are assumed to be evenly spaced
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
@@ -16,6 +17,7 @@ namespace KinKal {
       AxialBFieldMap& operator =(AxialBFieldMap const& ) = delete;
       double zMin() const { return zmin_; }
       double zMax() const { return zmax_; }
+      auto const& field() const { return axial_; }
     private:
       double zmin_, zmax_, zstep_; // z limits of the field
       std::vector<double> axial_; // axial field
