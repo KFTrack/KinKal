@@ -34,14 +34,14 @@ namespace KKTest {
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
-      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) : 
-	bfield_(bfield), mom_(mom), icharge_(icharge),
-	tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
-	sprop_(0.8*CLHEP::c_light), sdrift_(0.065), 
-	zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
-	scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-	osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
-	smat_(matdb_,rstraw_, wthick_,rwire_) {}
+      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) :
+        bfield_(bfield), mom_(mom), icharge_(icharge),
+        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
+        sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
+        zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
+        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8),
+        smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PKTRAJ const& traj, double htime);
@@ -81,10 +81,10 @@ namespace KKTest {
       double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tbuff_;
-      double tol_; // tolerance on spatial accuracy for 
+      double tol_; // tolerance on spatial accuracy for
       double tprec_; // time precision on TCA
       StrawMaterial smat_; // straw material
-    
+
   };
 
   template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PKTRAJ const& traj, double htime) {
@@ -130,10 +130,10 @@ namespace KKTest {
       if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
       WireHitState::Dimension dim(WireHitState::time);
       if(ambig == WireHitState::null){
-	if(nulltime_)
-	  dim = WireHitState::both;
-	else
-	  dim = WireHitState::distance;
+        if(nulltime_)
+          dim = WireHitState::both;
+        else
+          dim = WireHitState::distance;
       }
       // null variance based on doca cuttoff
       double rmax = std::min(ambigdoca_,rstraw_);
@@ -143,15 +143,15 @@ namespace KKTest {
       WireHitState whstate(ambig, dim, nullvar, nulldt);
       // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
-	thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
       if(addmat)dxings.push_back(xing);
       if(simmat_){
-	double defrac = createStrawMaterial(pktraj, xing.get());
-	// terminate if there is catastrophic energy loss
-	if(fabs(defrac) > 0.1)break;
+        double defrac = createStrawMaterial(pktraj, xing.get());
+        // terminate if there is catastrophic energy loss
+        if(fabs(defrac) > 0.1)break;
       }
     }
     if(lighthit_ && tr_.Uniform(0.0,1.0) > ineff_){
@@ -176,15 +176,15 @@ namespace KKTest {
       double dm;
       // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
       switch( mdir ) {
-	case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
-	  dm = tr_.Gaus(dmom[idir],momsig);
-	  break;
-	case KinKal::MomBasis::momdir_ :
-	  dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-	  desum += dm*mom;
-	  break;
-	default:
-	  throw std::invalid_argument("Invalid direction");
+        case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
+          dm = tr_.Gaus(dmom[idir],momsig);
+          break;
+        case KinKal::MomBasis::momdir_ :
+          dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
+          desum += dm*mom;
+          break;
+        default:
+          throw std::invalid_argument("Invalid direction");
       }
       auto dmvec = endpiece.direction(tstraw,mdir);
       dmvec *= dm*mom;
@@ -240,23 +240,23 @@ namespace KKTest {
     pos = pktraj.position3(htime);
     vel = pktraj.velocity(htime);
     dBdt = bfield_.fieldDeriv(pos,vel);
-//    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
+    //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
       TimeRange prange(pktraj.back().range().begin(),pktraj.back().range().begin());
       prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
       if(prange.end() > htime) {
-	return;
+        return;
       } else {
-	prange.begin() = prange.end();
-	do {
-	  prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
-	  VEC4 pos = pktraj.position4(prange.begin());
-	  MOM4 mom =  pktraj.momentum4(prange.begin());
-	  VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));
-	  KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
-	  pktraj.append(newend);
-	  prange.begin() = prange.end();
-	} while(prange.end() < htime);
+        prange.begin() = prange.end();
+        do {
+          prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
+          VEC4 pos = pktraj.position4(prange.begin());
+          MOM4 mom =  pktraj.momentum4(prange.begin());
+          VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));
+          KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
+          pktraj.append(newend);
+          prange.begin() = prange.end();
+        } while(prange.end() < htime);
       }
     }
   }
