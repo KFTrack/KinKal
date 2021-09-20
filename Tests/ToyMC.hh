@@ -54,6 +54,7 @@ namespace KKTest {
       double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
+      void setTolerance(double tol) { tol_ = tol; }
       // accessors
       double shVar() const {return sigt_*sigt_;}
       double chVar() const {return scitsig_*scitsig_;}

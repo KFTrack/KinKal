@@ -103,6 +103,7 @@ int BFieldMapTest(int argc, char **argv) {
   }
     // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false,false, -1.0, pmass );
+  toy.setTolerance(tol);
   PKTRAJ tptraj;
   HITCOL thits;
   EXINGCOL dxings;
