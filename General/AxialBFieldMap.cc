@@ -19,20 +19,20 @@ namespace KinKal {
     while (std::getline(spectrum_stream, line)) {
       // skip comments and blank lines
       if (line.compare(0,1,comment) != 0 && line.size() > 0 ) {
-	std::istringstream iss(line);
-	if (iss >> zmax_ >> bz ) {
-	  if(first){
-	    first = false;
-	    zmin_ = zmax_;
-	  }
-	  if(axial_.size()>0){
-	    // check uniformity
-	    double dz = zmax_ - (zmin_ + (zmax_-zold)*axial_.size());
-	    if(fabs(dz) > 1e-5) throw std::invalid_argument("field spacing isn't uniform!");
-	  }
-	  zold = zmax_;
-	  axial_.push_back(bz);
-	}
+        std::istringstream iss(line);
+        if (iss >> zmax_ >> bz ) {
+          if(first){
+            first = false;
+            zmin_ = zmax_;
+          }
+          if(axial_.size()>0){
+            // check uniformity
+            double dz = zmax_ - (zmin_ + (zmax_-zold)*axial_.size());
+            if(fabs(dz) > 1e-5) throw std::invalid_argument("field spacing isn't uniform!");
+          }
+          zold = zmax_;
+          axial_.push_back(bz);
+        }
       }
     }
     zstep_=(zmax_-zmin_)/double(axial_.size()-1);
