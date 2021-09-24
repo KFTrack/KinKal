@@ -41,7 +41,7 @@ jobs:
         run: conda info
         
       - name: Conda/Mamba Install
-        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake clang-tools
+        run: mamba install -c conda-forge compilers=1.2.0 root=${{ matrix.root-version }} cmake clang-tools=12.0.1
         
       - uses: actions/checkout@v2
         with:
