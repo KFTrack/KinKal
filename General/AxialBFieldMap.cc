@@ -14,7 +14,7 @@ namespace KinKal {
     std::string line;
     bool first(true);
     static std::string comment("#");
-    double bz, zold;
+    double bz, zold(zmin_);
     axial_.reserve(1000);
     while (std::getline(spectrum_stream, line)) {
       // skip comments and blank lines
@@ -69,7 +69,7 @@ namespace KinKal {
     int low = (int)std::floor((zval-zmin_)/zstep_);
     if(low < 0 )
       return (size_t)0;
-    else if(low >= axial_.size())
+    else if(low >= (int)axial_.size())
       return (size_t)axial_.size()-2;
     else
       return (size_t)low;
