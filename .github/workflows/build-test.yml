@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
         python-version: ["3.9"]
-        root-version: ["6.24.6"]
+        root-version: ["6.22.6"]
         build-type: ["Debug", "Release"]
 
     steps:
