@@ -293,7 +293,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   toy.setInefficiency(ineff);
   // setup fit configuration
-  Config config; 
+  Config config;
   config.dwt_ = dwt;
   config.maxniter_ = maxniter;
   config.bfcorr_ = bfcorr;
@@ -304,10 +304,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   if(strncmp(sfile.c_str(),"/",1) == 0) {
     fullfile = string(sfile);
   } else {
-    if(const char* source = std::getenv("PACKAGE_SOURCE")){
+    if(const char* source = std::getenv("KINKAL_SOURCE_DIR")){
       fullfile = string(source) + string("/Tests/") + string(sfile);
     } else {
-      cout << "PACKAGE_SOURCE not defined" << endl;
+      cout << "KINKAL_SOURCE_DIR not defined" << endl;
       return -1;
     }
   }
@@ -320,7 +320,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   Config exconfig(config);
   string line;
   unsigned nmiter(0);
-  while (getline(ifs,line)){ 
+  while (getline(ifs,line)){
     if(strncmp(line.c_str(),"#",1)!=0){
       istringstream ss(line);
       MetaIterConfig mconfig(ss);
@@ -466,7 +466,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       TPolyMarker3D* hpos = new TPolyMarker3D(1,21);
       TPolyMarker3D* tpos = new TPolyMarker3D(1,22);
       VEC3 plow, phigh;
-      STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
+      STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit);
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
 	auto const& tline = shptr->wire();
@@ -923,7 +923,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 // Test fit success
     cout
       << nconv << " Converged fits "
-      << nfail << " Failed fits " 
+      << nfail << " Failed fits "
       << nlow << " low NDOF fits "
       << ndiv << " Diverged fits "
       << npdiv << " ParameterDiverged fits " << endl;
@@ -946,7 +946,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*momsigma ){
       cout << "Front momentum resolution out of tolerance "
       << ffitr->Parameter(1) << " +- " << ffitr->Error(1) << " sigma " << ffitr->Parameter(2) << endl;
-      retval=-3;	
+      retval=-3;
     }
 
     fdpcan->Write();
@@ -962,7 +962,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Mid momentum resolution out of tolerance "
       << mfitr->Parameter(1) << " +- " << mfitr->Error(1) << " sigma " << mfitr->Parameter(2) << endl;
-      retval=-3;	
+      retval=-3;
     }
     mdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
@@ -976,7 +976,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*momsigma ){
       cout << "Back momentum resolution out of tolerance "
       << bfitr->Parameter(1) << " +- " << bfitr->Error(1) << " sigma " << bfitr->Parameter(2) << endl;
-      retval=-3;	
+      retval=-3;
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
@@ -987,7 +987,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       if(fpull[ipar]->GetEntries() > 1000 && (fabs(fpfitr->Parameter(1)) > 0.1 || (fpfitr->Parameter(2)-1.0) > 0.2)  ){
 	cout << "front pull " << fpull[ipar]->GetName() << " out of tolerance "
 	  << fpfitr->Parameter(1) << " +- " << fpfitr->Error(1) << " sigma " << fpfitr->Parameter(2) << endl;
-	retval=-3;	
+	retval=-3;
       }
     }
     fpullcan->cd(NParams()+1);

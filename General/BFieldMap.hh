@@ -152,6 +152,7 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      double gradient() const { return grad_; }
       virtual ~GradientBFieldMap(){}
       // disallow copy and equivalence
       GradientBFieldMap(GradientBFieldMap const& ) = delete; 
