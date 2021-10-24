@@ -60,7 +60,7 @@
 To build, you must have ROOT (see https://root.cern.ch/) installed, and the `bin/` directory should be on your `PATH`.
 
 
-There are 2 build configurations: *Debug* or *Release*.  To build 
+There are 2 build configurations: *Debug* or *Release*.  To build
 
 1. First, clone this repo
 
@@ -68,10 +68,10 @@ There are 2 build configurations: *Debug* or *Release*.  To build
 git clone https://github.com/KFTrack/KinKal.git
 ```
 
-2. Set up a new build directory; lets say `build_profile` for a profile build (or `build_debug` for a debug build)
+2. Set up a new build directory; lets say `kinkal_profile` for a profile build (or `kinkal_debug` for a debug build)
 ```bash
-mkdir build_profile
-cd build_profile
+mkdir kinkal_profile
+cd kinkal_profile
 
 ```
 
@@ -81,7 +81,7 @@ cd build_profile
 
 ```bash
 
-cmake ../KinKal  -DCMAKE_BUILD_TYPE=[Release/Debug]
+cmake ../KinKal  -DCMAKE_BUILD_TYPE=Release (or Debug)
 
 make -j <jobs to run>
 ```
@@ -99,8 +99,8 @@ Test programs will be built in the `bin/` directory. Run them with `--help` in t
 Make sure `clang-tidy` is installed, and add an extra argument to the `cmake` command.
 
 ```bash
-mkdir build_clangtidy 
-cd build_clangtidy
+mkdir kinkal_clangtidy
+cd kinkal_clangtidy
 cmake ../KinKal -DCMAKE_BUILD_TYPE=[Release/Debug] -DENABLE_CLANG_TIDY=ON
 make -j <jobs to run>
 ```
