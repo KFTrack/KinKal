@@ -18,8 +18,8 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      
-     // Hit interface overrrides; subclass still needs to implement state change update
+
+      // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
       bool activeRes(unsigned ires) const override;
       Residual const& residual(unsigned ires=0) const override;
@@ -54,7 +54,7 @@ namespace KinKal {
       double precision_; // precision for PTCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) : 
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) :
     bfield_(bfield), wire_(ptca.sensorTraj()), wstate_(wstate), tpdata_(ptca.tpData()), precision_(ptca.precision()) {}
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
@@ -82,7 +82,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::setResiduals(PTCA const& tpoca) {
-  // if we're using drift, convert DOCA into time
+    // if we're using drift, convert DOCA into time
     if(wstate_.lrambig_ != WireHitState::null){
       // compute the precise drift
       // translate PTCA to residual
@@ -98,7 +98,7 @@ namespace KinKal {
       double dsign = wstate_.lrambig_*tpoca.lSign(); // overall sign is the product of ambiguity and doca sign
       double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
       // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
-      DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP(); 
+      DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP();
       rresid_[WireHitState::time] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
       // interpret DOCA against the wire directly as the residual.  We have to take the sign out of DOCA
@@ -106,11 +106,11 @@ namespace KinKal {
       double dd = tpoca.doca();
       rresid_[WireHitState::distance] = Residual(dd,wstate_.nullvar_,dRdP);
       if(wstate_.dimension_ == WireHitState::both){
-	// add an absolute time constraint for the null ambig hits.
-	// correct time difference for the average drift.  
-	double dt = tpoca.deltaT() - wstate_.nulldt_;
-	double dtvar = 3.0*wstate_.nulldt_*wstate_.nulldt_;
-	rresid_[WireHitState::time] = Residual(dt,dtvar,-tpoca.dTdP());
+        // add an absolute time constraint for the null ambig hits.
+        // correct time difference for the average drift.
+        double dt = tpoca.deltaT() - wstate_.nulldt_;
+        double dtvar = 3.0*wstate_.nulldt_*wstate_.nulldt_;
+        rresid_[WireHitState::time] = Residual(dt,dtvar,-tpoca.dTdP());
       }
     }
   }
@@ -124,35 +124,35 @@ namespace KinKal {
     ost << " WireHit constraining ";
     switch(wstate_.dimension_) {
       case WireHitState::none: default:
-	ost << "Nothing";
-	break;
+        ost << "Nothing";
+        break;
       case WireHitState::time:
-	ost << "Time";
-	break;
+        ost << "Time";
+        break;
       case WireHitState::distance:
-	ost << "Distance";
-	break;
+        ost << "Distance";
+        break;
       case WireHitState::both:
-	ost << "Distance+Time";
-	break;
+        ost << "Distance+Time";
+        break;
     }
     ost << " LR Ambiguity " ;
     switch(wstate_.lrambig_) {
       case WireHitState::left:
-	ost << "left";
-	break;
-	case WireHitState::right:
-	ost << "right";
-	break;
-	case WireHitState::null: default:
-	ost << "null";
-	break;
+        ost << "left";
+        break;
+      case WireHitState::right:
+        ost << "right";
+        break;
+      case WireHitState::null: default:
+        ost << "null";
+        break;
     }
     if(detail > 0){
       if(activeRes(WireHitState::time))
-	ost << " Time Residual " << rresid_[WireHitState::time];
+        ost << " Time Residual " << rresid_[WireHitState::time];
       if(activeRes(WireHitState::distance))
-	ost << " Distance Residual " << rresid_[WireHitState::distance];
+        ost << " Distance Residual " << rresid_[WireHitState::distance];
       ost << std::endl;
     }
     if(detail > 1) {

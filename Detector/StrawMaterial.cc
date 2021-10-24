@@ -13,9 +13,9 @@ namespace KinKal {
     if (sigdoca < caconfig.minsigdoca_) {  // small error: don't integrate
       double rad = std::min(doca,srad_-thick_);
       wallpath = 2.0*thick_*srad_/sqrt(srad2_-rad*rad);
-      gaspath = 2.0*sqrt(srad2_-rad*rad); 
+      gaspath = 2.0*sqrt(srad2_-rad*rad);
     } else if (sigdoca*caconfig.nsig_ > srad_ ) {
-    // errors are large WRT the size of the straw, or DOCA is very far from the wire: just take the average over all impact parameters
+      // errors are large WRT the size of the straw, or DOCA is very far from the wire: just take the average over all impact parameters
       wallpath = M_PI*thick_;
       gaspath = 0.5*M_PI*srad_;
     } else {
@@ -25,7 +25,7 @@ namespace KinKal {
       double rmin = std::max(-srad_+thick_,doca-caconfig.nsig_*sigdoca)/srad_;
       wallpath = 2.0*thick_*(asin(rmax) - asin(rmin))/(rmax-rmin);
       gaspath = srad_*(asin(rmax) - asin(rmin) +
-	  rmax*sqrt(1.0-rmax*rmax) - rmin*sqrt(1.0-rmin*rmin) )/(rmax-rmin);
+          rmax*sqrt(1.0-rmax*rmax) - rmin*sqrt(1.0-rmin*rmin) )/(rmax-rmin);
       if(isnan(wallpath) || isnan(gaspath))throw std::runtime_error("Invalid pathlength");
     }
     // correct for the angle WRT the axis
