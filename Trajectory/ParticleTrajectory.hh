@@ -19,14 +19,14 @@ namespace KinKal {
       ParticleTrajectory() : PTTRAJ() {}
       //  append and prepend to check mass and charge consistency
       void append(KTRAJ const& newpiece, bool allowremove=false)  {
-	if(PTTRAJ::pieces().size() > 0){
-	  if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
-	}
-	PTTRAJ::append(newpiece,allowremove);
+        if(PTTRAJ::pieces().size() > 0){
+          if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+        }
+        PTTRAJ::append(newpiece,allowremove);
       }
       void prepend(KTRAJ const& newpiece, bool allowremove=false)  {
-	if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
-	PTTRAJ::prepend(newpiece,allowremove);
+        if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+        PTTRAJ::prepend(newpiece,allowremove);
       }
       VEC3 position3(double time) const  { return PTTRAJ::nearestPiece(time).position3(time); }
       VEC4 position4(double time) const  { return PTTRAJ::nearestPiece(time).position4(time); }
