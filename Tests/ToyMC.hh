@@ -4,6 +4,9 @@
 //  Toy MC for fit and hit testing
 //
 #include "TRandom3.h"
+#include "KinKal/MatEnv/MatDBInfo.hh"
+#include "KinKal/MatEnv/DetMaterial.hh"
+#include "KinKal/MatEnv/FileFinderInterface.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -35,7 +38,8 @@ namespace KKTest {
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) :
-        bfield_(bfield), mom_(mom), icharge_(icharge),
+        bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
+        mom_(mom), icharge_(icharge),
         tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
@@ -65,6 +69,7 @@ namespace KKTest {
 
     private:
       BFieldMap const& bfield_;
+      MatEnv::SimpleFileFinder sfinder_;
       MatEnv::MatDBInfo matdb_;
       double mom_;
       int icharge_;
