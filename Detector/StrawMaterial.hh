@@ -10,7 +10,7 @@
 #include "KinKal/Trajectory/ClosestApproachData.hh"
 
 namespace KinKal {
-// simple struct to hold crossing calculation configuration parameters
+  // simple struct to hold crossing calculation configuration parameters
   struct StrawXingConfig {
     double minsigdoca_; // minimum doca sigma to integrate
     double nsig_; // number of sigma past wall to consider 'inside' the straw
@@ -21,15 +21,15 @@ namespace KinKal {
     public:
       // explicit constructor from geometry and materials
       StrawMaterial(double srad, double thick, double wrad,
-	  const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
-	srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) { 
-	  srad2_ = srad_*srad_;
-	}
+          const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
+        srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) {
+          srad2_ = srad_*srad_;
+        }
       // construct using default materials
       StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad) :
-	StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
-	    matdbinfo.findDetMaterial("straw-gas"),
-	    matdbinfo.findDetMaterial("straw-wire")) {}
+        StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
+            matdbinfo.findDetMaterial("straw-gas"),
+            matdbinfo.findDetMaterial("straw-wire")) {}
       // pathlength through straw components, given closest approach
       void pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, double& wallpath, double& gaspath, double& wirepath) const;
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO

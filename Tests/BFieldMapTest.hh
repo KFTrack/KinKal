@@ -1,8 +1,6 @@
-// 
+//
 // test basic functions of BFieldMap class
 //
-#include "KinKal/MatEnv/MatDBInfo.hh"
-#include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
@@ -179,11 +177,11 @@ int BFieldMapTest(int argc, char **argv) {
   dxpost1 = new TH1F("dxpost1","#Delta Pos, T1 Dir",100,-5.0,5.0);
   dxpost2 = new TH1F("dxpost2","#Delta Pos, T2 Dir",100,-5.0,5.0);
   dxposmd = new TH1F("dxposmd","#Delta Pos, M Dir",100,-5.0,5.0);
-  
+
   dlpost1 = new TH1F("dlpost1","#Delta Pos, T1 Dir",100,-5.0,5.0);
   dlpost2 = new TH1F("dlpost2","#Delta Pos, T2 Dir",100,-5.0,5.0);
   dlposmd = new TH1F("dlposmd","#Delta Pos, M Dir",100,-5.0,5.0);
-  
+
   // draw the true helix
   TCanvas* hcan = new TCanvas("hcan","Traj",1000,1000);
   TPolyLine3D* ttrue = new TPolyLine3D(200);
@@ -203,7 +201,7 @@ int BFieldMapTest(int argc, char **argv) {
     t2dir = tptraj.direction(ttime,MomBasis::phidir_);
     mdir = tptraj.direction(ttime,MomBasis::momdir_);
     ttrue->SetPoint(istep, tpos.X(), tpos.Y(), tpos.Z());
-    
+
     xpos = xptraj.position3(ttime);
     tpx->SetPoint(istep, xpos.X(), xpos.Y(), xpos.Z());
 

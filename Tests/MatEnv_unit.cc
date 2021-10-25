@@ -1,4 +1,4 @@
-// 
+//
 // test basic functions of MatEnv and materials
 //
 #include "KinKal/MatEnv/MatDBInfo.hh"
@@ -59,22 +59,22 @@ int main(int argc, char **argv) {
 
   while ((opt = getopt_long_only(argc, argv,"", long_options, &long_index )) != -1) {
     switch (opt) {
-      case 'c' : 
+      case 'c' :
 	matname = string(optarg);
 	break;
-      case 'p' : 
+      case 'p' :
 	imass =atoi(optarg);
 	break;
-      case 's' : 
+      case 's' :
 	momstart = atof(optarg);
 	break;
-      case 'e' : 
+      case 'e' :
 	momend = atof(optarg);
 	break;
-      case 't' : 
+      case 't' :
 	thickness = atof(optarg);
 	break;
-      default: print_usage(); 
+      default: print_usage();
 	       exit(EXIT_FAILURE);
     }
   }
@@ -82,12 +82,13 @@ int main(int argc, char **argv) {
   pname = pnames[imass];
   cout << "Test for particle " << pname  << " mass " << pmass << endl;
   cout << "Searching for material " << matname << endl;
-  MatDBInfo matdbinfo;
+  MatEnv::SimpleFileFinder sfinder;
+  MatDBInfo matdbinfo(sfinder,MatEnv::DetMaterial::moyalmean);
   const DetMaterial* dmat = matdbinfo.findDetMaterial(matname);
   if(dmat != 0){
     cout << "Found DetMaterial " << dmat->name() << endl;
     unsigned nstep(100);
-    double momstep = (momend-momstart)/(nstep-1); 
+    double momstep = (momend-momstart)/(nstep-1);
     TGraph* geloss = new TGraph(nstep);
     string title = string("Eloss vs Momentum ")
      + dmat->name() + string(" ") + pname
@@ -99,12 +100,12 @@ int main(int argc, char **argv) {
      + string(";Mom (MeV/c);MeV");
     gelossrms->SetTitle(title.c_str());
     TGraph* gascat = new TGraph(nstep);
-    title = string("Scattering RMS vs Momentum ") 
+    title = string("Scattering RMS vs Momentum ")
      + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);Radians");
     gascat->SetTitle(title.c_str());
     TGraph* gbetagamma = new TGraph(nstep);
-    title = string("Particle #beta#gamma vs Momentum ") 
+    title = string("Particle #beta#gamma vs Momentum ")
      + dmat->name() + string(" ") + pname
      + string(";Mom (MeV/c);#beta#gamma");
     gbetagamma->SetTitle(title.c_str());

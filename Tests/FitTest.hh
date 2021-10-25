@@ -1,8 +1,6 @@
 //
 // ToyMC test of fitting an KTRAJ-based Track
 //
-#include "KinKal/MatEnv/MatDBInfo.hh"
-#include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"

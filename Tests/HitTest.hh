@@ -1,8 +1,6 @@
 //
 // ToyMC test of hits
 //
-#include "KinKal/MatEnv/MatDBInfo.hh"
-#include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/Line.hh"
@@ -196,7 +194,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       continue;
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit); 
+    STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit);
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
       auto const& tline = shptr->wire();
@@ -294,7 +292,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 	  double ddr = ROOT::Math::Dot(pder,dpvec);
 	  hderivg[ipar]->SetPoint(ipt++,dr,ddr);
 	  if(fabs(dr - ddr) > 1.0 ){
-	    cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar 
+	    cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar
 	      << " doca " << tpdata.doca() << " DirDot " << tpdata.dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
 	    status = 2;
 	  }
@@ -314,7 +312,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
       hderivg[ipar]->Draw("AC*");
       if(fabs(pfitr->Parameter(0))> 100*delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
-	cout << "Parameter " 
+	cout << "Parameter "
 	  << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
 	  << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
 	status = 1;
@@ -342,6 +340,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 
   htfile.Write();
   htfile.Close();
-  cout << "Return status = " << status << endl;  
+  cout << "Return status = " << status << endl;
   exit(status);
 }

@@ -4,15 +4,15 @@
 //  Description:
 //  This class defines the standard values and formulas for particles interacting
 //  with matter.  It is used in the DetectorModel description heirarchy.
-//  
+//
 //
 // Copyright Information:
-//	Copyright (C) 1996	Lawrence Berkeley Laboratory
+//      Copyright (C) 1996      Lawrence Berkeley Laboratory
 //
 //  Authors: Dave Brown, 11/21/96
-//	     Orion Ning, 01/12/21
+//           Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
-#ifndef DETECTORMATERIAL_HH 
+#ifndef DETECTORMATERIAL_HH
 #define DETECTORMATERIAL_HH
 //
 //  Babar includes
@@ -43,28 +43,28 @@ namespace MatEnv {
       //  comparison function
       //
       bool operator == (const DetMaterial& other) const {
-	return _name == other._name; }
+        return _name == other._name; }
 
       double dEdx(double mom,dedxtype type,double mass) const;
-	  
+
       enum energylossmode {mpv=0, moyalmean};
       energylossmode _elossmode;
-      
+
       void setEnergyLossMode(energylossmode elossmode) {_elossmode = elossmode;}
-      
+
       double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old BTrk model dE/dx-based energy loss function from Geant3
 
       double energyLossRMSG3(double mom,double pathlen,double mass) const; //this is the old BTrk model energy loss RMS approx. from Geant3
 
-      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters	      
+      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
       double energyLoss(double mom,double pathlen,double mass) const;
-      
+
       double energyLossRMS(double mom,double pathlen,double mass) const;
-      
+
 
       double energyLossVar(double mom,double pathlen,double mass) const {
-	double elrms = energyLossRMS(mom,pathlen,mass);
-	return elrms*elrms;
+        double elrms = energyLossRMS(mom,pathlen,mass);
+        return elrms*elrms;
       }
       double energyDeposit(double mom, double pathlen,double mass) const;
       double energyGain(double mom,double pathlen, double mass) const;
@@ -76,43 +76,43 @@ namespace MatEnv {
       // Single Gaussian approximation, used in Kalman filtering
       double scatterAngleRMS(double mom,double pathlen,double mass) const;
       double scatterAngleVar(double mom,double pathlen,double mass) const {
-	double sarms = scatterAngleRMS(mom,pathlen,mass);
-	return sarms*sarms;
+        double sarms = scatterAngleRMS(mom,pathlen,mass);
+        return sarms*sarms;
       }
       double highlandSigma(double mom,double pathlen, double mass) const;
 
       static double particleEnergy(double mom,double mass) {
-	return sqrt(pow(mom,2)+pow(mass,2)); }
+        return sqrt(pow(mom,2)+pow(mass,2)); }
 
       static double particleMomentum(double energy,double mass) {
-	return sqrt(particleMom2(energy,mass)); }
+        return sqrt(particleMom2(energy,mass)); }
 
       static double particleMom2(double energy,double mass)  {
-	return std::max(pow(energy,2)-pow(mass,2),0.0); }
+        return std::max(pow(energy,2)-pow(mass,2),0.0); }
 
       static double particleBeta(double mom,double mass) {
-	return mom/particleEnergy(mom,mass); }
+        return mom/particleEnergy(mom,mass); }
 
       static double particleGamma(double mom,double mass)  {
-	return particleEnergy(mom,mass)/mass; }
+        return particleEnergy(mom,mass)/mass; }
 
       static double particleKinEnergy(double E, double mass)  {
-	return E - mass; }
+        return E - mass; }
 
       static double particleBetaGamma(double mom,double mass) {
-	return mom/mass; }
+        return mom/mass; }
 
       //
       //  functions used to compute energy loss
       //
       static double eloss_emax(double mom,double mass) ;
       double eloss_xi(double beta,double pathlen) const;
-      double kappa(double mom,double pathlen,double mass) const { 
-	return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
+      double kappa(double mom,double pathlen,double mass) const {
+        return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
       //
       // return the maximum step one can make through this material
       // for a given momentum and particle type without dE/dx changing
-      // by more than the given tolerance (fraction).  This is an _approximate_ 
+      // by more than the given tolerance (fraction).  This is an _approximate_
       // function, based on a crude model of dE/dx.
       static double maxStepdEdx(double mom,double mass, double dEdx,double tol=0.05);
     protected:
@@ -139,10 +139,10 @@ namespace MatEnv {
       double _meanion; // mean ionization energy loss
       double _eexc; // mean ionization energy loss for new e_loss routine
       double _x0; /*  The following specify parameters for energy loss. see
-		      Sternheimer etal,'Atomic Data and
-		      Nuclear Data Tables', 1984 (40) 267 */
+                      Sternheimer etal,'Atomic Data and
+                      Nuclear Data Tables', 1984 (40) 267 */
       double _x1;
-      double _delta0; 
+      double _delta0;
       double _afactor;
       double _mpower;
       double _bigc;
@@ -185,7 +185,7 @@ namespace MatEnv {
       // returns fraction of radiation lengths traversed for a given
       // physical distance through this material
       double radiationFraction(double pathlen) const {
-	return _density*pathlen/_radthick; }
+        return _density*pathlen/_radthick; }
       void print(std::ostream& os) const;
       void printAll(std::ostream& os ) const;
 
