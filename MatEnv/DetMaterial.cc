@@ -49,7 +49,7 @@ namespace MatEnv {
 
   double cm(10.0); // temporary hack
   DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp):
-    _elossmode(mpv), //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information
+    _elossmode(mpv), //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
     _msmom(15.0),
     _scatterfrac(0.9999),
     _cutOffEnergy(1000.),
@@ -523,5 +523,9 @@ namespace MatEnv {
   //reference for Moyal dist.: Theory of Ionization Fluctuation by J. E. Moyal, Phil. Mag. 46 (1955) 263
   //more useful references: https://reference.wolfram.com/language/ref/MoyalDistribution.html, http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf, and https://arxiv.org/pdf/1702.06655.pdf
 
+  //Information about Radiative Energy Losses:
+
+  //Since radiative energy losses have a highly non-Gaussian distribution in thin materials such as the tracker, we do not correct for average radiative energy loss here. The most probable energy loss value is 0 with a long tail, and rare electrons with high radiative losses would be rejected by the filter anyways due to failed or poor fitting. We do not want to overcorrect most electrons with 0 radiative loss.
+  //Useful reference which expands on this (sections 2.2, 2.3): Matthews, J. L., D. J. S. Findlay, and R. O. Owens. "The distribution of electron energy losses in thin absorbers." Nuclear Instruments and Methods 180.2-3 (1981): 573-579.
 
 }
