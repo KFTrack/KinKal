@@ -148,7 +148,8 @@ namespace MatEnv {
 
         // New energy loss implementation
 
-        double Tmax,gamma2,beta2,bg2,rcut,delta,x,sh,dedx ;
+        //double Tmax,gamma2,beta2,bg2,rcut,delta,x,sh,dedx ;
+        double Tmax,gamma2,beta2,bg2,rcut,delta,sh,dedx ;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double tau = gamma-1. ;
@@ -231,7 +232,8 @@ namespace MatEnv {
 
         // New energy loss implementation
 
-        double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
+        // double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
+        double gamma2,beta2,bg2,delta, xi, deltap, sh ;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double j = 0.200 ;
