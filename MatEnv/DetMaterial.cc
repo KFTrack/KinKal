@@ -173,42 +173,50 @@ namespace MatEnv {
           dedx += log(rcut)-(1.+rcut)*beta2;
         }
 
-        // density correction
-        x = log(bg2)/twoln10 ;
-        if ( x < _x0 ) {
-          if(_delta0 > 0) {
-            delta = _delta0*pow(10.0,2*(x-_x0));
-          }
-          else {
-            delta = 0.;
-          }
-        } else {
-          delta = twoln10*x - _bigc;
-          if ( x < _x1 )
-            delta += _afactor * pow((_x1 - x), _mpower);
-        }
+        // // density correction
+        // x = log(bg2)/twoln10 ;
+        // if ( x < _x0 ) {
+        //   if(_delta0 > 0) {
+        //     delta = _delta0*pow(10.0,2*(x-_x0));
+        //   }
+        //   else {
+        //     delta = 0.;
+        //   }
+        // } else {
+        //   delta = twoln10*x - _bigc;
+        //   if ( x < _x1 )
+        //     delta += _afactor * pow((_x1 - x), _mpower);
+        // }
+
+        // density correction 
+        delta = densityCorrection(bg2);
 
         // shell correction
-        if ( bg2 > bg2lim ) {
-          sh = 0. ;
-          x = 1. ;
-          for (int k=0; k<=2; k++) {
-            x *= bg2 ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
-        }
-        else {
-          sh = 0. ;
-          x = 1. ;
-          for (int k=0; k<2; k++) {
-            x *= bg2lim ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
-          sh *= log(tau/_taul)/log(taulim/_taul);
-        }
+        // if ( bg2 > bg2lim ) {
+        //   sh = 0. ;
+        //   x = 1. ;
+        //   for (int k=0; k<=2; k++) {
+        //     x *= bg2 ;
+        //     sh += (*_shellCorrectionVector)[k]/x;
+        //   }
+        // }
+        // else {
+        //   sh = 0. ;
+        //   x = 1. ;
+        //   for (int k=0; k<2; k++) {
+        //     x *= bg2lim ;
+        //     sh += (*_shellCorrectionVector)[k]/x;
+        //   }
+        //   sh *= log(tau/_taul)/log(taulim/_taul);
+        // }
+        // shell correction
+        sh = shellCorrection(bg2, tau);
+        
         dedx -= delta + sh ;
         dedx *= -_dgev*_density*_za / beta2 ;
+        
         return dedx;
+
       } else
         return 0.0;
     }
@@ -242,39 +250,43 @@ namespace MatEnv {
         deltap -= beta2 ;
         deltap += j ;
 
-        // density correction
-        x = log(bg2)/twoln10 ;
-        if ( x < _x0 ) {
-          if(_delta0 > 0) {
-            delta = _delta0*pow(10.0,2*(x-_x0));
-          }
-          else {
-            delta = 0.;
-          }
-        } else {
-          delta = twoln10*x - _bigc;
-          if ( x < _x1 )
-            delta += _afactor * pow((_x1 - x), _mpower);
-        }
+        // // density correction
+        // x = log(bg2)/twoln10 ;
+        // if ( x < _x0 ) {
+        //   if(_delta0 > 0) {
+        //     delta = _delta0*pow(10.0,2*(x-_x0));
+        //   }
+        //   else {
+        //     delta = 0.;
+        //   }
+        // } else {
+        //   delta = twoln10*x - _bigc;
+        //   if ( x < _x1 )
+        //     delta += _afactor * pow((_x1 - x), _mpower);
+        // }
+        // // density correction
+        delta = densityCorrection(bg2);
 
-        // shell correction
-        if ( bg2 > bg2lim ) {
-          sh = 0. ;
-          x = 1. ;
-          for (int k=0; k<=2; k++) {
-            x *= bg2 ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
-        }
-        else {
-          sh = 0. ;
-          x = 1. ;
-          for (int k=0; k<2; k++) {
-            x *= bg2lim ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
-          sh *= log(tau/_taul)/log(taulim/_taul);
-        }
+        // // shell correction
+        // if ( bg2 > bg2lim ) {
+        //   sh = 0. ;
+        //   x = 1. ;
+        //   for (int k=0; k<=2; k++) {
+        //     x *= bg2 ;
+        //     sh += (*_shellCorrectionVector)[k]/x;
+        //   }
+        // }
+        // else {
+        //   sh = 0. ;
+        //   x = 1. ;
+        //   for (int k=0; k<2; k++) {
+        //     x *= bg2lim ;
+        //     sh += (*_shellCorrectionVector)[k]/x;
+        //   }
+        //   sh *= log(tau/_taul)/log(taulim/_taul);
+        // }
+        // // shell correction
+        sh = shellCorrection(bg2, tau);
 
         deltap -= delta + sh ;
         deltap *= -xi ;
@@ -302,7 +314,54 @@ namespace MatEnv {
         return 0.0;
 
     }
+  
+  //Calculate density correction for energy loss 
+  double 
+    DetMaterial::densityCorrection(double bg2){
+      // density correction
+        double x = 0; 
+        double delta = 0;
+        x = log(bg2)/twoln10 ;
+        if ( x < _x0 ) {
+          if(_delta0 > 0) {
+            delta = _delta0*pow(10.0,2*(x-_x0));
+          }
+          else {
+            delta = 0.;
+          }
+        } else {
+          delta = twoln10*x - _bigc;
+          if ( x < _x1 )
+            delta += _afactor * pow((_x1 - x), _mpower);
+        }
+        return delta;
+    }
 
+  // Caluclate shell correction for energy loss 
+  double 
+    DetMaterial::shellCorrection(double bg2, double tau){
+       double sh = 0;
+       double x = 1; 
+       // shell correction
+        if ( bg2 > bg2lim ) {
+          //sh = 0. ;
+          //x = 1. ;
+          for (int k=0; k<=2; k++) {
+            x *= bg2 ;
+            sh += (*_shellCorrectionVector)[k]/x;
+          }
+        }
+        else {
+          //sh = 0. ;
+          //x = 1. ;
+          for (int k=0; k<2; k++) {
+            x *= bg2lim ;
+            sh += (*_shellCorrectionVector)[k]/x;
+          }
+          sh *= log(tau/_taul)/log(taulim/_taul);
+        }
+        return sh;
+    }
 
   //below, the old BTrk model 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)
   //and now 'energyLoss' above refers to the new most probable energy loss method
