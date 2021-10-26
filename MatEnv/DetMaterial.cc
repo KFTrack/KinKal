@@ -317,7 +317,7 @@ namespace MatEnv {
   
   //Calculate density correction for energy loss 
   double 
-    DetMaterial::densityCorrection(double bg2){
+    DetMaterial::densityCorrection(double bg2) const {
       // density correction
         double x = 0; 
         double delta = 0;
@@ -339,7 +339,7 @@ namespace MatEnv {
 
   // Caluclate shell correction for energy loss 
   double 
-    DetMaterial::shellCorrection(double bg2, double tau){
+    DetMaterial::shellCorrection(double bg2, double tau) const {
        double sh = 0;
        double x = 1; 
        // shell correction

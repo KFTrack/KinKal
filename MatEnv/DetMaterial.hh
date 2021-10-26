@@ -107,8 +107,8 @@ namespace MatEnv {
       //
       static double eloss_emax(double mom,double mass) ;
       double eloss_xi(double beta,double pathlen) const;
-      double densityCorrection(double bg2);
-      double shellCorrection(double bg2, double tau);
+      double densityCorrection(double bg2) const;
+      double shellCorrection(double bg2, double tau) const;
       double kappa(double mom,double pathlen,double mass) const {
         return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
       //
