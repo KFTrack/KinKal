@@ -69,24 +69,24 @@ int BFieldMapTest(int argc, char **argv) {
   int opt;
   int long_index =0;
   while ((opt = getopt_long_only(argc, argv,"",
-	  long_options, &long_index )) != -1) {
+          long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
+                 break;
       case 'x' : dBx = atof(optarg);
-		 break;
+                 break;
       case 'y' : dBy = atof(optarg);
-		 break;
+                 break;
       case 'Z' : dBz = atof(optarg);
-		 break;
+                 break;
       case 'g' : Bgrad = atof(optarg);
-		 break;
+                 break;
       case 't' : tol = atof(optarg);
-		 break;
+                 break;
       case 'q' : icharge = atoi(optarg);
-		 break;
+                 break;
       default: print_usage();
-	       exit(EXIT_FAILURE);
+               exit(EXIT_FAILURE);
     }
   }
   VEC3 bnom(0.0,0.0,1.0);
@@ -99,7 +99,7 @@ int BFieldMapTest(int argc, char **argv) {
     BF = new UniformBFieldMap(bsim);
     bnom = VEC3(0.0,0.0,1.0);
   }
-    // first, create a traj based on the actual field at this point
+  // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false,false, -1.0, pmass );
   toy.setTolerance(tol);
   PKTRAJ tptraj;
@@ -117,14 +117,14 @@ int BFieldMapTest(int argc, char **argv) {
   do {
     auto const& piece = xptraj.back();
     prange.end() = BF->rangeInTolerance(piece,prange.begin(), tol);
-// integrate the momentum change over this range
+    // integrate the momentum change over this range
     VEC3 dp = BF->integrate(piece,prange);
     // approximate change in position
-//    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum4(prange.mid());
+    //    VEC3 dpos = 0.5*dp*piece.speed(prange.mid())*prange.range()/piece.momentum4(prange.mid());
     // create a new trajectory piece at this point, correcting for the momentum change
     pos = piece.position4(prange.end());
     momv = piece.momentum4(pos.T());
-//    cout << "BFieldMap integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
+    //    cout << "BFieldMap integral dP " << dp.R() << " dpos " << dpos.R()  << " range " << prange.range() << " pos " << pos << endl;
     prange = TimeRange(prange.end(),std::max(prange.end()+double(0.1),xptraj.range().end()));
     // clumsy code to modify a vector
     auto mom = momv.Vect();
@@ -160,7 +160,7 @@ int BFieldMapTest(int argc, char **argv) {
   cout << "LTraj " << lptraj << " integral " << ldp << endl;
   cout << "Nominal " << start << " integral " << ndp << endl;
 
-// setup histograms
+  // setup histograms
   TFile tpfile((KTRAJ::trajName()+"BFieldMap.root").c_str(),"RECREATE");
   TH1F *dxmomt1, *dxmomt2, *dxmommd;
   TH1F *dlmomt1, *dlmomt2, *dlmommd;
@@ -194,7 +194,7 @@ int BFieldMapTest(int argc, char **argv) {
   VEC3 tmom, xmom, lmom;
   double tstep = tptraj.range().range()/200.0;
   for(int istep=0;istep<201;++istep){
-  // compute the position from the time
+    // compute the position from the time
     double ttime = tptraj.range().begin() + tstep*istep;
     tpos = tptraj.position3(ttime);
     t1dir = tptraj.direction(ttime,MomBasis::perpdir_);
@@ -301,9 +301,9 @@ int BFieldMapTest(int argc, char **argv) {
   dlcan->Write();
 
 
-// test the BFieldMap rotation by expressing a simple helix.  This doesn't simulate a true
-// particle path, it just tests mechanics
-// loop over the time ranges given by the 'sim' trajectory
+  // test the BFieldMap rotation by expressing a simple helix.  This doesn't simulate a true
+  // particle path, it just tests mechanics
+  // loop over the time ranges given by the 'sim' trajectory
   KTRAJ const& sktraj = tptraj.front();
   PKTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
