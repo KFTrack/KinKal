@@ -6,7 +6,7 @@
 #include "TRandom3.h"
 #include "KinKal/MatEnv/MatDBInfo.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
-#include "KinKal/MatEnv/FileFinderInterface.hh"
+#include "KinKal/MatEnv/SimpleFileFinder.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"

@@ -19,9 +19,9 @@ namespace KinKal {
       double& end() { return range_[1]; }
       bool infinite() const { return end() + tbuff_ < begin(); }
       bool overlaps(TimeRange const& other ) const {
-	return (end() > other.begin() || begin() < other.end()); }
+        return (end() > other.begin() || begin() < other.end()); }
       bool contains(TimeRange const& other) const {
-	return (begin() < other.begin() && end() > other.end()); }
+        return (begin() < other.begin() && end() > other.end()); }
       // force time to be in range
       void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
       // test if a time is at the limit

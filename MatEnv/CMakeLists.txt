@@ -1,5 +1,5 @@
 
-add_library(MatEnv SHARED 
+add_library(MatEnv SHARED
     DetMaterial.cc
     ElmPropObj.cc
     MatDBInfo.cc
@@ -14,6 +14,7 @@ add_library(MatEnv SHARED
     MatMtrDictionary.cc
     MtrPropObj.cc
     RecoMatFactory.cc
+    SimpleFileFinder.cc
 )
 
 # set top-level directory as include root

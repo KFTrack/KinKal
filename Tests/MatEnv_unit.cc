@@ -3,6 +3,7 @@
 //
 #include "KinKal/MatEnv/MatDBInfo.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
+#include "KinKal/MatEnv/SimpleFileFinder.hh"
 
 #include <iostream>
 #include <stdio.h>
@@ -60,22 +61,22 @@ int main(int argc, char **argv) {
   while ((opt = getopt_long_only(argc, argv,"", long_options, &long_index )) != -1) {
     switch (opt) {
       case 'c' :
-	matname = string(optarg);
-	break;
+        matname = string(optarg);
+        break;
       case 'p' :
-	imass =atoi(optarg);
-	break;
+        imass =atoi(optarg);
+        break;
       case 's' :
-	momstart = atof(optarg);
-	break;
+        momstart = atof(optarg);
+        break;
       case 'e' :
-	momend = atof(optarg);
-	break;
+        momend = atof(optarg);
+        break;
       case 't' :
-	thickness = atof(optarg);
-	break;
+        thickness = atof(optarg);
+        break;
       default: print_usage();
-	       exit(EXIT_FAILURE);
+               exit(EXIT_FAILURE);
     }
   }
   pmass = masses[imass];
@@ -91,23 +92,23 @@ int main(int argc, char **argv) {
     double momstep = (momend-momstart)/(nstep-1);
     TGraph* geloss = new TGraph(nstep);
     string title = string("Eloss vs Momentum ")
-     + dmat->name() + string(" ") + pname
-     + string(";Mom (MeV/c);MeV");
+      + dmat->name() + string(" ") + pname
+      + string(";Mom (MeV/c);MeV");
     geloss->SetTitle(title.c_str());
     TGraph* gelossrms = new TGraph(nstep);
     title = string("Eloss RMS vs Momentum ")
-     + dmat->name() + string(" ") + pname
-     + string(";Mom (MeV/c);MeV");
+      + dmat->name() + string(" ") + pname
+      + string(";Mom (MeV/c);MeV");
     gelossrms->SetTitle(title.c_str());
     TGraph* gascat = new TGraph(nstep);
     title = string("Scattering RMS vs Momentum ")
-     + dmat->name() + string(" ") + pname
-     + string(";Mom (MeV/c);Radians");
+      + dmat->name() + string(" ") + pname
+      + string(";Mom (MeV/c);Radians");
     gascat->SetTitle(title.c_str());
     TGraph* gbetagamma = new TGraph(nstep);
     title = string("Particle #beta#gamma vs Momentum ")
-     + dmat->name() + string(" ") + pname
-     + string(";Mom (MeV/c);#beta#gamma");
+      + dmat->name() + string(" ") + pname
+      + string(";Mom (MeV/c);#beta#gamma");
     gbetagamma->SetTitle(title.c_str());
     for(unsigned istep = 0;istep < nstep; istep++){
       double mom = momstart + istep*momstep;
