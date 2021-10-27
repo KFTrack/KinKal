@@ -147,19 +147,15 @@ namespace MatEnv {
         double Eexc2 = _eexc*_eexc ;
 
         // New energy loss implementation
-
-        //double Tmax,gamma2,beta2,bg2,rcut,delta,x,sh,dedx ;
         double Tmax,gamma2,beta2,bg2,rcut,delta,sh,dedx ;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double tau = gamma-1. ;
 
         // high energy part , Bethe-Bloch formula
-
         beta2 = beta*beta ;
         gamma2 = gamma*gamma ;
         bg2 = beta2*gamma2 ;
-
 
         double RateMass = e_mass_/ mass;
 
@@ -198,22 +194,17 @@ namespace MatEnv {
         pathlen = fabs(pathlen) ;
 
         // New energy loss implementation
-
-        // double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
         double gamma2,beta2,bg2,delta, deltap, sh, xi;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double j = 0.200 ;
-        //double thickness = _density*pathlen ;
         double tau = gamma-1;
 
 
         // most probable energy loss function
-
         beta2 = beta*beta ;
         gamma2 = gamma*gamma ;
         bg2 = beta2*gamma2 ;
-        //xi = _dgev*_za * thickness / beta2 ;
         xi = eloss_xi(beta, pathlen); 
 
         deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
@@ -245,7 +236,7 @@ namespace MatEnv {
 
   //////////////////////////////////////////////////////////
 
-  // // Calculate moyal mean 
+  //// Calculate Moyal mean 
   double 
     DetMaterial::moyalMean(double deltap, double xi) const{
       //getting most probable energy loss, or mpv:
@@ -263,7 +254,7 @@ namespace MatEnv {
           return -1.0 * mmean;
     }
 
-  // //Calculate density correction for energy loss 
+  ////Calculate density correction for energy loss 
   double 
     DetMaterial::densityCorrection(double bg2) const {
       // density correction
@@ -284,8 +275,8 @@ namespace MatEnv {
         }
         return delta;
     }
-
-  // // Caluclate shell correction for energy loss 
+    
+  //// Caluclate shell correction for energy loss 
   double 
     DetMaterial::shellCorrection(double bg2, double tau) const {
        double sh = 0;

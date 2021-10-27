@@ -109,7 +109,7 @@ namespace MatEnv {
       double eloss_xi(double beta,double pathlen) const;
       double densityCorrection(double bg2) const;
       double shellCorrection(double bg2, double tau) const;
-      double moyalMean(double deltap, double moyalsigma) const;
+      double moyalMean(double deltap, double xi) const;
       double kappa(double mom,double pathlen,double mass) const {
         return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
       //
