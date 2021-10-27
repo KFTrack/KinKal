@@ -233,7 +233,7 @@ namespace MatEnv {
         // New energy loss implementation
 
         // double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
-        double gamma2,beta2,bg2,delta, deltap, sh, moyalsigma ;
+        double gamma2,beta2,bg2,delta, deltap, sh, xi;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double j = 0.200 ;
