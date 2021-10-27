@@ -247,9 +247,9 @@ namespace MatEnv {
         gamma2 = gamma*gamma ;
         bg2 = beta2*gamma2 ;
         //xi = _dgev*_za * thickness / beta2 ;
-        moyalsigma = eloss_xi(beta, pathlen); // same as xi in dEdx
+        xi = eloss_xi(beta, pathlen); 
 
-        deltap = log(2.*e_mass_*bg2/_eexc) + log(moyalsigma/_eexc);
+        deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
         deltap -= beta2 ;
         deltap += j ;
 
@@ -292,7 +292,7 @@ namespace MatEnv {
         sh = shellCorrection(bg2, tau);
 
         deltap -= delta + sh ;
-        deltap *= -moyalsigma ;
+        deltap *= -xi ;
 
 
 
@@ -309,7 +309,7 @@ namespace MatEnv {
           // double mmean = energylossmpv + xi * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
 
           // return -1*mmean;
-          return moyalMean(deltap, moyalsigma);
+          return moyalMean(deltap, xi);
 
 
         } else
@@ -325,9 +325,12 @@ namespace MatEnv {
 
   // // Calculate moyal mean 
   double 
-    DetMaterial::moyalMean(double deltap, double moyalsigma) const{
+    DetMaterial::moyalMean(double deltap, double xi) const{
       //getting most probable energy loss, or mpv:
           double energylossmpv = fabs(deltap);
+
+          //declare moyalsigma for sanity check
+          double moyalsigma = xi;
 
           //forming the Moyal Mean
 
@@ -479,12 +482,12 @@ namespace MatEnv {
 
         double beta = particleBeta(mom, mass) ;
 
-        double xi = eloss_xi(beta, pathlen);
+        double moyalsigma = eloss_xi(beta, pathlen);
 
 
         //forming the Moyal RMS
         constexpr static double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
-        double mrms = pisqrt2 * xi ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+        double mrms = pisqrt2 * moyalsigma ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 
         return mrms;
 
