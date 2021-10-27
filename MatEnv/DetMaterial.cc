@@ -233,11 +233,11 @@ namespace MatEnv {
         // New energy loss implementation
 
         // double gamma2,beta2,bg2,delta,x, xi, deltap, sh ;
-        double gamma2,beta2,bg2,delta, xi, deltap, sh ;
+        double gamma2,beta2,bg2,delta, deltap, sh, moyalsigma ;
         double beta  = particleBeta(mom,mass) ;
         double gamma = particleGamma(mom,mass) ;
         double j = 0.200 ;
-        double thickness = _density*pathlen ;
+        //double thickness = _density*pathlen ;
         double tau = gamma-1;
 
 
@@ -246,9 +246,10 @@ namespace MatEnv {
         beta2 = beta*beta ;
         gamma2 = gamma*gamma ;
         bg2 = beta2*gamma2 ;
-        xi = _dgev*_za * thickness / beta2 ;
+        //xi = _dgev*_za * thickness / beta2 ;
+        moyalsigma = eloss_xi(beta, pathlen); // same as xi in dEdx
 
-        deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
+        deltap = log(2.*e_mass_*bg2/_eexc) + log(moyalsigma/_eexc);
         deltap -= beta2 ;
         deltap += j ;
 
@@ -291,23 +292,24 @@ namespace MatEnv {
         sh = shellCorrection(bg2, tau);
 
         deltap -= delta + sh ;
-        deltap *= -xi ;
+        deltap *= -moyalsigma ;
 
 
 
         //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
         if(_elossmode == moyalmean) {
 
-          //getting most probable energy loss, or mpv:
-          double energylossmpv = fabs(deltap);
+          // //getting most probable energy loss, or mpv:
+          // double energylossmpv = fabs(deltap);
 
-          //forming the Moyal Mean
+          // //forming the Moyal Mean
 
-          //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
-          constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
-          double mmean = energylossmpv + xi * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
+          // //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
+          // constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
+          // double mmean = energylossmpv + xi * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
 
-          return -1*mmean;
+          // return -1*mmean;
+          return moyalMean(deltap, moyalsigma);
 
 
         } else
@@ -317,7 +319,26 @@ namespace MatEnv {
 
     }
   
-  //Calculate density correction for energy loss 
+
+
+  //////////////////////////////////////////////////////////
+
+  // // Calculate moyal mean 
+  double 
+    DetMaterial::moyalMean(double deltap, double moyalsigma) const{
+      //getting most probable energy loss, or mpv:
+          double energylossmpv = fabs(deltap);
+
+          //forming the Moyal Mean
+
+          //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
+          constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
+          double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
+
+          return -1.0 * mmean;
+    }
+
+  // //Calculate density correction for energy loss 
   double 
     DetMaterial::densityCorrection(double bg2) const {
       // density correction
@@ -339,7 +360,7 @@ namespace MatEnv {
         return delta;
     }
 
-  // Caluclate shell correction for energy loss 
+  // // Caluclate shell correction for energy loss 
   double 
     DetMaterial::shellCorrection(double bg2, double tau) const {
        double sh = 0;
