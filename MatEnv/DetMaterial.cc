@@ -174,43 +174,10 @@ namespace MatEnv {
           dedx += log(rcut)-(1.+rcut)*beta2;
         }
 
-        // // density correction
-        // x = log(bg2)/twoln10 ;
-        // if ( x < _x0 ) {
-        //   if(_delta0 > 0) {
-        //     delta = _delta0*pow(10.0,2*(x-_x0));
-        //   }
-        //   else {
-        //     delta = 0.;
-        //   }
-        // } else {
-        //   delta = twoln10*x - _bigc;
-        //   if ( x < _x1 )
-        //     delta += _afactor * pow((_x1 - x), _mpower);
-        // }
-
-        // density correction 
+        //// density correction 
         delta = densityCorrection(bg2);
 
-        // shell correction
-        // if ( bg2 > bg2lim ) {
-        //   sh = 0. ;
-        //   x = 1. ;
-        //   for (int k=0; k<=2; k++) {
-        //     x *= bg2 ;
-        //     sh += (*_shellCorrectionVector)[k]/x;
-        //   }
-        // }
-        // else {
-        //   sh = 0. ;
-        //   x = 1. ;
-        //   for (int k=0; k<2; k++) {
-        //     x *= bg2lim ;
-        //     sh += (*_shellCorrectionVector)[k]/x;
-        //   }
-        //   sh *= log(tau/_taul)/log(taulim/_taul);
-        // }
-        // shell correction
+        //// shell correction
         sh = shellCorrection(bg2, tau);
         
         dedx -= delta + sh ;
@@ -253,64 +220,19 @@ namespace MatEnv {
         deltap -= beta2 ;
         deltap += j ;
 
-        // // density correction
-        // x = log(bg2)/twoln10 ;
-        // if ( x < _x0 ) {
-        //   if(_delta0 > 0) {
-        //     delta = _delta0*pow(10.0,2*(x-_x0));
-        //   }
-        //   else {
-        //     delta = 0.;
-        //   }
-        // } else {
-        //   delta = twoln10*x - _bigc;
-        //   if ( x < _x1 )
-        //     delta += _afactor * pow((_x1 - x), _mpower);
-        // }
-        // // density correction
+        //// density correction
         delta = densityCorrection(bg2);
 
-        // // shell correction
-        // if ( bg2 > bg2lim ) {
-        //   sh = 0. ;
-        //   x = 1. ;
-        //   for (int k=0; k<=2; k++) {
-        //     x *= bg2 ;
-        //     sh += (*_shellCorrectionVector)[k]/x;
-        //   }
-        // }
-        // else {
-        //   sh = 0. ;
-        //   x = 1. ;
-        //   for (int k=0; k<2; k++) {
-        //     x *= bg2lim ;
-        //     sh += (*_shellCorrectionVector)[k]/x;
-        //   }
-        //   sh *= log(tau/_taul)/log(taulim/_taul);
-        // }
-        // // shell correction
+        //// shell correction
         sh = shellCorrection(bg2, tau);
 
         deltap -= delta + sh ;
-        deltap *= -xi ;
-
-
+        deltap *= -xi ; // This is the most probable energy loss
 
         //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
         if(_elossmode == moyalmean) {
 
-          // //getting most probable energy loss, or mpv:
-          // double energylossmpv = fabs(deltap);
-
-          // //forming the Moyal Mean
-
-          // //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
-          // constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
-          // double mmean = energylossmpv + xi * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
-
-          // return -1*mmean;
           return moyalMean(deltap, xi);
-
 
         } else
           return deltap;
