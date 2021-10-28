@@ -59,8 +59,11 @@ namespace MatEnv {
       //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
       double energyLoss(double mom,double pathlen,double mass) const;
 
-      double energyLossRMS(double mom,double pathlen,double mass) const;
+      // most probable value of energy loss
+      double energyLossMPV(double mom,double pathlen,double mass) const;
 
+
+      double energyLossRMS(double mom,double pathlen,double mass) const;
 
       double energyLossVar(double mom,double pathlen,double mass) const {
         double elrms = energyLossRMS(mom,pathlen,mass);
