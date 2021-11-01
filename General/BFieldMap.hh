@@ -8,25 +8,30 @@
 #include "KinKal/Fit/Config.hh"
 #include "Math/SMatrix.h"
 #include <vector>
+#include <limits>
 #include <algorithm>
 #include <cstdarg>
 #include <cmath>
+#include <ostream>
 
 namespace KinKal {
   class BFieldMap {
     public:
       using Grad = ROOT::Math::SMatrix<double,3>; // field gradient: ie dBi/d(x,y,z)
       // return value of the field at a point
-      virtual VEC3 fieldVect(VEC3 const& position) const = 0; 
+      virtual VEC3 fieldVect(VEC3 const& position) const = 0;
       // return BFieldMap gradient = dB_i/dx_j, at a given point
       virtual Grad fieldGrad(VEC3 const& position) const = 0;
       // return the BFieldMap derivative at a given point along a given velocity, WRT time
       virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const = 0;
       virtual ~BFieldMap(){}
+      virtual void print(std::ostream& os ) const = 0;
+      virtual double zMin() const = 0;
+      virtual double zMax() const = 0;
       BFieldMap(){}
       // disallow copy and equivalence
-      BFieldMap(BFieldMap const& ) = delete; 
-      BFieldMap& operator =(BFieldMap const& ) = delete; 
+      BFieldMap(BFieldMap const& ) = delete;
+      BFieldMap& operator =(BFieldMap const& ) = delete;
       // speed of light in units to convert Tesla to mm (bending radius)
       static double constexpr cbar() { return CLHEP::c_light/1000.0; }
       // templated interface for interacting with kinematic trajectory classes
@@ -34,7 +39,7 @@ namespace KinKal {
       template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local=true) const;
       // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
       template<class KTRAJ> void setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const;
-      // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the  
+      // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the
       template<class KTRAJ> VEC3 integrate(KTRAJ const& ktraj, TimeRange const& trange) const;
   };
 
@@ -66,14 +71,14 @@ namespace KinKal {
     if(local)
       bref = fieldVect(tpos);
     else// fixed reference comes from the traj
-      bref = ktraj.bnom(tstart);	
+      bref = ktraj.bnom(tstart);
     // estimate the step size for testing the position deviation.  This comes from 2 components:
     // the (static) difference in field, and the change in field along the trajectory
     double tstep(0.1); // maximum step
     // step increment from static difference from nominal field.  0.2 comes from sagitta geometry
     // protect against nominal field = exact field
 //    auto db = (bvec - ktraj.bnom(tstart)).R();
-//    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db))); 
+//    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db)));
     VEC3 dBdt = fieldDeriv(tpos,ktraj.velocity(tstart));
     // the deviation goes as the cube root of the BFieldMap change.  0.5 comes from cosine expansion
     if(fabs(dBdt.R())>1e-6) tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dBdt.R()))); //
@@ -116,12 +121,15 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override { return fvec_; }
       Grad fieldGrad(VEC3 const& position) const override { return Grad(); }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override { return VEC3(); }
+      double zMin() const override { return -std::numeric_limits<float>::max(); }
+      double zMax() const override { return std::numeric_limits<float>::max(); }
+      void print(std::ostream& os =std::cout) const override { os << "Uniform BField, B = " << fvec_ << std::endl; }
       UniformBFieldMap(VEC3 const& bnom) : fvec_(bnom) {}
       UniformBFieldMap(double BZ) : UniformBFieldMap(VEC3(0.0,0.0,BZ)) {}
       virtual ~UniformBFieldMap(){}
       // disallow copy and equivalence
-      UniformBFieldMap(UniformBFieldMap const& ) = delete; 
-      UniformBFieldMap& operator =(UniformBFieldMap const& ) = delete; 
+      UniformBFieldMap(UniformBFieldMap const& ) = delete;
+      UniformBFieldMap& operator =(UniformBFieldMap const& ) = delete;
     private:
       VEC3 fvec_; // constant field
   };
@@ -133,13 +141,16 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      double zMin() const override;
+      double zMax() const override;
+      void print(std::ostream& os =std::cout) const override;
       CompositeBFieldMap () {}
       CompositeBFieldMap(FCOL const& fields) : fields_(fields) {}
       void addField(BFieldMap const& field) { fields_.push_back(&field); }
       virtual ~CompositeBFieldMap() {}
       // disallow copy and equivalence
-      CompositeBFieldMap(CompositeBFieldMap const& ) = delete; 
-      CompositeBFieldMap& operator =(CompositeBFieldMap const& ) = delete; 
+      CompositeBFieldMap(CompositeBFieldMap const& ) = delete;
+      CompositeBFieldMap& operator =(CompositeBFieldMap const& ) = delete;
 
     private:
       FCOL fields_; // fields
@@ -152,14 +163,17 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      double zMin() const override { return -std::numeric_limits<float>::max(); }
+      double zMax() const override { return std::numeric_limits<float>::max(); }
+      void print(std::ostream& os =std::cout) const override { os << "BField with  constant gradient of " << grad_ << " Tesla/mm" << std::endl; }
       double gradient() const { return grad_; }
       virtual ~GradientBFieldMap(){}
       // disallow copy and equivalence
-      GradientBFieldMap(GradientBFieldMap const& ) = delete; 
-      GradientBFieldMap& operator =(GradientBFieldMap const& ) = delete; 
+      GradientBFieldMap(GradientBFieldMap const& ) = delete;
+      GradientBFieldMap& operator =(GradientBFieldMap const& ) = delete;
     private:
       double b0_, b1_;
-      double z0_; 
+      double z0_;
       double grad_; // gradient in tesla/mm, computed from the fvec values
       Grad fgrad_;
   };

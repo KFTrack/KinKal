@@ -8,11 +8,11 @@
 //
 //
 // Copyright Information:
-//	Copyright (C) 1996	Lawrence Berkeley Laboratory
+//      Copyright (C) 1996      Lawrence Berkeley Laboratory
 //
 //  Authors: Dave Brown, 11/21/96
 //           Matthias Steinke 04/09/99
-//	     Orion Ning, 01/12/21
+//           Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include <iostream>
@@ -170,15 +170,15 @@ namespace MatEnv {
           dedx += log(rcut)-(1.+rcut)*beta2;
         }
 
-        //// density correction 
+        //// density correction
         delta = densityCorrection(bg2);
 
         //// shell correction
         sh = shellCorrection(bg2, tau);
-        
+
         dedx -= delta + sh ;
         dedx *= -_dgev*_density*_za / beta2 ;
-        
+
         return dedx;
 
       } else
@@ -187,119 +187,122 @@ namespace MatEnv {
 
   //Replacement for dEdx-based energy loss function: Most probable energy loss is now used
   //from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
-  double
-    DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
-      if(mom>0.0){
-        //taking positive lengths
-        pathlen = fabs(pathlen) ;
-
-        // New energy loss implementation
-        double gamma2,beta2,bg2,delta, deltap, sh, xi;
-        double beta  = particleBeta(mom,mass) ;
-        double gamma = particleGamma(mom,mass) ;
-        double j = 0.200 ;
-        double tau = gamma-1;
-
-
-        // most probable energy loss function
-        beta2 = beta*beta ;
-        gamma2 = gamma*gamma ;
-        bg2 = beta2*gamma2 ;
-        xi = eloss_xi(beta, pathlen); 
-
-        deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
-        deltap -= beta2 ;
-        deltap += j ;
-
-        //// density correction
-        delta = densityCorrection(bg2);
-
-        //// shell correction
-        sh = shellCorrection(bg2, tau);
-
-        deltap -= delta + sh ;
-        deltap *= -xi ; // This is the most probable energy loss
-
-        //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
-        if(_elossmode == moyalmean) {
-
-          return moyalMean(deltap, xi);
-
-        } else
-          return deltap;
+  double DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
+    if(mom>0.0){
+      double beta  = particleBeta(mom,mass) ;
+      double xi = eloss_xi(beta, pathlen);
+      double deltap = energyLossMPV(mom,pathlen,mass);
+      //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
+      if(_elossmode == moyalmean) {
+        return moyalMean(deltap, xi);
       } else
-        return 0.0;
+        return deltap;
+    } else
+      return 0.0;
+  }
 
-    }
-  
+  double DetMaterial::energyLossMPV(double mom, double pathlen, double mass) const {
+    if(mom>0.0){
+      //taking positive lengths
+      pathlen = fabs(pathlen) ;
 
+      // New energy loss implementation
+      double gamma2,beta2,bg2,delta, deltap, sh, xi;
+      double beta  = particleBeta(mom,mass) ;
+      double gamma = particleGamma(mom,mass) ;
+      double j = 0.200 ;
+      double tau = gamma-1;
+
+
+      // most probable energy loss function
+      beta2 = beta*beta ;
+      gamma2 = gamma*gamma ;
+      bg2 = beta2*gamma2 ;
+      xi = eloss_xi(beta, pathlen);
+
+      deltap = log(2.*e_mass_*bg2/_eexc) + log(xi/_eexc);
+      deltap -= beta2 ;
+      deltap += j ;
+
+      //// density correction
+      delta = densityCorrection(bg2);
+
+      //// shell correction
+      sh = shellCorrection(bg2, tau);
+
+      deltap -= delta + sh ;
+      deltap *= -xi ; // This is the most probable energy loss
+      return deltap;
+    } else
+      return 0.0;
+  }
 
   //////////////////////////////////////////////////////////
 
-  //// Calculate Moyal mean 
-  double 
+  //// Calculate Moyal mean
+  double
     DetMaterial::moyalMean(double deltap, double xi) const{
       //getting most probable energy loss, or mpv:
-          double energylossmpv = fabs(deltap);
+      double energylossmpv = fabs(deltap);
 
-          //declare moyalsigma for sanity check
-          double moyalsigma = xi;
+      //declare moyalsigma for sanity check
+      double moyalsigma = xi;
 
-          //forming the Moyal Mean
+      //forming the Moyal Mean
 
-          //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
-          constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
-          double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
+      //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
+      constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
+      double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
 
-          return -1.0 * mmean;
+      return -1.0 * mmean;
     }
 
-  ////Calculate density correction for energy loss 
-  double 
+  ////Calculate density correction for energy loss
+  double
     DetMaterial::densityCorrection(double bg2) const {
       // density correction
-        double x = 0; 
-        double delta = 0;
-        x = log(bg2)/twoln10 ;
-        if ( x < _x0 ) {
-          if(_delta0 > 0) {
-            delta = _delta0*pow(10.0,2*(x-_x0));
-          }
-          else {
-            delta = 0.;
-          }
-        } else {
-          delta = twoln10*x - _bigc;
-          if ( x < _x1 )
-            delta += _afactor * pow((_x1 - x), _mpower);
-        }
-        return delta;
-    }
-    
-  //// Caluclate shell correction for energy loss 
-  double 
-    DetMaterial::shellCorrection(double bg2, double tau) const {
-       double sh = 0;
-       double x = 1; 
-       // shell correction
-        if ( bg2 > bg2lim ) {
-          //sh = 0. ;
-          //x = 1. ;
-          for (int k=0; k<=2; k++) {
-            x *= bg2 ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
+      double x = 0;
+      double delta = 0;
+      x = log(bg2)/twoln10 ;
+      if ( x < _x0 ) {
+        if(_delta0 > 0) {
+          delta = _delta0*pow(10.0,2*(x-_x0));
         }
         else {
-          //sh = 0. ;
-          //x = 1. ;
-          for (int k=0; k<2; k++) {
-            x *= bg2lim ;
-            sh += (*_shellCorrectionVector)[k]/x;
-          }
-          sh *= log(tau/_taul)/log(taulim/_taul);
+          delta = 0.;
         }
-        return sh;
+      } else {
+        delta = twoln10*x - _bigc;
+        if ( x < _x1 )
+          delta += _afactor * pow((_x1 - x), _mpower);
+      }
+      return delta;
+    }
+
+  //// Caluclate shell correction for energy loss
+  double
+    DetMaterial::shellCorrection(double bg2, double tau) const {
+      double sh = 0;
+      double x = 1;
+      // shell correction
+      if ( bg2 > bg2lim ) {
+        //sh = 0. ;
+        //x = 1. ;
+        for (int k=0; k<=2; k++) {
+          x *= bg2 ;
+          sh += (*_shellCorrectionVector)[k]/x;
+        }
+      }
+      else {
+        //sh = 0. ;
+        //x = 1. ;
+        for (int k=0; k<2; k++) {
+          x *= bg2lim ;
+          sh += (*_shellCorrectionVector)[k]/x;
+        }
+        sh *= log(tau/_taul)/log(taulim/_taul);
+      }
+      return sh;
     }
 
   //below, the old BTrk model 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)

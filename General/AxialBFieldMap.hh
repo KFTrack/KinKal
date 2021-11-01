@@ -1,3 +1,5 @@
+#ifndef KinKal_AxialBFieldMap_hh
+#define KinKal_AxialBFieldMap_hh
 //
 // BFieldMap implementation taking external model of the axial field and making simple extrapoloations to compute off-axis elements
 //
@@ -11,12 +13,16 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      double zMin() const override { return zmin_; }
+      double zMax() const override { return zmax_; }
+      void print(std::ostream& os=std::cout) const override {
+        os << "Axial Bfield between " << zMin() << " and " << zMax() << " with " << axial_.size()
+          << " field values from "  << axial_.front() << " to "  << axial_.back() << std::endl;
+      }
       virtual ~AxialBFieldMap(){}
       // disallow copy and equivalence
       AxialBFieldMap(AxialBFieldMap const& ) = delete;
       AxialBFieldMap& operator =(AxialBFieldMap const& ) = delete;
-      double zMin() const { return zmin_; }
-      double zMax() const { return zmax_; }
       auto const& field() const { return axial_; }
     private:
       double zmin_, zmax_, zstep_; // z limits of the field
@@ -25,4 +31,4 @@ namespace KinKal {
       double zval(size_t index) const { return zmin_ + index*zstep_; }
   };
 }
-
+#endif
