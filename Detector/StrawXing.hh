@@ -20,13 +20,13 @@ namespace KinKal {
       StrawXing(PTCA const& tpoca, StrawMaterial const& smat) : tpdata_(tpoca.tpData()), tprec_(tpoca.precision()), smat_(smat),
       sxconfig_(0.05*smat.strawRadius(),1.0),
       axis_(tpoca.sensorTraj()) {
-	update(tpoca); }
+        update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
       void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) override;
       double crossingTime() const override { return tpdata_.particleToca(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-     // specific interface: this xing is based on PTCA
+      // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
       // accessors
       ClosestApproachData const& closestApproach() const { return tpdata_; }
@@ -53,13 +53,13 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-  // search for an update to the xing configuration among this meta-iteration payload
+    // search for an update to the xing configuration among this meta-iteration payload
     const StrawXingConfig* sxconfig(0);
     for(auto const& uparams : miconfig.updaters_){
       auto const* sxc = std::any_cast<StrawXingConfig>(&uparams);
       if(sxc != 0){
-	if(sxconfig !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");
-	sxconfig = sxc;
+        if(sxconfig !=0) throw std::invalid_argument("Multiple StrawWireHitUpdaters found");
+        sxconfig = sxc;
       }
     }
     if(sxconfig != 0) sxconfig_ = *sxconfig;
@@ -73,7 +73,7 @@ namespace KinKal {
     ost <<"Straw Xing time " << this->crossingTime();
     if(detail > 0){
       for(auto const& mxing : this->matXings()){
-	ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;
+        ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;
       }
     }
     if(detail > 1){
