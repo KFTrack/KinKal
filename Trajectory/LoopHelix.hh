@@ -23,12 +23,12 @@ namespace KinKal {
 
   class LoopHelix {
     public:
-      // This class must provide the following to be used to instantiate the 
+      // This class must provide the following to be used to instantiate the
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
       constexpr static ParamIndex t0Index() { return t0_; }
-      
+
       static std::vector<std::string> const& paramNames();
       static std::vector<std::string> const& paramUnits();
       static std::vector<std::string> const& paramTitles();
@@ -68,7 +68,7 @@ namespace KinKal {
       double momentumVariance(double time=0) const;
       double energy(double time=0) const  { return  ebar()*Q(); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
-      double mass() const { return mass_;} // mass 
+      double mass() const { return mass_;} // mass
       int charge() const { return charge_;} // charge in proton charge units
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       double paramVar(size_t index) const { return pars_.covariance()(index,index); }
@@ -88,7 +88,7 @@ namespace KinKal {
       double sign() const { return copysign(1.0,charge()); } // charge sign
       // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
       double helicity() const { return copysign(1.0,lam()); }
-      double pbar2() const { return  rad()*rad() + lam()*lam(); } 
+      double pbar2() const { return  rad()*rad() + lam()*lam(); }
       double pbar() const { return  sqrt(pbar2()); } // momentum in mm
       double ebar2() const { double mb = mbar(); return  pbar2() + mb*mb; }
       double ebar() const { return  sqrt(ebar2()); } // energy in mm
@@ -106,8 +106,8 @@ namespace KinKal {
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
-	charge_ *= -1;
-	pars_.parameters()[t0_] *= -1.0;
+        charge_ *= -1;
+        pars_.parameters()[t0_] *= -1.0;
       }
       // functions related to euclidean space to parameter space derivatives
       DPDV dPardX(double time) const; // return the derivative of the parameters WRT the (global) position vector
@@ -122,7 +122,7 @@ namespace KinKal {
       DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
       DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector
     private :
-// local coordinate system functions, used internally
+      // local coordinate system functions, used internally
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       VEC3 localMomentum(double time) const;
       VEC3 localPosition(double time) const;
@@ -135,14 +135,14 @@ namespace KinKal {
       double mass_;  // in units of MeV/c^2
       int charge_; // charge in units of proton charge
       VEC3 bnom_; // nominal BField, in global coordinate system
-      ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates 
+      ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates
       const static std::vector<std::string> paramTitles_;
       const static std::vector<std::string> paramNames_;
       const static std::vector<std::string> paramUnits_;
       const static std::string trajName_;
       // non-const accessors
       double& param(size_t index) { return pars_.parameters()[index]; }
- };
+  };
   std::ostream& operator <<(std::ostream& ost, LoopHelix const& lhel);
 }
 #endif

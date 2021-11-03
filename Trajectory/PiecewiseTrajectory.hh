@@ -46,7 +46,7 @@ namespace KinKal {
       size_t nearestIndex(double time) const;
       DTTRAJ const& pieces() const { return pieces_; }
       // find the time the trajectory crosses a Z plane
-      double zTime(double zpos) const;
+      double ztime(double zpos) const;
       // test for spatial gaps
       double gap(size_t ihigh) const;
       void gaps(double& largest, size_t& ilargest, double& average) const;
@@ -222,27 +222,35 @@ namespace KinKal {
     }
   }
 
-  template <class TTRAJ> double PiecewiseTrajectory<TTRAJ>::zTime(double zpos) const {
-    auto bpos = position3(range().begin());
-    auto epos = position3(range().end());
-    // assume linear transit to get an initial estimate
-    double tz = range().begin() + range().range()*(zpos-bpos.Z())/(epos.Z()-bpos.Z());
-    size_t zindex = nearestIndex(tz);
-    size_t oldindex = zindex;
-    double dt(std::numeric_limits<float>::max());
-    do {
-      auto const& traj = piece(zindex);
-      bpos = traj.position3(traj.range().begin());
-      epos = traj.position3(traj.range().end());
-      double newtz = traj.range().begin() + traj.range().range()*(zpos-bpos.Z())/(epos.Z()-bpos.Z());
-      oldindex = zindex;
-      zindex = nearestIndex(tz);
-      // protext against osccilation or divergence
-      if(fabs(tz - newtz) > dt)break;
-      dt = fabs(tz - newtz);
-      tz = newtz;
-    } while (oldindex != zindex);
-    return tz;
+  template <class TTRAJ> double PiecewiseTrajectory<TTRAJ>::ztime(double zpos) const {
+    // loop over pieces till we find one going the correct direction
+    double retval(range().end() + 1e-5);
+    for(auto const& piece : pieces()) {
+      auto pos = piece.position3(piece.range().begin());
+      auto vel = piece.velocity(piece.range().begin());
+      double dt =(zpos-pos.Z())/vel.Z();
+      if(dt > 0.0){
+        retval = piece.range().begin() + dt;
+        break;
+      }
+    }
+    // now iteratively search for the solution
+    if(retval < range().end()){
+      size_t zindex = nearestIndex(retval);
+      size_t oldindex = zindex;
+      size_t oldoldindex = zindex;
+      size_t ntries(0);
+      do {
+        ++ntries;
+        auto const& traj = piece(zindex);
+        retval = traj.ztime(zpos);
+        oldoldindex = oldindex;
+        oldindex = zindex;
+        zindex = nearestIndex(retval);
+        // protext against osccilation and divergence
+      } while (oldindex != zindex && oldoldindex != zindex && ntries < pieces().size());
+    }
+    return retval;
   }
 
   template <class TTRAJ> std::ostream& operator <<(std::ostream& ost, PiecewiseTrajectory<TTRAJ> const& pttraj) {

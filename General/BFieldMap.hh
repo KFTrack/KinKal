@@ -62,11 +62,15 @@ namespace KinKal {
   // compared to the true particle motion, given the true magnetic field.  This measures the impact of the KTRAJ nominal field being
   // both fixed and different from the true field
   template<class KTRAJ> double BFieldMap::rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local) const {
+    VEC3 tpos = ktraj.position3(tstart);
+    VEC3 dBdt = fieldDeriv(tpos,ktraj.velocity(tstart));
+    double dbdt = dBdt.R();
+    // if there's no gradient, don't extend
+    if(dbdt < 1e-20) return ktraj.range().end();
     // compute scaling factor
     double spd = ktraj.speed(tstart);
     double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentum(tstart));
     // estimate step size from initial BFieldMap difference
-    VEC3 tpos = ktraj.position3(tstart);
     VEC3 bref;
     if(local)
       bref = fieldVect(tpos);
@@ -79,9 +83,10 @@ namespace KinKal {
     // protect against nominal field = exact field
 //    auto db = (bvec - ktraj.bnom(tstart)).R();
 //    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db)));
-    VEC3 dBdt = fieldDeriv(tpos,ktraj.velocity(tstart));
+    // use the magnitude as a worst-case
     // the deviation goes as the cube root of the BFieldMap change.  0.5 comes from cosine expansion
-    if(fabs(dBdt.R())>1e-6) tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dBdt.R()))); //
+    // this calculation needs testing/fixing: the response to tolerance is not as expected FIXME!
+    if(dbdt >1e-6) tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dbdt)));
     // loop over the trajectory in fixed steps to compute integrals and domains.
     // step size is defined by momentum direction tolerance.
     double tend = tstart;
