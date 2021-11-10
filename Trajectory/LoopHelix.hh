@@ -100,7 +100,6 @@ namespace KinKal {
       double betaGamma() const { return pbar()/mbar(); } // relativistic betagamma
       double dphi(double t) const { return omega()*(t - t0()); }
       double phi(double t) const { return dphi(t) + phi0(); }
-      double ztime(double zpos) const { return t0() + zpos/(omega()*lam()); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       VEC3 const& bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }

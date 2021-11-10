@@ -105,7 +105,7 @@ namespace KKTest {
     VEC3 drift = (sdir.Cross(hdir)).Unit();
     VEC3 dpos = hpos.Vect() + rdrift*drift;
     //  cout << "Generating hit at position " << dpos << endl;
-    double dprop = tr_.Uniform(-0.5*wlen_,0.0);
+    double dprop = tr_.Uniform(0.0,0.5*wlen_);
     VEC3 mpos = dpos + sdir*dprop;
     VEC3 vprop = sdir*sprop_;
     // measured time is after propagation and drift
