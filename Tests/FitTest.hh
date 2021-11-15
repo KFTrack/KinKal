@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -198,6 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
     {"extendfrac",     required_argument, 0, 'X'  },
+    {"lighthit",     required_argument, 0, 'L'  },
     {NULL, 0,0,0}
   };
 

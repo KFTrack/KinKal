@@ -11,6 +11,10 @@ namespace KinKal {
   AxialBFieldMap::AxialBFieldMap(std::string const& file) {
     // read the file
     std::ifstream spectrum_stream(file);
+    if ( (spectrum_stream.rdstate() & std::ifstream::failbit ) != 0 ){
+      std::string errmsg = std::string("can't open Axial field file ") + file;
+      throw std::invalid_argument(errmsg.c_str());
+    }
     std::string line;
     bool first(true);
     static std::string comment("#");
