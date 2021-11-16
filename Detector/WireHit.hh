@@ -46,7 +46,7 @@ namespace KinKal {
       void setPrecision(double precision) { precision_ = precision; }
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
-      Line wire_; // local linear approximation to the wire of this hit.i
+      Line wire_; // local linear approximation to the wire of this hit.
       // the start time is the measurement time, the direction is from
       // the physical source of the signal (particle) towards the measurement location, the vector magnitude
       // is the effective signal propagation velocity, and the range describes the active wire length

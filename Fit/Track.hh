@@ -269,7 +269,6 @@ namespace KinKal {
       // algebraic convergence iteration
       Status fstat(miconfig.miter_);
       history_.push_back(fstat);
-      if(config_.plevel_ >= Config::basic)std::cout << "Processing fit meta-iteration " << miconfig << std::endl;
       while(canIterate()) {
         // catch exceptions and record them in the status
         try {
@@ -356,7 +355,7 @@ namespace KinKal {
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
       if(miconfig.miter_ > 0)// if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
         reftraj_ = fittraj_;
-      for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
+      for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig); // test if this is needed on 0th meta-iteration TODO
     } else {
       //swap the fit trajectory to the reference
       reftraj_ = fittraj_;

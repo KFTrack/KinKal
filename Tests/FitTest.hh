@@ -143,7 +143,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nevents(1000);
   bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
-  int detail(Config::minimal), invert(0);
+  int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
@@ -424,7 +424,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       return -3;
     }
     for(size_t jpar=0; jpar < NParams(); jpar++){
-      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-10){
+      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-6){
         std::cout << "Covariance error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
         return -3;
       }
@@ -624,8 +624,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     double duration (0.0);
     unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0);
 
-    config.plevel_ = Config::none;
-    exconfig.plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
       // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking

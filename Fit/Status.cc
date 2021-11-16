@@ -4,19 +4,19 @@ namespace KinKal {
   std::string Status::statusName(Status::status stat) {
     switch(stat) {
       case Status::unfit: default :
-	return "Unfit ";
-      case Status::unconverged: 
-	return "Unconverged ";
-      case Status::converged: 
-	return "Converged ";
-      case Status::diverged: 
-	return "Diverged ";
-      case Status::lowNDOF: 
-	return "LowNDOF ";
-      case Status::paramsdiverged: 
-	return "ParametersDiverged ";
-      case Status::failed: 
-	return "Failed ";
+        return "Unfit ";
+      case Status::unconverged:
+        return "Unconverged ";
+      case Status::converged:
+        return "Converged ";
+      case Status::diverged:
+        return "Diverged ";
+      case Status::lowNDOF:
+        return "LowNDOF ";
+      case Status::paramsdiverged:
+        return "ParametersDiverged ";
+      case Status::failed:
+        return "Failed ";
     }
   }
 
