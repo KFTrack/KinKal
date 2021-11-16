@@ -46,7 +46,7 @@ namespace KinKal {
       PKTRAJ const& pktraj_;
       STRAJ const& straj_;
       size_t pindex_; // indices to the local traj used in TCA calculation
-      DVEC dDdP_; 
+      DVEC dDdP_;
       DVEC dTdP_;
   };
 
@@ -65,7 +65,7 @@ namespace KinKal {
       tpdata_ = tpoca.tpData();
       dDdP_ = tpoca.dDdP();
       dTdP_ = tpoca.dTdP();
-//      inrange = tpoca.inRange();
+      //      inrange = tpoca.inRange();
       // update the hint
       phint.particleToca_ = tpoca.particleToca();
       phint.sensorToca_ = tpoca.sensorToca();
@@ -79,7 +79,7 @@ namespace KinKal {
     // should test explicitly for piece oscillation FIXME!
     // test if the solution is on a cusp and if so, chose the one with the smallest DOCA TODO
   }
-  
+
 
   template<class KTRAJ, class STRAJ> void PiecewiseClosestApproach<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {
     ost << "PiecewiseClosestApproach status " << statusName() << " Doca " << doca() << " +- " << sqrt(docaVar())

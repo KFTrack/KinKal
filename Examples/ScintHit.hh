@@ -23,11 +23,11 @@ namespace KinKal {
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
-      ScintHit(PTCA const& ptca, double tvar, double wvar) : 
-	saxis_(ptca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(ptca.tpData()), precision_(1e-6) {}
+      ScintHit(PTCA const& ptca, double tvar, double wvar) :
+        saxis_(ptca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(ptca.tpData()), precision_(1e-6) {}
       virtual ~ScintHit(){}
       Residual const& timeResidual() const { return rresid_; }
-    // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
+      // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
       Line const& sensorAxis() const { return saxis_; }
       ClosestApproachData const& closestApproach() const { return tpdata_; }
       double timeVariance() const { return tvar_; }
@@ -60,11 +60,11 @@ namespace KinKal {
     CAHint tphint( saxis_.t0(), saxis_.t0());
     // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
     // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
-//    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
+    //    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
     PTCA tpoca(pktraj,saxis_,tphint,precision_);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();
-      // residual is just delta-T at CA. 
+      // residual is just delta-T at CA.
       // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));

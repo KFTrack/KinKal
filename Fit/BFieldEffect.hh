@@ -2,7 +2,7 @@
 #define KinKal_BFieldEffect_hh
 //
 // correct for the effect of BFieldMap inhomogenity; adjust the trajectory parameters using the BFieldMap
-// This effect adds no information content or noise (presently), just transports the parameters 
+// This effect adds no information content or noise (presently), just transports the parameters
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/General/TimeDir.hh"
@@ -18,7 +18,7 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      
+
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_ != Config::nocorr; }
       void update(PKTRAJ const& ref) override;
@@ -29,11 +29,11 @@ namespace KinKal {
       Parameters const& effect() const { return dbeff_; }
       virtual ~BFieldEffect(){}
       // disallow copy and equivalence
-      BFieldEffect(BFieldEffect const& ) = delete; 
-      BFieldEffect& operator =(BFieldEffect const& ) = delete; 
+      BFieldEffect(BFieldEffect const& ) = delete;
+      BFieldEffect& operator =(BFieldEffect const& ) = delete;
       // create from the domain range, the effect, and the
-      BFieldEffect(Config const& config, BFieldMap const& bfield,TimeRange const& drange) : 
-	bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
+      BFieldEffect(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
+        bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
       VEC3 deltaP() const { return VEC3(dp_[0], dp_[1], dp_[2]); } // translate to spatial vector
       TimeRange const& range() const { return drange_; }
 
@@ -41,7 +41,7 @@ namespace KinKal {
       BFieldMap const& bfield_; // bfield
       SVEC3 dp_; // change in momentum due to BFieldMap approximation
       TimeRange drange_; // extent of this effect.  The middle is at the transition point between 2 bfield domains (domain transition)
-      DVEC dbint_; // integral effect of using bnom vs the full field over this effects range 
+      DVEC dbint_; // integral effect of using bnom vs the full field over this effects range
       Parameters dbeff_; // aggregate effect in parameter space of BFieldMap change, including BNom change
       Config::BFCorr bfcorr_; // type of BFieldMap map correction to apply
       static double tbuff_; // small time buffer to avoid ambiguity
@@ -53,12 +53,12 @@ namespace KinKal {
     if(this->active()){
       // forwards; just append the effect's parameter change
       if(tdir == TimeDir::forwards) {
-	kkdata.append(dbeff_);
+        kkdata.append(dbeff_);
       } else {
-	// SUBTRACT the effect going backwards: covariance change is sign-independent
-	Parameters reverse(dbeff_);
-	reverse.parameters() *= -1.0;
-      	kkdata.append(reverse);
+        // SUBTRACT the effect going backwards: covariance change is sign-independent
+        Parameters reverse(dbeff_);
+        reverse.parameters() *= -1.0;
+        kkdata.append(reverse);
       }
     }
     KKEFF::setState(tdir,KKEFF::processed);
@@ -74,7 +74,7 @@ namespace KinKal {
       dbint_ = DVEC();
     }
     dbeff_.parameters() = dbint_;
-    // add in the effect of changing BNom across this domain transition to parameters 
+    // add in the effect of changing BNom across this domain transition to parameters
     if(Config::localBFieldCorrection(bfcorr_)){
       auto const& begtraj = ref.nearestPiece(drange_.begin());
       auto const& endtraj = ref.nearestPiece(drange_.end());
@@ -105,8 +105,8 @@ namespace KinKal {
       newpiece.range() = newrange;
       // if we are using variable BFieldMap, update the parameters accordingly
       if(bfcorr_ == Config::variable || bfcorr_ == Config::both){
-	VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
-	newpiece.setBNom(time,newbnom);
+        VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
+        newpiece.setBNom(time,newbnom);
       }
       // adjust for the residual parameter change due to difference in bnom
       // don't double-count the effect due to bnom change; here we want just

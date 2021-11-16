@@ -15,9 +15,9 @@ namespace KinKal {
     "Tangent of the track dip angle in the #rho - z projection tan#lambda",
     "Time at Z=0 Plane"};
   const vector<string> CentralHelix::paramNames_ = {
-  "D0","Phi0","Omega","Z0","TanDip","Time0"};
+    "D0","Phi0","Omega","Z0","TanDip","Time0"};
   const vector<string> CentralHelix::paramUnits_ = {
-      "mm", "rad", "rad", "mm", "", "ns"};
+    "mm", "rad", "rad", "mm", "", "ns"};
   const string CentralHelix::trajName_("CentralHelix");
   std::vector<std::string> const& CentralHelix::paramNames() { return paramNames_; }
   std::vector<std::string> const& CentralHelix::paramUnits() { return paramUnits_; }
@@ -29,7 +29,7 @@ namespace KinKal {
 
   CentralHelix::CentralHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : CentralHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
   CentralHelix::CentralHelix(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
-                 TimeRange const &trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom)
+      TimeRange const &trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom)
   {
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
@@ -49,12 +49,12 @@ namespace KinKal {
     double radius = fabs(pt*momToRad);
     double amsign = sign();
     param(omega_) = amsign/radius;
-    param(tanDip_) = mom.Z()/pt; 
-// vector pointing to the circle center from the measurement point; this is perp to the transverse momentum
+    param(tanDip_) = mom.Z()/pt;
+    // vector pointing to the circle center from the measurement point; this is perp to the transverse momentum
     double phimom = atan2(mom.Y(),mom.X());
     double phirm = phimom + amsign*M_PI_2;
     auto relpos = radius*VEC3(cos(phirm),sin(phirm),0.0);
-// center of the circle
+    // center of the circle
     auto lcent = pos.Vect() + relpos;
     double rcent = sqrt(lcent.perp2());
     // central helix undefined for small center radius
@@ -88,7 +88,7 @@ namespace KinKal {
       cout << "center " << lcent << " test center " << tcent << endl;
     }
     if(fabs(tan(phi0()) +1.0/tan(lcent.phi())) > 1e-5){
-      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl; 
+      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl;
     }
     double d0t = sign()*sqrt(lcent.perp2())-sqrt(lmom.perp2())/Q();
     if(fabs(d0t - d0()) > 1e-5){
@@ -129,11 +129,11 @@ namespace KinKal {
   {}
 
   CentralHelix::CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  CentralHelix((ParticleState)pstate,bnom,range) {
-  // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.time());
-    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
-  }
+    CentralHelix((ParticleState)pstate,bnom,range) {
+      // derive the parameter space covariance from the global state space covariance
+      PSMAT dpds = dPardState(pstate.time());
+      pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+    }
 
   double CentralHelix::momentumVariance(double time) const {
     DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
@@ -142,14 +142,14 @@ namespace KinKal {
   }
 
   VEC4 CentralHelix::position4(double time) const
- {
+  {
     VEC3 pos3 = position3(time);
     return VEC4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
 
   VEC3 CentralHelix::position3(double time) const {
     return l2g_(localPosition(time));
-  } 
+  }
 
   VEC3 CentralHelix::localPosition(double time) const
   {
@@ -161,7 +161,7 @@ namespace KinKal {
     double rho = 1.0/omega();
 
     return rho*VEC3((sphit - sphi0),  -(cphit - cphi0), tanDip()*(phit-phi0())) +
-	VEC3(- d0()*sphi0, d0()*cphi0, z0());
+      VEC3(- d0()*sphi0, d0()*cphi0, z0());
   }
 
   VEC3 CentralHelix::momentum3(double time) const
@@ -207,7 +207,7 @@ namespace KinKal {
         throw std::invalid_argument("Invalid direction");
     }
   }
-  
+
   DPDV CentralHelix::dPardMLoc(double time) const {
     auto locmom = localMomentum(time);
     double pt2 = locmom.perp2();
@@ -227,10 +227,10 @@ namespace KinKal {
     SVEC3 dtanDip_dM (-tanDip()*fx, -tanDip()*fy,1.0/pt);
     SVEC3 dphi0_dM = sign()*invrc*invqval*SVEC3(-sphi0,cphi0,0.0);
     SVEC3 dd0_dM = invqval*(sign()*invrc*SVEC3( center().Y(), -center().X(), 0.0) -
-     (1.0/pt)*SVEC3(locmom.X(),locmom.Y(), 0.0));
+        (1.0/pt)*SVEC3(locmom.X(),locmom.Y(), 0.0));
     SVEC3 dt0_dM = -invqval*inve*invc*dphi(time)*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) -
       (1.0/omval)*(SVEC3(-fy,fx,0) - dphi0_dM);
-    SVEC3 dz0_dM = locmom.Z()*inve*inve*inve*CLHEP::c_light*dt*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) + 
+    SVEC3 dz0_dM = locmom.Z()*inve*inve*inve*CLHEP::c_light*dt*SVEC3(locmom.X(), locmom.Y(), locmom.Z()) +
       locmom.Z()*inve*CLHEP::c_light*dt0_dM -
       inve*CLHEP::c_light*dt*SVEC3(0.0,0.0,1.0);
 
@@ -254,7 +254,7 @@ namespace KinKal {
 
   DVDP CentralHelix::dMdPar(double time) const {
     double cDip = cosDip();
-//    double sDip = tanDip()*cDip;
+    //    double sDip = tanDip()*cDip;
     double factor = Q()/omega();
     double dp = dphi(time);
     double ang = phi0()+dp;
@@ -268,7 +268,7 @@ namespace KinKal {
     SVEC3 dM_dd0 (0,0,0);
     SVEC3 dM_dphi0 (-factor*sang, factor*cang, 0);
     SVEC3 dM_domega = (1.0/omega())*(-momv + bta*bta*dp*momperpv);
-    SVEC3 dM_dtanDip = (Q()/omega())*(SVEC3(0.0,0.0,1.0)- dp*bta*bta*cDip*cDip*tanDip()*SVEC3(-sang,cang,0.0)); 
+    SVEC3 dM_dtanDip = (Q()/omega())*(SVEC3(0.0,0.0,1.0)- dp*bta*bta*cDip*cDip*tanDip()*SVEC3(-sang,cang,0.0));
     SVEC3 dM_dz0 (0,0,0);
     SVEC3 dM_dt0 = -bta*cDip*omega()*CLHEP::c_light*momperpv;
     DVDP dMdP;
@@ -355,7 +355,7 @@ namespace KinKal {
   }
 
   PSMAT CentralHelix::dPardStateLoc(double time) const{
-  // aggregate state from separate X and M derivatives; parameter space is row
+    // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardXLoc(time);
     DPDV dPdM = dPardMLoc(time);
     PSMAT dpds;
@@ -365,7 +365,7 @@ namespace KinKal {
   }
 
   PSMAT CentralHelix::dPardState(double time) const{
-  // aggregate state from separate X and M derivatives; parameter space is row
+    // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
     PSMAT dpds;
@@ -375,7 +375,7 @@ namespace KinKal {
   }
 
   PSMAT CentralHelix::dStatedPar(double time) const {
-  // aggregate state from separate X and M derivatives; parameter space is column
+    // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
     PSMAT dsdp;
@@ -385,7 +385,7 @@ namespace KinKal {
   }
 
   ParticleStateEstimate CentralHelix::stateEstimate(double time) const {
-  // express the parameter space covariance in global state space
+    // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
@@ -393,14 +393,14 @@ namespace KinKal {
   DVEC CentralHelix::dPardB(double time) const {
     auto lpos =localPosition(time);
     auto pdir = localDirection(time,MomBasis::phidir_);
-    auto mperp = VEC3(pdir.Y(),-pdir.X(),0.0); 
+    auto mperp = VEC3(pdir.Y(),-pdir.X(),0.0);
     auto cent = center();
     double rcval = rc();
     double rad = bendRadius();
     DVEC retval;
     retval[omega_] = omega();
     retval[tanDip_] = 0.0;
-    retval[d0_] = sign()*( rad + cent.Dot(pdir)*rad/rcval); 
+    retval[d0_] = sign()*( rad + cent.Dot(pdir)*rad/rcval);
     retval[phi0_] = -sign()*rad*cent.Dot(mperp)/(rcval*rcval);
     retval[z0_] = lpos.Z()-z0() + tanDip()*retval[phi0_]/omega();
     retval[t0_] = time-t0() + retval[phi0_]/Omega();
@@ -408,7 +408,7 @@ namespace KinKal {
   }
 
   DVEC CentralHelix::dPardB(double time, VEC3 const& BPrime) const {
-  // rotate Bfield difference into local coordinate system
+    // rotate Bfield difference into local coordinate system
     VEC3 dB = g2l_(BPrime-bnom_);
     // find the parameter change due to BField magnitude change using component parallel to the local nominal Bfield (always along z)
     DVEC retval = dPardB(time)*dB.Z();
@@ -426,7 +426,7 @@ namespace KinKal {
     return retval;
   }
 
-  void CentralHelix::print(std::ostream& ost, int detail) const { 
+  void CentralHelix::print(std::ostream& ost, int detail) const {
     ost << " CentralHelix parameters: ";
     for(size_t ipar=0;ipar < CentralHelix::npars_;ipar++){
       ost << CentralHelix::paramName(static_cast<CentralHelix::ParamIndex>(ipar) ) << " : " << paramVal(ipar);

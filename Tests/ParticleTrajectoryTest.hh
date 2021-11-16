@@ -1,4 +1,4 @@
-// 
+//
 // test basic functions of the ParticleTrajectory, using the LoopHelix class
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
@@ -63,24 +63,24 @@ int ParticleTrajectoryTest(int argc, char **argv) {
 
   int long_index =0;
   int opt;
-  while ((opt = getopt_long_only(argc, argv,"", 
-	  long_options, &long_index )) != -1) {
+  while ((opt = getopt_long_only(argc, argv,"",
+          long_options, &long_index )) != -1) {
     switch (opt) {
-      case 'c' : 
-	idir = atoi(optarg);
-	break;
+      case 'c' :
+        idir = atoi(optarg);
+        break;
       case 'd' :
-	delta = atof(optarg);
-	break;
+        delta = atof(optarg);
+        break;
       case 't' :
-	tstep = atof(optarg);
-	break;
+        tstep = atof(optarg);
+        break;
       case 'n' :
-	nsteps = atoi(optarg);
-	break;
+        nsteps = atoi(optarg);
+        break;
       default:
-	print_usage(); 
-	exit(EXIT_FAILURE);
+        print_usage();
+        exit(EXIT_FAILURE);
     }
   }
   MomBasis::Direction tdir =static_cast<MomBasis::Direction>(idir);
@@ -102,7 +102,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   PKTRAJ ptraj(lhel);
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
-// use derivatives of last piece to define new piece
+    // use derivatives of last piece to define new piece
     KTRAJ const& back = ptraj.pieces().back();
     double tcomp = back.range().end();
     DVEC pder = back.momDeriv(tcomp,tdir);
@@ -116,9 +116,9 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     VEC4 backpos = back.position4(tcomp);
     VEC4 endpos = endhel.position4(tcomp);
     cout << "back position " << backpos << endl
-    << " end position " << endpos << endl;
+      << " end position " << endpos << endl;
     // append this
-//    bool added(false);
+    //    bool added(false);
     ptraj.append(endhel);
     // compare positions and momenta
     auto pold = back.position3(tcomp);
@@ -144,7 +144,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     auto frontpos = front.position4(tcomp);
     auto endpos = endhel.position4(tcomp);
     cout << "front position " << frontpos << endl
-    << " end position " << endpos << endl;
+      << " end position " << endpos << endl;
     ptraj.prepend(endhel);
     // compare positions and momenta
     auto pold = front.position3(tcomp);
@@ -159,9 +159,9 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   size_t igap;
   ptraj.gaps(largest, igap, average);
   cout << "Final piece traj with " << ptraj.pieces().size() << " pieces and largest gap = "
-  << largest << " average gap = " << average << endl;
+    << largest << " average gap = " << average << endl;
 
-// draw each piece of the piecetraj
+  // draw each piece of the piecetraj
   char fname[100];
   snprintf(fname,100,"ParticleTrajectory_%s_%2.2f.root",MomBasis::directionName(tdir).c_str(),delta);
   TFile pkfile((KTRAJ::trajName()+fname).c_str(),"RECREATE");
@@ -185,16 +185,16 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     }
     plhel.back()->Draw();
   }
-// now draw using the PTraj
+  // now draw using the PTraj
   unsigned np = npts*ptraj.pieces().size();
   TPolyLine3D* all = new TPolyLine3D(np);
   all->SetLineColor(kYellow);
   all->SetLineStyle(kDotted);
   double ts = (ptraj.range().end()-ptraj.range().begin())/(np-1);
   for(unsigned ip=0;ip<np;ip++){
-  double tp = ptraj.range().begin() + ip*ts;
+    double tp = ptraj.range().begin() + ip*ts;
     VEC3 ppos = ptraj.position3(tp);
-      all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
+    all->SetPoint(ip,ppos.X(),ppos.Y(),ppos.Z());
   }
   all->Draw();
 
@@ -208,7 +208,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   rulers->GetZaxis()->SetLabelColor(kOrange);
   rulers->Draw();
 
-// ClosestApproach test:
+  // ClosestApproach test:
   VEC3 midpos, middir;
   midpos = ptraj.position3(ptraj.range().mid());
   middir = ptraj.direction(ptraj.range().mid());
@@ -251,12 +251,12 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   }
 
   cout << "ClosestApproach dDdP" << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
- 
+
   pttcan->Write();
 
   pkfile.Write();
   pkfile.Close();
-  // 
+  //
   return 0;
 }
 

@@ -55,7 +55,7 @@ namespace KinKal {
   // and a kinematic trajectory is lossless.
   class ParticleStateEstimate : public ParticleState {
     public:
-    // construct from from raw information
+      // construct from from raw information
       ParticleStateEstimate(ParticleState const& state, DMAT const& scovar) : ParticleState(state), scovar_(scovar) {}
       ParticleStateEstimate(SVEC6 const& state, DMAT const& scovar,double time, double mass, int charge) : ParticleState(state, time, mass, charge), scovar_(scovar) {}
       ParticleStateEstimate() {}

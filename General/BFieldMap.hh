@@ -81,8 +81,8 @@ namespace KinKal {
     double tstep(0.1); // maximum step
     // step increment from static difference from nominal field.  0.2 comes from sagitta geometry
     // protect against nominal field = exact field
-//    auto db = (bvec - ktraj.bnom(tstart)).R();
-//    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db)));
+    //    auto db = (bvec - ktraj.bnom(tstart)).R();
+    //    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db)));
     // use the magnitude as a worst-case
     // the deviation goes as the cube root of the BFieldMap change.  0.5 comes from cosine expansion
     // this calculation needs testing/fixing: the response to tolerance is not as expected FIXME!
@@ -106,7 +106,7 @@ namespace KinKal {
     return tend;
   }
 
-// divide a trajectory into magnetic 'domains' within which BField changes are within tolerance
+  // divide a trajectory into magnetic 'domains' within which BField changes are within tolerance
   template<class KTRAJ> void BFieldMap::setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const {
     double tstart, tend;
     tstart = range.begin();

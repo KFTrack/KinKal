@@ -14,7 +14,7 @@ add_library(General SHARED
     Weights.cc
     BFieldMap.cc
     AxialBFieldMap.cc
-)
+    )
 
 # set top-level directory as include root
 target_include_directories(General PRIVATE ${PROJECT_SOURCE_DIR}/..)

@@ -133,7 +133,7 @@ namespace KKTest {
       auto tline = generateStraw(pktraj,htime);
       CAHint tphint(htime,htime);
       PTCA tp(pktraj,tline,tphint,tprec_);
-//      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
+      //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
       WireHitState::LRAmbig ambig(WireHitState::null);
       if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
       WireHitState::Dimension dim(WireHitState::time);

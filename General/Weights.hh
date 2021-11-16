@@ -24,22 +24,22 @@ namespace KinKal {
       FitData& fitData() { return fitdata_; }
       // addition: only works for other weights
       Weights & operator +=(Weights const& other) {
-	fitdata_ += other.fitdata_;
-	return *this;
+        fitdata_ += other.fitdata_;
+        return *this;
       }
       Weights & operator -=(Weights const& other) {
-	fitdata_ -= other.fitdata_;
-	return *this;
+        fitdata_ -= other.fitdata_;
+        return *this;
       }
       Weights & operator *=(double scale){
-	fitdata_.vec() *= scale;
-	fitdata_.mat() *= scale;
-	return *this;
+        fitdata_.vec() *= scale;
+        fitdata_.mat() *= scale;
+        return *this;
       }
       void print(std::ostream& ost=std::cout,int detail=0) const {
-	ost << "Weights wVec " << weightVec() << std::endl;
-	if(detail > 1)
-	  ost << "weight " << weightMat() << std::endl;
+        ost << "Weights wVec " << weightVec() << std::endl;
+        if(detail > 1)
+          ost << "weight " << weightMat() << std::endl;
       }
     private:
       FitData fitdata_; // data payload
