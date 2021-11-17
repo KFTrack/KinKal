@@ -11,6 +11,10 @@ namespace KinKal {
   AxialBFieldMap::AxialBFieldMap(std::string const& file) {
     // read the file
     std::ifstream spectrum_stream(file);
+    if ( (spectrum_stream.rdstate() & std::ifstream::failbit ) != 0 ){
+      std::string errmsg = std::string("can't open Axial field file ") + file;
+      throw std::invalid_argument(errmsg.c_str());
+    }
     std::string line;
     bool first(true);
     static std::string comment("#");
@@ -50,7 +54,14 @@ namespace KinKal {
     size_t ilow = lowBound(position.Z());
     size_t ihigh = ilow+1;
     double db = axial_[ihigh]-axial_[ilow];
-    double grad = db/zstep_;
+    double dz = zstep_;
+    // patch for null spots
+    while(fabs(db)<1e-8 && ihigh < axial_.size()-1){
+      ihigh++;
+      dz += zstep_;
+      db = axial_[ihigh]-axial_[ilow];
+    }
+    double grad = db/dz;
     Grad retval;
     retval[0][0] = retval[1][1] = -0.5*grad;
     retval[2][2] = -grad;

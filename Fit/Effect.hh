@@ -15,7 +15,7 @@
 #include <ostream>
 
 namespace KinKal {
- 
+
   template<class KTRAJ> class Effect {
     public:
       enum State{unprocessed=-1,processed,updated,failed};
@@ -36,28 +36,28 @@ namespace KinKal {
       // the following only has a non-trivial implementation for effects which (potentially) add information content to the fit
       // chisquared (quality) associated with the most recent processing and current reference.  This is used to determine
       // fit convergence
-      virtual Chisq chisq() const { return Chisq();} 
+      virtual Chisq chisq() const { return Chisq();}
       // chisquared WRT a given local parameter set.  This is a purely diagnostic function
-      virtual Chisq chisq(Parameters const& pdata) const { return Chisq();} // chisq contribution WRT parameters 
+      virtual Chisq chisq(Parameters const& pdata) const { return Chisq();} // chisq contribution WRT parameters
       // The following only has a non-trivial implemetation for effects which (potentially) alter the physical particle trajectory
       virtual void append(PKTRAJ& fit) {};
       // disallow copy and equivalence
-      Effect(Effect const& ) = delete; 
-      Effect& operator =(Effect const& ) = delete; 
+      Effect(Effect const& ) = delete;
+      Effect& operator =(Effect const& ) = delete;
       State state(TimeDir tdir) const { return state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)]; }
       void setState(TimeDir tdir, State state) { state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = state; }
       bool wasProcessed(TimeDir tdir) const { return state(tdir) == processed; }
       void updateState() { state_[0] = state_[1] = updated; }
       Effect() : state_{{unprocessed,unprocessed}} {}
-      virtual ~Effect(){} 
+      virtual ~Effect(){}
     private:
       std::array<State,2> state_; // state of processing in each direction
   };
-  
+
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Effect<KTRAJ> const& eff) {
     ost << (eff.active() ? "Active " : "Inactive ") << "time " << eff.time() << " state " <<
-    TimeDir::forwards << " " << eff.stateName(eff.state(TimeDir::forwards))  << " : " <<
-    TimeDir::backwards << " " << eff.stateName(eff.state(TimeDir::backwards));
+      TimeDir::forwards << " " << eff.stateName(eff.state(TimeDir::forwards))  << " : " <<
+      TimeDir::backwards << " " << eff.stateName(eff.state(TimeDir::backwards));
     return ost;
   }
 
@@ -65,13 +65,13 @@ namespace KinKal {
     const static std::vector<std::string> stateNames_ = { "Unprocessed", "Processed", "Updated", "Failed" };
     switch (state) {
       case unprocessed: default:
-	return stateNames_[0];
+        return stateNames_[0];
       case processed:
-	return stateNames_[1];
+        return stateNames_[1];
       case updated:
-	return stateNames_[2];
+        return stateNames_[2];
       case failed:
-	return stateNames_[3];
+        return stateNames_[3];
     }
   }
 }

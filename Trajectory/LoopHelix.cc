@@ -13,12 +13,12 @@ namespace KinKal {
     "Cylinder Center X",
     "Cylinder Center Y",
     "Azimuth at Z=0 Plane",
-    "Time at Z=0 Plane"}; 
+    "Time at Z=0 Plane"};
   const vector<string> LoopHelix::paramNames_ = {
     "Radius","Lambda","CenterX","CenterY","Phi0","Time0"};
   const vector<string> LoopHelix::paramUnits_ = {
     "mm","mm","mm","mm","radians","ns"};
-  const string LoopHelix::trajName_("LoopHelix");  
+  const string LoopHelix::trajName_("LoopHelix");
   vector<string> const& LoopHelix::paramNames() { return paramNames_; }
   vector<string> const& LoopHelix::paramUnits() { return paramUnits_; }
   vector<string> const& LoopHelix::paramTitles() { return paramTitles_; }
@@ -42,7 +42,7 @@ namespace KinKal {
     // create inverse rotation; this moves back into the global coordinate system
     l2g_ = g2l_.Inverse();
     // compute some simple useful parameters
-    double pt = mom.Pt(); 
+    double pt = mom.Pt();
     double phibar = mom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
     double momToRad = 1.0/Q();
@@ -62,11 +62,11 @@ namespace KinKal {
     param(cx_) = pos.X() - mom.Y()*momToRad;
     param(cy_) = pos.Y() + mom.X()*momToRad;
     // test position and momentum function
-//    auto testpos = position3(pos0.T());
-//    auto testmom = momentum3(pos0.T());
-//    auto dp = testpos - pos0.Vect();
-//    auto dm = testmom - mom0.Vect();
-//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+    //    auto testpos = position3(pos0.T());
+    //    auto testmom = momentum3(pos0.T());
+    //    auto dp = testpos - pos0.Vect();
+    //    auto dm = testmom - mom0.Vect();
+    //    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
   }
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
@@ -86,23 +86,23 @@ namespace KinKal {
     pars_ = pdata;
   }
 
-  LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
-  trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
-    // set the transforms
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    l2g_ = g2l_.Inverse();
-  }
+  LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
+    trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
+      // set the transforms
+      g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+      l2g_ = g2l_.Inverse();
+    }
 
   LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
-    LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range) 
+    LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range)
   {}
 
   LoopHelix::LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  LoopHelix((ParticleState)pstate,bnom,range) {
-  // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.time());
-    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
-  }
+    LoopHelix((ParticleState)pstate,bnom,range) {
+      // derive the parameter space covariance from the global state space covariance
+      PSMAT dpds = dPardState(pstate.time());
+      pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+    }
 
   double LoopHelix::momentumVariance(double time) const {
     DVEC dMomdP(rad(), lam(),  0.0, 0.0 ,0.0 , 0.0);
@@ -117,7 +117,7 @@ namespace KinKal {
 
   VEC3 LoopHelix::position3(double time) const {
     return l2g_(localPosition(time));
-  } 
+  }
 
   MOM4 LoopHelix::momentum4(double time) const{
     VEC3 mom3 = momentum3(time);
@@ -129,7 +129,7 @@ namespace KinKal {
   }
 
   VEC3 LoopHelix::velocity(double time) const{
-    return direction(time)*speed(time); 
+    return direction(time)*speed(time);
   }
 
   VEC3 LoopHelix::localDirection(double time, MomBasis::Direction mdir) const {
@@ -137,13 +137,13 @@ namespace KinKal {
     double invpb = -sign()/pbar(); // need to sign
     switch ( mdir ) {
       case MomBasis::perpdir_:
-	return VEC3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
+        return VEC3( lam()*cos(phival)*invpb,lam()*sin(phival)*invpb,-rad()*invpb);
       case MomBasis::phidir_:
-	return VEC3(-sin(phival),cos(phival),0.0);
+        return VEC3(-sin(phival),cos(phival),0.0);
       case MomBasis::momdir_:
-	return VEC3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
+        return VEC3( rad()*cos(phival)*invpb,rad()*sin(phival)*invpb,lam()*invpb);
       default:
-	throw invalid_argument("Invalid direction");
+        throw invalid_argument("Invalid direction");
     }
   }
 
@@ -155,13 +155,13 @@ namespace KinKal {
     double df = dphi(time);
     double phival = df + phi0();
     return VEC3(cx() + rad()*sin(phival), cy() - rad()*cos(phival), df*lam());
-  } 
+  }
 
   VEC3 LoopHelix::direction(double time, MomBasis::Direction mdir) const {
     return l2g_(localDirection(time,mdir));
   }
 
-  // derivatives of parameters WRT momentum projected along the given momentum basis direction 
+  // derivatives of parameters WRT momentum projected along the given momentum basis direction
   DVEC LoopHelix::momDeriv(double time, MomBasis::Direction mdir) const {
     DPDV dPdM = dPardM(time);
     auto dir = direction(time,mdir);
@@ -197,7 +197,7 @@ namespace KinKal {
     SVEC3 T2(-sphi,cphi,0.0);
     SVEC3 dR_dM(cphi,sphi,0.0);
     SVEC3 dL_dM(0.0,0.0,1.0);
-    SVEC3 mdir = rad()*dR_dM + lam()*dL_dM; 
+    SVEC3 mdir = rad()*dR_dM + lam()*dL_dM;
     SVEC3 dCx_dM (0.0,-1.0,0.0);
     SVEC3 dCy_dM (1.0,0.0,0.0);
     SVEC3 dphi0_dM = T2/rad() + (dphi/lam())*dL_dM;
@@ -214,14 +214,14 @@ namespace KinKal {
   }
 
   DPDV LoopHelix::dPardX(double time) const {
-// rotate into local space
+    // rotate into local space
     RMAT g2lmat;
     g2l_.GetRotationMatrix(g2lmat);
     return dPardXLoc(time)*g2lmat;
   }
 
   DPDV LoopHelix::dPardM(double time) const {
-// now rotate these into local space
+    // now rotate these into local space
     RMAT g2lmat;
     g2l_.GetRotationMatrix(g2lmat);
     return dPardMLoc(time)*g2lmat;
@@ -234,13 +234,13 @@ namespace KinKal {
     retval[lam_] = -lam();
     retval[cx_] = rad()*sin(phival);
     retval[cy_] = -rad()*cos(phival);
-    retval[phi0_] = -dphi(time); 
+    retval[phi0_] = -dphi(time);
     retval[t0_] = 0.0;
     return (1.0/bnom_.R())*retval;
   }
 
   DVEC LoopHelix::dPardB(double time, VEC3 const& BPrime) const {
-  // rotate new B field difference into local coordinate system
+    // rotate new B field difference into local coordinate system
     VEC3 dB = g2l_(BPrime-bnom_);
     // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
     DVEC retval = dPardB(time)*dB.Z();
@@ -285,7 +285,7 @@ namespace KinKal {
     dXdP.Place_in_col(dX_dCy,0,cy_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
     dXdP.Place_in_col(dX_dt0,0,t0_);
-// now rotate these into global space
+    // now rotate these into global space
     RMAT l2gmat;
     l2g_.GetRotationMatrix(l2gmat);
     return l2gmat*dXdP;
@@ -312,14 +312,14 @@ namespace KinKal {
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
     dMdP.Place_in_col(dM_dt0,0,t0_);
     dMdP *= Q(); // scale to momentum
-// now rotate these into global space
+    // now rotate these into global space
     RMAT l2gmat;
     l2g_.GetRotationMatrix(l2gmat);
     return l2gmat*dMdP;
   }
 
   PSMAT LoopHelix::dPardStateLoc(double time) const{
-  // aggregate state from separate X and M derivatives; parameter space is row
+    // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardXLoc(time);
     DPDV dPdM = dPardMLoc(time);
     PSMAT dpds;
@@ -329,7 +329,7 @@ namespace KinKal {
   }
 
   PSMAT LoopHelix::dPardState(double time) const{
-  // aggregate state from separate X and M derivatives; parameter space is row
+    // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
     PSMAT dpds;
@@ -339,7 +339,7 @@ namespace KinKal {
   }
 
   PSMAT LoopHelix::dStatedPar(double time) const {
-  // aggregate state from separate X and M derivatives; parameter space is column
+    // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
     PSMAT dsdp;
@@ -349,7 +349,7 @@ namespace KinKal {
   }
 
   ParticleStateEstimate LoopHelix::stateEstimate(double time) const {
-  // express the parameter space covariance in global state space
+    // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }

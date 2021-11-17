@@ -4,10 +4,10 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Tests/SimpleWireHit.hh"
+#include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
-#include "KinKal/Tests/ScintHit.hh"
+#include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -143,7 +143,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nevents(1000);
   bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
-  int detail(Config::minimal), invert(0);
+  int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   Config::BFCorr bfcorr(Config::nocorr);
   bool fitmat(true);
@@ -198,6 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
     {"extendfrac",     required_argument, 0, 'X'  },
+    {"lighthit",     required_argument, 0, 'L'  },
     {NULL, 0,0,0}
   };
 
@@ -423,7 +424,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       return -3;
     }
     for(size_t jpar=0; jpar < NParams(); jpar++){
-      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-10){
+      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-6){
         std::cout << "Covariance error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
         return -3;
       }
@@ -623,8 +624,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     double duration (0.0);
     unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0);
 
-    config.plevel_ = Config::none;
-    exconfig.plevel_ = Config::none;
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
       // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking

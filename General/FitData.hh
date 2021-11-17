@@ -26,29 +26,29 @@ namespace KinKal {
       DMAT& mat() { return mat_; }
       // scale the matrix
       void scale(double sfac) { mat_ *= sfac; }
-      // inversion changes from params <-> weight. 
+      // inversion changes from params <-> weight.
       // Invert in-place
       void invert() {
-	// first invert the matrix
-	if(mat_.Invert()){
-	  vec_ = mat_*vec_;
-	} else {
-	  throw std::runtime_error("Inversion failure");
-	}
-	// check
-   if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
+        // first invert the matrix
+        if(mat_.Invert()){
+          vec_ = mat_*vec_;
+        } else {
+          throw std::runtime_error("Inversion failure");
+        }
+        // check
+        if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
 
       }
-     // append
+      // append
       FitData & operator -= (FitData const& other) {
-	vec_ -= other.vec();
-	mat_ -= other.mat();
-	return *this;
+        vec_ -= other.vec();
+        mat_ -= other.mat();
+        return *this;
       }
       FitData & operator += (FitData const& other) {
-	vec_ += other.vec();
-	mat_ += other.mat();
-	return *this;
+        vec_ += other.vec();
+        mat_ += other.mat();
+        return *this;
       }
     private:
       DVEC vec_; // parameters

@@ -5,8 +5,8 @@
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/Tests/SimpleWireHit.hh"
-#include "KinKal/Tests/ScintHit.hh"
+#include "KinKal/Examples/SimpleWireHit.hh"
+#include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -102,36 +102,36 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
 
   int long_index =0;
   while ((opt = getopt_long_only(argc, argv,"",
-	  long_options, &long_index )) != -1) {
+          long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-		 break;
+                 break;
       case 'P' : precision = atof(optarg);
-		 break;
+                 break;
       case 'p' : imass = atoi(optarg);
-		 break;
+                 break;
       case 'q' : icharge = atoi(optarg);
-		 break;
+                 break;
       case 'z' : zrange = atof(optarg);
-		 break;
+                 break;
       case 'n' : nhits = atoi(optarg);
-		 break;
+                 break;
       case 'l' : scinthit_ = atoi(optarg);
-		 break;
+                 break;
       case 'S' : strawhit_ = atoi(optarg);
-		 break;
+                 break;
       case 'd' : ambigdoca = atof(optarg);
-		 break;
+                 break;
       case 'b' : simmat_ = atoi(optarg);
-		 break;
+                 break;
       case 's' : iseed = atoi(optarg);
-		 break;
+                 break;
       case 'y' : By = atof(optarg);
-		 break;
+                 break;
       case 'g' : Bgrad = atof(optarg);
-		 break;
+                 break;
       default: print_usage();
-	       exit(EXIT_FAILURE);
+               exit(EXIT_FAILURE);
     }
   }
 
@@ -149,7 +149,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_,false, ambigdoca, pmass );
   toy.setInefficiency(0.0);
   PKTRAJ tptraj;
-//  cout << "True " << tptraj << endl;
+  //  cout << "True " << tptraj << endl;
   StrawMaterial const& smat = toy.strawMaterial();
   TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
   TGraph* gwplen = new TGraph(nhits); gwplen->SetTitle("Wall Pathlength;Doca (mm);Pathlength (mm)"); gwplen->SetMinimum(0.0);
@@ -162,12 +162,12 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   HITCOL thits;
   EXINGCOL dxings; // this program shares det xing ownership with Track
   toy.simulateParticle(tptraj, thits, dxings);
-// create Canvas
+  // create Canvas
   TCanvas* hcan = new TCanvas("hcan","Hits",1000,1000);
   TPolyLine3D* hel = new TPolyLine3D(100);
   double tstep = tptraj.range().range()/100.0;
   for(int istep=0;istep<101;++istep){
-  // compute the position from the time
+    // compute the position from the time
     VEC4 hpos = tptraj.position4(tptraj.range().begin() + tstep*istep);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
@@ -268,35 +268,35 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     auto pder = ores.dRdP();
     for(size_t ipar=0;ipar < NParams();ipar++){
       if(fabs(pder[ipar])>1e-10){
-	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-	// update the hits
-	for(size_t istep=0;istep<nsteps; istep++){
-	  double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
-	  // modify the helix
-	  KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
-	  modktraj.params().parameters()[ipar] += dpar;
-	  PKTRAJ modtptraj(modktraj);
-	  KinKal::DVEC dpvec;
-	  dpvec[ipar] = dpar;
-	  kkhit.update(modtptraj);// refer to moded helix
-	  Residual mres;
-	  if(strawhit){
-	    mres = strawhit->residual(0);
-	  } else if(scinthit) {
-	    mres = scinthit->residual(0);
-	  }
-	  double dr = ores.value()-mres.value(); // this sign is confusing.  I think
-	  // it means the fit needs to know how much to change the ref parameters, which is
-	  // opposite from how much the ref parameters are different from the measurement
-	  // compare the change with the expected from the derivatives
-	  double ddr = ROOT::Math::Dot(pder,dpvec);
-	  hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-	  if(fabs(dr - ddr) > 1.0 ){
-	    cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar
-	      << " doca " << tpdata.doca() << " DirDot " << tpdata.dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
-	    status = 2;
-	  }
-	}
+        auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
+        // update the hits
+        for(size_t istep=0;istep<nsteps; istep++){
+          double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
+          // modify the helix
+          KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+          modktraj.params().parameters()[ipar] += dpar;
+          PKTRAJ modtptraj(modktraj);
+          KinKal::DVEC dpvec;
+          dpvec[ipar] = dpar;
+          kkhit.update(modtptraj);// refer to moded helix
+          Residual mres;
+          if(strawhit){
+            mres = strawhit->residual(0);
+          } else if(scinthit) {
+            mres = scinthit->residual(0);
+          }
+          double dr = ores.value()-mres.value(); // this sign is confusing.  I think
+          // it means the fit needs to know how much to change the ref parameters, which is
+          // opposite from how much the ref parameters are different from the measurement
+          // compare the change with the expected from the derivatives
+          double ddr = ROOT::Math::Dot(pder,dpvec);
+          hderivg[ipar]->SetPoint(ipt++,dr,ddr);
+          if(fabs(dr - ddr) > 1.0 ){
+            cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar
+              << " doca " << tpdata.doca() << " DirDot " << tpdata.dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
+            status = 2;
+          }
+        }
       }
     }
   }
@@ -312,10 +312,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
       hderivg[ipar]->Draw("AC*");
       if(fabs(pfitr->Parameter(0))> 100*delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
-	cout << "Parameter "
-	  << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
-	  << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
-	status = 1;
+        cout << "Parameter "
+          << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
+          << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
+        status = 1;
       }
     }
   }

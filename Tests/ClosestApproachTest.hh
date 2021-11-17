@@ -52,7 +52,7 @@ int ClosestApproachTest(int argc, char **argv) {
   double pmass(0.511), oz(0.0), ot(0.0);
   double tmin(-10.0), tmax(10.0);
   double wlen(1000.0); //length of the wire
-  double gap(2.0); // distance between Line and KTRAJ 
+  double gap(2.0); // distance between Line and KTRAJ
   double vprop(0.7);
   double eta(0.0);
   unsigned nstep(50),ntstep(10);
@@ -69,27 +69,27 @@ int ClosestApproachTest(int argc, char **argv) {
   };
 
   int long_index =0;
-  while ((opt = getopt_long_only(argc, argv,"", 
-	  long_options, &long_index )) != -1) {
+  while ((opt = getopt_long_only(argc, argv,"",
+          long_options, &long_index )) != -1) {
     switch (opt) {
       case 'c' : cost = atof(optarg);
-		 break;
+                 break;
       case 'q' : icharge = atoi(optarg);
-		 break;
-      case 'g' : gap = atof(optarg); 
-		 break;
+                 break;
+      case 'g' : gap = atof(optarg);
+                 break;
       case 't' : tmin = atof(optarg);
-		 break;
+                 break;
       case 'd' : tmax = atof(optarg);
-		 break;
+                 break;
       case 'f' : phi = atof(optarg);
-		 break;
+                 break;
       case 'v' : vprop = atof(optarg);
-		 break;
+                 break;
       case 'e' : eta = atof(optarg);
-		 break;
-      default: print_usage(); 
-	       exit(EXIT_FAILURE);
+                 break;
+      default: print_usage();
+               exit(EXIT_FAILURE);
     }
   }
   // create helix
@@ -155,9 +155,9 @@ int ClosestApproachTest(int argc, char **argv) {
     tlpos = tp.sensorPoca().Vect();
     double refd = tp.doca();
     double reft = tp.deltaT();
-  //  cout << " Helix Pos " << pos << " ClosestApproach KTRAJ pos " << thpos << " ClosestApproach Line pos " << tlpos << endl;
-  //  cout << " ClosestApproach particlePoca " << tp.particlePoca() << " ClosestApproach sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
-  //  cout << "ClosestApproach dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
+    //  cout << " Helix Pos " << pos << " ClosestApproach KTRAJ pos " << thpos << " ClosestApproach Line pos " << tlpos << endl;
+    //  cout << " ClosestApproach particlePoca " << tp.particlePoca() << " ClosestApproach sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
+    //  cout << "ClosestApproach dDdP " << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
     // test against numerical derivatives
     // range to change specific parameters; most are a few mm
     for(size_t ipar=0;ipar<NParams();ipar++){

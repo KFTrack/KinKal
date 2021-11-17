@@ -11,14 +11,14 @@ namespace KinKal {
     enum Direction {momdir_=0,perpdir_,phidir_,ndir};
     static std::string directionName(Direction tdir) {
       switch (tdir) {
-	case momdir_:
-	  return std::string("MomentumDirection");
-	case perpdir_:
-	  return std::string("PerpendicularDirection");
-	case phidir_:
-	  return std::string("PhiDirection");
-	default:
-	  return std::string("Unknown");
+        case momdir_:
+          return std::string("MomentumDirection");
+        case perpdir_:
+          return std::string("PerpendicularDirection");
+        case phidir_:
+          return std::string("PhiDirection");
+        default:
+          return std::string("Unknown");
       }
     }
   };

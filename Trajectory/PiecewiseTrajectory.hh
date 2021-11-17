@@ -45,8 +45,6 @@ namespace KinKal {
       TTRAJ& back() { return pieces_.back(); }
       size_t nearestIndex(double time) const;
       DTTRAJ const& pieces() const { return pieces_; }
-      // find the time the trajectory crosses a Z plane
-      double zTime(double zpos) const;
       // test for spatial gaps
       double gap(size_t ihigh) const;
       void gaps(double& largest, size_t& ilargest, double& average) const;
@@ -64,7 +62,7 @@ namespace KinKal {
       throw std::invalid_argument("Invalid Range");
     // update piece range
     pieces_.front().setRange(TimeRange(trange.begin(),pieces_.front().range().end()));
-    pieces_.back().setRange(TimeRange(pieces_.front().range().begin(),trange.end()));
+    pieces_.back().setRange(TimeRange(pieces_.back().range().begin(),trange.end()));
   }
 
   template <class TTRAJ> PiecewiseTrajectory<TTRAJ>::PiecewiseTrajectory(TTRAJ const& piece) : pieces_(1,piece)
@@ -220,29 +218,6 @@ namespace KinKal {
         piece.print(ost,detail);
       }
     }
-  }
-
-  template <class TTRAJ> double PiecewiseTrajectory<TTRAJ>::zTime(double zpos) const {
-    auto bpos = position3(range().begin());
-    auto epos = position3(range().end());
-    // assume linear transit to get an initial estimate
-    double tz = range().begin() + range().range()*(zpos-bpos.Z())/(epos.Z()-bpos.Z());
-    size_t zindex = nearestIndex(tz);
-    size_t oldindex = zindex;
-    double dt(std::numeric_limits<float>::max());
-    do {
-      auto const& traj = piece(zindex);
-      bpos = traj.position3(traj.range().begin());
-      epos = traj.position3(traj.range().end());
-      double newtz = traj.range().begin() + traj.range().range()*(zpos-bpos.Z())/(epos.Z()-bpos.Z());
-      oldindex = zindex;
-      zindex = nearestIndex(tz);
-      // protext against osccilation or divergence
-      if(fabs(tz - newtz) > dt)break;
-      dt = fabs(tz - newtz);
-      tz = newtz;
-    } while (oldindex != zindex);
-    return tz;
   }
 
   template <class TTRAJ> std::ostream& operator <<(std::ostream& ost, PiecewiseTrajectory<TTRAJ> const& pttraj) {

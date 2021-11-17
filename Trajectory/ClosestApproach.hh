@@ -37,7 +37,7 @@ namespace KinKal {
       bool inRange() const { return particleTraj().inRange(particleToca()) && sensorTraj().inRange(sensorToca()); }
       double precision() const { return precision_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
-    // forward the data payload interface.
+      // forward the data payload interface.
       ClosestApproachData::TPStat status() const { return tpdata_.status_; }
       std::string const& statusName() const { return tpdata_.statusName(tpdata_.status_); }
       double doca() const { return tpdata_.doca(); }
@@ -66,11 +66,11 @@ namespace KinKal {
       DVEC dTdP_; // derivative of TOCA WRT Parameters
   };
 
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) : 
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
     precision_(prec),ktraj_(ktraj), straj_(straj) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
-  double prec) : ClosestApproach(ktraj,straj,prec) {
+      double prec) : ClosestApproach(ktraj,straj,prec) {
     findTCA(hint);
   }
 
@@ -87,7 +87,7 @@ namespace KinKal {
     double sspeed = straj_.speed(sensorToca());
     // iterate until change in TOCA is less than precision
     double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
-    while(tpdata_.usable() && (fabs(dptoca) > precision() || fabs(dstoca) > precision()) && niter++ < maxiter) { 
+    while(tpdata_.usable() && (fabs(dptoca) > precision() || fabs(dstoca) > precision()) && niter++ < maxiter) {
       // find positions and directions at the current TOCA estimate
       tpdata_.partCA_ = ktraj_.position4(tpdata_.particleToca());
       tpdata_.sensCA_ = straj_.position4(tpdata_.sensorToca());
@@ -99,8 +99,8 @@ namespace KinKal {
       double denom = 1.0 - ddot*ddot;
       // check for parallel)
       if(denom<1.0e-5){
-	tpdata_.status_ = ClosestApproachData::pocafailed;
-	break;
+        tpdata_.status_ = ClosestApproachData::pocafailed;
+        break;
       }
       double hdd = dpos.Dot(particleDirection());
       double ldd = dpos.Dot(sensorDirection());
@@ -113,9 +113,9 @@ namespace KinKal {
     }
     if(tpdata_.status_ != ClosestApproachData::pocafailed){
       if(niter < maxiter)
-	tpdata_.status_ = ClosestApproachData::converged;
+        tpdata_.status_ = ClosestApproachData::converged;
       else
-	tpdata_.status_ = ClosestApproachData::unconverged;
+        tpdata_.status_ = ClosestApproachData::unconverged;
       // need to add divergence and oscillation tests FIXME!
     }
     // final update

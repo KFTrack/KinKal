@@ -2,7 +2,7 @@
 #define KinKal_Material_hh
 //
 // Class to describe effect of a particle passing through discrete material on the fit (ie material transport)
-// This effect adds no information content, just noise, and is KKEFF::processed in params space 
+// This effect adds no information content, just noise, and is KKEFF::processed in params space
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Detector/ElementXing.hh"
@@ -19,7 +19,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
-      double time() const override { return dxing_->crossingTime() + tbuff_ ;} 
+      double time() const override { return dxing_->crossingTime() + tbuff_ ;}
       bool active() const override { return  dxing_->active(); }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
@@ -27,7 +27,7 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       virtual ~Material(){}
-      // create from the material and a trajectory 
+      // create from the material and a trajectory
       Material(EXINGPTR const& dxing, PKTRAJ const& pktraj);
       // accessors
       Parameters const& effect() const { return mateff_; }
@@ -47,7 +47,7 @@ namespace KinKal {
 
   template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-3;
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing), 
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing),
   ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0) {
     update(pktraj);
   }
@@ -56,15 +56,15 @@ namespace KinKal {
     if(dxing_->active()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
-	kkdata.append(mateff_);
-	cache_ += kkdata.wData();
+        kkdata.append(mateff_);
+        cache_ += kkdata.wData();
       } else {
-	// backwards, set the cache BEFORE processing this effect, to avoid double-counting it
-	cache_ += kkdata.wData();
-	// SUBTRACT the effect going backwards: covariance change is sign-independent
-	Parameters reverse(mateff_);
-	reverse.parameters() *= -1.0;
-	kkdata.append(reverse);
+        // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
+        cache_ += kkdata.wData();
+        // SUBTRACT the effect going backwards: covariance change is sign-independent
+        Parameters reverse(mateff_);
+        reverse.parameters() *= -1.0;
+        kkdata.append(reverse);
       }
     }
     KKEFF::setState(tdir,KKEFF::processed);
@@ -72,14 +72,14 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref) {
     cache_ = Weights();
-    ref_ = ref.nearestPiece(dxing_->crossingTime()); 
+    ref_ = ref.nearestPiece(dxing_->crossingTime());
     updateCache();
     KKEFF::updateState();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-      // update the detector Xings for this effect
+    // update the detector Xings for this effect
     dxing_->update(ref,miconfig);
     update(ref);
   }
@@ -94,19 +94,19 @@ namespace KinKal {
       DPDV dPdM = ref_.dPardM(time());
       double mommag = ref_.momentum(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
-	auto mdir = static_cast<MomBasis::Direction>(idir);
-	auto dir = ref_.direction(time(),mdir);
-	// project the momentum derivatives onto this direction
-	DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
-	// convert derivative vector to a Nx1 matrix
-	ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-	dPdm.Place_in_col(pder,0,0);
-	// update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
-	mateff_.parameters() += pder*dmom[idir];
-	// now the variance: this doesn't depend on time direction
-	ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-	MVar(0,0) = momvar[idir]*vscale_;
-	mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
+        auto mdir = static_cast<MomBasis::Direction>(idir);
+        auto dir = ref_.direction(time(),mdir);
+        // project the momentum derivatives onto this direction
+        DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
+        // convert derivative vector to a Nx1 matrix
+        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
+        dPdm.Place_in_col(pder,0,0);
+        // update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
+        mateff_.parameters() += pder*dmom[idir];
+        // now the variance: this doesn't depend on time direction
+        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
+        MVar(0,0) = momvar[idir]*vscale_;
+        mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
       }
     }
   }
@@ -121,12 +121,12 @@ namespace KinKal {
       newpiece.range() = TimeRange(time,std::max(time+tbuff_,fit.range().end()));
       // make sure the piece is appendable; if not, adjust
       if(time < fit.back().range().begin()){
-      // if this is the first piece, simply extend it back
-	if(fit.pieces().size() ==1){
-	  fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
-	} else {
-	  newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
-	}
+        // if this is the first piece, simply extend it back
+        if(fit.pieces().size() ==1){
+          fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
+        } else {
+          newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
+        }
       }
       fit.append(newpiece);
     }

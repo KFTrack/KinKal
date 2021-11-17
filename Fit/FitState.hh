@@ -18,32 +18,32 @@ namespace KinKal {
       bool hasWeights() const { return hasWeights_; }
       // add to either parameters or weights
       void append(Parameters const& pdata) {
-	pData() += pdata;
-	// this invalidates the weight information
-	hasParameters_ = true;
-	hasWeights_ = false;
+        pData() += pdata;
+        // this invalidates the weight information
+        hasParameters_ = true;
+        hasWeights_ = false;
       }
       void append(Weights const& wdata) {
-	wData() += wdata;
-	// this invalidates the parameter information
-	hasWeights_ = true;
-	hasParameters_ = false;
+        wData() += wdata;
+        // this invalidates the parameter information
+        hasWeights_ = true;
+        hasParameters_ = false;
       }
-      Parameters& pData() { 
-	if(!hasParameters_ && hasWeights_ ){
-	  // invert the weight
-	  pdata_ = Parameters(wdata_);
-	  hasParameters_ = true;
-	}
-	return pdata_;
+      Parameters& pData() {
+        if(!hasParameters_ && hasWeights_ ){
+          // invert the weight
+          pdata_ = Parameters(wdata_);
+          hasParameters_ = true;
+        }
+        return pdata_;
       }
-      Weights& wData() { 
-	if(!hasWeights_ && hasParameters_ ){
-	  // invert the parameters
-	  wdata_ = Weights(pdata_);
-	  hasWeights_ = true;
-	}
-	return wdata_;
+      Weights& wData() {
+        if(!hasWeights_ && hasParameters_ ){
+          // invert the parameters
+          wdata_ = Weights(pdata_);
+          hasWeights_ = true;
+        }
+        return wdata_;
       }
     private:
       Parameters pdata_; // parameters space representation of (intermediate) fit data

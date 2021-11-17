@@ -1,7 +1,7 @@
 /*
-  KinematicLine is the Linear Trajectory Specialization of KTRAJ - the kinematic trajectory.
-  Original Author: S Middleton 2020
-*/
+   KinematicLine is the Linear Trajectory Specialization of KTRAJ - the kinematic trajectory.
+   Original Author: S Middleton 2020
+ */
 
 #include "KinKal/Trajectory/KinematicLine.hh"
 #include "KinKal/Trajectory/POCAUtil.hh"
@@ -16,11 +16,11 @@ using namespace ROOT::Math;
 namespace KinKal {
   typedef ROOT::Math::SVector<double,3> SVEC3;
   const vector<string> KinematicLine::paramTitles_ = {
-      "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
-      "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
+    "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
+    "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
 
   const vector<string> KinematicLine::paramNames_ = {"d_{0}", "#phi_{0}", "z_{0}",
-                                       "cos(#theta)", "t_{0}", "mom"};
+    "cos(#theta)", "t_{0}", "mom"};
 
   const vector<string> KinematicLine::paramUnits_ = {"mm", "radians", "mm", "", "ns","MeV/c"};
 
@@ -41,25 +41,25 @@ namespace KinKal {
   const string KinematicLine::trajName_("KinematicLine");
   string const &KinematicLine::trajName() { return trajName_; }
 
- KinematicLine::KinematicLine( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : KinematicLine(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
+  KinematicLine::KinematicLine( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : KinematicLine(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
 
   KinematicLine::KinematicLine(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
-  TimeRange const &trange) :  bnom_(bnom), mass_(mom0.M()), charge_(charge), trange_(trange)
+      TimeRange const &trange) :  bnom_(bnom), mass_(mom0.M()), charge_(charge), trange_(trange)
   {
     double mommag = mom0.R();
     double speed = ( mommag/ mom0.E()) * CLHEP::c_light;
     VEC3 dir = mom0.Vect().Unit();
-    
+
     static const VEC3 zdir(0.0, 0.0, 1.0);
     static const VEC3 zpos(0.0, 0.0, 0.0);
 
-// calculate POCA to the Z axis.  This is the reference for the parameters
+    // calculate POCA to the Z axis.  This is the reference for the parameters
     POCAUtil poca(pos0.Vect(), dir, zpos, zdir);
     double flen = dir.Dot(pos0.Vect()-poca.point1()); // flight length from reference to POCA
     VEC3 pca = poca.point1()-poca.point2(); // vector from Z axis to POCA
-// doca is signed by the angular momentum around the Z axis
+    // doca is signed by the angular momentum around the Z axis
     double amsign = copysign(1.0, -(zdir.Cross(pca)).Dot(dir));
-    param(d0_) = amsign*poca.dca(); // dca2d and dca are the same for POCA to the Z axis 
+    param(d0_) = amsign*poca.dca(); // dca2d and dca are the same for POCA to the Z axis
     param(phi0_) = dir.Phi(); // same as at POCA
     param(z0_) = poca.point1().Z();
     param(cost_) = dir.Z();
@@ -68,30 +68,30 @@ namespace KinKal {
   }
 
   /*
-  KinematicLine can take in Momentum externally as a 4-vector or calculate it based. You
-  can initialize the line with an origin (pos0) or the trajectory parameters
-  (pdata)
-  */
+     KinematicLine can take in Momentum externally as a 4-vector or calculate it based. You
+     can initialize the line with an origin (pos0) or the trajectory parameters
+     (pdata)
+   */
 
   KinematicLine::KinematicLine(Parameters const &pdata, KinematicLine const &other) : KinematicLine(other) {
     pars_ = pdata;
   }
-    
-  KinematicLine::KinematicLine( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) : 
-  bnom_(bnom), mass_(mass), charge_(charge), trange_(trange), pars_(pars) {}
-  
+
+  KinematicLine::KinematicLine( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
+    bnom_(bnom), mass_(mass), charge_(charge), trange_(trange), pars_(pars) {}
+
   KinematicLine::KinematicLine( Parameters const& pars) : pars_(pars) {}
 
   KinematicLine::KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
-    KinematicLine(pstate.position4(),pstate.momentum4(), pstate.charge(),bnom,range) 
+    KinematicLine(pstate.position4(),pstate.momentum4(), pstate.charge(),bnom,range)
   {}
 
   KinematicLine::KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range) :
-  KinematicLine((ParticleState)pstate,bnom,range) {
-  // derive the parameter space covariance from the global state space covariance
-    PSMAT dpds = dPardState(pstate.time());
-    pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
-  }
+    KinematicLine((ParticleState)pstate,bnom,range) {
+      // derive the parameter space covariance from the global state space covariance
+      PSMAT dpds = dPardState(pstate.time());
+      pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
+    }
 
   KinematicLine::KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot) : KinematicLine(other) {
   }
@@ -127,31 +127,31 @@ namespace KinKal {
   /*
      The effects for changes in 2 perpendicular directions (theta1 = theta and
      theta2 = phi()*sin(theta) can sometimes be added, as scattering in these
-  are uncorrelated. These axes are track specific. as cosmics are not always
-  coming along the same track direction it is necessary to have difference
-  parameterization than that used for the helix case.
-  alt dir = a test with the "BTrk parameterization" - just changes signs due to
-  swithc in cos<->sin
-  */
+     are uncorrelated. These axes are track specific. as cosmics are not always
+     coming along the same track direction it is necessary to have difference
+     parameterization than that used for the helix case.
+     alt dir = a test with the "BTrk parameterization" - just changes signs due to
+     swithc in cos<->sin
+   */
   VEC3 KinematicLine::direction(double t, MomBasis::Direction mdir) const {
 
     switch (mdir) {
-    case MomBasis::perpdir_: // purely polar change theta 1 = theta
-      return VEC3(cosTheta() * cosPhi0(), cosTheta() * sinPhi0(), -1 * sinTheta());
-      break;
-    case MomBasis::phidir_: // purely transverse theta2 = -phi()*sin(theta)
-      return VEC3(-sinPhi0(), cosPhi0(), 0.0);
-      break;
-    case MomBasis::momdir_: // along momentum
-      return direction();
-      break;
-    default:
-      throw std::invalid_argument("Invalid direction");
+      case MomBasis::perpdir_: // purely polar change theta 1 = theta
+        return VEC3(cosTheta() * cosPhi0(), cosTheta() * sinPhi0(), -1 * sinTheta());
+        break;
+      case MomBasis::phidir_: // purely transverse theta2 = -phi()*sin(theta)
+        return VEC3(-sinPhi0(), cosPhi0(), 0.0);
+        break;
+      case MomBasis::momdir_: // along momentum
+        return direction();
+        break;
+      default:
+        throw std::invalid_argument("Invalid direction");
     }
   }
 
   PSMAT KinematicLine::dPardState(double time) const{
-  // aggregate state from separate X and M derivatives; parameter space is row
+    // aggregate state from separate X and M derivatives; parameter space is row
     DPDV dPdX = dPardX(time);
     DPDV dPdM = dPardM(time);
     PSMAT dpds;
@@ -161,7 +161,7 @@ namespace KinKal {
   }
 
   PSMAT KinematicLine::dStatedPar(double time) const {
-  // aggregate state from separate X and M derivatives; parameter space is column
+    // aggregate state from separate X and M derivatives; parameter space is column
     DVDP dXdP = dXdPar(time);
     DVDP dMdP = dMdPar(time);
     PSMAT dsdp;
@@ -170,7 +170,7 @@ namespace KinKal {
     return dsdp;
   }
 
-  DVDP KinematicLine::dXdPar(double time) const { 
+  DVDP KinematicLine::dXdPar(double time) const {
     double deltat = time-t0();
     double sinT = sinTheta();
     double cotT = 1.0/tanTheta();
@@ -202,7 +202,7 @@ namespace KinKal {
     double sinF = sin(phi0());
     double cosF = cos(phi0());
 
-// note: dMdd0 = dMdz0 = dMdt0 = 0
+    // note: dMdd0 = dMdz0 = dMdt0 = 0
     SVEC3 dM_dphi0 = (mom()*sinT)*SVEC3(-sinF,cosF,0);
     SVEC3 dM_dcost = mom()*SVEC3(-cotT*cosF,-cotT*sinF,1.0);
     SVEC3 dM_dmom = SVEC3(sinT*cosF,sinT*sinF,cosT);
@@ -220,7 +220,7 @@ namespace KinKal {
     double sinF = sin(phi0());
     double cosF = cos(phi0());
     double E = energy();
-// note: dCosTdX = dPhi0dX = dmom_dX = 0
+    // note: dCosTdX = dPhi0dX = dmom_dX = 0
     SVEC3 dd0_dX = SVEC3(-sinF,cosF,0.0);
     SVEC3 dz0_dX = SVEC3(-cotT*cosF,-cotT*sinF,1.0);
     SVEC3 dt0_dX = -E*SVEC3(cosF,sinF,0.0)/(mom()*sinT*CLHEP::c_light);
@@ -232,7 +232,7 @@ namespace KinKal {
     return dPdX;
   }
 
-  DPDV KinematicLine::dPardM(double time) const { 
+  DPDV KinematicLine::dPardM(double time) const {
     double sinT = sinTheta();
     double cosT = cosTheta();
     double cotT = 1.0/tanTheta();
@@ -251,9 +251,9 @@ namespace KinKal {
     SVEC3 dcost_dM = (1.0/mom())*(SVEC3(0.0,0.0,1.0) - cosT*dmom_dM);
     SVEC3 dphi0_dM = (1.0/(mom()*sinT))*SVEC3(-sinF,cosF,0.0);
     SVEC3 dt0_dM = (1.0/(momt2*CLHEP::c_light))*(
-	xmt*( (2.0*E/momt2)*SVEC3(momv.X(),momv.Y(),0.0) 
-	  - (1.0/E)*( SVEC3(momv.X(),momv.Y(),momv.Z())) )
-	-  E*SVEC3(pos.X(),pos.Y(),0.0));
+        xmt*( (2.0*E/momt2)*SVEC3(momv.X(),momv.Y(),0.0)
+          - (1.0/E)*( SVEC3(momv.X(),momv.Y(),momv.Z())) )
+        -  E*SVEC3(pos.X(),pos.Y(),0.0));
     SVEC3 dz0_dM = (1.0/(mom()*sinT))*(SVEC3(cotT*(cos2F*pos.X() + sin2F*pos.Y()),cotT*(sin2F*pos.X()-cos2F*pos.Y()),-cosF*pos.X()-sinF*pos.Y()));
     SVEC3 dd0_dM  = ( xmt/momt2 )* SVEC3(sinF, -cosF, 0.0);
     DPDV dPdM;
@@ -279,7 +279,7 @@ namespace KinKal {
     ost << " KinematicLine " << range() << " parameters: ";
     for (size_t ipar = 0; ipar < KinematicLine::npars_; ipar++) {
       ost << KinematicLine::paramName(static_cast<ParamIndex>(ipar)) << " "
-          << paramVal(ipar) << " +- " << perr(ipar);
+        << paramVal(ipar) << " +- " << perr(ipar);
       if (ipar < KinematicLine::npars_ - 1)
         ost << " ";
     }

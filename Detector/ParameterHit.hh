@@ -46,12 +46,12 @@ namespace KinKal {
     time_(time), params_(params), weight_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
-	if(pmask_[ipar]){
-	  ncons_++;
-	} else {
-	  // zero unconstrained values
-	  mask_(ipar,ipar) = 0.0;
-	}
+        if(pmask_[ipar]){
+          ncons_++;
+        } else {
+          // zero unconstrained values
+          mask_(ipar,ipar) = 0.0;
+        }
       }
       // Mask Off unused parameters
       DMAT wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
@@ -86,10 +86,10 @@ namespace KinKal {
     ost << " ParameterHit Hit" << std::endl;
     if(detail > 0){
       for(size_t ipar=0;ipar < NParams(); ipar++){
-	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-	if (pmask_[ipar]) {
-	  ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
-	}
+        auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
+        if (pmask_[ipar]) {
+          ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
+        }
       }
     }
   }

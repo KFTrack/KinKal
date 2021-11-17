@@ -5,14 +5,14 @@
 # Globbing is not recommended, see: https://cmake.org/cmake/help/v3.12/command/file.html#filesystem
 
 # you can regenerate this list easily by running in this directory: ls -1 *.cc
-add_library(Trajectory SHARED 
+add_library(Trajectory SHARED
     CentralHelix.cc
     ClosestApproachData.cc
     KinematicLine.cc
     Line.cc
     LoopHelix.cc
     POCAUtil.cc
-)
+    )
 
 # set top-level directory as include root
 target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)

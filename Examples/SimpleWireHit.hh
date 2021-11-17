@@ -6,7 +6,7 @@
 #include "KinKal/Detector/WireHit.hh"
 namespace KinKal {
 
-// struct for updating simple wire hits; a real wire hit updater needs to know about calibrations, etc
+  // struct for updating simple wire hits; a real wire hit updater needs to know about calibrations, etc
   struct SimpleWireHitUpdater {
     double mindoca_; // minimum DOCA value to set an ambiguity
     double maxdoca_; // maximum DOCA to still use a hit
@@ -20,8 +20,8 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
-      double driftspeed, double tvar, double rcell);
-// WireHit and Hit interface implementations
+          double driftspeed, double tvar, double rcell);
+      // WireHit and Hit interface implementations
       void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const override;
       // specific to SimpleWireHit: this has a constant drift speed
@@ -46,8 +46,8 @@ namespace KinKal {
     for(auto const& uparams : miconfig.updaters_){
       auto const* whu = std::any_cast<SimpleWireHitUpdater>(&uparams);
       if(whu != 0){
-	if(whupdater !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");
-	whupdater = whu;
+        if(whupdater !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");
+        whupdater = whu;
       }
     }
     // crude updating of ambiguity and activity based on DOCA
@@ -57,16 +57,16 @@ namespace KinKal {
       newstate.nullvar_ = whupdater->mindoca_*whupdater->mindoca_/3.0; // RMS of flat distribution beteween +- mindoca
       double doca = fabs(WIREHIT::closestApproach().doca());
       if(fabs(doca) > whupdater->mindoca_){
-	newstate.lrambig_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
-	newstate.dimension_ = WireHitState::time;
+        newstate.lrambig_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
+        newstate.dimension_ = WireHitState::time;
       } else if( fabs(doca) > whupdater->maxdoca_){
-	newstate.dimension_ = WireHitState::none; // disable the hit
+        newstate.dimension_ = WireHitState::none; // disable the hit
       } else {
-	newstate.lrambig_ = WireHitState::null;
-	if(whupdater->nulltime_)
-	  newstate.dimension_ = WireHitState::both;
-	else
-	  newstate.dimension_ = WireHitState::distance;
+        newstate.lrambig_ = WireHitState::null;
+        if(whupdater->nulltime_)
+          newstate.dimension_ = WireHitState::both;
+        else
+          newstate.dimension_ = WireHitState::distance;
       }
       WIREHIT::setHitState(newstate);
       // now update again in case the hit changed

@@ -6,7 +6,7 @@
 namespace KinKal {
   void StrawMaterial::pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig,
       double& wallpath, double& gaspath, double& wirepath) const {
-    wallpath = gaspath = wirepath = -1.0;
+    wallpath = gaspath = wirepath = 0.0;
     double doca = std::min(fabs(cadata.doca()),srad_);
     double sigdoca = sqrt(cadata.docaVar());
     doca = std::min(fabs(doca),srad_);

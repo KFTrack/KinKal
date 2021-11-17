@@ -17,7 +17,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;
-      
+
       Chisq chisq(Parameters const& pdata) const override;
       Chisq chisq() const override;
       void update(PKTRAJ const& pktraj) override;
@@ -48,9 +48,9 @@ namespace KinKal {
   template<class KTRAJ> HitConstraint<KTRAJ>::HitConstraint(HITPTR const& hit, PKTRAJ const& reftraj,double precision) : hit_(hit), vscale_(1.0), precision_(precision) {
     update(reftraj);
   }
- 
+
   template<class KTRAJ> void HitConstraint<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    // direction is irrelevant for processing hits 
+    // direction is irrelevant for processing hits
     if(this->active()){
       // cache the processing weights, adding both processing directions
       wcache_ += kkdata.wData();
@@ -65,7 +65,7 @@ namespace KinKal {
     wcache_ = Weights();
     // update the hit
     hit_->update(pktraj);
-    // get the weight from the hit 
+    // get the weight from the hit
     hitwt_ = hit_->weight();
     // scale weight for the temp
     hitwt_ *= 1.0/vscale_;
@@ -87,15 +87,15 @@ namespace KinKal {
   }
 
   template<class KTRAJ> Chisq HitConstraint<KTRAJ>::chisq() const {
-   if(this->active()) {
-     Parameters unbiased = unbiasedParameters();
+    if(this->active()) {
+      Parameters unbiased = unbiasedParameters();
       return chisq(unbiased);
     } else
       return Chisq();
-  } 
+  }
 
   template<class KTRAJ> Parameters HitConstraint<KTRAJ>::unbiasedParameters() const {
-  // this function can't be called on an unprocessed effect
+    // this function can't be called on an unprocessed effect
     if( !KKEFF::wasProcessed(TimeDir::forwards) || !KKEFF::wasProcessed(TimeDir::backwards))
       throw  std::invalid_argument("Can't compute unbiased parameters for unprocessed constraint");
     // Invert the cache to get unbiased parameters at this constraint
@@ -105,7 +105,7 @@ namespace KinKal {
   template <class KTRAJ> void HitConstraint<KTRAJ>::print(std::ostream& ost, int detail) const {
     ost << "HitConstraint " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
     if(detail > 0){
-      hit_->print(ost,detail);    
+      hit_->print(ost,detail);
       ost << " HitConstraint Weight " << hitwt_ << std::endl;
     }
   }

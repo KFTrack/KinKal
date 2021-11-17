@@ -17,9 +17,9 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // provide interface
       void update(PKTRAJ const& ref) override;
-      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override { 
-	vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
-	return update(ref); }
+      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override {
+        vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
+        return update(ref); }
       double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       bool active() const override { return true; }
       void process(FitState& kkdata,TimeDir tdir) override;
@@ -37,7 +37,7 @@ namespace KinKal {
       // disallow
       TrackEnd() = delete;
       TrackEnd(TrackEnd const& other) = delete;
-      TrackEnd& operator =(TrackEnd const& other) = delete; 
+      TrackEnd& operator =(TrackEnd const& other) = delete;
     private:
       Config const& config_; // cache configuration
       BFieldMap const& bfield_; // BField; needed to define reference
@@ -58,7 +58,7 @@ namespace KinKal {
     }
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    if(tdir == tdir_) 
+    if(tdir == tdir_)
       // start the fit with the de-weighted info cached from the previous iteration or seed
       kkdata.append(endeff_);
     else
@@ -88,15 +88,15 @@ namespace KinKal {
     // Test the fit is empty and we're going in the right direction
     if(tdir_ == TimeDir::forwards) {
       if(fit.pieces().size() == 0){
-	// take the end cache and  seed the fit with it
-	// if we're using local BField, update accordingly
-	if(config_.bfcorr_ == Config::variable || config_.bfcorr_ == Config::both){
-	  endtraj_.setBNom(endtraj_.range().begin(),bnom_);
-	}
-	// append this to the (empty) fit
-	fit.append(endtraj_);
+        // take the end cache and  seed the fit with it
+        // if we're using local BField, update accordingly
+        if(config_.bfcorr_ == Config::variable || config_.bfcorr_ == Config::both){
+          endtraj_.setBNom(endtraj_.range().begin(),bnom_);
+        }
+        // append this to the (empty) fit
+        fit.append(endtraj_);
       } else
-	throw std::invalid_argument("Input ParticleTrajectory isn't empty");
+        throw std::invalid_argument("Input ParticleTrajectory isn't empty");
     }
   }
 

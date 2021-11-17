@@ -26,15 +26,15 @@ namespace KinKal {
       void scale(double sfac) { fitdata_.scale(sfac); }
       // dimensionless (chisquared) difference WRT another parameter set
       double delta(Parameters const& other) const;
-// addition: only works for other parameters
+      // addition: only works for other parameters
       Parameters & operator +=(Parameters const& other) {
-	fitdata_ += other.fitdata_;
-	return *this;
+        fitdata_ += other.fitdata_;
+        return *this;
       }
       void print(std::ostream& ost=std::cout,int detail=0) const {
-	ost << "Parameters params " << parameters() << std::endl;
-	if(detail > 1)
-	  ost << "covariance " << covariance() << std::endl;
+        ost << "Parameters params " << parameters() << std::endl;
+        if(detail > 1)
+          ost << "covariance " << covariance() << std::endl;
       }
     private:
       FitData fitdata_; // data payload

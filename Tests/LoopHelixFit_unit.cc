@@ -11,12 +11,12 @@ int main(int argc, char **argv) {
     arguments.push_back("--bfcor");
     arguments.push_back("2"); // local field correction (BField rotation)
     arguments.push_back("--tolerance");
-    arguments.push_back("0.1");
+    arguments.push_back("0.01");
     std::vector<char*> myargv;
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());
     myargv.push_back(nullptr);
     return FitTest<LoopHelix>(myargv.size()-1,myargv.data(),sigmas);
-  } else 
+  } else
   return FitTest<LoopHelix>(argc,argv,sigmas);
 }

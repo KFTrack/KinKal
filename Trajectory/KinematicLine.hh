@@ -43,21 +43,21 @@ class KinematicLine {
     // scalar (B along z)
     KinematicLine(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
     KinematicLine(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
-    // copy payload and adjust for a different BField and range 
+    // copy payload and adjust for a different BField and range
     KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot);
 
     // copy and override parameters
-    KinematicLine(Parameters const &pdata, KinematicLine const& other); 
+    KinematicLine(Parameters const &pdata, KinematicLine const& other);
     //New Constructor which used the parameters to construct trajectory
     KinematicLine(Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
-    
+
     KinematicLine(Parameters const& pars);
-    
+
     explicit KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
     explicit KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
-  
+
     virtual ~KinematicLine() {}
 
     // particle momentum as a function of time
@@ -113,7 +113,7 @@ class KinematicLine {
 
     VEC3 velocity(double time) const { return direction() * speed(); }
     void print(std::ostream &ost, int detail) const;
-    void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {}; 
+    void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {};
 
     // local momentum direction basis
     VEC3 direction(double time, MomBasis::Direction mdir = MomBasis::momdir_) const;
@@ -122,9 +122,6 @@ class KinematicLine {
 
     // some possibly useful equations:
     double mass() const { return mass_; }
-    double ztime(double zpos) const {
-      return (t0() + zpos / ((speed() * direction()).z()));
-    } // time to travel Z
 
     int charge() const { return charge_; }
     double beta() const { return (speed() / CLHEP::c_light); }
@@ -152,7 +149,7 @@ class KinematicLine {
   private:
     const static std::string trajName_;
   // non-parametric variables
-    VEC3 bnom_; // nominal BField: not used by this parameterization 
+    VEC3 bnom_; // nominal BField: not used by this parameterization
     double mass_;   // mass in MeV/c2
     int charge_; // charge in proton charge unites
     TimeRange trange_;  // valid range
