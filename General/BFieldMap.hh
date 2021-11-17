@@ -66,7 +66,7 @@ namespace KinKal {
     VEC3 dBdt = fieldDeriv(tpos,ktraj.velocity(tstart));
     double dbdt = dBdt.R();
     // if there's no gradient, don't extend
-    if(dbdt < 1e-20) return ktraj.range().end();
+    if(dbdt < 1e-20) return ktraj.range().end()+1.0e-10;
     // compute scaling factor
     double spd = ktraj.speed(tstart);
     double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentum(tstart));
@@ -78,7 +78,7 @@ namespace KinKal {
       bref = ktraj.bnom(tstart);
     // estimate the step size for testing the position deviation.  This comes from 2 components:
     // the (static) difference in field, and the change in field along the trajectory
-    double tstep(0.1); // maximum step
+    double tstep(0.1); // maximum step.  I shouldn't need this FIXME
     // step increment from static difference from nominal field.  0.2 comes from sagitta geometry
     // protect against nominal field = exact field
     //    auto db = (bvec - ktraj.bnom(tstart)).R();

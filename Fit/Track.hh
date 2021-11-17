@@ -141,6 +141,7 @@ namespace KinKal {
       tmax = std::max(tmax,exing->crossingTime());
     }
     TimeRange refrange(tmin-config_.tbuff_,tmax+config_.tbuff_);
+    seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
     if(config_.bfcorr_ != Config::nocorr) bfield_.setDomains(seedtraj_,refrange,config_,domains);
