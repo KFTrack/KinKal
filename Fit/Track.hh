@@ -343,7 +343,7 @@ namespace KinKal {
       // is affected by the change in temperature
     } else if (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) {
       fstat.status_ = Status::diverged;
-    } else if (fstat.chisq_.nDOF() < config_.minndof_){
+    } else if (fstat.chisq_.nDOF() < (int)config_.minndof_){
       fstat.status_ = Status::lowNDOF;
     } else if(fabs(dchisq) < miconfig.convdchisq_) {
       fstat.status_ = Status::converged;
