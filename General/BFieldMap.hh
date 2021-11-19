@@ -26,8 +26,6 @@ namespace KinKal {
       virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const = 0;
       virtual ~BFieldMap(){}
       virtual void print(std::ostream& os ) const = 0;
-      virtual double zMin() const = 0;
-      virtual double zMax() const = 0;
       BFieldMap(){}
       // disallow copy and equivalence
       BFieldMap(BFieldMap const& ) = delete;
@@ -126,8 +124,6 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override { return fvec_; }
       Grad fieldGrad(VEC3 const& position) const override { return Grad(); }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override { return VEC3(); }
-      double zMin() const override { return -std::numeric_limits<float>::max(); }
-      double zMax() const override { return std::numeric_limits<float>::max(); }
       void print(std::ostream& os =std::cout) const override { os << "Uniform BField, B = " << fvec_ << std::endl; }
       UniformBFieldMap(VEC3 const& bnom) : fvec_(bnom) {}
       UniformBFieldMap(double BZ) : UniformBFieldMap(VEC3(0.0,0.0,BZ)) {}
@@ -146,8 +142,6 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
-      double zMin() const override;
-      double zMax() const override;
       void print(std::ostream& os =std::cout) const override;
       CompositeBFieldMap () {}
       CompositeBFieldMap(FCOL const& fields) : fields_(fields) {}
@@ -168,8 +162,6 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
-      double zMin() const override { return -std::numeric_limits<float>::max(); }
-      double zMax() const override { return std::numeric_limits<float>::max(); }
       void print(std::ostream& os =std::cout) const override { os << "BField with  constant gradient of " << grad_ << " Tesla/mm" << std::endl; }
       double gradient() const { return grad_; }
       virtual ~GradientBFieldMap(){}
