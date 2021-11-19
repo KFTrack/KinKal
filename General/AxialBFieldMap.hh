@@ -13,6 +13,7 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      bool inRange(VEC3 const& position) const override { return position.Z() > zmin_ && position.Z() < zmax_; }
       double zMin() const { return zmin_; }
       double zMax() const { return zmax_; }
       void print(std::ostream& os=std::cout) const override {

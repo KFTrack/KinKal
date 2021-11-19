@@ -26,6 +26,14 @@ namespace KinKal {
      return dBdt;
    }
 
+   bool CompositeBFieldMap::inRange(VEC3 const& position) const {
+     bool retval(true);
+     for(auto const field : fields_ ){
+       retval &= field->inRange(position);
+     }
+     return retval;
+   }
+
    void CompositeBFieldMap::print(std::ostream& os ) const {
      os << "Composite BField with constituents as follows:" << std::endl;
      for(auto const& field : fields_) {

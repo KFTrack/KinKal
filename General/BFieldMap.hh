@@ -24,6 +24,8 @@ namespace KinKal {
       virtual Grad fieldGrad(VEC3 const& position) const = 0;
       // return the BFieldMap derivative at a given point along a given velocity, WRT time
       virtual VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const = 0;
+      // is the point inside the range of this map?
+      virtual bool inRange(VEC3 const& position) const = 0;
       virtual ~BFieldMap(){}
       virtual void print(std::ostream& os ) const = 0;
       BFieldMap(){}
@@ -127,6 +129,7 @@ namespace KinKal {
       void print(std::ostream& os =std::cout) const override { os << "Uniform BField, B = " << fvec_ << std::endl; }
       UniformBFieldMap(VEC3 const& bnom) : fvec_(bnom) {}
       UniformBFieldMap(double BZ) : UniformBFieldMap(VEC3(0.0,0.0,BZ)) {}
+      bool inRange(VEC3 const& position) const override { return true; };
       virtual ~UniformBFieldMap(){}
       // disallow copy and equivalence
       UniformBFieldMap(UniformBFieldMap const& ) = delete;
@@ -143,6 +146,7 @@ namespace KinKal {
       Grad fieldGrad(VEC3 const& position) const override;
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
       void print(std::ostream& os =std::cout) const override;
+      bool inRange(VEC3 const& position) const override;
       CompositeBFieldMap () {}
       CompositeBFieldMap(FCOL const& fields) : fields_(fields) {}
       void addField(BFieldMap const& field) { fields_.push_back(&field); }
@@ -162,6 +166,7 @@ namespace KinKal {
       VEC3 fieldVect(VEC3 const& position) const override;
       Grad fieldGrad(VEC3 const& position) const override { return fgrad_; }
       VEC3 fieldDeriv(VEC3 const& position, VEC3 const& velocity) const override;
+      bool inRange(VEC3 const& position) const override { return true; }
       void print(std::ostream& os =std::cout) const override { os << "BField with  constant gradient of " << grad_ << " Tesla/mm" << std::endl; }
       double gradient() const { return grad_; }
       virtual ~GradientBFieldMap(){}
