@@ -26,27 +26,19 @@ namespace KinKal {
      return dBdt;
    }
 
+   bool CompositeBFieldMap::inRange(VEC3 const& position) const {
+     bool retval(true);
+     for(auto const field : fields_ ){
+       retval &= field->inRange(position);
+     }
+     return retval;
+   }
+
    void CompositeBFieldMap::print(std::ostream& os ) const {
      os << "Composite BField with constituents as follows:" << std::endl;
      for(auto const& field : fields_) {
        field->print(os);
      }
-   }
-
-   double CompositeBFieldMap::zMin() const {
-     double retval = -std::numeric_limits<float>::max();
-     for(auto const& field : fields_) {
-       retval = std::max(retval, field->zMin());
-     }
-     return retval;
-   }
-
-   double CompositeBFieldMap::zMax() const {
-     double retval = std::numeric_limits<float>::max();
-     for(auto const& field : fields_) {
-       retval = std::min(retval, field->zMax());
-     }
-     return retval;
    }
 
    GradientBFieldMap::GradientBFieldMap(double b0, double b1, double zg0, double zg1) :
