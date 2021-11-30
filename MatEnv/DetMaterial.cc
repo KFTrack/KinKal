@@ -15,7 +15,6 @@
 //           Orion Ning, 01/12/21
 //------------------------------------------------------------------------------
 #include "KinKal/MatEnv/DetMaterial.hh"
-#include "KinKal/MatEnv/MoyalDist.hh"
 #include <iostream>
 #include <cfloat>
 #include <string>
