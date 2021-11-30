@@ -5,21 +5,21 @@
 #include "MoyalDist.hh"
 
 void MoyalDist::setCoeffs(int kmax){
-    if(coeff.size() == kmax){
+    if(_coeff.size() == kmax){
         return; //if the coefficient vector is already filled then don't do anything
     }    
-    if(kmax < 1){
+    if(_kmax < 1){
         throw std::invalid_argument("kmax (number of terms in the Moyal series expansion) cannot be less than one.");
     }
-    coeff.clear();
-    coeff.push_back(1); // coeff[0] = 1; 
+    _coeff.clear();
+    _coeff.push_back(1); // coeff[0] = 1; 
     for(int k=0; k < kmax; k++ ){
-        double sum_coeff = 0;
+        double sumCoeff = 0;
         if( k > 0 ){
             for(int m = 0; m < k; m++){
-                sum_coeff += ( coeff.at(m) * coeff.at( k - 1 - m) ) / ( (m + 1) * (2.0 * m + 1) );
+                sumCoeff += ( _coeff.at(m) * _coeff.at( k - 1 - m) ) / ( (m + 1) * (2.0 * m + 1) );
             }
-            coeff.push_back(sum_coeff);
+            _coeff.push_back(sumCoeff);
              
         }
     } 
@@ -38,13 +38,12 @@ double MoyalDist::sampleInvCDF(double rand) const{
     double t = 0.5 * std::sqrt(PI) * (1 - rand);
     double sum = 0;
 
-    for(int k=0; k < kmax; k++ ){
+    for(int k=0; k < _kmax; k++ ){
         sum +=  ( coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
-        // std::cout << "k = " << k << " && c = " <<  coeff.at(k) / (2.* k + 1.0) << std::endl;
     } 
     
     double y = sum;
-    double x = mean - 2 * sigma * std::log ((std::sqrt(2.) * y));
+    double x = _mean - 2 * _sigma * std::log ((std::sqrt(2.) * y));
     return x;
 }
 
@@ -78,6 +77,6 @@ double MoyalDist::sampleAR() const{
                     * std::exp( -0.5 * ( z + std::exp(-z) ) );
 
     } while ( h > Hy );
-    double x = mean + sigma * z;
+    double x = _mean + _sigma * z;
     return (x) ;   
 }
