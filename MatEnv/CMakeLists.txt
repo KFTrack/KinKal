@@ -15,6 +15,7 @@ add_library(MatEnv SHARED
     MtrPropObj.cc
     RecoMatFactory.cc
     SimpleFileFinder.cc
+    MoyalDist.cc
 )
 
 # set top-level directory as include root

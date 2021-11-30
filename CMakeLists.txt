@@ -120,7 +120,7 @@ add_compile_options(
     "-Werror=return-type" 
     "-Winit-self" 
     "-Woverloaded-virtual" 
-    "-ftrapping-math"
+#    "-ftrapping-math"
     "-fdiagnostics-color=always"
 #    "-Wshadow"
 
