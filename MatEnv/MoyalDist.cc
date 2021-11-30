@@ -26,6 +26,9 @@ void MoyalDist::setCoeffs(int kmax){
 }
 
 double MoyalDist::sampleInvCDF(double rand) const{
+    if(rand < 0 || rand >1){
+        throw std::invalid_argument("random number should be between 0-1");
+    }
 
     // The Moyal distribution cdf is cdf(x; mu, sigma) = erfc(exp(- 1/2 * (x - mu) / sigma) / sqrt(2))
     // This is an implementation of erfc^-1 (z) from https://functions.wolfram.com/06.31.06.0002.01
