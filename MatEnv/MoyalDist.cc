@@ -39,7 +39,7 @@ double MoyalDist::sampleInvCDF(double rand) const{
     double sum = 0;
 
     for(int k=0; k < _kmax; k++ ){
-        sum +=  ( coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
+        sum +=  ( _coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
     } 
     
     double y = sum;

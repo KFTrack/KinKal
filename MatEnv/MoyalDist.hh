@@ -19,7 +19,6 @@ class MoyalDist{
         
         double sampleAR() const;
         double sampleInvCDF(double rand) const;
-
         double getMean() const { return _mean; }
         double getSigma()const { return _sigma; } 
         double getRMS() const { return _rms; }
