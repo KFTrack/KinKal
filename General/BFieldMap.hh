@@ -35,10 +35,10 @@ namespace KinKal {
       // speed of light in units to convert Tesla to mm (bending radius)
       static double constexpr cbar() { return CLHEP::c_light/1000.0; }
       // templated interface for interacting with kinematic trajectory classes
-      // how far can you go along the given kinematic trajectory in the given direction from the start time till BField inhomogeneity effects are out-of tolerance
+      // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the position out-of-tolerance
       template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local=true) const;
-      // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
-      template<class KTRAJ> void setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const;
+      // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum out-of-tolerance
+      template<class KTRAJ> double BFieldMap::rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
       // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the
       template<class KTRAJ> VEC3 integrate(KTRAJ const& ktraj, TimeRange const& trange) const;
   };
@@ -104,6 +104,22 @@ namespace KinKal {
       dx += sfac*(tend-tstart)*tstep*db;
     } while(fabs(dx) < tol && ktraj.range().inRange(tend));
     return tend;
+  }
+
+  // estimate how long the momentum from the given trajectory will stay within the given tolerance
+  // given its nominal field
+  template<class KTRAJ> double BFieldMap::rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const {
+    auto tpos = ktraj.position3(tstart);
+    auto dB = fieldVect(tpos)-ktraj.bnom(tstart); // field difference WRT nominal assumed in this traj
+    double dp = ktraj.mom(tstart)*tol/(cbar()*fabs(ktraj.charge())); // tolerance value of scaled momentum
+    auto vel = ktraj.velocity(tstart);
+    double dpdt = (dB.Cross(vel)).R(); // (scaled) dpdt due to B difference
+    auto dBdt = fieldDeriv(tpos,vel); // change in field along the (linear) path
+    double d2pdt2 = (dBdt.Cross(vel)).R(); // (scaled) 2nd derivative of p due to B change along the path
+    dt = ktraj.range().end()-tstart;
+    if(dpdt > 0.0) dt = std::min(dt,dp/dpdt);
+    if(d2pdt2 > 0.0) dt =std::min(dt, sqrt(2.0*dp/d2pdt2));
+    return tstart + dt;
   }
 
   // divide a trajectory into magnetic 'domains' within which BField changes are within tolerance

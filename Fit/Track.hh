@@ -106,6 +106,8 @@ namespace KinKal {
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
+      // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
+      void setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const;
       // payload
       Config config_; // configuration
       BFieldMap const& bfield_; // magnetic field map

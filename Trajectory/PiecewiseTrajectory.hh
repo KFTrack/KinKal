@@ -23,6 +23,7 @@ namespace KinKal {
       VEC3 velocity(double time) const { return nearestPiece(time).velocity(time); }
       double speed(double time) const { return nearestPiece(time).speed(time); }
       VEC3 direction(double time, MomBasis::Direction mdir=MomBasis::momdir_) const { return nearestPiece(time).direction(time,mdir); }
+      VEC3 const& bnom(double time) const { return nearestPiece(time).bnom(tim); }
       TimeRange range() const { if(pieces_.size() > 0) return TimeRange(pieces_.front().range().begin(),pieces_.back().range().end()); else return TimeRange(); }
       void setRange(TimeRange const& trange, bool trim=false);
       // construct without any content.  Any functions except append or prepend will throw in this state
