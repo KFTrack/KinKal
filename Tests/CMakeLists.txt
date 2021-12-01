@@ -23,6 +23,7 @@ set( TEST_SOURCE_FILES
     LoopHelixTPoca_unit.cc
     LoopHelix_unit.cc
     MatEnv_unit.cc
+    MoyalDist_unit.cc
 )
 
 # generate root dictionary
