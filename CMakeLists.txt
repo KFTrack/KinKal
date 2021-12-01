@@ -121,6 +121,7 @@ add_compile_options(
     "-Winit-self" 
     "-Woverloaded-virtual" 
     "-fdiagnostics-color=always"
+    "-Werror=sign-compare"
 #    "-Wshadow"
 
     # debug flags

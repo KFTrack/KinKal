@@ -5,7 +5,7 @@
 #include "MoyalDist.hh"
 
 void MoyalDist::setCoeffs(int kmax){
-    if(_coeff.size() == kmax){
+    if(_coeff.size() == (long unsigned int) kmax){
         return; //if the coefficient vector is already filled then don't do anything
     }    
     if(_kmax < 1){
