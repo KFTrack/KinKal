@@ -1,5 +1,4 @@
 # List of unit test sources
-# ls -1 *_unit.cc
 
 set( TEST_SOURCE_FILES
     CentralHelixBField_unit.cc
@@ -26,16 +25,13 @@ set( TEST_SOURCE_FILES
     MatEnv_unit.cc
 )
 
-
-
 # generate root dictionary
-
-ROOT_GENERATE_DICTIONARY(TestsDict 
+ROOT_GENERATE_DICTIONARY(TestsDict
     # headers to include in ROOT dictionary
-    HitInfo.hh 
-    BFieldInfo.hh 
-    ParticleTrajectoryInfo.hh 
-    MaterialInfo.hh 
+    HitInfo.hh
+    BFieldInfo.hh
+    ParticleTrajectoryInfo.hh
+    MaterialInfo.hh
 
     LINKDEF LinkDef.h
 )
@@ -67,12 +63,12 @@ foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # ensure the unit test executable filename is just its test name
     set_target_properties( Test_${testname} PROPERTIES OUTPUT_NAME ${testname})
 
-    # register the target as a test 
+    # register the target as a test
     add_test (NAME ${testname} COMMAND Test_${testname} )
-    set_tests_properties(${testname} PROPERTIES TIMEOUT 250) 
+    set_tests_properties(${testname} PROPERTIES TIMEOUT 250)
     set_tests_properties(${testname} PROPERTIES ENVIRONMENT "KINKAL_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
 
     install( TARGETS Test_${testname}
              RUNTIME DESTINATION bin/ )
- 
+
 endforeach( testsourcefile ${TEST_SOURCE_FILES} )

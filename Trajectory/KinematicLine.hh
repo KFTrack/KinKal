@@ -113,7 +113,6 @@ class KinematicLine {
 
     VEC3 velocity(double time) const { return direction() * speed(); }
     void print(std::ostream &ost, int detail) const;
-    void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {};
 
     // local momentum direction basis
     VEC3 direction(double time, MomBasis::Direction mdir = MomBasis::momdir_) const;
