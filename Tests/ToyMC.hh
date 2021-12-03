@@ -44,7 +44,7 @@ namespace KKTest {
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8), t0off_(700.0),
+        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
@@ -87,7 +87,7 @@ namespace KKTest {
       double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tbuff_;
-      double tol_; // tolerance on spatial accuracy for
+      double tol_; // tolerance on momentum accuracy due to BField effects
       double tprec_; // time precision on TCA
       double t0off_; // t0 offset
       StrawMaterial smat_; // straw material

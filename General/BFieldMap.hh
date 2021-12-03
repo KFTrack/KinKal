@@ -35,10 +35,8 @@ namespace KinKal {
       // speed of light in units to convert Tesla to mm (bending radius)
       static double constexpr cbar() { return CLHEP::c_light/1000.0; }
       // templated interface for interacting with kinematic trajectory classes
-      // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the position out-of-tolerance
-      template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local=true) const;
-      // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum out-of-tolerance
-      template<class KTRAJ> double rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
+      // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum accuracy out of (fractional) tolerance
+      template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
       // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the
       template<class KTRAJ> VEC3 integrate(KTRAJ const& ktraj, TimeRange const& trange) const;
   };
@@ -58,66 +56,14 @@ namespace KinKal {
     return dmom;
   }
 
-  // estimate how long in time from the given start time the trajectory position will stay within the given tolerance
-  // compared to the true particle motion, given the true magnetic field.  This measures the impact of the KTRAJ nominal field being
-  // both fixed and different from the true field
-  template<class KTRAJ> double BFieldMap::rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local) const {
-    VEC3 tpos = ktraj.position3(tstart);
-    VEC3 dBdt = fieldDeriv(tpos,ktraj.velocity(tstart));
-    double dbdt = dBdt.R();
-    // if there's no gradient, don't extend
-    if(dbdt < 1e-20) return ktraj.range().end()+1.0e-10;
-    // compute scaling factor
-    double spd = ktraj.speed(tstart);
-    double sfac = fabs(cbar()*ktraj.charge()*spd*spd/ktraj.momentum(tstart));
-    // estimate step size from initial BFieldMap difference
-    VEC3 bref;
-    if(local)
-      bref = fieldVect(tpos);
-    else// fixed reference comes from the traj
-      bref = ktraj.bnom(tstart);
-    // estimate the step size for testing the position deviation.  This comes from 2 components:
-    // the (static) difference in field, and the change in field along the trajectory
-    double tstep(0.1); // maximum step.  I shouldn't need this FIXME
-    // step increment from static difference from nominal field.  0.2 comes from sagitta geometry
-    // protect against nominal field = exact field
-    //    auto db = (bvec - ktraj.bnom(tstart)).R();
-    //    if(db > 1e-4) tstep = std::min(tstep,0.2*sqrt(tol/(sfac*db)));
-    // use the magnitude as a worst-case
-    // the deviation goes as the cube root of the BFieldMap change.  0.5 comes from cosine expansion
-    // this calculation needs testing/fixing: the response to tolerance is not as expected FIXME!
-    if(dbdt >1e-6) tstep = std::min(tstep, 0.5*std::cbrt(tol/(sfac*dbdt)));
-    // loop over the trajectory in fixed steps to compute integrals and domains.
-    // step size is defined by momentum direction tolerance.
-    double tend = tstart;
-    double dx(0.0);
-    // advance till spatial distortion exceeds position tolerance or we reach the range limit
-    VEC3 bvec;
-    do{
-      // increment the range
-      tend += tstep;
-      tpos = ktraj.position3(tend);
-      bvec = fieldVect(tpos);
-      // BFieldMap diff with reference
-      auto db = (bvec - bref).R();
-      // spatial distortion accumulation; this goes as the square of the time times the field difference
-      dx += sfac*(tend-tstart)*tstep*db;
-    } while(fabs(dx) < tol && ktraj.range().inRange(tend));
-    return tend;
-  }
-
-  // estimate how long the momentum from the given trajectory will stay within the given tolerance
-  // given its nominal field
-  template<class KTRAJ> double BFieldMap::rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const {
+  // estimate how long the momentum from the given trajectory will stay within the given (fractional) tolerance
+  template<class KTRAJ> double BFieldMap::rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol) const {
     auto tpos = ktraj.position3(tstart);
-    auto dB = fieldVect(tpos)-ktraj.bnom(tstart); // field difference WRT nominal assumed in this traj
-    double dp = ktraj.mom(tstart)*tol/(cbar()*fabs(ktraj.charge())); // tolerance value of scaled momentum
+    double dp = ktraj.momentum(tstart)*tol/(cbar()*fabs(ktraj.charge())); // tolerance value of scaled momentum
     auto vel = ktraj.velocity(tstart);
-    double dpdt = (dB.Cross(vel)).R(); // (scaled) dpdt due to B difference
     auto dBdt = fieldDeriv(tpos,vel); // change in field along the (linear) path
     double d2pdt2 = (dBdt.Cross(vel)).R(); // (scaled) 2nd derivative of p due to B change along the path
     double dt = ktraj.range().end()-tstart;
-    if(dpdt > 0.0) dt = std::min(dt,dp/dpdt);
     if(d2pdt2 > 0.0) dt =std::min(dt, sqrt(2.0*dp/d2pdt2));
     return tstart + dt;
   }

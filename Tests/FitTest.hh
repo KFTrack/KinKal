@@ -152,7 +152,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
-  double tol(0.1);
+  double tol(0.0001);
   int iseed(123421);
   int conspar(-1), iprint(-1);
   unsigned nhits(40);

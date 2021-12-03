@@ -107,7 +107,7 @@ namespace KinKal {
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
       // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
-      void setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const;
+      void createDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const;
       // payload
       Config config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
@@ -130,7 +130,7 @@ namespace KinKal {
     seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config_.bfcorr_ != Config::nocorr) setDomains(seedtraj_, refrange, config_,domains);
+    if(config_.bfcorr_ != Config::nocorr) createDomains(seedtraj_, refrange, config_,domains);
     // Create the initial reference trajectory
     createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
@@ -174,12 +174,12 @@ namespace KinKal {
       if(kkbfbegin != 0 && kkbfend != 0){
         // compare ranges, and create BField effects and traj pieces as needed
         if(exrange.begin() < kkbfbegin->range().begin())
-          setDomains(reftraj_.front(),TimeRange(exrange.begin(),kkbfbegin->range().begin()),config_,domains);
+          createDomains(reftraj_.front(),TimeRange(exrange.begin(),kkbfbegin->range().begin()),config_,domains);
         if(exrange.end() > kkbfend->range().end())
-          setDomains(reftraj_.back(),TimeRange(kkbfend->range().end(),exrange.end()),config_,domains);
+          createDomains(reftraj_.back(),TimeRange(kkbfend->range().end(),exrange.end()),config_,domains);
       } else {
         // set domains for the whole range
-        setDomains(reftraj_.nearestPiece(reftraj_.range().mid()),reftraj_.range(),config_,domains);
+        createDomains(reftraj_.nearestPiece(reftraj_.range().mid()),reftraj_.range(),config_,domains);
       }
     }
     // create the effects for these
@@ -369,16 +369,15 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the BField corrections
-  template<class KTRAJ> void Track<KTRAJ>::setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const {
-    double tstart, tend;
+  template<class KTRAJ> void Track<KTRAJ>::createDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const {
+    double tstart;
     tstart = range.begin();
     do {
-      // see how far we can go on the current traj before the BField change causes it to go out of tolerance
-      // that defines the end of this domain
-      tend = bfield_.rangeInTolerance(ktraj,tstart,config.tol_,config.localBFieldCorr());
-      ranges.emplace_back(tstart,tend);
+      // see how far we can go on the current traj before the BField change causes the momentum estimate to go out of tolerance
+      double tendmom = bfield_.rangeInTolerance(ktraj,tstart,config.tol_);
+      ranges.emplace_back(tstart,tendmom);
       // start the next domain and the end of this one
-      tstart = tend;
+      tstart = tendmom;
     } while(tstart < range.end());
   }
 
