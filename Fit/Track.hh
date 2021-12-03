@@ -130,7 +130,7 @@ namespace KinKal {
     seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config_.bfcorr_ != Config::nocorr) createDomains(seedtraj_, refrange, config_,domains);
+    if(config_.bfcorr_ ) createDomains(seedtraj_, refrange, config_,domains);
     // Create the initial reference trajectory
     createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
@@ -154,7 +154,7 @@ namespace KinKal {
     TimeRange exrange = getRange(hits,exings);
     // if we're making BField corrections, find the new domains (if any)
     DOMAINCOL domains;
-    if(config_.bfcorr_ != Config::nocorr) {
+    if(config_.bfcorr_ ) {
       // first, find the first and last existing correction
       const KKBFIELD *kkbfbegin(0), *kkbfend(0);
       for(auto effptr = effects_.begin(); effptr != effects_.end(); ++effptr){
@@ -191,7 +191,7 @@ namespace KinKal {
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj , TimeRange const& range, DOMAINCOL const& domains ) {
     // if we're making local BField corrections, divide the trajectory into domain pieces.  Each will have equivalent parameters, but relative
     // to the local field
-    if(config_.localBFieldCorr() ) {
+    if(config_.bfcorr_ ) {
       if(reftraj_.pieces().size() != 0)throw std::invalid_argument("Initial reference trajectory must be empty");
       if(domains.size() == 0)throw std::invalid_argument("Empty domain");
       for(auto const& domain : domains) {

@@ -145,7 +145,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
-  Config::BFCorr bfcorr(Config::nocorr);
+  bool bfcorr(true);
   bool fitmat(true);
   bool extend(false);
   double extendfrac(0.0);
@@ -234,7 +234,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'v' : nulltime = atoi(optarg);
                  break;
-      case 'B' : bfcorr = Config::BFCorr(atoi(optarg));
+      case 'B' : bfcorr = atoi(optarg);
                  break;
       case 'r' : ttree = atoi(optarg);
                  break;
@@ -791,7 +791,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             BFieldInfo bfinfo;
             bfinfo.active_ = kkbf->active();
             bfinfo.time_ = kkbf->time();
-            bfinfo.dp_ = kkbf->deltaP().R();
             bfinfo.range_ = kkbf->range().range();
             bfinfovec.push_back(bfinfo);
           }
