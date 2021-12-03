@@ -38,7 +38,7 @@ namespace KinKal {
       // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the position out-of-tolerance
       template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol, bool local=true) const;
       // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum out-of-tolerance
-      template<class KTRAJ> double BFieldMap::rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
+      template<class KTRAJ> double rangeInMomTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
       // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the
       template<class KTRAJ> VEC3 integrate(KTRAJ const& ktraj, TimeRange const& trange) const;
   };
@@ -116,24 +116,10 @@ namespace KinKal {
     double dpdt = (dB.Cross(vel)).R(); // (scaled) dpdt due to B difference
     auto dBdt = fieldDeriv(tpos,vel); // change in field along the (linear) path
     double d2pdt2 = (dBdt.Cross(vel)).R(); // (scaled) 2nd derivative of p due to B change along the path
-    dt = ktraj.range().end()-tstart;
+    double dt = ktraj.range().end()-tstart;
     if(dpdt > 0.0) dt = std::min(dt,dp/dpdt);
     if(d2pdt2 > 0.0) dt =std::min(dt, sqrt(2.0*dp/d2pdt2));
     return tstart + dt;
-  }
-
-  // divide a trajectory into magnetic 'domains' within which BField changes are within tolerance
-  template<class KTRAJ> void BFieldMap::setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const {
-    double tstart, tend;
-    tstart = range.begin();
-    do {
-      // see how far we can go on the current traj before the BField change causes it to go out of tolerance
-      // that defines the end of this domain
-      tend = rangeInTolerance(ktraj,tstart,config.tol_,config.localBFieldCorr());
-      ranges.emplace_back(tstart,tend);
-      // start the next domain and the end of this one
-      tstart = tend;
-    } while(tstart < range.end());
   }
 
   // trivial instance of the above, used for testing

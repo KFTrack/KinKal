@@ -709,90 +709,92 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
-      // basic info
-      auto const& fptraj = kktrk.fitTraj();
-      sbeg_ = seedtraj.range().begin();
-      send_ = seedtraj.range().end();
-      fbeg_ = fptraj.range().begin();
-      fend_ = fptraj.range().end();
+      if(fstat.status_ != KinKal::Status::failed){
+        // basic info
+        auto const& fptraj = kktrk.fitTraj();
+        sbeg_ = seedtraj.range().begin();
+        send_ = seedtraj.range().end();
+        fbeg_ = fptraj.range().begin();
+        fend_ = fptraj.range().end();
 
-      for(auto const& eff: kktrk.effects()) {
-        const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-        const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
-        const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-        if(kkhit != 0){
-          nkkhit_++;
-          HitInfo hinfo;
-          hinfo.active_ = kkhit->active();
-          hinfo.time_ = kkhit->time();
-          hinfo.chisq_ = kkhit->chisq().chisq();
-          hinfo.ndof_ = kkhit->chisq().nDOF();
-          hinfo.ambig_ = -1000;
-          hinfo.dim_ = -1000;
-          auto hpos = fptraj.position3(kkhit->hit()->time());
-          hinfo.xpos_ = hpos.X();
-          hinfo.ypos_ = hpos.Y();
-          hinfo.zpos_ = hpos.Z();
-          hinfo.t0_ = 0.0;
-          const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-          const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-          const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
-          if(strawhit != 0){
-            hinfo.ambig_ = strawhit->hitState().lrambig_;
-            hinfo.dim_ = strawhit->hitState().dimension_;
-            hinfo.t0_ = strawhit->wire().t0();
-            // straw hits can have multiple residuals
-            if(strawhit->activeRes(WireHitState::time)){
-              hinfo.type_ = HitInfo::strawtime;
-              hinfo.resid_ = strawhit->residual(WireHitState::time).value();
-              hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+        for(auto const& eff: kktrk.effects()) {
+          const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+          const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+          const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+          if(kkhit != 0){
+            nkkhit_++;
+            HitInfo hinfo;
+            hinfo.active_ = kkhit->active();
+            hinfo.time_ = kkhit->time();
+            hinfo.chisq_ = kkhit->chisq().chisq();
+            hinfo.ndof_ = kkhit->chisq().nDOF();
+            hinfo.ambig_ = -1000;
+            hinfo.dim_ = -1000;
+            auto hpos = fptraj.position3(kkhit->hit()->time());
+            hinfo.xpos_ = hpos.X();
+            hinfo.ypos_ = hpos.Y();
+            hinfo.zpos_ = hpos.Z();
+            hinfo.t0_ = 0.0;
+            const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+            const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+            const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+            if(strawhit != 0){
+              hinfo.ambig_ = strawhit->hitState().lrambig_;
+              hinfo.dim_ = strawhit->hitState().dimension_;
+              hinfo.t0_ = strawhit->wire().t0();
+              // straw hits can have multiple residuals
+              if(strawhit->activeRes(WireHitState::time)){
+                hinfo.type_ = HitInfo::strawtime;
+                hinfo.resid_ = strawhit->residual(WireHitState::time).value();
+                hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+                hinfovec.push_back(hinfo);
+              }
+              //
+              if(strawhit->activeRes(WireHitState::distance)){
+                hinfo.type_ = HitInfo::strawdistance;
+                hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
+                hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+                hinfovec.push_back(hinfo);
+              }
+            } else if(scinthit != 0){
+              hinfo.type_ = HitInfo::scint;
+              hinfo.resid_ = scinthit->residual().value();
+              hinfo.residvar_ = scinthit->residual().variance();
+              hinfo.t0_ = scinthit->sensorAxis().t0();
               hinfovec.push_back(hinfo);
-            }
-            //
-            if(strawhit->activeRes(WireHitState::distance)){
-              hinfo.type_ = HitInfo::strawdistance;
-              hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
-              hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+            } else if(constraint != 0){
+              hinfo.type_ = HitInfo::constraint;
+              hinfo.resid_ = sqrt(constraint->chisq().chisq());
+              hinfo.residvar_ = 1.0;
               hinfovec.push_back(hinfo);
+            } else {
+              hinfo.type_ = HitInfo::unknown;
+              hinfo.resid_ =  0.0;
+              hinfo.residvar_ = 1.0;
             }
-          } else if(scinthit != 0){
-            hinfo.type_ = HitInfo::scint;
-            hinfo.resid_ = scinthit->residual().value();
-            hinfo.residvar_ = scinthit->residual().variance();
-            hinfo.t0_ = scinthit->sensorAxis().t0();
-            hinfovec.push_back(hinfo);
-          } else if(constraint != 0){
-            hinfo.type_ = HitInfo::constraint;
-            hinfo.resid_ = sqrt(constraint->chisq().chisq());
-            hinfo.residvar_ = 1.0;
-            hinfovec.push_back(hinfo);
-          } else {
-            hinfo.type_ = HitInfo::unknown;
-            hinfo.resid_ =  0.0;
-            hinfo.residvar_ = 1.0;
           }
-        }
-        if(kkmat != 0){
-          nkkmat_++;
-          KinKal::MaterialInfo minfo;
-          minfo.time_ = kkmat->time();
-          minfo.active_ = kkmat->active();
-          minfo.nxing_ = kkmat->detXing().matXings().size();
-          std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-          kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
-          minfo.dmomf_ = dmom[MomBasis::momdir_];
-          minfo.momvar_ = momvar[MomBasis::momdir_];
-          minfo.perpvar_ = momvar[MomBasis::perpdir_];
-          minfovec.push_back(minfo);
-        }
-        if(kkbf != 0){
-          nkkbf_++;
-          BFieldInfo bfinfo;
-          bfinfo.active_ = kkbf->active();
-          bfinfo.time_ = kkbf->time();
-          bfinfo.dp_ = kkbf->deltaP().R();
-          bfinfo.range_ = kkbf->range().range();
-          bfinfovec.push_back(bfinfo);
+          if(kkmat != 0){
+            nkkmat_++;
+            KinKal::MaterialInfo minfo;
+            minfo.time_ = kkmat->time();
+            minfo.active_ = kkmat->active();
+            minfo.nxing_ = kkmat->detXing().matXings().size();
+            std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+            kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
+            minfo.dmomf_ = dmom[MomBasis::momdir_];
+            minfo.momvar_ = momvar[MomBasis::momdir_];
+            minfo.perpvar_ = momvar[MomBasis::perpdir_];
+            minfovec.push_back(minfo);
+          }
+          if(kkbf != 0){
+            nkkbf_++;
+            BFieldInfo bfinfo;
+            bfinfo.active_ = kkbf->active();
+            bfinfo.time_ = kkbf->time();
+            bfinfo.dp_ = kkbf->deltaP().R();
+            bfinfo.range_ = kkbf->range().range();
+            bfinfovec.push_back(bfinfo);
+          }
         }
       }
       if(fstat.usable()){

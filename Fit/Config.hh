@@ -36,7 +36,7 @@ namespace KinKal {
     enum BFCorr {nocorr=0, fixed, variable, both }; // this should be moved out of this class TODO
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(0.1), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.01), minndof_(5), bfcorr_(fixed), plevel_(none) {}
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
     static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
@@ -51,7 +51,7 @@ namespace KinKal {
     BFCorr bfcorr_; // how to make BFieldMap corrections in the fit
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
-    Schedule schedule_; 
+    Schedule schedule_;
   };
   std::ostream& operator <<(std::ostream& os, Config const& kkconfig );
   std::ostream& operator <<(std::ostream& os, MetaIterConfig const& miconfig );

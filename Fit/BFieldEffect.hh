@@ -44,10 +44,7 @@ namespace KinKal {
       DVEC dbint_; // integral effect of using bnom vs the full field over this effects range
       Parameters dbeff_; // aggregate effect in parameter space of BFieldMap change, including BNom change
       Config::BFCorr bfcorr_; // type of BFieldMap map correction to apply
-      static double tbuff_; // small time buffer to avoid ambiguity
   };
-
-  template<class KTRAJ> double BFieldEffect<KTRAJ>::tbuff_ = 1.0e-5;
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(this->active()){
@@ -65,7 +62,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref) {
-    double etime = this->time();
+    double etime = time();
     auto const& midtraj = ref.nearestPiece(etime);
     // compute parameter change due to integral of difference in BFieldMap vs BNom
     if(bfcorr_ == Config::fixed || bfcorr_ == Config::both){
@@ -95,23 +92,21 @@ namespace KinKal {
 
   template<class KTRAJ> void BFieldEffect<KTRAJ>::append(PKTRAJ& fit) {
     if(this->active()){
+      double etime = time();
       // make sure the piece is appendable
-      if(fit.back().range().begin() > drange_.end()) throw std::invalid_argument("BFieldEffect: Can't append piece");
-      // adjust time if necessary
-      double time = this->time()+ tbuff_; // slight buffer to make local piece selection more consistent (avoid 'cusps')
-      double tlow = std::max(time,fit.back().range().begin() + tbuff_);
-      TimeRange newrange(tlow,std::max(tlow+tbuff_,fit.range().end()));
+      if(fit.back().range().begin() > etime) throw std::invalid_argument("BFieldEffect: Can't append piece");
+      TimeRange newrange(etime,fit.range().end());
+      // copy the back piece of fit and set its range
       KTRAJ newpiece(fit.back());
       newpiece.range() = newrange;
-      // if we are using variable BFieldMap, update the parameters accordingly
+      // if we are using variable BFieldMap, update the parameters according to the change in bnom across this domain
       if(bfcorr_ == Config::variable || bfcorr_ == Config::both){
         VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
-        newpiece.setBNom(time,newbnom);
+        newpiece.setBNom(etime,newbnom);
       }
-      // adjust for the residual parameter change due to difference in bnom
-      // don't double-count the effect due to bnom change; here we want just
-      // the effect of the approximation of (piecewise) bnom vs the full field
-      newpiece.params().parameters() += dbint_;
+      // adjust for the residual parameter change due to difference of bnom from the true field
+      if(bfcorr_ == Config::fixed || bfcorr_ == Config::both)
+        newpiece.params().parameters() += dbint_;
       fit.append(newpiece);
     }
   }

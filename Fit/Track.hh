@@ -79,10 +79,10 @@ namespace KinKal {
             return false;
         }
       };
-      typedef std::vector<std::unique_ptr<KKEFF>> KKEFFCOL; // container type for effects
+      using KKEFFCOL = std::vector<std::unique_ptr<KKEFF>> ; // container type for effects
       // construct from a set of hits and passive material crossings
       Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
-      // extend the track according to new configuration, hits, and/or exings
+      // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
       // accessors
       std::vector<Status> const& history() const { return history_; }
@@ -93,13 +93,13 @@ namespace KinKal {
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return config_; }
       BFieldMap const& bfield() const { return bfield_; }
+      HITCOL const& hits() const { return hits_; }
+      EXINGCOL const& exings() const { return exings_; }
+      DOMAINCOL const& domains() const { return domains_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
-    protected:
-      // construct without fitting and without detailed content: this allows deferring the fit
-      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj );
-      void fit(HITCOL& hits, EXINGCOL& exings );
     private:
       // helper functions
+      TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
       void update(Status const& fstat, MetaIterConfig const& miconfig);
       void fitIteration(Status& status, MetaIterConfig const& miconfig);
@@ -116,48 +116,31 @@ namespace KinKal {
       PKTRAJ reftraj_; // reference against which the derivatives were evaluated and the current fit performed
       PKTRAJ fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
       KKEFFCOL effects_; // effects used in this fit, sorted by time
+      HITCOL hits_; // hits used in this fit
+      EXINGCOL exings_; // material xings used in this fit
+      DOMAINCOL domains_; // BField domains used in this fit
   };
 
   // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield,seedtraj) {
-    fit(hits,exings);
-  }
-  // unfit constructor
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj) :
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) :
     config_(cfg), bfield_(bfield), seedtraj_(seedtraj)
   {
-    // configuation check
-    if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-  }
-
-  template <class KTRAJ> void Track<KTRAJ>::fit(  HITCOL& hits, EXINGCOL& exings) {
-    // find the min and max time from the effects
-    double tmin = std::numeric_limits<double>::max();
-    double tmax = -std::numeric_limits<double>::max();
-    for(auto const& hit : hits){
-      tmin = std::min(tmin,hit->time());
-      tmax = std::max(tmax,hit->time());
-    }
-    for(auto const& exing : exings){
-      tmin = std::min(tmin,exing->crossingTime());
-      tmax = std::max(tmax,exing->crossingTime());
-    }
-    TimeRange refrange(tmin-config_.tbuff_,tmax+config_.tbuff_);
+    // set the seed time based on the min and max time from the inputs
+    TimeRange refrange = getRange(hits,exings);
     seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config_.bfcorr_ != Config::nocorr) bfield_.setDomains(seedtraj_,refrange,config_,domains);
+    if(config_.bfcorr_ != Config::nocorr) setDomains(seedtraj_, refrange, config_,domains);
     // Create the initial reference trajectory
     createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
     effects_.reserve(hits.size()+exings.size()+domains.size()+2);
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::forwards));
     effects_.emplace_back(std::make_unique<KKEND>(config_, bfield_, reftraj_,TimeDir::backwards));
-    // add the other effects
+    // create all the other effects
     createEffects(hits,exings,domains);
     // now fit the track
     fit();
-    if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
   }
 
   // extend an existing track
@@ -168,18 +151,7 @@ namespace KinKal {
     if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
     // require the existing fit to be usable
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
-    // find the min and max time from the effects
-    double tmin = reftraj_.range().begin();
-    double tmax = reftraj_.range().end();
-    for(auto const& hit : hits){
-      tmin = std::min(tmin,hit->time());
-      tmax = std::max(tmax,hit->time());
-    }
-    for(auto const& exing : exings){
-      tmin = std::min(tmin,exing->crossingTime());
-      tmax = std::max(tmax,exing->crossingTime());
-    }
-    TimeRange exrange(tmin-config_.tbuff_,tmax+config_.tbuff_);
+    TimeRange exrange = getRange(hits,exings);
     // if we're making BField corrections, find the new domains (if any)
     DOMAINCOL domains;
     if(config_.bfcorr_ != Config::nocorr) {
@@ -202,19 +174,18 @@ namespace KinKal {
       if(kkbfbegin != 0 && kkbfend != 0){
         // compare ranges, and create BField effects and traj pieces as needed
         if(exrange.begin() < kkbfbegin->range().begin())
-          bfield_.setDomains(reftraj_,TimeRange(exrange.begin(),kkbfbegin->range().begin()),config_,domains);
+          setDomains(reftraj_.front(),TimeRange(exrange.begin(),kkbfbegin->range().begin()),config_,domains);
         if(exrange.end() > kkbfend->range().end())
-          bfield_.setDomains(reftraj_,TimeRange(kkbfend->range().end(),exrange.end()),config_,domains);
+          setDomains(reftraj_.back(),TimeRange(kkbfend->range().end(),exrange.end()),config_,domains);
       } else {
         // set domains for the whole range
-        bfield_.setDomains(reftraj_,reftraj_.range(),config_,domains);
+        setDomains(reftraj_.nearestPiece(reftraj_.range().mid()),reftraj_.range(),config_,domains);
       }
     }
-    // craete the effects for these
+    // create the effects for these
     createEffects(hits,exings,domains);
     // now refit the track
     fit();
-    if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj , TimeRange const& range, DOMAINCOL const& domains ) {
@@ -261,6 +232,10 @@ namespace KinKal {
     }
     // sort
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
+    // store the inputs
+    hits_.insert(hits_.end(),hits.begin(),hits.end());
+    exings_.insert(exings_.end(),exings.begin(),exings.end());
+    domains_.insert(domains_.end(),domains.begin(),domains.end());
   }
 
   // fit iteration management
@@ -286,6 +261,7 @@ namespace KinKal {
       }
       if(!fstat.usable())break;
     }
+    if(config_.plevel_ > Config::none)print(std::cout, config_.plevel_);
   }
 
   // single algebraic iteration
@@ -392,6 +368,33 @@ namespace KinKal {
       for(auto const& eff : effects()) eff.get()->print(ost,detail-3);
     }
   }
+  // divide a trajectory into magnetic 'domains' used to apply the BField corrections
+  template<class KTRAJ> void Track<KTRAJ>::setDomains(KTRAJ const& ktraj, TimeRange const& range, Config const& config, std::vector<TimeRange>& ranges) const {
+    double tstart, tend;
+    tstart = range.begin();
+    do {
+      // see how far we can go on the current traj before the BField change causes it to go out of tolerance
+      // that defines the end of this domain
+      tend = bfield_.rangeInTolerance(ktraj,tstart,config.tol_,config.localBFieldCorr());
+      ranges.emplace_back(tstart,tend);
+      // start the next domain and the end of this one
+      tstart = tend;
+    } while(tstart < range.end());
+  }
 
+  template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {
+    double tmin = std::numeric_limits<double>::max();
+    double tmax = -std::numeric_limits<double>::max();
+    for(auto const& hit : hits){
+      tmin = std::min(tmin,hit->time());
+      tmax = std::max(tmax,hit->time());
+    }
+    for(auto const& exing : exings){
+      tmin = std::min(tmin,exing->crossingTime());
+      tmax = std::max(tmax,exing->crossingTime());
+    }
+    // add a buffer to the time.  This must cover the uncertainty on t0 as the fit iterates
+    return TimeRange(tmin-config_.tbuff_,tmax+config_.tbuff_);
+  }
 }
 #endif
