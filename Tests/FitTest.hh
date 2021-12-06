@@ -160,7 +160,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double seedsmear(10.0);
   double momsigma(0.2);
   double ineff(0.05);
-  double tbuff(0.1);
+  double tbuff(1.0);
   bool simmat(true), lighthit(true),  nulltime(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
@@ -290,11 +290,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     BF = new UniformBFieldMap(bsim);
     bnom = VEC3(0.0,0.0,Bz);
   }
+  BF->print(cout);
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
   toy.setInefficiency(ineff);
+  toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
   config.dwt_ = dwt;
@@ -335,7 +337,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // extension just uses the last meta-iteration
   exconfig.schedule_.clear();
   exconfig.schedule_.push_back(config.schedule_.back());
-  if(nevents == 0)cout << config << endl;
+  cout << config << endl;
 
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
@@ -627,7 +629,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
-    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0);
+    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0), nuconv(0);
 
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
@@ -684,6 +686,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       auto const& fstat = kktrk.fitStatus();
       if(fstat.status_ == Status::failed)nfail++;
       if(fstat.status_ == Status::converged)nconv++;
+      if(fstat.status_ == Status::unconverged)nuconv++;
       if(fstat.status_ == Status::lowNDOF)nlow++;
       if(fstat.status_ == Status::diverged)ndiv++;
       if(fstat.status_ == Status::paramsdiverged)npdiv++;
@@ -926,6 +929,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     // Test fit success
     cout
       << nconv << " Converged fits "
+      << nuconv << " Unconverged fits "
       << nfail << " Failed fits "
       << nlow << " low NDOF fits "
       << ndiv << " Diverged fits "

@@ -36,6 +36,8 @@ namespace KinKal {
       static std::string const& paramUnit(ParamIndex index);
       static std::string const& paramTitle(ParamIndex index);
       static std::string const& trajName();
+      // default constructor, needed for persistance
+      LoopHelix();
       // interface needed for KKTrk instantiation
       // construct from momentum, position, and particle properties.
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
@@ -54,7 +56,7 @@ namespace KinKal {
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
-      double speed(double time) const  {  return CLHEP::c_light*beta(); }
+      double speed(double time=0.0) const  {  return CLHEP::c_light*beta(); }
       void print(std::ostream& ost, int detail) const;
       TimeRange const& range() const { return trange_; }
       TimeRange& range() { return trange_; }

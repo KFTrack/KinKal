@@ -10,6 +10,9 @@ namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, Config const& kkconfig ) {
     ost << "Config maxniter " << kkconfig.maxniter_
       << " dweight " << kkconfig.dwt_
+      << " dpar chisq " << kkconfig.pdchi2_
+      << " time buffer " << kkconfig.tbuff_
+      << " fractional momentum tolerance " << kkconfig.tol_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
       << " with " << kkconfig.schedule().size()

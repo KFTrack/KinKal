@@ -5,7 +5,6 @@
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "KinKal/General/PhysicalConstants.h"
-#include "KinKal/Fit/Config.hh"
 #include "Math/SMatrix.h"
 #include <vector>
 #include <limits>
