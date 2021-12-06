@@ -120,8 +120,8 @@ add_compile_options(
     "-Werror=return-type" 
     "-Winit-self" 
     "-Woverloaded-virtual" 
-    "-ftrapping-math"
     "-fdiagnostics-color=always"
+    "-Werror=sign-compare"
 #    "-Wshadow"
 
     # debug flags
