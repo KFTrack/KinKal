@@ -33,8 +33,8 @@ ROOT_GENERATE_DICTIONARY(TestsDict
     BFieldInfo.hh
     ParticleTrajectoryInfo.hh
     MaterialInfo.hh
-
     LINKDEF LinkDef.h
+    MODULE Tests
 )
 # create shared library with ROOT dict
 add_library(Tests SHARED TestsDict)
