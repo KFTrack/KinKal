@@ -10,7 +10,7 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Parameters.hh"
-#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"

@@ -3,7 +3,7 @@
 //
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
-#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>
