@@ -7,7 +7,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
   message(STATUS "Setting build type to '${default_build_type}' as none was specified.")
   set(CMAKE_BUILD_TYPE "${default_build_type}" CACHE
       STRING "Choose the type of build." FORCE)
-  # Set the possible values of build type for cmake-gui                                                                                                                                                           
+  # Set the possible values of build type for cmake-gui
   set_property(CACHE CMAKE_BUILD_TYPE PROPERTY STRINGS
     "Debug" "Release")
 endif()
@@ -77,8 +77,8 @@ endif()
 
 
 # Set project name and version
-project (KinKal 
-    LANGUAGES CXX 
+project (KinKal
+    LANGUAGES CXX
     VERSION ${_build_ver_maj}.${_build_ver_min}.${_build_ver_patch}
     DESCRIPTION "Kinematic Kalman filter track fit code package"
 )
@@ -89,8 +89,8 @@ message( STATUS "Commit short hash: ${_build_ver_commit_short}")
 
 
 # find the ROOT dependency
-find_package(ROOT REQUIRED COMPONENTS 
-        Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree 
+find_package(ROOT REQUIRED COMPONENTS
+        Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree
         Rint Postscript Matrix Physics MathCore Thread Gui)
 
 # include "useful" ROOT cmake functions
@@ -112,14 +112,14 @@ enable_testing()
 # compiler flags
 add_compile_options(
     # flags applied to ALL build types
-    "-Wall" 
-    "-Wno-unused-parameter" 
-    "-Wno-unused-local-typedefs" 
-    "-Werror" 
-    "-gdwarf-2" 
-    "-Werror=return-type" 
-    "-Winit-self" 
-    "-Woverloaded-virtual" 
+    "-Wall"
+    "-Wno-unused-parameter"
+    "-Wno-unused-local-typedefs"
+    "-Werror"
+    "-gdwarf-2"
+    "-Werror=return-type"
+    "-Winit-self"
+    "-Woverloaded-virtual"
     "-fdiagnostics-color=always"
     "-Werror=sign-compare"
 #    "-Wshadow"
@@ -138,11 +138,11 @@ include(GNUInstallDirs)
 # clang tidy
 
 if(ENABLE_CLANG_TIDY)
-    set(CMAKE_CXX_CLANG_TIDY "clang-tidy") 
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy")
 endif()
 
 if(ENABLE_CLANG_TIDY_WITH_FIXES)
-    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-fix") 
+    set(CMAKE_CXX_CLANG_TIDY "clang-tidy;-fix")
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
@@ -182,7 +182,7 @@ install(TARGETS General Trajectory Detector Fit MatEnv Tests
 # Globbing here is fine because it does not influence build behaviour
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
         DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
-        FILES_MATCHING PATTERN "*.hh" 
+        FILES_MATCHING PATTERN "*.hh"
         PATTERN ".git*" EXCLUDE
 )
 
@@ -199,15 +199,15 @@ if [ \"\$sourced\" = \"0\" ];then
 fi
 export DEBUG_LEVEL=${CMAKE_BUILD_TYPE}
 
-# Linux: 
-export LD_LIBRARY_PATH=\${PWD}/lib:\${LD_LIBRARY_PATH}
+# Linux:
+export LD_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:\${LD_LIBRARY_PATH}
 
 # MacOS:
-export DYLD_FALLBACK_LIBRARY_PATH=\${PWD}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
+export DYLD_FALLBACK_LIBRARY_PATH=${CMAKE_CURRENT_BINARY_DIR}/lib:\${ROOT_LIB}:\${DYLD_FALLBACK_LIBRARY_PATH}
 
 # Define the KinKal package for others:
 export KINKAL_SOURCE_DIR=${CMAKE_SOURCE_DIR}
-export KINKAL_LIBRARY_DIR=\${PWD}/lib
+export KINKAL_LIBRARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/lib
 
 ")
 
