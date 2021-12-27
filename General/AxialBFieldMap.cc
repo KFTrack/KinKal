@@ -42,26 +42,27 @@ namespace KinKal {
     zstep_=(zmax_-zmin_)/double(axial_.size()-1);
   }
 
+  double AxialBFieldMap::gradient(double zpos) const {
+    // average gradient over a few bins; this gives a smoother response
+    static size_t window(3);
+    double zlow = zpos -window*zstep_;
+    double zhigh = zpos + window*zstep_;
+    double blow = bz(zlow);
+    double bhigh = bz(zhigh);
+    auto db = bhigh-blow;
+    auto dz = zhigh-zlow;
+    return db/dz;
+  }
+
   VEC3 AxialBFieldMap::fieldVect(VEC3 const& position) const {
     size_t ilow = lowBound(position.Z());
-    size_t ihigh = ilow+1;
-    double db = axial_[ihigh]-axial_[ilow];
-    double grad = db/zstep_;
-    return VEC3(-0.5*grad*position.X(), -0.5*grad*position.Y(), axial_[ilow] + grad*(position.Z()-zval(ilow)));
+    auto grad = gradient(position.Z());
+    auto dz = position.Z()-zval(ilow);
+    return VEC3(-0.5*grad*position.X(), -0.5*grad*position.Y(), axial_[ilow] + grad*dz);
   }
 
   AxialBFieldMap::Grad AxialBFieldMap::fieldGrad(VEC3 const& position) const {
-    size_t ilow = lowBound(position.Z());
-    size_t ihigh = ilow+1;
-    double db = axial_[ihigh]-axial_[ilow];
-    double dz = zstep_;
-    // patch for null spots
-    while(fabs(db)<1e-8 && ihigh < axial_.size()-1){
-      ihigh++;
-      dz += zstep_;
-      db = axial_[ihigh]-axial_[ilow];
-    }
-    double grad = db/dz;
+    double grad = gradient(position.Z());
     Grad retval;
     retval[0][0] = retval[1][1] = -0.5*grad;
     retval[2][2] = -grad;
@@ -69,21 +70,23 @@ namespace KinKal {
   }
 
   VEC3 AxialBFieldMap::fieldDeriv(VEC3 const& position, VEC3 const& velocity) const {
-    size_t ilow = lowBound(position.Z());
-    size_t ihigh = ilow+1;
-    double db = axial_[ihigh]-axial_[ilow];
-    double grad = db/zstep_;
+    double grad = gradient(position.Z());
     return VEC3(-0.5*grad*velocity.X(),-0.5*grad*velocity.Y(),grad*velocity.Z());
   }
 
-  size_t AxialBFieldMap::lowBound(double zval) const {
-    int low = (int)std::floor((zval-zmin_)/zstep_);
+  size_t AxialBFieldMap::lowBound(double zpos) const {
+    int low = (int)std::floor((zpos-zmin_)/zstep_);
     if(low < 0 )
       return (size_t)0;
     else if(low >= (int)axial_.size())
-      return (size_t)axial_.size()-2;
+      return (size_t)axial_.size()-1;
     else
       return (size_t)low;
+  }
+
+  double AxialBFieldMap::bz(double zpos) const {
+    auto index = lowBound(zpos);
+    return axial_[index];
   }
 
 }
