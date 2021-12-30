@@ -134,23 +134,10 @@ namespace KKTest {
       CAHint tphint(htime,htime);
       PTCA tp(pktraj,tline,tphint,tprec_);
       //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
-      WireHitState::LRAmbig ambig(WireHitState::null);
+      WireHitState::State ambig(WireHitState::null);
       if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
-      WireHitState::Dimension dim(WireHitState::time);
-      if(ambig == WireHitState::null){
-        if(nulltime_)
-          dim = WireHitState::both;
-        else
-          dim = WireHitState::distance;
-      }
-      // null variance based on doca cuttoff
       double rmax = std::min(ambigdoca_,rstraw_);
-      double nullvar = (rmax*rmax)/3.0; // range is +- doca
-      // null time shift
-      double nulldt = 0.5*rmax/sdrift_; // the shift should be the average drift time over this distance
-      double nulldtvar = (rmax*rmax)/(sdrift_*sdrift_*12) + sigt_*sigt_; // variance on the drift time over this distance
-      // I need a better way to include the intrinsic error FIXME!
-      WireHitState whstate(ambig, dim, nullvar, nulldt, nulldtvar);
+      WireHitState whstate(ambig, rmax);
       // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
         thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));

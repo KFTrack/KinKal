@@ -10,8 +10,7 @@ namespace KinKal {
   struct SimpleWireHitUpdater {
     double mindoca_; // minimum DOCA value to set an ambiguity
     double maxdoca_; // maximum DOCA to still use a hit
-    bool nulltime_; // constrain time when hit has null ambiguity
-    SimpleWireHitUpdater(double mindoca,double maxdoca, bool nulltime) : mindoca_(mindoca), maxdoca_(maxdoca), nulltime_(nulltime) {}
+    SimpleWireHitUpdater(double mindoca,double maxdoca ) : mindoca_(mindoca), maxdoca_(maxdoca) {}
   };
 
   template <class KTRAJ> class SimpleWireHit : public WireHit<KTRAJ> {
@@ -54,19 +53,14 @@ namespace KinKal {
     if(whupdater != 0){
       // start with existing state
       WireHitState newstate = WIREHIT::hitState();
-      newstate.nullvar_ = whupdater->mindoca_*whupdater->mindoca_/3.0; // RMS of flat distribution beteween +- mindoca
-      double doca = fabs(WIREHIT::closestApproach().doca());
-      if(fabs(doca) > whupdater->mindoca_){
-        newstate.lrambig_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
-        newstate.dimension_ = WireHitState::time;
-      } else if( fabs(doca) > whupdater->maxdoca_){
-        newstate.dimension_ = WireHitState::none; // disable the hit
+      newstate.maxndoca_ = whupdater->mindoca_;
+      double doca = WIREHIT::closestApproach().doca();
+      if(fabs(doca) < whupdater->mindoca_ ) {
+        newstate.state_ = WireHitState::null;
+      } else if(fabs(doca) < whupdater->maxdoca_){
+        newstate.state_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
       } else {
-        newstate.lrambig_ = WireHitState::null;
-        if(whupdater->nulltime_)
-          newstate.dimension_ = WireHitState::both;
-        else
-          newstate.dimension_ = WireHitState::distance;
+        newstate.state_ = WireHitState::inactive; // disable the hit if it's an outlier
       }
       WIREHIT::setHitState(newstate);
       // now update again in case the hit changed

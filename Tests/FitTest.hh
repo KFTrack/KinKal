@@ -731,8 +731,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             hinfo.time_ = kkhit->time();
             hinfo.chisq_ = kkhit->chisq().chisq();
             hinfo.ndof_ = kkhit->chisq().nDOF();
-            hinfo.ambig_ = -1000;
-            hinfo.dim_ = -1000;
+            hinfo.state_ = WireHitState::inactive;
             auto hpos = fptraj.position3(kkhit->hit()->time());
             hinfo.xpos_ = hpos.X();
             hinfo.ypos_ = hpos.Y();
@@ -742,21 +741,20 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
             const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
             if(strawhit != 0){
-              hinfo.ambig_ = strawhit->hitState().lrambig_;
-              hinfo.dim_ = strawhit->hitState().dimension_;
+              hinfo.state_ = strawhit->hitState().state_;
               hinfo.t0_ = strawhit->wire().t0();
               // straw hits can have multiple residuals
-              if(strawhit->activeRes(WireHitState::time)){
+              if(strawhit->activeRes(STRAWHIT::tresid)){
                 hinfo.type_ = HitInfo::strawtime;
-                hinfo.resid_ = strawhit->residual(WireHitState::time).value();
-                hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+                hinfo.resid_ = strawhit->residual(STRAWHIT::tresid).value();
+                hinfo.residvar_ = strawhit->residual(STRAWHIT::tresid).variance();
                 hinfovec.push_back(hinfo);
               }
               //
-              if(strawhit->activeRes(WireHitState::distance)){
+              if(strawhit->activeRes(STRAWHIT::dresid)){
                 hinfo.type_ = HitInfo::strawdistance;
-                hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
-                hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+                hinfo.resid_ = strawhit->residual(STRAWHIT::dresid).value();
+                hinfo.residvar_ = strawhit->residual(STRAWHIT::dresid).variance();
                 hinfovec.push_back(hinfo);
               }
             } else if(scinthit != 0){
