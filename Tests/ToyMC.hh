@@ -37,10 +37,10 @@ namespace KKTest {
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
-      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) :
+      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
         mom_(mom), icharge_(icharge),
-        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
+        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
@@ -75,7 +75,7 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_, nulltime_;
+      bool simmat_, lighthit_;
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw

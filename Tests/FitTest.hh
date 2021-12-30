@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -161,7 +161,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double momsigma(0.2);
   double ineff(0.05);
   double tbuff(1.0);
-  bool simmat(true), lighthit(true),  nulltime(true);
+  bool simmat(true), lighthit(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
 
@@ -190,7 +190,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
-    {"nulltime",     required_argument, 0, 'v'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
@@ -231,8 +230,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       case 'f' : fitmat = atoi(optarg);
                  break;
       case 'L' : lighthit = atoi(optarg);
-                 break;
-      case 'v' : nulltime = atoi(optarg);
                  break;
       case 'B' : bfcorr = atoi(optarg);
                  break;
@@ -294,7 +291,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
   toy.setInefficiency(ineff);
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
