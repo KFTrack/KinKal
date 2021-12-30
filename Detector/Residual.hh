@@ -14,7 +14,7 @@ namespace KinKal {
       // accessors
       double value() const { return value_; } // residual value
       double variance() const  { return var_; } // variance on value, based on measurement uncertainty
-      DVEC const& dRdP() const { return dRdP_; } // derivative of this residual WRT parameters 
+      DVEC const& dRdP() const { return dRdP_; } // derivative of this residual WRT parameters
       Residual(double value, double var, DVEC const& dRdP) : value_(value), var_(var), dRdP_(dRdP){}
       Residual() : value_(0.0), var_(-1.0) {}
     private:
@@ -22,10 +22,6 @@ namespace KinKal {
       double var_; // estimated variance of the residual due to sensor measurement uncertainty ONLY
       DVEC dRdP_; // derivative of this residual WRT the trajectory parameters, evaluated at the reference parameters
   };
-
-  std::ostream& operator <<(std::ostream& ost, Residual const& res) {
-    ost << " residual value " << res.value() << " variance " << res.variance() << " dRdP " << res.dRdP();
-    return ost;
-  }
+  std::ostream& operator <<(std::ostream& ost, Residual const& res);
 }
 #endif
