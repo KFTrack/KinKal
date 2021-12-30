@@ -147,8 +147,10 @@ namespace KKTest {
       double rmax = std::min(ambigdoca_,rstraw_);
       double nullvar = (rmax*rmax)/3.0; // range is +- doca
       // null time shift
-      double nulldt = 0.5*ambigdoca_/sdrift_; // the shift should be the average drift time over this distance
-      WireHitState whstate(ambig, dim, nullvar, nulldt);
+      double nulldt = 0.5*rmax/sdrift_; // the shift should be the average drift time over this distance
+      double nulldtvar = (rmax*rmax)/(sdrift_*sdrift_*12) + sigt_*sigt_; // variance on the drift time over this distance
+      // I need a better way to include the intrinsic error FIXME!
+      WireHitState whstate(ambig, dim, nullvar, nulldt, nulldtvar);
       // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
         thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));

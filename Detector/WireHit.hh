@@ -113,7 +113,8 @@ namespace KinKal {
         // add an absolute time constraint for the null ambig hits.
         // correct time difference for the average drift.
         double dt = tpoca.deltaT() - wstate_.nulldt_;
-        double dtvar = 3.0*wstate_.nulldt_*wstate_.nulldt_;
+        // I need a better way to include the intrinsic time error FIXME!
+        double dtvar = wstate_.nulldtvar_;
         rresid_[WireHitState::time] = Residual(dt,dtvar,-tpoca.dTdP());
       }
     }

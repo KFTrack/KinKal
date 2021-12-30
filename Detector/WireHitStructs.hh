@@ -16,11 +16,11 @@ namespace KinKal {
     enum Dimension {none=-1, time=0, distance=1, both=2}; // what gets constrained
     LRAmbig lrambig_; // left-right ambiguity
     Dimension dimension_; // physical dimensions being constrained
-    double nullvar_, nulldt_ ; // spatial variance and offset for null ambiguity hits
-    WireHitState(LRAmbig lrambig, Dimension dim,double nvar, double ndt) : lrambig_(lrambig), dimension_(dim), nullvar_(nvar), nulldt_(ndt) {
+    double nullvar_, nulldt_, nulldtvar_; // spatial variance and offset for null ambiguity hits
+    WireHitState(LRAmbig lrambig, Dimension dim,double nvar, double ndt,double ndtvar) : lrambig_(lrambig), dimension_(dim), nullvar_(nvar), nulldt_(ndt), nulldtvar_(ndtvar) {
       if(dimension_ > time && (lrambig_ != null)) throw std::invalid_argument("Inconsistant wire hit state");
     }
-    WireHitState() : WireHitState(null,none,1.0,0.0) {}
+    WireHitState() : WireHitState(null,none,1.0,0.0,1.0) {}
   };
 }
 #endif
