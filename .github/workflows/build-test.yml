@@ -6,7 +6,7 @@ defaults:
     shell: bash -l {0}
 env:
   CLICOLOR_FORCE: 1
-  
+
 jobs:
   build-test-kinkal:
     name: Tests (${{ matrix.build-type }}, ${{ matrix.os }}, root ${{ matrix.root-version }}, py${{ matrix.python-version }})
@@ -14,7 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["ubuntu-latest", "macos-latest"]
+        os: ["ubuntu-latest", "macos-10.15"]
         python-version: ["3.9"]
         root-version: ["6.24.6"]
         build-type: ["Debug", "Release"]
@@ -39,20 +39,20 @@ jobs:
           use-only-tar-bz2: true
       - name: Conda info
         run: conda info
-        
+
       - name: Conda/Mamba Install
         run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake # clang-tools
-        
+
       - uses: actions/checkout@v2
         with:
-          fetch-depth: 0        
+          fetch-depth: 0
       - name: CMake (${{ matrix.build-type }})
         run: |
           cd ..
           ENABLE_COVERAGE=""
-          
+
           if [ "${{ matrix.build-type }}" = "Debug" ]; then
-            if [ "${{ matrix.os }}" = "macos-latest" ]; then
+            if [ "${{ matrix.os }}" = "macos-10.15" ]; then
               ENABLE_COVERAGE="-DCOVERAGE=ON"
             fi
           fi
@@ -60,7 +60,7 @@ jobs:
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
                 -DCMAKE_COLOR_MAKEFILE=ON ${ENABLE_COVERAGE}
-      
+
       - name: Build (${{ matrix.build-type }})
         run: |
           cd ../KinKal_${{ matrix.build-type }}
@@ -78,8 +78,8 @@ jobs:
 
           make coverage
           gcovr -r ../KinKal . --xml -o coverage.xml --gcov-executable "llvm-cov gcov"  --exclude-directories Tests
-        
-        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
+
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-10.15' }}
 
       - name: Upload coverage
         uses: codecov/codecov-action@v1
@@ -87,7 +87,7 @@ jobs:
           files: ../KinKal_${{ matrix.build-type }}/coverage.xml
           flags: unittests
           name: codecov-umbrella
-        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-latest' }}
+        if: ${{ matrix.build-type == 'Debug' && matrix.os == 'macos-10.15' }}
 
 #       - name: Run clang-tidy
 #         if: ${{ matrix.build-type == 'Release' && matrix.os == 'ubuntu-latest' }}
@@ -96,7 +96,7 @@ jobs:
 #           cmake -S KinKal -B KinKal_${{ matrix.build-type }}_ClangTidy \
 #                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
 #                 -DCMAKE_COLOR_MAKEFILE=ON \
-#                 -DENABLE_CLANG_TIDY_WITH_FIXES=ON 
+#                 -DENABLE_CLANG_TIDY_WITH_FIXES=ON
 #           cd KinKal_${{ matrix.build-type }}_ClangTidy
 #           make -j8
 

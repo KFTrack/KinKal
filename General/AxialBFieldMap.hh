@@ -29,7 +29,9 @@ namespace KinKal {
       double zmin_, zmax_, zstep_; // z limits of the field
       std::vector<double> axial_; // axial field
       size_t lowBound(double zval) const;
+      double gradient(double zval) const;
       double zval(size_t index) const { return zmin_ + index*zstep_; }
+      double bz(double zval) const;
   };
 }
 #endif

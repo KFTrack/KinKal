@@ -6,6 +6,7 @@ add_library(General SHARED
     Chisq.cc
     Parameters.cc
     ParticleState.cc
+    ParticleStateEstimate.cc
     TimeDir.cc
     TimeRange.cc
     Weights.cc
@@ -15,7 +16,11 @@ add_library(General SHARED
 
 # create shared library with ROOT dict
 ROOT_GENERATE_DICTIONARY(GeneralDict
+    ParticleStateEstimate.hh
     ParticleState.hh
+    Parameters.hh
+    FitData.hh
+    TimeRange.hh
     Vectors.hh
     LINKDEF LinkDef.h
     MODULE General

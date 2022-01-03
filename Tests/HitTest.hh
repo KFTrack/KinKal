@@ -146,7 +146,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   } else {
     BF = new UniformBFieldMap(bnom);
   }
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_,false, ambigdoca, pmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_,ambigdoca, pmass );
   toy.setInefficiency(0.0);
   PKTRAJ tptraj;
   //  cout << "True " << tptraj << endl;

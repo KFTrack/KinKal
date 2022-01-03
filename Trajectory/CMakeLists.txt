@@ -13,6 +13,12 @@ add_library(Trajectory SHARED
     LoopHelix.cc
     POCAUtil.cc
     )
+# create shared library with ROOT dict
+ROOT_GENERATE_DICTIONARY(TrajectoryDict
+    LoopHelix.hh
+    LINKDEF LinkDef.h
+    MODULE Trajectory
+)
 
 # set top-level directory as include root
 target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)

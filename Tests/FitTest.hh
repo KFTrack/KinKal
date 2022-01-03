@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --nulltime i--bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -145,14 +145,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
-  Config::BFCorr bfcorr(Config::nocorr);
+  bool bfcorr(true);
   bool fitmat(true);
   bool extend(false);
   double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
-  double tol(0.1);
+  double tol(0.0001);
   int iseed(123421);
   int conspar(-1), iprint(-1);
   unsigned nhits(40);
@@ -160,8 +160,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double seedsmear(10.0);
   double momsigma(0.2);
   double ineff(0.05);
-  double tbuff(0.1);
-  bool simmat(true), lighthit(true),  nulltime(true);
+  double tbuff(1.0);
+  bool simmat(true), lighthit(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
 
@@ -190,7 +190,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
-    {"nulltime",     required_argument, 0, 'v'  },
     {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
@@ -232,9 +231,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'L' : lighthit = atoi(optarg);
                  break;
-      case 'v' : nulltime = atoi(optarg);
-                 break;
-      case 'B' : bfcorr = Config::BFCorr(atoi(optarg));
+      case 'B' : bfcorr = atoi(optarg);
                  break;
       case 'r' : ttree = atoi(optarg);
                  break;
@@ -290,11 +287,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     BF = new UniformBFieldMap(bsim);
     bnom = VEC3(0.0,0.0,Bz);
   }
+  BF->print(cout);
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, nulltime, ambigdoca, simmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
   toy.setInefficiency(ineff);
+  toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
   config.dwt_ = dwt;
@@ -335,7 +334,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // extension just uses the last meta-iteration
   exconfig.schedule_.clear();
   exconfig.schedule_.push_back(config.schedule_.back());
-  if(nevents == 0)cout << config << endl;
+  cout << config << endl;
 
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
@@ -627,7 +626,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
-    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0);
+    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0), nuconv(0);
 
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
@@ -684,6 +683,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       auto const& fstat = kktrk.fitStatus();
       if(fstat.status_ == Status::failed)nfail++;
       if(fstat.status_ == Status::converged)nconv++;
+      if(fstat.status_ == Status::unconverged)nuconv++;
       if(fstat.status_ == Status::lowNDOF)nlow++;
       if(fstat.status_ == Status::diverged)ndiv++;
       if(fstat.status_ == Status::paramsdiverged)npdiv++;
@@ -709,90 +709,89 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
-      // basic info
-      auto const& fptraj = kktrk.fitTraj();
-      sbeg_ = seedtraj.range().begin();
-      send_ = seedtraj.range().end();
-      fbeg_ = fptraj.range().begin();
-      fend_ = fptraj.range().end();
+      if(fstat.status_ != KinKal::Status::failed){
+        // basic info
+        auto const& fptraj = kktrk.fitTraj();
+        sbeg_ = seedtraj.range().begin();
+        send_ = seedtraj.range().end();
+        fbeg_ = fptraj.range().begin();
+        fend_ = fptraj.range().end();
 
-      for(auto const& eff: kktrk.effects()) {
-        const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-        const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
-        const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-        if(kkhit != 0){
-          nkkhit_++;
-          HitInfo hinfo;
-          hinfo.active_ = kkhit->active();
-          hinfo.time_ = kkhit->time();
-          hinfo.chisq_ = kkhit->chisq().chisq();
-          hinfo.ndof_ = kkhit->chisq().nDOF();
-          hinfo.ambig_ = -1000;
-          hinfo.dim_ = -1000;
-          auto hpos = fptraj.position3(kkhit->hit()->time());
-          hinfo.xpos_ = hpos.X();
-          hinfo.ypos_ = hpos.Y();
-          hinfo.zpos_ = hpos.Z();
-          hinfo.t0_ = 0.0;
-          const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-          const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-          const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
-          if(strawhit != 0){
-            hinfo.ambig_ = strawhit->hitState().lrambig_;
-            hinfo.dim_ = strawhit->hitState().dimension_;
-            hinfo.t0_ = strawhit->wire().t0();
-            // straw hits can have multiple residuals
-            if(strawhit->activeRes(WireHitState::time)){
-              hinfo.type_ = HitInfo::strawtime;
-              hinfo.resid_ = strawhit->residual(WireHitState::time).value();
-              hinfo.residvar_ = strawhit->residual(WireHitState::time).variance();
+        for(auto const& eff: kktrk.effects()) {
+          const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+          const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+          const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+          if(kkhit != 0){
+            nkkhit_++;
+            HitInfo hinfo;
+            hinfo.active_ = kkhit->active();
+            hinfo.time_ = kkhit->time();
+            hinfo.chisq_ = kkhit->chisq().chisq();
+            hinfo.ndof_ = kkhit->chisq().nDOF();
+            hinfo.state_ = WireHitState::inactive;
+            auto hpos = fptraj.position3(kkhit->hit()->time());
+            hinfo.xpos_ = hpos.X();
+            hinfo.ypos_ = hpos.Y();
+            hinfo.zpos_ = hpos.Z();
+            hinfo.t0_ = 0.0;
+            const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+            const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+            const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+            if(strawhit != 0){
+              hinfo.state_ = strawhit->hitState().state_;
+              hinfo.t0_ = strawhit->wire().t0();
+              // straw hits can have multiple residuals
+              if(strawhit->activeRes(STRAWHIT::tresid)){
+                hinfo.type_ = HitInfo::strawtime;
+                hinfo.resid_ = strawhit->residual(STRAWHIT::tresid).value();
+                hinfo.residvar_ = strawhit->residual(STRAWHIT::tresid).variance();
+                hinfovec.push_back(hinfo);
+              }
+              //
+              if(strawhit->activeRes(STRAWHIT::dresid)){
+                hinfo.type_ = HitInfo::strawdistance;
+                hinfo.resid_ = strawhit->residual(STRAWHIT::dresid).value();
+                hinfo.residvar_ = strawhit->residual(STRAWHIT::dresid).variance();
+                hinfovec.push_back(hinfo);
+              }
+            } else if(scinthit != 0){
+              hinfo.type_ = HitInfo::scint;
+              hinfo.resid_ = scinthit->residual().value();
+              hinfo.residvar_ = scinthit->residual().variance();
+              hinfo.t0_ = scinthit->sensorAxis().t0();
               hinfovec.push_back(hinfo);
-            }
-            //
-            if(strawhit->activeRes(WireHitState::distance)){
-              hinfo.type_ = HitInfo::strawdistance;
-              hinfo.resid_ = strawhit->residual(WireHitState::distance).value();
-              hinfo.residvar_ = strawhit->residual(WireHitState::distance).variance();
+            } else if(constraint != 0){
+              hinfo.type_ = HitInfo::constraint;
+              hinfo.resid_ = sqrt(constraint->chisq().chisq());
+              hinfo.residvar_ = 1.0;
               hinfovec.push_back(hinfo);
+            } else {
+              hinfo.type_ = HitInfo::unknown;
+              hinfo.resid_ =  0.0;
+              hinfo.residvar_ = 1.0;
             }
-          } else if(scinthit != 0){
-            hinfo.type_ = HitInfo::scint;
-            hinfo.resid_ = scinthit->residual().value();
-            hinfo.residvar_ = scinthit->residual().variance();
-            hinfo.t0_ = scinthit->sensorAxis().t0();
-            hinfovec.push_back(hinfo);
-          } else if(constraint != 0){
-            hinfo.type_ = HitInfo::constraint;
-            hinfo.resid_ = sqrt(constraint->chisq().chisq());
-            hinfo.residvar_ = 1.0;
-            hinfovec.push_back(hinfo);
-          } else {
-            hinfo.type_ = HitInfo::unknown;
-            hinfo.resid_ =  0.0;
-            hinfo.residvar_ = 1.0;
           }
-        }
-        if(kkmat != 0){
-          nkkmat_++;
-          KinKal::MaterialInfo minfo;
-          minfo.time_ = kkmat->time();
-          minfo.active_ = kkmat->active();
-          minfo.nxing_ = kkmat->detXing().matXings().size();
-          std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-          kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
-          minfo.dmomf_ = dmom[MomBasis::momdir_];
-          minfo.momvar_ = momvar[MomBasis::momdir_];
-          minfo.perpvar_ = momvar[MomBasis::perpdir_];
-          minfovec.push_back(minfo);
-        }
-        if(kkbf != 0){
-          nkkbf_++;
-          BFieldInfo bfinfo;
-          bfinfo.active_ = kkbf->active();
-          bfinfo.time_ = kkbf->time();
-          bfinfo.dp_ = kkbf->deltaP().R();
-          bfinfo.range_ = kkbf->range().range();
-          bfinfovec.push_back(bfinfo);
+          if(kkmat != 0){
+            nkkmat_++;
+            KinKal::MaterialInfo minfo;
+            minfo.time_ = kkmat->time();
+            minfo.active_ = kkmat->active();
+            minfo.nxing_ = kkmat->detXing().matXings().size();
+            std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+            kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
+            minfo.dmomf_ = dmom[MomBasis::momdir_];
+            minfo.momvar_ = momvar[MomBasis::momdir_];
+            minfo.perpvar_ = momvar[MomBasis::perpdir_];
+            minfovec.push_back(minfo);
+          }
+          if(kkbf != 0){
+            nkkbf_++;
+            BFieldInfo bfinfo;
+            bfinfo.active_ = kkbf->active();
+            bfinfo.time_ = kkbf->time();
+            bfinfo.range_ = kkbf->range().range();
+            bfinfovec.push_back(bfinfo);
+          }
         }
       }
       if(fstat.usable()){
@@ -925,6 +924,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     // Test fit success
     cout
       << nconv << " Converged fits "
+      << nuconv << " Unconverged fits "
       << nfail << " Failed fits "
       << nlow << " low NDOF fits "
       << ndiv << " Diverged fits "

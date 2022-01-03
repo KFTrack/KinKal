@@ -12,15 +12,23 @@ namespace KinKal {
 
   // struct describing wire hit internal state
   struct WireHitState {
-    enum LRAmbig { left=-1, null=0, right=1};  // ambiguity
-    enum Dimension {none=-1, time=0, distance=1, both=2}; // what gets constrained
-    LRAmbig lrambig_; // left-right ambiguity
-    Dimension dimension_; // physical dimensions being constrained
-    double nullvar_, nulldt_ ; // spatial variance and offset for null ambiguity hits
-    WireHitState(LRAmbig lrambig, Dimension dim,double nvar, double ndt) : lrambig_(lrambig), dimension_(dim), nullvar_(nvar), nulldt_(ndt) {
-      if(dimension_ > time && (lrambig_ != null)) throw std::invalid_argument("Inconsistant wire hit state");
+    enum State { inactive=-2, left=-1, null=0, right=1};  // state description
+    State state_; // left-right ambiguity
+    bool useDrift() const { return state_ == left || state_ == right; }
+    bool active() const { return state_ != inactive; }
+    double lrSign() const {
+      switch (state_) {
+        case left:
+          return -1.0;
+        case right:
+          return 1.0;
+        default:
+          return 0.0;
+      }
     }
-    WireHitState() : WireHitState(null,none,1.0,0.0) {}
+    double maxndoca_; // effective maximum DOCA value for null ambiguity hits
+    WireHitState(State state, double maxndoca) : state_(state), maxndoca_(maxndoca) {}
+    WireHitState() : WireHitState(inactive,0.0) {}
   };
 }
 #endif

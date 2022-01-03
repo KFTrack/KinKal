@@ -18,11 +18,11 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-
+      enum Dimension { tresid=0, dresid=1};  // residual dimensions
       // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
       bool activeRes(unsigned ires) const override;
-      Residual const& residual(unsigned ires=0) const override;
+      Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -33,8 +33,8 @@ namespace KinKal {
       ClosestApproachData const& closestApproach() const { return tpdata_; }
       WireHitState const& hitState() const { return wstate_; }
       WireHitState& hitState() { return wstate_; }
-      Residual const& timeResidual() const { return rresid_[WireHitState::time]; }
-      Residual const& spaceResidual() const { return rresid_[WireHitState::distance]; }
+      Residual const& timeResidual() const { return rresid_[tresid]; }
+      Residual const& spaceResidual() const { return rresid_[dresid]; }
       Line const& wire() const { return wire_; }
       BFieldMap const& bfield() const { return bfield_; }
       // constructor
@@ -77,45 +77,45 @@ namespace KinKal {
   }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
-    if(ires ==0 && (wstate_.dimension_ == WireHitState::time || wstate_.dimension_ == WireHitState::both))
+    if(ires ==0 && wstate_.active())
       return true;
-    else if(ires ==1 && (wstate_.dimension_ == WireHitState::distance || wstate_.dimension_ == WireHitState::both))
+    else if(ires ==1 && wstate_.state_ == WireHitState::null)
       return true;
     else
       return false;
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::setResiduals(PTCA const& tpoca) {
-    // if we're using drift, convert DOCA into time
-    if(wstate_.lrambig_ != WireHitState::null){
+    // compute drift parameters.  These are used even for null-ambiguity hits
+    VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
+    auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
+    VEC3 dvec = tpoca.delta().Vect();
+    double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
+    POL2 drift(fabs(tpoca.doca()), phi);
+    DriftInfo dinfo;
+    distanceToTime(drift, dinfo);
+    if(wstate_.useDrift()){
       // compute the precise drift
       // translate PTCA to residual
-      VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
-      auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
-      VEC3 dvec = tpoca.delta().Vect();
-      double phi = asin(double(dvec.Unit().Dot(pdir)));
-      // must use absolute DOCA to call distanceToTime
-      POL2 drift(fabs(tpoca.doca()), phi);
-      DriftInfo dinfo;
-      distanceToTime(drift, dinfo);
       // Use ambiguity to convert drift time to a time difference.   null ambiguity means ignore drift time
-      double dsign = wstate_.lrambig_*tpoca.lSign(); // overall sign is the product of ambiguity and doca sign
+      double dsign = wstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
       double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
       // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
       DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP();
-      rresid_[WireHitState::time] = Residual(dt,dinfo.tdriftvar_,dRdP);
+      rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
-      // interpret DOCA against the wire directly as the residual.  We have to take the sign out of DOCA
+      // interpret DOCA and TOCA against the wire directly as residuals.  We have to take the sign out of DOCA
       DVEC dRdP = -tpoca.lSign()*tpoca.dDdP();
       double dd = tpoca.doca();
-      rresid_[WireHitState::distance] = Residual(dd,wstate_.nullvar_,dRdP);
-      if(wstate_.dimension_ == WireHitState::both){
-        // add an absolute time constraint for the null ambig hits.
-        // correct time difference for the average drift.
-        double dt = tpoca.deltaT() - wstate_.nulldt_;
-        double dtvar = 3.0*wstate_.nulldt_*wstate_.nulldt_;
-        rresid_[WireHitState::time] = Residual(dt,dtvar,-tpoca.dTdP());
-      }
+      // Interpret the maximum DOCA as a variance on the distance, assuming a flat distribution
+      double nulldvar = (wstate_.maxndoca_*wstate_.maxndoca_)/3.0; // range is +- doca
+      rresid_[dresid] = Residual(dd,nulldvar,dRdP);
+      // correct time difference for the average drift, assuming flat drift time distribution
+      double dt = tpoca.deltaT() - 0.5*wstate_.maxndoca_/dinfo.vdrift_;
+      // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
+      double nulltvar = (wstate_.maxndoca_*wstate_.maxndoca_)/(dinfo.vdrift_*dinfo.vdrift_*12.0) + dinfo.tdriftvar_;
+      rresid_[tresid] = Residual(dt,nulltvar,-tpoca.dTdP());
+      // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
     }
   }
 
@@ -125,23 +125,11 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void WireHit<KTRAJ>::print(std::ostream& ost, int detail) const {
-    ost << " WireHit constraining ";
-    switch(wstate_.dimension_) {
-      case WireHitState::none: default:
-        ost << "Nothing";
+    ost << " WireHit state ";
+    switch(wstate_.state_) {
+      case WireHitState::inactive:
+        ost << "inactive";
         break;
-      case WireHitState::time:
-        ost << "Time";
-        break;
-      case WireHitState::distance:
-        ost << "Distance";
-        break;
-      case WireHitState::both:
-        ost << "Distance+Time";
-        break;
-    }
-    ost << " LR Ambiguity " ;
-    switch(wstate_.lrambig_) {
       case WireHitState::left:
         ost << "left";
         break;
@@ -153,10 +141,10 @@ namespace KinKal {
         break;
     }
     if(detail > 0){
-      if(activeRes(WireHitState::time))
-        ost << " Time Residual " << rresid_[WireHitState::time];
-      if(activeRes(WireHitState::distance))
-        ost << " Distance Residual " << rresid_[WireHitState::distance];
+      if(activeRes(tresid))
+        ost << " Time Residual " << rresid_[tresid];
+      if(activeRes(dresid))
+        ost << " Distance Residual " << rresid_[dresid];
       ost << std::endl;
     }
     if(detail > 1) {
