@@ -134,17 +134,16 @@ namespace KKTest {
       CAHint tphint(htime,htime);
       PTCA tp(pktraj,tline,tphint,tprec_);
       //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
-      WireHitState::State ambig(WireHitState::null);
-      if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
-      double rmax = std::min(ambigdoca_,rstraw_);
-      WireHitState whstate(ambig, rmax);
-      // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
+        WireHitState::State ambig(WireHitState::null);
+        if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
+        WireHitState whstate(ambig);
+        double mindoca = std::min(ambigdoca_,rstraw_);
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
-      if(addmat)dxings.push_back(xing);
+      if(addmat) dxings.push_back(xing);
       if(simmat_){
         double defrac = createStrawMaterial(pktraj, xing.get());
         // terminate if there is catastrophic energy loss

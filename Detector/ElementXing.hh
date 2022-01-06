@@ -28,7 +28,7 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
       bool active() const { return mxings_.size() > 0; }
-            std::vector<MaterialXing>const&  matXings() const { return mxings_; }
+      std::vector<MaterialXing>const&  matXings() const { return mxings_; }
       std::vector<MaterialXing>&  matXings() { return mxings_; }
       // calculate the cumulative material effect from these crossings
       void materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;

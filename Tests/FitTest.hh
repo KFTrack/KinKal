@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -323,11 +323,20 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   Config exconfig(config);
   string line;
   unsigned nmiter(0);
+  double temp, convdchisq, divdchisq;
   while (getline(ifs,line)){
     if(strncmp(line.c_str(),"#",1)!=0){
+      double mindoca(-1.0),maxdoca(-1.0);
       istringstream ss(line);
-      MetaIterConfig mconfig(ss);
-      mconfig.miter_ = nmiter++;
+      ss >> temp >> convdchisq >> divdchisq;
+      MetaIterConfig mconfig(temp, convdchisq, divdchisq, nmiter++);
+      ss >> mindoca >> maxdoca;
+      if(mindoca >0.0 || maxdoca > 0.0){
+// setup and insert the updater
+        cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << endl;
+        SimpleWireHitUpdater updater(mindoca,maxdoca);
+        mconfig.updaters_.push_back(std::any(updater));
+      }
       config.schedule_.push_back(mconfig);
     }
   }
