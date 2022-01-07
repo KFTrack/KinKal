@@ -738,46 +738,47 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             hinfo.chisq_ = kkhit->chisq().chisq();
             hinfo.ndof_ = kkhit->chisq().nDOF();
             hinfo.state_ = WireHitState::inactive;
-            auto hpos = fptraj.position3(kkhit->hit()->time());
-            hinfo.xpos_ = hpos.X();
-            hinfo.ypos_ = hpos.Y();
-            hinfo.zpos_ = hpos.Z();
+            hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
             hinfo.t0_ = 0.0;
             const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
             const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
             const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
             if(strawhit != 0){
+              hinfo.type_ = HitInfo::straw;
               hinfo.state_ = strawhit->hitState().state_;
-              hinfo.t0_ = strawhit->wire().t0();
+              hinfo.t0_ = strawhit->closestApproach().particleToca();
+              hinfo.doca_ = strawhit->closestApproach().doca();
+              hinfo.deltat_ = strawhit->closestApproach().deltaT();
+              hinfo.docavar_ = strawhit->closestApproach().docaVar();
+              hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
               // straw hits can have multiple residuals
               if(strawhit->activeRes(STRAWHIT::tresid)){
-                hinfo.type_ = HitInfo::strawtime;
-                hinfo.resid_ = strawhit->residual(STRAWHIT::tresid).value();
-                hinfo.residvar_ = strawhit->residual(STRAWHIT::tresid).variance();
-                hinfovec.push_back(hinfo);
+                hinfo.tresid_ = strawhit->residual(STRAWHIT::tresid).value();
+                hinfo.tresidvar_ = strawhit->residual(STRAWHIT::tresid).variance();
               }
               //
               if(strawhit->activeRes(STRAWHIT::dresid)){
-                hinfo.type_ = HitInfo::strawdistance;
-                hinfo.resid_ = strawhit->residual(STRAWHIT::dresid).value();
-                hinfo.residvar_ = strawhit->residual(STRAWHIT::dresid).variance();
-                hinfovec.push_back(hinfo);
+                hinfo.dresid_ = strawhit->residual(STRAWHIT::dresid).value();
+                hinfo.dresidvar_ = strawhit->residual(STRAWHIT::dresid).variance();
               }
+              hinfovec.push_back(hinfo);
             } else if(scinthit != 0){
               hinfo.type_ = HitInfo::scint;
-              hinfo.resid_ = scinthit->residual().value();
-              hinfo.residvar_ = scinthit->residual().variance();
-              hinfo.t0_ = scinthit->sensorAxis().t0();
+              hinfo.tresid_ = scinthit->residual().value();
+              hinfo.tresidvar_ = scinthit->residual().variance();
+              hinfo.t0_ = scinthit->closestApproach().particleToca();
+              hinfo.doca_ = scinthit->closestApproach().doca();
+              hinfo.deltat_ = scinthit->closestApproach().deltaT();
+              hinfo.docavar_ = scinthit->closestApproach().docaVar();
+              hinfo.tocavar_ = scinthit->closestApproach().tocaVar();
               hinfovec.push_back(hinfo);
             } else if(constraint != 0){
               hinfo.type_ = HitInfo::constraint;
-              hinfo.resid_ = sqrt(constraint->chisq().chisq());
-              hinfo.residvar_ = 1.0;
+              hinfo.dresid_ = sqrt(constraint->chisq().chisq());
+              hinfo.dresidvar_ = 1.0;
               hinfovec.push_back(hinfo);
             } else {
               hinfo.type_ = HitInfo::unknown;
-              hinfo.resid_ =  0.0;
-              hinfo.residvar_ = 1.0;
             }
           }
           if(kkmat != 0){

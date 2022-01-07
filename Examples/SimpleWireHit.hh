@@ -70,13 +70,13 @@ namespace KinKal {
         // update the WireHitState
         this->mindoca_ = std::min(updater->mindoca_,cellRadius());;
         double doca = tpoca.doca();
-        if(fabs(doca) < updater->mindoca_ ) {
-          // too close to the wire: don't try to disambiguate LR sign
-          this->wstate_.state_ = WireHitState::null;
-        } else if(fabs(doca) < updater->maxdoca_){
+        if(fabs(doca) > updater->maxdoca_ ) {
+          this->wstate_.state_ = WireHitState::inactive; // disable the hit if it's an outlier
+        } else if(fabs(doca) > updater->mindoca_ ) {
           this->wstate_.state_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
         } else {
-          this->wstate_.state_ = WireHitState::inactive; // disable the hit if it's an outlier
+          // too close to the wire: don't try to disambiguate LR sign
+          this->wstate_.state_ = WireHitState::null;
         }
       }
       WIREHIT::setResiduals(tpoca);
