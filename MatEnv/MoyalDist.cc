@@ -43,7 +43,7 @@ double MoyalDist::sampleInvCDF(double rand) const{
     } 
     
     double y = sum;
-    double x = _mean - 2 * _sigma * std::log ((std::sqrt(2.) * y));
+    double x = _mode - 2 * _sigma * std::log ((std::sqrt(2.) * y));
     return x;
 }
 
@@ -77,6 +77,6 @@ double MoyalDist::sampleAR() const{
                     * std::exp( -0.5 * ( z + std::exp(-z) ) );
 
     } while ( h > Hy );
-    double x = _mean + _sigma * z;
+    double x = _mode + _sigma * z;
     return (x) ;   
 }
