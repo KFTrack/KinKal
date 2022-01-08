@@ -23,7 +23,7 @@ namespace KinKal {
       double time() const override { return time_; }
       // parameter constraints are absolute and can't be updated
       void update(PKTRAJ const& pktraj) override { refparams_ = pktraj.nearestPiece(time()).params(); }
-      void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain

@@ -25,9 +25,8 @@ namespace KinKal {
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
     MetaIterConfig() : temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), miter_(-1) {}
-    MetaIterConfig(std::istream& is) : miter_(-1) {
-      is >> temp_ >> convdchisq_ >> divdchisq_ ;
-    }
+    MetaIterConfig(double temp, double convdchisq, double divdchisq, int miter) :
+    temp_(temp), convdchisq_(convdchisq), divdchisq_(divdchisq), miter_(miter) {}
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };
 

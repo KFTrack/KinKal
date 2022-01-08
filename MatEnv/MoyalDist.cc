@@ -35,7 +35,7 @@ double MoyalDist::sampleInvCDF(double rand) const{
     // kmax is the number of terms in the series to keep. Higher the kmax better is the agreement with accept/reject m
     // but high kmax also incurs high computational cost
 
-    double t = 0.5 * std::sqrt(PI) * (1 - rand);
+    double t = 0.5 * std::sqrt(M_PI) * (1 - rand);
     double sum = 0;
 
     for(int k=0; k < _kmax; k++ ){
@@ -69,11 +69,11 @@ double MoyalDist::sampleAR() const{
         double rand2 = dis(gen);
         //std::cout << "rand1 == " << rand1 << " && " << "rand2 == " << rand2 << "\n";
 
-        double y = PI * (rand1 - 0.5);
+        double y = M_PI * (rand1 - 0.5);
         h = rand2 * hmax;
         z = std::tan(y);
         //std::cout << "z == " << z << "\n" ;
-        Hy = std::sqrt(1.0/(2.0 * PI)) * (1.0 + std::pow(z, 2) ) \
+        Hy = std::sqrt(1.0/(2.0 * M_PI)) * (1.0 + std::pow(z, 2) ) \
                     * std::exp( -0.5 * ( z + std::exp(-z) ) );
 
     } while ( h > Hy );

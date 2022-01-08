@@ -9,7 +9,7 @@ int main(int argc, char **argv) {
     arguments.push_back("--Bgrad");
     arguments.push_back("-0.036"); // mu2e-like field gradient
     arguments.push_back("--bfcor");
-    arguments.push_back("2"); // local field correction (BField rotation)
+    arguments.push_back("1"); // apply field correction
     std::vector<char*> myargv;
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());

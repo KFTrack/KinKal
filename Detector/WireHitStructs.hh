@@ -26,9 +26,7 @@ namespace KinKal {
           return 0.0;
       }
     }
-    double maxndoca_; // effective maximum DOCA value for null ambiguity hits
-    WireHitState(State state, double maxndoca) : state_(state), maxndoca_(maxndoca) {}
-    WireHitState() : WireHitState(inactive,0.0) {}
+    WireHitState(State state = inactive) : state_(state) {}
   };
 }
 #endif

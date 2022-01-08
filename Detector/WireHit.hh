@@ -25,6 +25,7 @@ namespace KinKal {
       Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
@@ -32,48 +33,57 @@ namespace KinKal {
       // WireHit specific functions
       ClosestApproachData const& closestApproach() const { return tpdata_; }
       WireHitState const& hitState() const { return wstate_; }
-      WireHitState& hitState() { return wstate_; }
       Residual const& timeResidual() const { return rresid_[tresid]; }
       Residual const& spaceResidual() const { return rresid_[dresid]; }
       Line const& wire() const { return wire_; }
       BFieldMap const& bfield() const { return bfield_; }
+      double precision() const { return precision_; }
+      double minDOCA() const { return mindoca_; }
       // constructor
-      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const&);
+      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const&, double mindoca);
       virtual ~WireHit(){}
     protected:
-      void setHitState(WireHitState const& newstate) { wstate_ = newstate; }
-      virtual void setResiduals(PTCA const& tpoca); // compute the Residuals; TPOCA must be already calculated
-      void setPrecision(double precision) { precision_ = precision; }
+      WireHitState wstate_; // current state
+      double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
+      ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
+      PTCA wirePTCA(PKTRAJ const& pktraj) const;
+      void setResiduals(PTCA const& tpoca); // compute the Residuals from PTCA
     private:
+      double nullVariance(Dimension dim,DriftInfo const& dinfo) const;
+      double nullOffset(Dimension dim,DriftInfo const& dinfo) const;
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       Line wire_; // local linear approximation to the wire of this hit.
       // the start time is the measurement time, the direction is from
       // the physical source of the signal (particle) towards the measurement location, the vector magnitude
       // is the effective signal propagation velocity, and the range describes the active wire length
       // (when multiplied by the propagation velocity).
-      WireHitState wstate_; // current state
-      // caches used in processing
-      ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
       double precision_; // precision for PTCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) :
-    bfield_(bfield), wire_(ptca.sensorTraj()), wstate_(wstate), tpdata_(ptca.tpData()), precision_(ptca.precision()) {}
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate, double mindoca) :
+    wstate_(wstate), mindoca_(mindoca), tpdata_(ptca.tpData()), bfield_(bfield), wire_(ptca.sensorTraj()), precision_(ptca.precision()) {}
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // compute PTCA.  Default hint is the wire middle
+  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::wirePTCA(PKTRAJ const& pktraj) const {
     CAHint tphint(wire_.range().mid(),wire_.range().mid());
     // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
     if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
     // re-compute the time point of closest approache
-    PTCA tpoca(pktraj,wire_,tphint,precision_);
+    return PTCA(pktraj,wire_,tphint,precision_);
+  }
+
+  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
+    PTCA tpoca = wirePTCA(pktraj);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();
-      setResiduals(tpoca);
       this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
+      setResiduals(tpoca);
     } else
       throw std::runtime_error("PTCA failure");
+  }
+
+  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+    update(pktraj);
   }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -95,25 +105,21 @@ namespace KinKal {
     DriftInfo dinfo;
     distanceToTime(drift, dinfo);
     if(wstate_.useDrift()){
-      // compute the precise drift
-      // translate PTCA to residual
-      // Use ambiguity to convert drift time to a time difference.   null ambiguity means ignore drift time
+      // translate PTCA to residual. Use ambiguity to convert drift time to a time difference.
       double dsign = wstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
       double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
-      // residual is in time, so unit dependendence on time, distance dependence is the local drift velocity
       DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP();
       rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
-      // interpret DOCA and TOCA against the wire directly as residuals.  We have to take the sign out of DOCA
+      // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
       DVEC dRdP = -tpoca.lSign()*tpoca.dDdP();
-      double dd = tpoca.doca();
-      // Interpret the maximum DOCA as a variance on the distance, assuming a flat distribution
-      double nulldvar = (wstate_.maxndoca_*wstate_.maxndoca_)/3.0; // range is +- doca
+      double dd = tpoca.doca() + nullOffset(dresid,dinfo);
+      double nulldvar = nullVariance(dresid,dinfo);
       rresid_[dresid] = Residual(dd,nulldvar,dRdP);
-      // correct time difference for the average drift, assuming flat drift time distribution
-      double dt = tpoca.deltaT() - 0.5*wstate_.maxndoca_/dinfo.vdrift_;
+      //  interpret TOCA as a residual
+      double dt = tpoca.deltaT() + nullOffset(tresid,dinfo);
       // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
-      double nulltvar = (wstate_.maxndoca_*wstate_.maxndoca_)/(dinfo.vdrift_*dinfo.vdrift_*12.0) + dinfo.tdriftvar_;
+      double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
       rresid_[tresid] = Residual(dt,nulltvar,-tpoca.dTdP());
       // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
     }
@@ -122,6 +128,24 @@ namespace KinKal {
   template <class KTRAJ> Residual const& WireHit<KTRAJ>::residual(unsigned ires) const {
     if(ires >=2)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
+  }
+
+  template <class KTRAJ> double WireHit<KTRAJ>::nullVariance(Dimension dim,DriftInfo const& dinfo) const {
+    switch (dim) {
+      case dresid: default:
+        return (mindoca_*mindoca_)/3.0; // doca is signed
+      case tresid:
+        return (mindoca_*mindoca_)/(dinfo.vdrift_*dinfo.vdrift_*12.0); // TOCA is always larger than the crossing time
+    }
+  }
+
+  template <class KTRAJ> double WireHit<KTRAJ>::nullOffset(Dimension dim,DriftInfo const& dinfo) const {
+    switch (dim) {
+      case dresid: default:
+        return 0.0; // not sure if there's a better answer
+      case tresid:
+        return -0.5*mindoca_/dinfo.vdrift_;
+    }
   }
 
   template<class KTRAJ> void WireHit<KTRAJ>::print(std::ostream& ost, int detail) const {

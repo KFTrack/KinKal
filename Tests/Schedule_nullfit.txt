@@ -1,0 +1,7 @@
+#
+#  Test Configuration iteration schedule for a null (no drift) fit
+#  Order:
+#  temperature dchisquared_converge dchisquared_diverge (mindoca maxdoca)
+2.0  10.0 100.0 1.0e6 20
+1.0  1.0  50.0  1.0e6 10
+0.0  0.1  10.0  1.0e6 3.5

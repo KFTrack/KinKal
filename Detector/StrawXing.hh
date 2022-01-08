@@ -58,7 +58,7 @@ namespace KinKal {
     for(auto const& uparams : miconfig.updaters_){
       auto const* sxc = std::any_cast<StrawXingConfig>(&uparams);
       if(sxc != 0){
-        if(sxconfig !=0) throw std::invalid_argument("Multiple StrawWireHitUpdaters found");
+        if(sxconfig !=0) throw std::invalid_argument("Multiple StrawXingConfig objects found");
         sxconfig = sxc;
       }
     }
