@@ -10,21 +10,24 @@ const double EG = 0.577215664901532860606;    //Euler-gamma constant
 
 class MoyalDist{
     public:
-        MoyalDist(double mpv, double xi, int max = 20):_mode(mpv),_sigma(xi),_kmax(max) {
-            _mean = _mode + _sigma * ( EG + std::log(2)); 
-            _rms = 0.5 * (std::pow( PI * _sigma , 2) );
+        MoyalDist(double Mean, double RMS, int max = 20):_mean(Mean),_rms(RMS),_kmax(max) {
+            
+            //Variance of moyal = (pi * sigma)^2 /2
+            _sigma = std::sqrt(2.0) * _rms / PI ; 
+            //Mean = mode + sigma (( EG + std::log(2)))
+            _mode = _mean - _sigma * ( EG + std::log(2)); 
             setCoeffs(_kmax);
         }
-
         
         double sampleAR() const;
         double sampleInvCDF(double rand) const;
         double getMean() const { return _mean; }
+        double getMode() const { return _mode; }
         double getSigma()const { return _sigma; } 
         double getRMS() const { return _rms; }
 
     private:
-        double _mode; //For unimodal distribution most probable value and mode are the same thing 
+        double _mode;  //For unimodal distribution most probable value and mode are the same thing 
         double _mean;  // mean of the distribution
         double _sigma; // sigma of the distribution
         double _rms;   // rms of the distribution
