@@ -171,10 +171,11 @@ add_subdirectory(General)
 add_subdirectory(Detector)
 add_subdirectory(Trajectory)
 add_subdirectory(Fit)
+add_subdirectory(Examples)
 add_subdirectory(Tests)
 
 
-install(TARGETS General Trajectory Detector Fit MatEnv Tests
+install(TARGETS General Trajectory Detector Fit MatEnv Examples
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
