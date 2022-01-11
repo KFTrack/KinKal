@@ -1,5 +1,4 @@
 # List of unit test sources
-# ls -1 *_unit.cc
 
 set( TEST_SOURCE_FILES
     CentralHelixBField_unit.cc
@@ -27,28 +26,6 @@ set( TEST_SOURCE_FILES
     MoyalDist_unit.cc
 )
 
-
-
-# generate root dictionary
-
-ROOT_GENERATE_DICTIONARY(TestsDict 
-    # headers to include in ROOT dictionary
-    HitInfo.hh 
-    BFieldInfo.hh 
-    ParticleTrajectoryInfo.hh 
-    MaterialInfo.hh 
-
-    LINKDEF LinkDef.h
-)
-# create shared library with ROOT dict
-add_library(Tests SHARED TestsDict)
-
-target_include_directories(Tests PRIVATE ${PROJECT_SOURCE_DIR}/..)
-target_include_directories(Tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-
-# link ROOT libraries
-target_link_libraries(Tests ${ROOT_LIBRARIES})
-
 # Generate unit test targets
 foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # get the name of the unit test from the source path
@@ -63,17 +40,18 @@ foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # add the project root as an include directory
     # link all unit tests to KinKal, MatEnv, and ROOT libraries.
     target_include_directories(Test_${testname} PRIVATE ${PROJECT_SOURCE_DIR}/..)
-    target_link_libraries( Test_${testname} General Trajectory Detector Fit MatEnv Tests ${ROOT_LIBRARIES} )
+    target_link_libraries( Test_${testname} General Trajectory Detector Fit MatEnv Examples ${ROOT_LIBRARIES} )
 
     # ensure the unit test executable filename is just its test name
     set_target_properties( Test_${testname} PROPERTIES OUTPUT_NAME ${testname})
 
-    # register the target as a test 
+    # register the target as a test
     add_test (NAME ${testname} COMMAND Test_${testname} )
-    set_tests_properties(${testname} PROPERTIES TIMEOUT 250) 
+    set_tests_properties(${testname} PROPERTIES TIMEOUT 250)
     set_tests_properties(${testname} PROPERTIES ENVIRONMENT "KINKAL_SOURCE_DIR=${CMAKE_SOURCE_DIR}")
 
     install( TARGETS Test_${testname}
              RUNTIME DESTINATION bin/ )
- 
+
 endforeach( testsourcefile ${TEST_SOURCE_FILES} )
+

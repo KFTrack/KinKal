@@ -5,7 +5,7 @@
 //  used as part of the kinematic kalman fit
 //
 #include "KinKal/Trajectory/PiecewiseTrajectory.hh"
-#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/ParticleStateEstimate.hh"
 #include <stdexcept>
 namespace KinKal {
 

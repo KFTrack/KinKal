@@ -27,15 +27,16 @@ namespace KinKal {
   string const& LoopHelix::paramTitle(ParamIndex index) { return paramTitles_[static_cast<size_t>(index)];}
   string const& LoopHelix::trajName() { return trajName_; }
 
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : LoopHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom) {
-    static double twopi = 2*M_PI;
-    // Transform into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
-    // The transform is a pure rotation about the origin
-    VEC4 pos(pos0);
-    MOM4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+LoopHelix::LoopHelix() : mass_(0.0), charge_(0) {}
+LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : LoopHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
+LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom) {
+  static double twopi = 2*M_PI;
+  // Transform into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
+  // The transform is a pure rotation about the origin
+  VEC4 pos(pos0);
+  MOM4 mom(mom0);
+  g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+  if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
     // to convert global vectors into parameters they must first be rotated into the local system.
     pos = g2l_(pos);
     mom = g2l_(mom);

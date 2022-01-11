@@ -12,7 +12,10 @@ namespace MatEnv {
     matlist_("MaterialsList.data")
   {
     const char* src = getenv(project.c_str());
-    if(!src) throw std::invalid_argument("KINKAL_SOURCE_DIR not set: did you forget to source setup.sh?");
+    if(!src) {
+      std::string errmsg = project + std::string(" not set: did you forget to source setup.sh?");
+      throw std::invalid_argument(errmsg.c_str());
+    }
     std::string source = std::string(src);
     std::cout <<" project " << project << " source " << source << " dir " << dir << std::endl;
     project_ = source + dir;

@@ -14,10 +14,4 @@ namespace KinKal {
   string const& ParticleState::stateName(size_t index) { return stateNames_[index];}
   string const& ParticleState::stateUnit(size_t index) { return stateUnits_[index];}
   string const& ParticleState::stateTitle(size_t index) { return stateTitles_[index];}
-
-  double ParticleStateEstimate::momentumVariance() const {
-    auto momdir = momentum3().Unit();
-    DVEC dMdm(0.0, 0.0, 0.0, momdir.X(), momdir.Y(), momdir.Z());
-    return ROOT::Math::Similarity(dMdm,scovar_);
-  }
 }

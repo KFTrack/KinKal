@@ -37,14 +37,14 @@ namespace KKTest {
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
-      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, bool nulltime, double ambigdoca ,double simmass) :
+      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
         mom_(mom), icharge_(icharge),
-        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), nulltime_(nulltime), ambigdoca_(ambigdoca), simmass_(simmass),
+        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-4), tprec_(1e-8), t0off_(700.0),
+        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
@@ -75,7 +75,7 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_, nulltime_;
+      bool simmat_, lighthit_;
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
@@ -87,7 +87,7 @@ namespace KKTest {
       double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tbuff_;
-      double tol_; // tolerance on spatial accuracy for
+      double tol_; // tolerance on momentum accuracy due to BField effects
       double tprec_; // time precision on TCA
       double t0off_; // t0 offset
       StrawMaterial smat_; // straw material
@@ -134,28 +134,16 @@ namespace KKTest {
       CAHint tphint(htime,htime);
       PTCA tp(pktraj,tline,tphint,tprec_);
       //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
-      WireHitState::LRAmbig ambig(WireHitState::null);
-      if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
-      WireHitState::Dimension dim(WireHitState::time);
-      if(ambig == WireHitState::null){
-        if(nulltime_)
-          dim = WireHitState::both;
-        else
-          dim = WireHitState::distance;
-      }
-      // null variance based on doca cuttoff
-      double rmax = std::min(ambigdoca_,rstraw_);
-      double nullvar = (rmax*rmax)/3.0; // range is +- doca
-      // null time shift
-      double nulldt = 0.5*ambigdoca_/sdrift_; // the shift should be the average drift time over this distance
-      WireHitState whstate(ambig, dim, nullvar, nulldt);
-      // construct the hit from this trajectory
       if(tr_.Uniform(0.0,1.0) > ineff_){
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, sdrift_, sigt_*sigt_, rstraw_));
+        WireHitState::State ambig(WireHitState::null);
+        if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
+        WireHitState whstate(ambig);
+        double mindoca = std::min(ambigdoca_,rstraw_);
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
-      if(addmat)dxings.push_back(xing);
+      if(addmat) dxings.push_back(xing);
       if(simmat_){
         double defrac = createStrawMaterial(pktraj, xing.get());
         // terminate if there is catastrophic energy loss

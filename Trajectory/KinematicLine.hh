@@ -7,7 +7,7 @@
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/MomBasis.hh"
-#include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
@@ -113,7 +113,6 @@ class KinematicLine {
 
     VEC3 velocity(double time) const { return direction() * speed(); }
     void print(std::ostream &ost, int detail) const;
-    void rangeInTolerance(TimeRange &range, BFieldMap const &bfield, double tol) const {};
 
     // local momentum direction basis
     VEC3 direction(double time, MomBasis::Direction mdir = MomBasis::momdir_) const;

@@ -2,17 +2,17 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
-#include "MoyalDist.hh"
+#include "KinKal/MatEnv/MoyalDist.hh"
 
 void MoyalDist::setCoeffs(int kmax){
     if(_coeff.size() == (long unsigned int) kmax){
         return; //if the coefficient vector is already filled then don't do anything
-    }    
+    }
     if(_kmax < 1){
         throw std::invalid_argument("kmax (number of terms in the Moyal series expansion) cannot be less than one.");
     }
     _coeff.clear();
-    _coeff.push_back(1); // coeff[0] = 1; 
+    _coeff.push_back(1); // coeff[0] = 1;
     for(int k=0; k < kmax; k++ ){
         double sumCoeff = 0;
         if( k > 0 ){
@@ -20,9 +20,9 @@ void MoyalDist::setCoeffs(int kmax){
                 sumCoeff += ( _coeff.at(m) * _coeff.at( k - 1 - m) ) / ( (m + 1) * (2.0 * m + 1) );
             }
             _coeff.push_back(sumCoeff);
-             
+
         }
-    } 
+    }
 }
 
 double MoyalDist::sampleInvCDF(double rand) const{
@@ -35,13 +35,13 @@ double MoyalDist::sampleInvCDF(double rand) const{
     // kmax is the number of terms in the series to keep. Higher the kmax better is the agreement with accept/reject m
     // but high kmax also incurs high computational cost
 
-    double t = 0.5 * std::sqrt(PI) * (1 - rand);
+    double t = 0.5 * std::sqrt(M_PI) * (1 - rand);
     double sum = 0;
 
     for(int k=0; k < _kmax; k++ ){
         sum +=  ( _coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
-    } 
-    
+    }
+
     double y = sum;
     double x = _mode - 2 * _sigma * std::log ((std::sqrt(2.) * y));
     return x;
@@ -52,14 +52,14 @@ double MoyalDist::sampleAR() const{
 
     // This is an implementation of accep-reject method for sampling Moyal distribution
     // recipe at http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf
-    // Needs two random numbers. 
+    // Needs two random numbers.
 
     std::random_device rd;  // Will be used to obtain a seed for the random number engine
     std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
     std::uniform_real_distribution<> dis(0.0, 1.0);
-    
+
     const double hmax = 0.912;
-    double h = 0; 
+    double h = 0;
     double Hy = 0;
     double z = 0;
 
@@ -69,11 +69,11 @@ double MoyalDist::sampleAR() const{
         double rand2 = dis(gen);
         //std::cout << "rand1 == " << rand1 << " && " << "rand2 == " << rand2 << "\n";
 
-        double y = PI * (rand1 - 0.5);
+        double y = M_PI * (rand1 - 0.5);
         h = rand2 * hmax;
         z = std::tan(y);
         //std::cout << "z == " << z << "\n" ;
-        Hy = std::sqrt(1.0/(2.0 * PI)) * (1.0 + std::pow(z, 2) ) \
+        Hy = std::sqrt(1.0/(2.0 * M_PI)) * (1.0 + std::pow(z, 2) ) \
                     * std::exp( -0.5 * ( z + std::exp(-z) ) );
 
     } while ( h > Hy );

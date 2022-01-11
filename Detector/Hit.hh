@@ -20,7 +20,7 @@ namespace KinKal {
       Hit(){}
       virtual ~Hit(){}
       // disallow copy and equivalence
-      Hit(Hit const& ) = delete; 
+      Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
       // the constraint this hit implies WRT the current reference, expressed as a weight
       virtual Weights weight() const =0;
@@ -32,7 +32,7 @@ namespace KinKal {
       // update to a new reference, without changing state
       virtual void update(PKTRAJ const& pktraj) = 0;
       // update the internals of the hit, specific to this meta-iteraion
-      virtual void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) = 0;
+      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
   };
 

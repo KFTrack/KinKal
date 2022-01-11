@@ -7,8 +7,8 @@ namespace KinKal {
     BFieldInfo(){};
     ~BFieldInfo(){};
     Int_t active_;
-    Float_t time_, dp_, range_;
-    static std::string leafnames() { return std::string("active/i:time/f:dp/f:range/f"); }
+    Float_t time_, range_;
+    static std::string leafnames() { return std::string("active/i:time/f:range/f"); }
   };
   typedef std::vector<BFieldInfo> KKBFIV;
 }

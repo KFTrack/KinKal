@@ -2,19 +2,29 @@
 # Explicitly list source files in this shared library
 # When a new source file is added, it must be added to this list.
 
-# Globbing is not recommended, see: https://cmake.org/cmake/help/v3.12/command/file.html#filesystem
-
-# you can regenerate this list easily by running in this directory: ls -1 *.cc
 add_library(General SHARED
     Chisq.cc
     Parameters.cc
     ParticleState.cc
+    ParticleStateEstimate.cc
     TimeDir.cc
     TimeRange.cc
     Weights.cc
     BFieldMap.cc
     AxialBFieldMap.cc
     )
+
+# create shared library with ROOT dict
+ROOT_GENERATE_DICTIONARY(GeneralDict
+    ParticleStateEstimate.hh
+    ParticleState.hh
+    Parameters.hh
+    FitData.hh
+    TimeRange.hh
+    Vectors.hh
+    LINKDEF LinkDef.h
+    MODULE General
+)
 
 # set top-level directory as include root
 target_include_directories(General PRIVATE ${PROJECT_SOURCE_DIR}/..)

@@ -14,17 +14,17 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
 
-      // Hit interface overrrides
+      // Hit interface implementation
       unsigned nResid() const override { return 1; } // 1 time residual
       bool activeRes(unsigned ires=0) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
-      void updateState(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
-      ScintHit(PTCA const& ptca, double tvar, double wvar) :
-        saxis_(ptca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(ptca.tpData()), precision_(1e-6) {}
+      ScintHit(PTCA const& ptca, double tvar, double wvar, double precision=1e-8) :
+        saxis_(ptca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(ptca.tpData()), precision_(precision) {}
       virtual ~ScintHit(){}
       Residual const& timeResidual() const { return rresid_; }
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
@@ -74,7 +74,7 @@ namespace KinKal {
       throw std::runtime_error("PTCA failure");
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::updateState(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
     update(pktraj);
   }

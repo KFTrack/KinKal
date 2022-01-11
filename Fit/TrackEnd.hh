@@ -90,7 +90,7 @@ namespace KinKal {
       if(fit.pieces().size() == 0){
         // take the end cache and  seed the fit with it
         // if we're using local BField, update accordingly
-        if(config_.bfcorr_ == Config::variable || config_.bfcorr_ == Config::both){
+        if(config_.bfcorr_ ){
           endtraj_.setBNom(endtraj_.range().begin(),bnom_);
         }
         // append this to the (empty) fit

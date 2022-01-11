@@ -25,33 +25,29 @@ namespace KinKal {
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
     MetaIterConfig() : temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), miter_(-1) {}
-    MetaIterConfig(std::istream& is) : miter_(-1) {
-      is >> temp_ >> convdchisq_ >> divdchisq_ ;
-    }
+    MetaIterConfig(double temp, double convdchisq, double divdchisq, int miter) :
+    temp_(temp), convdchisq_(convdchisq), divdchisq_(divdchisq), miter_(miter) {}
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };
 
   struct Config {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
-    enum BFCorr {nocorr=0, fixed, variable, both }; // this should be moved out of this class TODO
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(0.1), tol_(0.1), minndof_(5), bfcorr_(fixed), plevel_(none) {} 
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.0001), minndof_(5), bfcorr_(true), plevel_(none) {}
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
-    static bool localBFieldCorrection(BFCorr corr) { return (corr == variable || corr == both); }
-    bool localBFieldCorr() const { return localBFieldCorrection(bfcorr_); }
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
     double dwt_; // dweighting of initial seed covariance
     double pdchi2_; // maximum allowed parameter change (units of chisqred) WRT previous reference
     double tbuff_; // time buffer for final fit (ns)
-    double tol_; // tolerance on position change in BFieldMap integration (mm)
+    double tol_; // tolerance on fractional momentum accuracy due to BField domain steps
     unsigned minndof_; // minimum number of DOFs to continue fit
-    BFCorr bfcorr_; // how to make BFieldMap corrections in the fit
+    bool bfcorr_; // whether to make BFieldMap corrections in the fit
     printLevel plevel_; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure
-    Schedule schedule_; 
+    Schedule schedule_;
   };
   std::ostream& operator <<(std::ostream& os, Config const& kkconfig );
   std::ostream& operator <<(std::ostream& os, MetaIterConfig const& miconfig );

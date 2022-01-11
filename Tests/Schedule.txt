@@ -1,7 +1,7 @@
 #
 #  Test Configuration file for iteration schedule
 #  Order:
-#  temperature dchisquared_converge dchisquared_diverge 
+#  temperature dchisquared_converge dchisquared_diverge (mindoca maxdoca)
 2.0  10.0 100.0
-1.0  1.0  50.0 
-0.0  0.1  10.0 
+1.0  1.0  50.0
+0.0  0.1  10.0
