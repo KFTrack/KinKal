@@ -16,10 +16,10 @@
 #include "KinKal/Fit/BFieldEffect.hh"
 #include "KinKal/Fit/Track.hh"
 #include "KinKal/Tests/ToyMC.hh"
-#include "KinKal/Tests/HitInfo.hh"
-#include "KinKal/Tests/MaterialInfo.hh"
-#include "KinKal/Tests/BFieldInfo.hh"
-#include "KinKal/Tests/ParticleTrajectoryInfo.hh"
+#include "KinKal/Examples/HitInfo.hh"
+#include "KinKal/Examples/MaterialInfo.hh"
+#include "KinKal/Examples/BFieldInfo.hh"
+#include "KinKal/Examples/ParticleTrajectoryInfo.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>

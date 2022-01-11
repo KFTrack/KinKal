@@ -97,6 +97,9 @@ namespace KinKal {
       EXINGCOL const& exings() const { return exings_; }
       DOMAINCOL const& domains() const { return domains_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
+    protected:
+      Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj );
+      void fit(HITCOL& hits, EXINGCOL& exings );
     private:
       // helper functions
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
@@ -120,11 +123,17 @@ namespace KinKal {
       EXINGCOL exings_; // material xings used in this fit
       DOMAINCOL domains_; // BField domains used in this fit
   };
+  // sub-class constructor, based just on the seed.  It requires added hits to
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj ) :
+    config_(cfg), bfield_(bfield), seedtraj_(seedtraj) {
+    if(config_.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+  }
 
   // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) :
-    config_(cfg), bfield_(bfield), seedtraj_(seedtraj)
-  {
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield,seedtraj) {
+    fit(hits,exings);
+  }
+  template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings) {
     // set the seed time based on the min and max time from the inputs
     TimeRange refrange = getRange(hits,exings);
     seedtraj_.setRange(refrange);
@@ -179,12 +188,18 @@ namespace KinKal {
           createDomains(reftraj_.back(),TimeRange(kkbfend->range().end(),exrange.end()),config_,domains);
       } else {
         // set domains for the whole range
+
         createDomains(reftraj_.nearestPiece(reftraj_.range().mid()),reftraj_.range(),config_,domains);
       }
     }
     // create the effects for these
     createEffects(hits,exings,domains);
-    // now refit the track
+    // extend the reftraj range
+    TimeRange refrange = getRange(hits_,exings_);
+    refrange.begin() = std::min(refrange.begin(),domains.front().begin());
+    refrange.end() = std::max(refrange.end(),domains.back().end());
+    reftraj_.setRange(refrange);
+     // now refit the track
     fit();
   }
 
@@ -374,10 +389,10 @@ namespace KinKal {
     tstart = range.begin();
     do {
       // see how far we can go on the current traj before the BField change causes the momentum estimate to go out of tolerance
-      double tendmom = bfield_.rangeInTolerance(ktraj,tstart,config.tol_);
-      ranges.emplace_back(tstart,tendmom);
+      double tend = bfield_.rangeInTolerance(ktraj,tstart,config.tol_);
+      ranges.emplace_back(tstart,tend);
       // start the next domain and the end of this one
-      tstart = tendmom;
+      tstart = tend;
     } while(tstart < range.end());
   }
 
