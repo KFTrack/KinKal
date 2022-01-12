@@ -72,7 +72,7 @@ int main(int argc, char **argv){
 
     ////Create a histogram for storing distribution using Accept-Reject Method
     TH1F* histAR = new TH1F("histAR", "Accept-reject Method", 1000, 0., 20);
-    MoyalDist mDist(mean, rms);
+    MoyalDist mDist(MeanRMS(),mean, rms);
     // Start time for measuring performance
     auto start1 = std::chrono::high_resolution_clock::now(); 
     for(int i=0; i < nsamples; i++)
@@ -115,7 +115,7 @@ int main(int argc, char **argv){
 
     ////Create a histogram for storing distribution using InvCDF Method with user defined kmax
     TH1F* histCDFUser = new TH1F("histCDFUser", Form("InvCDF Method User kmax(%d)",kmax), 1000, 0., 20);
-    MoyalDist mDistUser(mean, rms, kmax);
+    MoyalDist mDistUser(MeanRMS(),mean, rms, kmax);
     // Start time for measuring performance
     auto start3 = std::chrono::high_resolution_clock::now(); 
     for(int i=0; i < nsamples; i++)
