@@ -14,18 +14,18 @@
 #include "KinKal/MatEnv/MoyalDist.hh"
 
 void print_usage() {
-  printf("Usage: MatEnv --mpv f --xi f --kmax i --nsamples d \n");
+  printf("Usage: MatEnv --mean f --rms f --kmax i --nsamples d \n");
 }
 
 int main(int argc, char **argv){
-    double mpv(3), xi(0.4);
+    double mean(3), rms(0.4);
     int kmax(10);
     long int nsamples(100000);
 
 
   static struct option long_options[] = {
-    {"mpv",         required_argument, 0, 'c'  },
-    {"xi",          required_argument, 0, 'p'  },
+    {"mean",         required_argument, 0, 'c'  },
+    {"rms",          required_argument, 0, 'p'  },
     {"kmax",        required_argument, 0, 's'  },
     {"nsamples",    required_argument, 0, 'e'  },
   };
@@ -36,10 +36,10 @@ int main(int argc, char **argv){
   while ((opt = getopt_long_only(argc, argv,"", long_options, &long_index )) != -1) {
     switch (opt) {
       case 'c' :
-        mpv = atof(optarg);
+        mean = atof(optarg);
         break;
       case 'p' :
-        xi =atof(optarg);
+        rms =atof(optarg);
         break;
       case 's' :
         kmax = atoi(optarg);
@@ -66,13 +66,13 @@ int main(int argc, char **argv){
 
     //// Create the moyal function to fit the distribution for checking consistency
     TF1 *moyalFunc = new TF1("moyalFunc","[2] * (sqrt(1./(2.0*acos(-1.))/[1]) * exp( -0.5 * ( (x - [0])/[1] + exp(- ((x - [0])/[1]) ) )) )",0,20);
-    moyalFunc->SetParameter(0,mpv);
-    moyalFunc->SetParameter(1,xi);
+    moyalFunc->SetParameter(0,mean);
+    moyalFunc->SetParameter(1,rms);
     moyalFunc->SetParameter(2,500);
 
     ////Create a histogram for storing distribution using Accept-Reject Method
     TH1F* histAR = new TH1F("histAR", "Accept-reject Method", 1000, 0., 20);
-    MoyalDist mDist(mpv, xi);
+    MoyalDist mDist(MeanRMS(),mean, rms);
     // Start time for measuring performance
     auto start1 = std::chrono::high_resolution_clock::now(); 
     for(int i=0; i < nsamples; i++)
@@ -115,7 +115,7 @@ int main(int argc, char **argv){
 
     ////Create a histogram for storing distribution using InvCDF Method with user defined kmax
     TH1F* histCDFUser = new TH1F("histCDFUser", Form("InvCDF Method User kmax(%d)",kmax), 1000, 0., 20);
-    MoyalDist mDistUser(mpv, xi, kmax);
+    MoyalDist mDistUser(MeanRMS(),mean, rms, kmax);
     // Start time for measuring performance
     auto start3 = std::chrono::high_resolution_clock::now(); 
     for(int i=0; i < nsamples; i++)

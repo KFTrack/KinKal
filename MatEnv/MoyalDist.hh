@@ -6,11 +6,21 @@
 #include <vector>
 #include <cmath>
 
+struct ModeSigma{};
+struct MeanRMS{};
 class MoyalDist{
   public:
-    MoyalDist(double mpv, double xi, int max = 20):_sigma(xi),_kmax(max) {
-      _mean = mpv + _sigma *  MFACTOR;
+
+    MoyalDist(ModeSigma, double mpv, double xi, int max = 20):_mode(mpv), _sigma(xi),_kmax(max) {
+      _mean = _mode + _sigma *  MFACTOR;
       _rms = 0.5 * (std::pow( M_PI * _sigma , 2) );
+      setCoeffs(_kmax);
+    }
+
+    MoyalDist(MeanRMS, double Mean, double RMS, int max = 20):_mean(Mean),_rms(RMS),_kmax(max) {        
+       //Variance of moyal = (pi * sigma)^2 /2
+      _sigma = std::sqrt(2.0) * _rms / M_PI ; 
+      _mode = _mean - _sigma * MFACTOR; 
       setCoeffs(_kmax);
     }
 
@@ -21,6 +31,7 @@ class MoyalDist{
     double getRMS() const { return _rms; }
 
   private:
+    double _mode;  //For unimodal distribution most probable value and mode are the same thing 
     double _mean;  // mean of the distribution
     double _sigma; // sigma of the distribution
     double _rms;   // rms of the distribution
