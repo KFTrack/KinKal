@@ -34,7 +34,7 @@ namespace KinKal {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e4), tbuff_(1.0), tol_(0.0001), minndof_(5), bfcorr_(true), plevel_(none) {}
+    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e6), tbuff_(0.1), tol_(1.0e-4), minndof_(5), bfcorr_(true), plevel_(none) {}
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
     // algebraic iteration parameters

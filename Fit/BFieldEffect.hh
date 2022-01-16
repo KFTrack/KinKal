@@ -79,7 +79,7 @@ namespace KinKal {
       double etime = time();
       // make sure the piece is appendable
       if(fit.back().range().begin() > etime) throw std::invalid_argument("BFieldEffect: Can't append piece");
-      TimeRange newrange(etime,fit.range().end());
+      TimeRange newrange(etime,std::max(fit.range().end(),drange_.end()));
       // copy the back piece of fit and set its range
       KTRAJ newpiece(fit.back());
       newpiece.range() = newrange;

@@ -46,10 +46,7 @@ namespace KinKal {
       double vscale_; // variance scale (from annealing)
       Weights endeff_; // wdata representation of this effect's constraint/measurement
       KTRAJ endtraj_; // cache of parameters at the end of processing this direction, used in traj creation
-      static double tbuff_; // buffer to range end
   };
-
-  template <class KTRAJ> double TrackEnd<KTRAJ>::tbuff_ = 1.0; // this should come from the config FIXME!
 
   template <class KTRAJ> TrackEnd<KTRAJ>::TrackEnd(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj, TimeDir tdir) :
     config_(config), bfield_(bfield), tdir_(tdir) , vscale_(1.0),
@@ -73,11 +70,7 @@ namespace KinKal {
     // convert this to a weight (inversion)
     endeff_ = Weights(refend);
     // set the range; this should buffer the original traj
-    if(tdir_ == TimeDir::forwards){
-      endtraj_.setRange(TimeRange(ref.range().begin()-tbuff_,ref.range().end()));
-    } else {
-      endtraj_.setRange(TimeRange(ref.range().begin(),ref.range().end()+tbuff_));
-    }
+    endtraj_.setRange(ref.range());
     // update BField reference
     double endtime = (tdir_ == TimeDir::forwards) ? ref.range().begin() : ref.range().end();
     bnom_ = bfield_.fieldVect(ref.position3(endtime));
