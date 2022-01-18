@@ -160,7 +160,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double seedsmear(10.0);
   double momsigma(0.2);
   double ineff(0.05);
-  double tbuff(1.0);
+  double tbuff(0.0);
   bool simmat(true), lighthit(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
