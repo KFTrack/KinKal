@@ -17,6 +17,8 @@ void print_usage() {
   printf("Usage: MatEnv --mean f --rms f --kmax i --nsamples d \n");
 }
 
+using KinKal::MoyalDist;
+
 int main(int argc, char **argv){
     double mean(3), rms(0.4);
     int kmax(10);
@@ -54,7 +56,7 @@ int main(int argc, char **argv){
 
     ////Create a root file to store the results
     std::unique_ptr<TFile> mFile( TFile::Open("MoyalDist.root", "RECREATE") );
-    
+
     ////Create a canvas to plot the histograms and fits
     auto moyalcan = new TCanvas("moyalcan", "moyalcan", 1500, 500);
     moyalcan->Divide(3,1);
@@ -72,9 +74,9 @@ int main(int argc, char **argv){
 
     ////Create a histogram for storing distribution using Accept-Reject Method
     TH1F* histAR = new TH1F("histAR", "Accept-reject Method", 1000, 0., 20);
-    MoyalDist mDist(MeanRMS(),mean, rms);
+    MoyalDist mDist(MoyalDist::MeanRMS(mean, rms));
     // Start time for measuring performance
-    auto start1 = std::chrono::high_resolution_clock::now(); 
+    auto start1 = std::chrono::high_resolution_clock::now();
     for(int i=0; i < nsamples; i++)
     {
         histAR->Fill(mDist.sampleAR());
@@ -85,20 +87,20 @@ int main(int argc, char **argv){
     std::cout << std::setw(50) << std::left << "Elapsed time for accept-reject method:" << elapsed1.count() << " s\n";
     ////Plot histAR and its fit on gPad1
     moyalcan->cd(1);
-    histAR->Fit("moyalFunc","q"); 
+    histAR->Fit("moyalFunc","q");
     histAR->Draw();
     gStyle->SetOptFit(1);
     histAR->GetXaxis()->SetTitle("x");
     gPad->SetLogy();
 
-    
+
     ////Create a histogram for storing distribution using InvCDF Method with default kMax=20
     TH1F* histCDFDefault = new TH1F("histCDFDefault", "InvCDF Method Default kmax(20)", 1000, 0., 20);
     // Start time for measuring performance
     auto start2 = std::chrono::high_resolution_clock::now();
     for(int i=0; i < nsamples; i++)
     {
-        double sCDF = mDist.sampleInvCDF(dis(gen));
+        double sCDF = mDist.sample(dis(gen));
         histCDFDefault->Fill(sCDF);
 
     }
@@ -107,7 +109,7 @@ int main(int argc, char **argv){
     std::cout << std::setw(50) << std::left << "Elapsed time for InvCDF default kmax(20): " << elapsed2.count() << " s\n";
     ////Plot InvCDF  and its fit on gPad1
     moyalcan->cd(2);
-    histCDFDefault->Fit("moyalFunc","q"); 
+    histCDFDefault->Fit("moyalFunc","q");
     histCDFDefault->Draw();
     gStyle->SetOptFit(1);
     histCDFDefault->GetXaxis()->SetTitle("x");
@@ -115,12 +117,12 @@ int main(int argc, char **argv){
 
     ////Create a histogram for storing distribution using InvCDF Method with user defined kmax
     TH1F* histCDFUser = new TH1F("histCDFUser", Form("InvCDF Method User kmax(%d)",kmax), 1000, 0., 20);
-    MoyalDist mDistUser(MeanRMS(),mean, rms, kmax);
+    MoyalDist mDistUser(MoyalDist::MeanRMS(mean, rms), kmax);
     // Start time for measuring performance
-    auto start3 = std::chrono::high_resolution_clock::now(); 
+    auto start3 = std::chrono::high_resolution_clock::now();
     for(int i=0; i < nsamples; i++)
     {
-         double sCDF = mDistUser.sampleInvCDF(dis(gen));
+         double sCDF = mDistUser.sample(dis(gen));
          histCDFUser->Fill(sCDF);
 
     }
@@ -129,17 +131,17 @@ int main(int argc, char **argv){
     std::cout << std::setw(50) << std::left << Form("Elapsed time for InvCDF user kmax(%d): ", kmax) << elapsed3.count() << " s\n";
     ////Plot InvCDF distribution with user defined kmax and its fit on gPad1
     moyalcan->cd(3);
-    histCDFUser->Fit("moyalFunc","q"); 
+    histCDFUser->Fit("moyalFunc","q");
     histCDFUser->Draw();
     gStyle->SetOptFit(1);
     histCDFUser->GetXaxis()->SetTitle("x");
     gPad->SetLogy();
-    
+
     histAR->Write();
     histCDFDefault->Write();
     histCDFUser->Write();
     moyalcan->Write();
- 
+
 
 }
 
