@@ -32,9 +32,10 @@ namespace KinKal {
 
   // simple updater based on DOCA
   struct SimpleWireHitUpdater {
-    SimpleWireHitUpdater(double mindoca,double maxdoca ) : mindoca_(mindoca), maxdoca_(maxdoca) {}
+    SimpleWireHitUpdater(double mindoca,double maxdoca, double minprob ) : mindoca_(mindoca), maxdoca_(maxdoca), minprob_(minprob) {}
     double mindoca_; // minimum DOCA value to sign LR ambiguity
     double maxdoca_; // maximum DOCA to still use a hit
+    double minprob_; // minimum residual probability to keep using a hit
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
@@ -70,7 +71,8 @@ namespace KinKal {
         // update the WireHitState
         this->mindoca_ = std::min(updater->mindoca_,cellRadius());;
         double doca = tpoca.doca();
-        if(fabs(doca) > updater->maxdoca_ ) {
+        auto chisq = this->chisq();
+        if(fabs(doca) > updater->maxdoca_ || chisq.probability() < updater->minprob_ ) {
           this->wstate_.state_ = WireHitState::inactive; // disable the hit if it's an outlier
         } else if(fabs(doca) > updater->mindoca_ ) {
           this->wstate_.state_ = doca > 0.0 ? WireHitState::right : WireHitState::left;

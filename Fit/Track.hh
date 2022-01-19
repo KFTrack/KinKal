@@ -347,9 +347,10 @@ namespace KinKal {
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::update(Status const& fstat, MetaIterConfig const& miconfig) {
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
-      if(miconfig.miter_ > 0)// if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
+      if(miconfig.miter_ > 0){ // if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
         reftraj_ = fittraj_;
-      for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig); // test if this is needed on 0th meta-iteration TODO
+        for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
+      }
     } else {
       //swap the fit trajectory to the reference
       reftraj_ = fittraj_;

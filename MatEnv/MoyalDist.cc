@@ -4,30 +4,31 @@
 #include <cmath>
 #include "KinKal/MatEnv/MoyalDist.hh"
 
-void MoyalDist::setCoeffs(int kmax){
+namespace KinKal {
+  void MoyalDist::setCoeffs(int kmax){
     if(_coeff.size() == (long unsigned int) kmax){
-        return; //if the coefficient vector is already filled then don't do anything
+      return; //if the coefficient vector is already filled then don't do anything
     }
     if(_kmax < 1){
-        throw std::invalid_argument("kmax (number of terms in the Moyal series expansion) cannot be less than one.");
+      throw std::invalid_argument("kmax (number of terms in the Moyal series expansion) cannot be less than one.");
     }
     _coeff.clear();
     _coeff.push_back(1); // coeff[0] = 1;
     for(int k=0; k < kmax; k++ ){
-        double sumCoeff = 0;
-        if( k > 0 ){
-            for(int m = 0; m < k; m++){
-                sumCoeff += ( _coeff.at(m) * _coeff.at( k - 1 - m) ) / ( (m + 1) * (2.0 * m + 1) );
-            }
-            _coeff.push_back(sumCoeff);
-
+      double sumCoeff = 0;
+      if( k > 0 ){
+        for(int m = 0; m < k; m++){
+          sumCoeff += ( _coeff.at(m) * _coeff.at( k - 1 - m) ) / ( (m + 1) * (2.0 * m + 1) );
         }
-    }
-}
+        _coeff.push_back(sumCoeff);
 
-double MoyalDist::sampleInvCDF(double rand) const{
+      }
+    }
+  }
+
+  double MoyalDist::sample(double rand) const{
     if(rand < 0 || rand >1){
-        throw std::invalid_argument("random number should be between 0-1");
+      throw std::invalid_argument("random number should be between 0-1");
     }
 
     // The Moyal distribution cdf is cdf(x; mu, sigma) = erfc(exp(- 1/2 * (x - mu) / sigma) / sqrt(2))
@@ -39,16 +40,16 @@ double MoyalDist::sampleInvCDF(double rand) const{
     double sum = 0;
 
     for(int k=0; k < _kmax; k++ ){
-        sum +=  ( _coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
+      sum +=  ( _coeff.at(k) / (2.* k + 1.0) ) * std::pow(t, (2.* k + 1.0));
     }
 
     double y = sum;
     double x = _mode - 2 * _sigma * std::log ((std::sqrt(2.) * y));
     return x;
-}
+  }
 
 
-double MoyalDist::sampleAR() const{
+  double MoyalDist::sampleAR() const{
 
     // This is an implementation of accep-reject method for sampling Moyal distribution
     // recipe at http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf
@@ -65,18 +66,19 @@ double MoyalDist::sampleAR() const{
 
     do
     {
-        double rand1 = dis(gen);
-        double rand2 = dis(gen);
-        //std::cout << "rand1 == " << rand1 << " && " << "rand2 == " << rand2 << "\n";
+      double rand1 = dis(gen);
+      double rand2 = dis(gen);
+      //std::cout << "rand1 == " << rand1 << " && " << "rand2 == " << rand2 << "\n";
 
-        double y = M_PI * (rand1 - 0.5);
-        h = rand2 * hmax;
-        z = std::tan(y);
-        //std::cout << "z == " << z << "\n" ;
-        Hy = std::sqrt(1.0/(2.0 * M_PI)) * (1.0 + std::pow(z, 2) ) \
-                    * std::exp( -0.5 * ( z + std::exp(-z) ) );
+      double y = M_PI * (rand1 - 0.5);
+      h = rand2 * hmax;
+      z = std::tan(y);
+      //std::cout << "z == " << z << "\n" ;
+      Hy = std::sqrt(1.0/(2.0 * M_PI)) * (1.0 + std::pow(z, 2) ) \
+           * std::exp( -0.5 * ( z + std::exp(-z) ) );
 
     } while ( h > Hy );
     double x = _mode + _sigma * z;
-    return (x) ;   
+    return (x) ;
+  }
 }
