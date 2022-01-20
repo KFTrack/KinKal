@@ -3,6 +3,7 @@
 //
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
+#include "KinKal/Trajectory/PointClosestApproach.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -44,6 +45,7 @@ void print_usage() {
 template <class KTRAJ>
 int ClosestApproachTest(int argc, char **argv) {
   using TCA = ClosestApproach<KTRAJ,Line>;
+  using TCAP = PointClosestApproach<KTRAJ>;
   using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
@@ -144,11 +146,16 @@ int ClosestApproachTest(int argc, char **argv) {
     if(dp>1e-9) cout << "CA delta not perpendicular to particle direction" << endl;
     double ds = del.Dot(sd);
     if(ds>1e-9) cout << "CA delta not perpendicular to sensor direction" << endl;
+    // test PointClosestApproach
+    VEC4 pt(ppos.X(),ppos.Y(),ppos.Z(),time-1.0);
+    TCAP tpp(ktraj,pt,1e-8);
+    if(fabs(fabs(tpp.doca()) - gap) > 1e-8) cout << "Point DOCA not correct " << endl;
 
     // test against a piece-traj
     PKTRAJ pktraj(ktraj);
     PTCA ptp(pktraj,tline,tphint,1e-8);
     if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+    if(tpp.status() != ClosestApproachData::converged)cout << "PointClosestApproach status " << tpp.statusName() << " doca " << tpp.doca() << " dt " << tpp.deltaT() << endl;
     if(ptp.status() != ClosestApproachData::converged)cout << "PiecewiseClosestApproach status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
     VEC3 thpos, tlpos;
     thpos = tp.particlePoca().Vect();

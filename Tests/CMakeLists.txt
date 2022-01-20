@@ -1,6 +1,7 @@
 # List of unit test sources
 
 set( TEST_SOURCE_FILES
+    CentralHelixClosestApproach_unit.cc
     CentralHelixBField_unit.cc
     CentralHelixDerivs_unit.cc
     CentralHelixFit_unit.cc
@@ -8,6 +9,7 @@ set( TEST_SOURCE_FILES
     CentralHelixPKTraj_unit.cc
     CentralHelixTPoca_unit.cc
     CentralHelix_unit.cc
+    KinematicLineClosestApproach_unit.cc
     KinematicLineBField_unit.cc
     KinematicLineDerivs_unit.cc
     KinematicLineFit_unit.cc
@@ -15,6 +17,7 @@ set( TEST_SOURCE_FILES
     KinematicLinePKTraj_unit.cc
     KinematicLineTPoca_unit.cc
     KinematicLine_unit.cc
+    LoopHelixClosestApproach_unit.cc
     LoopHelixBField_unit.cc
     LoopHelixDerivs_unit.cc
     LoopHelixFit_unit.cc
