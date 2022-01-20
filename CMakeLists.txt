@@ -37,6 +37,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # make sure CMake is able to find ROOT
 list(APPEND CMAKE_PREFIX_PATH $ENV{ROOTSYS})
+message(STATUS "Building against ROOT $ENV{ROOTSYS}" )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
