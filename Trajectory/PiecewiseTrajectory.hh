@@ -24,6 +24,7 @@ namespace KinKal {
       double speed(double time) const { return nearestPiece(time).speed(time); }
       VEC3 direction(double time, MomBasis::Direction mdir=MomBasis::momdir_) const { return nearestPiece(time).direction(time,mdir); }
       VEC3 const& bnom(double time) const { return nearestPiece(time).bnom(time); }
+      double t0() const;
       TimeRange range() const { if(pieces_.size() > 0) return TimeRange(pieces_.front().range().begin(),pieces_.back().range().end()); else return TimeRange(); }
       void setRange(TimeRange const& trange, bool trim=false);
       // construct without any content.  Any functions except append or prepend will throw in this state
@@ -198,6 +199,22 @@ namespace KinKal {
     }
     if(pieces_.size() > 1)
       average /= (pieces_.size()-1);
+  }
+
+  template <class TTRAJ> double PiecewiseTrajectory<TTRAJ>::t0() const {
+  // find a self-consistent t0
+    if(pieces_.empty())throw std::length_error("Empty PiecewiseTrajectory!");
+    double t0 = pieces_.front().t0();
+    auto index = nearestIndex(t0);
+    int oldindex = -1;
+    unsigned niter(0);
+    while(static_cast<int>(index) != oldindex && niter < 10){
+      ++niter;
+      t0 = pieces_[index].t0();
+      oldindex = index;
+      index = nearestIndex(t0);
+    }
+    return t0;
   }
 
   template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::print(std::ostream& ost, int detail) const {
