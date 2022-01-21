@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -92,6 +92,54 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   //  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return ((pos2-pos1).Cross(dir1)).R();
 }
+
+int makeConfig(string const& cfile, KinKal::Config& config) {
+  string fullfile;
+  if(strncmp(cfile.c_str(),"/",1) == 0) {
+    fullfile = string(cfile);
+  } else {
+    if(const char* source = std::getenv("KINKAL_SOURCE_DIR")){
+      fullfile = string(source) + string("/Tests/") + string(cfile);
+    } else {
+      cout << "KINKAL_SOURCE_DIR not defined" << endl;
+      return -1;
+    }
+  }
+  std::ifstream ifs (fullfile, std::ifstream::in);
+  if ( (ifs.rdstate() & std::ifstream::failbit ) != 0 ){
+    std::cerr << "Error opening " << fullfile << std::endl;
+    return -1;
+  }
+  string line;
+  unsigned maxniter, nmiter(0);
+  double dwt(-1.0), convdchisq(-1.0), divdchisq(-1.0), pdivdchisq(-1.0);
+  while (getline(ifs,line)){
+    if(strncmp(line.c_str(),"#",1)!=0){
+      istringstream ss(line);
+      if(convdchisq < 0.0) {
+        ss >> maxniter >> dwt >> convdchisq >> divdchisq >> pdivdchisq;
+        config.maxniter_ = maxniter;
+        config.dwt_ = dwt;
+        config.convdchisq_ = convdchisq;
+        config.divdchisq_ = divdchisq;
+        config.pdchi2_ = pdivdchisq;
+      } else {
+        double temp, mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
+        ss >> temp >> mindoca >> maxdoca >> minprob;
+        MetaIterConfig mconfig(temp, nmiter++);
+        if(mindoca >0.0 || maxdoca > 0.0){
+          // setup and insert the updater
+          cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
+          SimpleWireHitUpdater updater(mindoca,maxdoca,minprob);
+          mconfig.updaters_.push_back(std::any(updater));
+        }
+        config.schedule_.push_back(mconfig);
+      }
+    }
+  }
+  return 0;
+}
+
 
 template <class KTRAJ>
 int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
@@ -139,7 +187,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   int isimmass(0), ifitmass(0), icharge(-1);
   double simmass, fitmass;
   unsigned maxniter(10);
-  double dwt(1.0e6);
   unsigned nevents(1000);
   bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
@@ -174,7 +221,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
     {"maxniter",     required_argument, 0, 'i'  },
-    {"deweight",     required_argument, 0, 'w'  },
     {"simmat",     required_argument, 0, 'b'  },
     {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
@@ -222,8 +268,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       case 's' : iseed = atoi(optarg);
                  break;
       case 'i' : maxniter = atoi(optarg);
-                 break;
-      case 'w' : dwt = atof(optarg);
                  break;
       case 'b' : simmat = atoi(optarg);
                  break;
@@ -296,55 +340,19 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
-  config.dwt_ = dwt;
-  config.maxniter_ = maxniter;
+  makeConfig(sfile,config);
+  // should move these to the schedule TODO
   config.bfcorr_ = bfcorr;
   config.tol_ = tol;
   config.plevel_ = (Config::printLevel)detail;
   config.tbuff_ = tbuff;
   // read the schedule from the file
-  string fullfile;
-  if(strncmp(sfile.c_str(),"/",1) == 0) {
-    fullfile = string(sfile);
-  } else {
-    if(const char* source = std::getenv("KINKAL_SOURCE_DIR")){
-      fullfile = string(source) + string("/Tests/") + string(sfile);
-    } else {
-      cout << "KINKAL_SOURCE_DIR not defined" << endl;
-      return -1;
-    }
-  }
-  std::ifstream ifs (fullfile, std::ifstream::in);
-  if ( (ifs.rdstate() & std::ifstream::failbit ) != 0 ){
-    std::cerr << "Error opening " << fullfile << std::endl;
-    return -1;
-  }
-  // config for extension
+// extension just uses the last meta-iteration
   Config exconfig(config);
-  string line;
-  unsigned nmiter(0);
-  double temp, convdchisq, divdchisq;
-  while (getline(ifs,line)){
-    if(strncmp(line.c_str(),"#",1)!=0){
-      double mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
-      istringstream ss(line);
-      ss >> temp >> convdchisq >> divdchisq;
-      MetaIterConfig mconfig(temp, convdchisq, divdchisq, nmiter++);
-      ss >> mindoca >> maxdoca >> minprob;
-      if(mindoca >0.0 || maxdoca > 0.0){
-// setup and insert the updater
-        cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
-        SimpleWireHitUpdater updater(mindoca,maxdoca,minprob);
-        mconfig.updaters_.push_back(std::any(updater));
-      }
-      config.schedule_.push_back(mconfig);
-    }
-  }
-  // extension just uses the last meta-iteration
   exconfig.schedule_.clear();
   exconfig.schedule_.push_back(config.schedule_.back());
-  cout << config << endl;
-
+  cout << "Main fit config " << config << endl;
+  cout << "Extension config " << exconfig << endl;
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
