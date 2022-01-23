@@ -111,14 +111,16 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
     return -1;
   }
   string line;
-  config.maxniter_ = 0;
+  int plevel(-1);
+  unsigned nmiter(0);
   while (getline(ifs,line)){
     if(strncmp(line.c_str(),"#",1)!=0){
       istringstream ss(line);
-      if(config.maxniter_ = 0) {
+      if(plevel < 0) {
         ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
         config.pdchi2_ >> config.tbuff_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
-        config.plevel_;
+        plevel;
+        config.plevel_ = Config::printLevel(plevel);
       } else {
         double temp, mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
         ss >> temp >> mindoca >> maxdoca >> minprob;
@@ -189,7 +191,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   bool fitmat(true);
   bool extend(false);
-  string exconfig;
+  string exfile;
   double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -301,7 +303,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'u' : sfile = optarg;
                  break;
-      case 'X' : exconfig = optarg;
+      case 'X' : exfile = optarg;
                  extend = true;
                  break;
       default: print_usage();
