@@ -46,7 +46,6 @@ namespace KinKal {
       double deltaT() const { return tpdata_.deltaT(); }
       bool usable() const { return tpdata_.usable(); }
       double particleToca() const { return tpdata_.particleToca(); }
-      double sensorToca() const { return tpdata_.sensorToca(); }
       double lSign() const { return tpdata_.lsign_; } // sign of angular momentum
       VEC4 const& particlePoca() const { return tpdata_.particlePoca(); }
       VEC4 const& point() const { return tpdata_.sensorPoca(); }

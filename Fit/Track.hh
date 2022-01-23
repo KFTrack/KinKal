@@ -332,11 +332,11 @@ namespace KinKal {
       fstat.status_ = Status::paramsdiverged;
       // skip divergence comparsion in first iteration after a meta-iteration, as that
       // is affected by the change in temperature
-    } else if (fstat.iter_ > 0 && dchisq > miconfig.divdchisq_) {
+    } else if (fstat.iter_ > 0 && dchisq > config().divdchisq_) {
       fstat.status_ = Status::diverged;
     } else if (fstat.chisq_.nDOF() < (int)config().minndof_){
       fstat.status_ = Status::lowNDOF;
-    } else if(fabs(dchisq) < miconfig.convdchisq_) {
+    } else if(fabs(dchisq) < config().convdchisq_) {
       fstat.status_ = Status::converged;
     } else
       fstat.status_ = Status::unconverged;
