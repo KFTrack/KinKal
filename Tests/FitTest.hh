@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -148,6 +148,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool bfcorr(true);
   bool fitmat(true);
   bool extend(false);
+  string extendconfig;
   double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -197,7 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"constrainpar",     required_argument, 0, 'c' },
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
-    {"extendfrac",     required_argument, 0, 'X'  },
+    {"extendconfig",     required_argument, 0, 'X'  },
     {"lighthit",     required_argument, 0, 'L'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {NULL, 0,0,0}
@@ -269,8 +270,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'u' : sfile = optarg;
                  break;
-      case 'X' : extendfrac = atof(optarg);
-                 extend = extendfrac != 0.0;
+      case 'X' : extendconfig = optarg;
+                 extend = true;
                  break;
       default: print_usage();
                exit(EXIT_FAILURE);
@@ -320,7 +321,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     return -1;
   }
   // config for extension
-  Config exconfig(config);
+  if(extend){
+    Config exconfig(config);
   string line;
   unsigned nmiter(0);
   double temp, convdchisq, divdchisq;
@@ -390,7 +392,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
     thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
-  // if extending, take a random set of hits and materials out
+  // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
     for(auto ihit = thits.begin(); ihit != thits.end();){
       if(tr_.Uniform(0.0,1.0) < extendfrac){
@@ -409,7 +411,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   }
   // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
-  if(extend && kktrk.fitStatus().usable() && (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
+  if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
   //  kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables

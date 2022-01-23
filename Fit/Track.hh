@@ -111,8 +111,9 @@ namespace KinKal {
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
+      void extendRefTraj(DOMAINCOL const& domains);
       // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
-      void createDomains(KTRAJ const& ktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const;
+      void createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const;
       // payload
       CONFIGCOL config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
@@ -142,7 +143,8 @@ namespace KinKal {
     seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config().bfcorr_ ) createDomains(seedtraj_, refrange, domains);
+    PKTRAJ pkseed(seedtraj_);
+    if(config().bfcorr_ ) createDomains(pkseed, refrange, domains);
     // Create the initial reference trajectory
     createRefTraj(seedtraj_,refrange,domains);
     // create the end effects: these help manage the fit
@@ -158,52 +160,45 @@ namespace KinKal {
   // extend an existing track
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {
     // update the configuration
+    auto const& oldconfig(config());
     config_.push_back(cfg);
     // configuation check
     if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
     // require the existing fit to be usable
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
+    // find the range of the added information, and extend as needed
     TimeRange exrange = getRange(hits,exings);
+    exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
+    exrange.end() = std::max(exrange.end(),reftraj_.range().end());
     // if we're making BField corrections, find the new domains (if any)
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
-      // first, find the first and last existing correction
-      const KKBFIELD *kkbfbegin(0), *kkbfend(0);
-      for(auto effptr = effects_.begin(); effptr != effects_.end(); ++effptr){
-        const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(effptr->get());
-        if(kkbf!=0){
-          kkbfbegin = kkbf;
-          break;
-        }
-      }
-      for(auto effptr = effects_.rbegin(); effptr != effects_.rend(); ++effptr){
-        const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(effptr->get());
-        if(kkbf!=0){
-          kkbfend = kkbf;
-          break;
-        }
-      }
-      if(kkbfbegin != 0 && kkbfend != 0){
-        // compare ranges, and create BField effects and traj pieces as needed
-        if(exrange.begin() < kkbfbegin->range().begin())
-          createDomains(reftraj_.front(),TimeRange(exrange.begin(),kkbfbegin->range().begin()),domains);
-        if(exrange.end() > kkbfend->range().end())
-          createDomains(reftraj_.back(),TimeRange(kkbfend->range().end(),exrange.end()),domains);
+    // if the previous configuration didn't have domains, then create them for the full reference range
+      if(!oldconfig.bfcorr_)
+       // create domains for the whole range
+        createDomains(reftraj_, exrange,domains);
       } else {
-        // set domains for the whole range
-
-        createDomains(reftraj_.nearestPiece(reftraj_.range().mid()),reftraj_.range(),domains);
-      }
+      // create domains just for the extensions
+      TimeRange exlow(exrange.begin(),reftraj_.range().begin());
+      if(exlow.range()>0.0) createDomains(reftraj_, exlow, domains);
+      TimeRange exhigh(reftraj_.range().end(),exrange.end());
+      if(exhigh.range()>0.0) createDomains(reftraj_, exhigh, domains);
     }
-    // create the effects for these
+    // extend the reftraj as needed
+    extendRefTraj(domains);
+    // create the effects for the new info and the new domains
     createEffects(hits,exings,domains);
-    // extend the reftraj range
-    TimeRange refrange = getRange(hits_,exings_);
-    refrange.begin() = std::min(refrange.begin(),domains.front().begin());
-    refrange.end() = std::max(refrange.end(),domains.back().end());
-    reftraj_.setRange(refrange);
      // now refit the track
     fit();
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::extendRefTraj(DOMAINCOL const& domains ) {
+    // dummy implementation: need to put in parameter rotation FIXME!
+    // extend the reftraj range
+    if(domains.size() > 0){
+      TimeRange newrange(domains.front().begin(),domains.back().end());
+      reftraj_.setRange(newrange);
+    }
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createRefTraj(KTRAJ const& seedtraj , TimeRange const& range, DOMAINCOL const& domains ) {
@@ -388,11 +383,12 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the BField corrections
-  template<class KTRAJ> void Track<KTRAJ>::createDomains(KTRAJ const& ktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const {
+  template<class KTRAJ> void Track<KTRAJ>::createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const {
     double tstart;
     tstart = range.begin();
     do {
       // see how far we can go on the current traj before the BField change causes the momentum estimate to go out of tolerance
+      auto const& ktraj = pktraj.nearestPiece(tstart);
       double tend = bfield_.rangeInTolerance(ktraj,tstart,config().tol_);
       ranges.emplace_back(tstart,tend);
       // start the next domain and the end of this one
