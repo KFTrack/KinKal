@@ -112,7 +112,7 @@ namespace KinKal {
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
-      void replaceRefTraj(DOMAINCOL const& domains);
+      void replaceFitTraj(DOMAINCOL const& domains);
       void extendRefTraj(DOMAINCOL const& domains);
       // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
       void createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges, TimeDir tdir=TimeDir::forwards) const;
@@ -179,7 +179,7 @@ namespace KinKal {
         // create domains for the whole range
         createDomains(reftraj_, exrange,domains);
         // replace the reftraj with one with BField rotations
-        replaceRefTraj(domains);
+        replaceFitTraj(domains);
       } else {
         // create domains just for the extensions, and extend the reftraj as needed
         TimeRange exlow(exrange.begin(),reftraj_.range().begin());
@@ -205,30 +205,32 @@ namespace KinKal {
   }
 
   // replace the reference traj with one describing the 'same' trajectory in space, but using the local BField as reference
-  template <class KTRAJ> void Track<KTRAJ>::replaceRefTraj(DOMAINCOL const& domains) {
+  template <class KTRAJ> void Track<KTRAJ>::replaceFitTraj(DOMAINCOL const& domains) {
   // create new traj
-    PKTRAJ newref;
+    PKTRAJ newfit;
     // loop over domains
     for(auto const& domain : domains) {
       double dtime = domain.begin();
       // Set the BField to the start of this domain
-      auto bf = bfield_.fieldVect(reftraj_.position3(dtime));
+      auto bf = bfield_.fieldVect(fittraj_.position3(dtime));
       // loop until we're either out of this domain or the piece is out of this domain
       while(dtime < domain.end()){
         // find the nearest piece of the current reftraj
-        auto const& oldpiece = reftraj_.nearestPiece(dtime);
+        auto index = fittraj_.nearestIndex(dtime);
+        auto const& oldpiece = fittraj_.pieces()[index];
         // create a new piece
         KTRAJ newpiece(oldpiece,bf,dtime);
         // set the range as needed
-        newpiece.range() = TimeRange(dtime,std::min(domain.end(),oldpiece.range().end()));
-        reftraj_.append(newpiece);
+        double endtime = (index < fittraj_.pieces().size()-1) ? std::min(domain.end(),oldpiece.range().end()) : domain.end();
+        newpiece.range() = TimeRange(dtime,endtime);
+        newfit.append(newpiece);
         // update the time
         static double epsilon(1e-10);
         dtime = newpiece.range().end()+epsilon; // to avoid boundary
       }
     }
     // actually replace the reftraj
-    reftraj_ = newref;
+    fittraj_ = newfit;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::extendRefTraj(DOMAINCOL const& domains ) {
@@ -385,7 +387,7 @@ namespace KinKal {
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::update(Status const& fstat, MetaIterConfig const& miconfig) {
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
-      if(miconfig.miter_ > 0){ // if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
+      if(fittraj_.pieces().size() > 0){ // if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
         reftraj_ = fittraj_;
         for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
       }

@@ -1,6 +1,6 @@
 #  Test Configuration iteration schedule for a null (no drift) fit
 # first global parameters: maxniter dewight dchisquared_converge dchisquared_diverge dchisq_paramdiverge tbuff tol minndof bfcor plevel
-10 1.0e6 1.0 50.0 1.0e6 0.0 1e-4 5 1 0
+10 1.0e6 1.0 50.0 1.0e6 0.0 1e-4 5 0 0
 #  Then, meta-iteration specific parameters: temperature (mindoca maxdoca minprob)
 2.0  20 20  1.0e-6
 1.0  10 10  1.0e-6
