@@ -2,7 +2,7 @@
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, MetaIterConfig const& miconfig ) {
       ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;
-      ost << miconfig.updaters_.size() << " Dedicated Updaters";
+      ost << " with " << miconfig.updaters_.size() << " Dedicated Updaters";
       return ost;
   }
 

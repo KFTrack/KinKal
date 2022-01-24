@@ -45,6 +45,7 @@
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/Status.hh"
 #include "KinKal/General/BFieldMap.hh"
+#include "KinKal/General/TimeDir.hh"
 #include "TMath.h"
 #include <set>
 #include <vector>
@@ -111,9 +112,10 @@ namespace KinKal {
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
+      void replaceRefTraj(DOMAINCOL const& domains);
       void extendRefTraj(DOMAINCOL const& domains);
       // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
-      void createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const;
+      void createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges, TimeDir tdir=TimeDir::forwards) const;
       // payload
       CONFIGCOL config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
@@ -170,33 +172,71 @@ namespace KinKal {
     TimeRange exrange = getRange(hits,exings);
     exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
     exrange.end() = std::max(exrange.end(),reftraj_.range().end());
-    // if we're making BField corrections, find the new domains (if any)
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
-    // if the previous configuration didn't have domains, then create them for the full reference range
-      if(!oldconfig.bfcorr_)
-       // create domains for the whole range
+      // if the previous configuration didn't have domains, then create them for the full reference range
+      if(!oldconfig.bfcorr_){
+        // create domains for the whole range
         createDomains(reftraj_, exrange,domains);
+        // replace the reftraj with one with BField rotations
+        replaceRefTraj(domains);
       } else {
-      // create domains just for the extensions
-      TimeRange exlow(exrange.begin(),reftraj_.range().begin());
-      if(exlow.range()>0.0) createDomains(reftraj_, exlow, domains);
-      TimeRange exhigh(reftraj_.range().end(),exrange.end());
-      if(exhigh.range()>0.0) createDomains(reftraj_, exhigh, domains);
+        // create domains just for the extensions, and extend the reftraj as needed
+        TimeRange exlow(exrange.begin(),reftraj_.range().begin());
+        if(exlow.range()>0.0) {
+          DOMAINCOL lowdomains;
+          createDomains(reftraj_, exlow, lowdomains, TimeDir::backwards);
+          extendRefTraj(domains);
+          domains.insert(domains.begin(),lowdomains.begin(),lowdomains.end());
+        }
+        TimeRange exhigh(reftraj_.range().end(),exrange.end());
+        if(exhigh.range()>0.0){
+          DOMAINCOL highdomains;
+          createDomains(reftraj_, exhigh, highdomains,TimeDir::forwards);
+          extendRefTraj(highdomains);
+          domains.insert(domains.end(),highdomains.begin(),highdomains.end());
+        }
+      }
     }
-    // extend the reftraj as needed
-    extendRefTraj(domains);
     // create the effects for the new info and the new domains
     createEffects(hits,exings,domains);
-     // now refit the track
+    // now refit the track
     fit();
   }
 
+  // replace the reference traj with one describing the 'same' trajectory in space, but using the local BField as reference
+  template <class KTRAJ> void Track<KTRAJ>::replaceRefTraj(DOMAINCOL const& domains) {
+  // create new traj
+    PKTRAJ newref;
+    // loop over domains
+    for(auto const& domain : domains) {
+      double dtime = domain.begin();
+      // Set the BField to the start of this domain
+      auto bf = bfield_.fieldVect(reftraj_.position3(dtime));
+      // loop until we're either out of this domain or the piece is out of this domain
+      while(dtime < domain.end()){
+        // find the nearest piece of the current reftraj
+        auto const& oldpiece = reftraj_.nearestPiece(dtime);
+        // create a new piece
+        KTRAJ newpiece(oldpiece,bf,dtime);
+        // set the range as needed
+        newpiece.range() = TimeRange(dtime,std::min(domain.end(),oldpiece.range().end()));
+        reftraj_.append(newpiece);
+        // update the time
+        static double epsilon(1e-10);
+        dtime = newpiece.range().end()+epsilon; // to avoid boundary
+      }
+    }
+    // actually replace the reftraj
+    reftraj_ = newref;
+  }
+
   template <class KTRAJ> void Track<KTRAJ>::extendRefTraj(DOMAINCOL const& domains ) {
-    // dummy implementation: need to put in parameter rotation FIXME!
-    // extend the reftraj range
+    // dummy implementation: need to put in parameter rotation at each domain boundary FIXME!
     if(domains.size() > 0){
-      TimeRange newrange(domains.front().begin(),domains.back().end());
+      // extend the reftraj range
+      TimeRange newrange(std::min(reftraj_.range().begin(),domains.front().begin()),
+          std::max(reftraj_.range().end(),domains.back().end()));
       reftraj_.setRange(newrange);
     }
   }
@@ -383,7 +423,8 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the BField corrections
-  template<class KTRAJ> void Track<KTRAJ>::createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges) const {
+  template<class KTRAJ> void Track<KTRAJ>::createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges,
+  TimeDir tdir) const {
     double tstart;
     tstart = range.begin();
     do {
