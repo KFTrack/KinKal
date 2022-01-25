@@ -401,7 +401,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
   if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
-  //  kktrk.print(cout,detail);
+  if(!printbad)kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;
