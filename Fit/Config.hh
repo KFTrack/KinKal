@@ -19,14 +19,11 @@
 namespace KinKal {
   struct MetaIterConfig {
     double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
-    double convdchisq_; // maximum change in chisquared/dof for convergence
-    double divdchisq_; // minimum change in chisquared/dof for divergence
     int miter_; // count of meta-iteration
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
-    MetaIterConfig() : temp_(0.0), convdchisq_(0.01), divdchisq_(10.0), miter_(-1) {}
-    MetaIterConfig(double temp, double convdchisq, double divdchisq, int miter) :
-    temp_(temp), convdchisq_(convdchisq), divdchisq_(divdchisq), miter_(miter) {}
+    MetaIterConfig() : temp_(0.0),  miter_(-1) {}
+    MetaIterConfig(double temp,  int miter) : temp_(temp), miter_(miter) {}
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };
 
@@ -34,12 +31,15 @@ namespace KinKal {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6),  pdchi2_(1.0e6), tbuff_(0.0), tol_(1.0e-4), minndof_(5), bfcorr_(true), plevel_(none) {}
+    Config() : maxniter_(10), dwt_(1.0e6), convdchisq_(0.01), divdchisq_(10.0), pdchi2_(1.0e6), tbuff_(0.0), tol_(1.0e-4), minndof_(5), bfcorr_(true), plevel_(none) {}
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }
+
     // algebraic iteration parameters
     int maxniter_; // maximum number of algebraic iterations for this config
     double dwt_; // dweighting of initial seed covariance
+    double convdchisq_; // maximum change in chisquared/dof for convergence
+    double divdchisq_; // minimum change in chisquared/dof for divergence
     double pdchi2_; // maximum allowed parameter change (units of chisqred) WRT previous reference
     double tbuff_; // time buffer for final fit (ns)
     double tol_; // tolerance on fractional momentum accuracy due to BField domain steps

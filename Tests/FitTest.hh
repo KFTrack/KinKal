@@ -66,7 +66,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i --maxniter i --deweight f --ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --bfcorr t/f --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extendfrac f --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -92,6 +92,52 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   //  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return ((pos2-pos1).Cross(dir1)).R();
 }
+
+int makeConfig(string const& cfile, KinKal::Config& config) {
+  string fullfile;
+  if(strncmp(cfile.c_str(),"/",1) == 0) {
+    fullfile = string(cfile);
+  } else {
+    if(const char* source = std::getenv("KINKAL_SOURCE_DIR")){
+      fullfile = string(source) + string("/Tests/") + string(cfile);
+    } else {
+      cout << "KINKAL_SOURCE_DIR not defined" << endl;
+      return -1;
+    }
+  }
+  std::ifstream ifs (fullfile, std::ifstream::in);
+  if ( (ifs.rdstate() & std::ifstream::failbit ) != 0 ){
+    std::cerr << "Error opening " << fullfile << std::endl;
+    return -1;
+  }
+  string line;
+  int plevel(-1);
+  unsigned nmiter(0);
+  while (getline(ifs,line)){
+    if(strncmp(line.c_str(),"#",1)!=0){
+      istringstream ss(line);
+      if(plevel < 0) {
+        ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
+        config.pdchi2_ >> config.tbuff_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
+        plevel;
+        config.plevel_ = Config::printLevel(plevel);
+      } else {
+        double temp, mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
+        ss >> temp >> mindoca >> maxdoca >> minprob;
+        MetaIterConfig mconfig(temp, nmiter++);
+        if(mindoca >0.0 || maxdoca > 0.0){
+          // setup and insert the updater
+          cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
+          SimpleWireHitUpdater updater(mindoca,maxdoca,minprob);
+          mconfig.updaters_.push_back(std::any(updater));
+        }
+        config.schedule_.push_back(mconfig);
+      }
+    }
+  }
+  return 0;
+}
+
 
 template <class KTRAJ>
 int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
@@ -138,16 +184,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   int isimmass(0), ifitmass(0), icharge(-1);
   double simmass, fitmass;
-  unsigned maxniter(10);
-  double dwt(1.0e6);
   unsigned nevents(1000);
   bool ttree(false), printbad(false);
   string tfname(""), sfile("Schedule.txt");
   int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
-  bool bfcorr(true);
   bool fitmat(true);
   bool extend(false);
+  string exfile;
   double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -173,14 +217,11 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"seed",     required_argument, 0, 's'  },
     {"hres",     required_argument, 0, 'h'  },
     {"nhits",     required_argument, 0, 'n'  },
-    {"maxniter",     required_argument, 0, 'i'  },
-    {"deweight",     required_argument, 0, 'w'  },
     {"simmat",     required_argument, 0, 'b'  },
     {"fitmat",     required_argument, 0, 'f'  },
     {"ambigdoca",     required_argument, 0, 'd'  },
     {"nevents",     required_argument, 0, 'N'  },
     {"ttree",     required_argument, 0, 'r'  },
-    {"tolerance",     required_argument, 0, 't'  },
     {"TFilesuffix",     required_argument, 0, 'T'  },
     {"dBx",     required_argument, 0, 'x'  },
     {"dBy",     required_argument, 0, 'y'  },
@@ -190,14 +231,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"PrintBad",     required_argument, 0, 'P'  },
     {"PrintDetail",     required_argument, 0, 'D'  },
     {"ScintHit",     required_argument, 0, 'L'  },
-    {"bfcorr",     required_argument, 0, 'B'  },
     {"invert",     required_argument, 0, 'I'  },
     {"Schedule",     required_argument, 0, 'u'  },
     {"seedsmear",     required_argument, 0, 'M' },
     {"constrainpar",     required_argument, 0, 'c' },
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
-    {"extendfrac",     required_argument, 0, 'X'  },
+    {"extendconfig",     required_argument, 0, 'X'  },
     {"lighthit",     required_argument, 0, 'L'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {NULL, 0,0,0}
@@ -221,17 +261,11 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 's' : iseed = atoi(optarg);
                  break;
-      case 'i' : maxniter = atoi(optarg);
-                 break;
-      case 'w' : dwt = atof(optarg);
-                 break;
       case 'b' : simmat = atoi(optarg);
                  break;
       case 'f' : fitmat = atoi(optarg);
                  break;
       case 'L' : lighthit = atoi(optarg);
-                 break;
-      case 'B' : bfcorr = atoi(optarg);
                  break;
       case 'r' : ttree = atoi(optarg);
                  break;
@@ -269,8 +303,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'u' : sfile = optarg;
                  break;
-      case 'X' : extendfrac = atof(optarg);
-                 extend = extendfrac != 0.0;
+      case 'X' : exfile = optarg;
+                 extend = true;
                  break;
       default: print_usage();
                exit(EXIT_FAILURE);
@@ -296,55 +330,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
-  config.dwt_ = dwt;
-  config.maxniter_ = maxniter;
-  config.bfcorr_ = bfcorr;
-  config.tol_ = tol;
-  config.plevel_ = (Config::printLevel)detail;
-  config.tbuff_ = tbuff;
+  makeConfig(sfile,config);
+  cout << "Main fit config " << config << endl;
   // read the schedule from the file
-  string fullfile;
-  if(strncmp(sfile.c_str(),"/",1) == 0) {
-    fullfile = string(sfile);
-  } else {
-    if(const char* source = std::getenv("KINKAL_SOURCE_DIR")){
-      fullfile = string(source) + string("/Tests/") + string(sfile);
-    } else {
-      cout << "KINKAL_SOURCE_DIR not defined" << endl;
-      return -1;
-    }
-  }
-  std::ifstream ifs (fullfile, std::ifstream::in);
-  if ( (ifs.rdstate() & std::ifstream::failbit ) != 0 ){
-    std::cerr << "Error opening " << fullfile << std::endl;
-    return -1;
-  }
-  // config for extension
-  Config exconfig(config);
-  string line;
-  unsigned nmiter(0);
-  double temp, convdchisq, divdchisq;
-  while (getline(ifs,line)){
-    if(strncmp(line.c_str(),"#",1)!=0){
-      double mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
-      istringstream ss(line);
-      ss >> temp >> convdchisq >> divdchisq;
-      MetaIterConfig mconfig(temp, convdchisq, divdchisq, nmiter++);
-      ss >> mindoca >> maxdoca >> minprob;
-      if(mindoca >0.0 || maxdoca > 0.0){
-// setup and insert the updater
-        cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
-        SimpleWireHitUpdater updater(mindoca,maxdoca,minprob);
-        mconfig.updaters_.push_back(std::any(updater));
-      }
-      config.schedule_.push_back(mconfig);
-    }
-  }
-  // extension just uses the last meta-iteration
-  exconfig.schedule_.clear();
-  exconfig.schedule_.push_back(config.schedule_.back());
-  cout << config << endl;
-
+  Config exconfig;
+  if(extend) makeConfig(exfile,exconfig);
+  cout << "Extension config " << exconfig << endl;
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
@@ -390,7 +381,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
     thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
   }
-  // if extending, take a random set of hits and materials out
+  // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
     for(auto ihit = thits.begin(); ihit != thits.end();){
       if(tr_.Uniform(0.0,1.0) < extendfrac){
@@ -409,8 +400,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   }
   // create and fit the track
   KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
-  if(extend && kktrk.fitStatus().usable() && (exthits.size() > 0 || exdxings.size()> 0))kktrk.extend(exconfig,exthits, exdxings);
-  //  kktrk.print(cout,detail);
+  if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
+  if(!printbad)kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");
   // tree variables
   KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;

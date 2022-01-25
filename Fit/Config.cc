@@ -2,14 +2,15 @@
 namespace KinKal {
   std::ostream& operator <<(std::ostream& ost, MetaIterConfig const& miconfig ) {
       ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;
-      ost << " converge, diverge delta-chisq," << miconfig.convdchisq_ << " "<< miconfig.divdchisq_ << " ";
-      ost << miconfig.updaters_.size() << " Dedicated Updaters";
+      ost << " with " << miconfig.updaters_.size() << " Dedicated Updaters";
       return ost;
   }
 
   std::ostream& operator <<(std::ostream& ost, Config const& kkconfig ) {
     ost << "Config maxniter " << kkconfig.maxniter_
       << " dweight " << kkconfig.dwt_
+      << " converge dchisq/dof " << kkconfig.convdchisq_
+      << " diverge dchisq/dof " << kkconfig.divdchisq_
       << " dpar chisq " << kkconfig.pdchi2_
       << " time buffer " << kkconfig.tbuff_
       << " fractional momentum tolerance " << kkconfig.tol_
