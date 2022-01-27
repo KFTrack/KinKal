@@ -204,7 +204,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double seedsmear(10.0);
   double momsigma(0.2);
   double ineff(0.05);
-  double tbuff(0.0);
   bool simmat(true), lighthit(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
@@ -296,8 +295,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       case 't' : tol = atof(optarg);
                  break;
       case 'E' : ineff = atof(optarg);
-                 break;
-      case 'W' : tbuff = atof(optarg);
                  break;
       case 'T' : tfname = optarg;
                  break;
