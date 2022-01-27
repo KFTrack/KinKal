@@ -94,7 +94,7 @@ namespace KinKal {
       PKTRAJ const& fitTraj() const { return fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return config_.back(); }
-      CONFIGCOL const* configs() const { return config_; }
+      CONFIGCOL const& configs() const { return config_; }
       BFieldMap const& bfield() const { return bfield_; }
       HITCOL const& hits() const { return hits_; }
       EXINGCOL const& exings() const { return exings_; }

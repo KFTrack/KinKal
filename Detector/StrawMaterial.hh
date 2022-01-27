@@ -26,10 +26,11 @@ namespace KinKal {
           srad2_ = srad_*srad_;
         }
       // construct using default materials
-      StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad) :
-        StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial("straw-wall"),
-            matdbinfo.findDetMaterial("straw-gas"),
-            matdbinfo.findDetMaterial("straw-wire")) {}
+      StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad,
+      const char* wallmat="straw-wall", const char* gasmat="straw-gas", const char* wiremat="straw-wire") :
+        StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial(wallmat),
+            matdbinfo.findDetMaterial(gasmat),
+            matdbinfo.findDetMaterial(wiremat)) {}
       // pathlength through straw components, given closest approach
       void pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, double& wallpath, double& gaspath, double& wirepath) const;
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO
