@@ -162,7 +162,6 @@ namespace KinKal {
   // extend an existing track
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {
     // update the configuration
-    auto const& oldconfig(config());
     config_.push_back(cfg);
     // configuation check
     if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
@@ -179,7 +178,8 @@ namespace KinKal {
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
       // if the previous configuration didn't have domains, then create them for the full reference range
-      if(!oldconfig.bfcorr_){
+      auto oldconfig = config_.end();  --oldconfig; --oldconfig;
+      if(!oldconfig->bfcorr_){
         // create domains for the whole range
         createDomains(reftraj_, exrange,domains);
         // replace the reftraj with one with BField rotations
@@ -204,6 +204,8 @@ namespace KinKal {
     }
     // create the effects for the new info and the new domains
     createEffects(hits,exings,domains);
+    // update all the effects for this new configuration
+    for(auto& ieff : effects_ ) ieff->update(config());
     // now refit the track
     fit();
   }

@@ -23,6 +23,7 @@ namespace KinKal {
       bool active() const override { return bfcorr_; }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
+      void update(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
