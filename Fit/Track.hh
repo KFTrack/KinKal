@@ -170,8 +170,12 @@ namespace KinKal {
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
     TimeRange exrange = getRange(hits,exings);
-    exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
-    exrange.end() = std::max(exrange.end(),reftraj_.range().end());
+    if(!exrange.infinite()){
+      exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
+      exrange.end() = std::max(exrange.end(),reftraj_.range().end());
+    } else {
+      exrange = reftraj_.range();
+    }
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
       // if the previous configuration didn't have domains, then create them for the full reference range
@@ -298,9 +302,9 @@ namespace KinKal {
     // execute the schedule of meta-iterations
     for(auto imiconfig=config().schedule().begin(); imiconfig != config().schedule().end(); imiconfig++){
       auto miconfig  = *imiconfig;
-      miconfig.miter_  = std::distance(config().schedule().begin(),imiconfig);
       // algebraic convergence iteration
-      Status fstat(miconfig.miter_);
+      unsigned nmeta = history_.size() == 0? 0 : history_.back().miter_ + 1;
+      Status fstat(nmeta);
       history_.push_back(fstat);
       while(canIterate()) {
         // catch exceptions and record them in the status
@@ -386,15 +390,10 @@ namespace KinKal {
 
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::update(Status const& fstat, MetaIterConfig const& miconfig) {
+    if(fittraj_.pieces().size() > 0)reftraj_ = fittraj_; // swap if this isn't the 1st fit
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
-      if(fittraj_.pieces().size() > 0){ // if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
-        reftraj_ = fittraj_;
-        for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
-      }
+      for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
     } else {
-      //swap the fit trajectory to the reference
-      reftraj_ = fittraj_;
-      // update the effects to use the new reference
       for(auto& ieff : effects_) ieff->update(reftraj_);
     }
     // sort the effects by time

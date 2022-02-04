@@ -19,11 +19,10 @@
 namespace KinKal {
   struct MetaIterConfig {
     double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
-    int miter_; // count of meta-iteration
     // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
     std::vector<std::any> updaters_;
-    MetaIterConfig() : temp_(0.0),  miter_(-1) {}
-    MetaIterConfig(double temp,  int miter) : temp_(temp), miter_(miter) {}
+    MetaIterConfig() : temp_(0.0) {}
+    MetaIterConfig(double temp) : temp_(temp) {}
     double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
   };
 
