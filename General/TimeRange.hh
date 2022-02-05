@@ -12,16 +12,16 @@ namespace KinKal {
       TimeRange(double begin, double end) : range_{begin,end} {
         if(begin > end)throw std::invalid_argument("Invalid Range");
       }
-      bool inRange(double t) const {return t >= range_[0] && t < range_[1]; }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
-      double mid() const { return 0.5*(range_[0]+range_[1]); }
-      double range() const { return (range_[1]-range_[0]); }
+      double mid() const { return 0.5*(begin()+end()); }
+      double range() const { return (end()-begin()); }
+      bool inRange(double t) const {return t >= begin() && t < end(); }
       bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
         return (end() > other.begin() || begin() < other.end()); }
       bool contains(TimeRange const& other) const {
-        return (begin() < other.begin() && end() > other.end()); }
+        return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range
       void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
       // augment using another range

@@ -169,7 +169,7 @@ namespace KinKal {
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
     TimeRange exrange = reftraj_.range();
-    if(hits.size() >0 | exings.size() > 0){
+    if(hits.size() >0 || exings.size() > 0){
       TimeRange newrange = getRange(hits,exings);
       exrange.combine(newrange);
     }
@@ -362,9 +362,11 @@ namespace KinKal {
     }
     // trim the range to the physical elements (past the end sites)
     feff = effects_.begin(); feff++;
+    double fefftime = (*feff)->time() - config().tbuff_;
     beff = effects_.rbegin(); beff++;
-    fittraj_.front().range() = TimeRange((*feff)->time() - config().tbuff_,fittraj_.front().range().end());
-    fittraj_.back().range() = TimeRange(fittraj_.back().range().begin(),(*beff)->time() + config().tbuff_);
+    double befftime = (*beff)->time() + config().tbuff_;
+    fittraj_.front().range().combine(TimeRange(fefftime,fefftime));
+    fittraj_.back().range().combine(TimeRange(befftime,befftime));
     // compute parameter difference WRT reference.  Compare in the middle
     auto const& mtraj = fittraj_.nearestPiece(fittraj_.range().mid());
     auto const& rtraj = reftraj_.nearestPiece(fittraj_.range().mid());
