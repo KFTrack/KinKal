@@ -170,8 +170,7 @@ namespace KinKal {
     // find the range of the added information, and extend as needed
     TimeRange exrange = getRange(hits,exings);
     if(!exrange.null()){
-      exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
-      exrange.end() = std::max(exrange.end(),reftraj_.range().end());
+      exrange = TimeRange(std::min(exrange.begin(),reftraj_.range().begin()), std::max(exrange.end(),reftraj_.range().end()));
     } else {
       exrange = reftraj_.range();
     }
@@ -365,8 +364,8 @@ namespace KinKal {
     // trim the range to the physical elements (past the end sites)
     feff = effects_.begin(); feff++;
     beff = effects_.rbegin(); beff++;
-    fittraj_.front().range().begin() = (*feff)->time() - config().tbuff_;
-    fittraj_.back().range().end() = (*beff)->time() + config().tbuff_;
+    fittraj_.front().range() = TimeRange((*feff)->time() - config().tbuff_,fittraj_.front().range().end());
+    fittraj_.back().range() = TimeRange(fittraj_.back().range().begin(),(*beff)->time() + config().tbuff_);
     // compute parameter difference WRT reference.  Compare in the middle
     auto const& mtraj = fittraj_.nearestPiece(fittraj_.range().mid());
     auto const& rtraj = reftraj_.nearestPiece(fittraj_.range().mid());

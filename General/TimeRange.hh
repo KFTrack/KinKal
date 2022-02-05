@@ -14,8 +14,8 @@ namespace KinKal {
       double end() const { return range_[1]; }
       double mid() const { return 0.5*(range_[0]+range_[1]); }
       double range() const { return (range_[1]-range_[0]); }
-      double& begin() { return range_[0]; }
-      double& end() { return range_[1]; }
+//      double& begin() { return range_[0]; }
+//      double& end() { return range_[1]; }
       bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
         return (end() > other.begin() || begin() < other.end()); }

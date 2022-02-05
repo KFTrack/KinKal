@@ -238,21 +238,17 @@ namespace KKTest {
     dBdt = bfield_.fieldDeriv(pos,vel);
     //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
-      TimeRange prange(pktraj.back().range().begin(),pktraj.back().range().begin());
-      prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
-      if(prange.end() > htime) {
-        return;
-      } else {
-        prange.begin() = prange.end();
-        do {
-          prange.end() = bfield_.rangeInTolerance(pktraj.back(),prange.begin(),tol_);
-          VEC4 pos = pktraj.position4(prange.begin());
-          MOM4 mom =  pktraj.momentum4(prange.begin());
-          VEC3 bf = bfield_.fieldVect(pktraj.position3(prange.mid()));
-          KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
-          pktraj.append(newend);
-          prange.begin() = prange.end();
-        } while(prange.end() < htime);
+      double tbeg = bfield_.rangeInTolerance(pktraj.back(),pktraj.back().range().begin(),tol_);
+      double tend = pktraj.back().range().end();
+      while(tbeg < htime) {
+        auto pos = pktraj.position4(tbeg);
+        auto mom =  pktraj.momentum4(tbeg);
+        double tnew = bfield_.rangeInTolerance(pktraj.back(),tbeg,tol_);
+        VEC3 bf = bfield_.fieldVect(pktraj.position3(0.5*(tbeg+tnew)));
+        TimeRange prange(tbeg,tend);
+        KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
+        pktraj.append(newend);
+        tbeg = tnew;
       }
     }
   }
