@@ -7,17 +7,16 @@
 namespace KinKal {
   class TimeRange {
     public:
-      static constexpr double tbuff_ = 1.0e-10; // small buffer to prevent overlaps between adjacent trajs
-      TimeRange() : range_{1.0,-1.0} {} // initialize to have infinite range
+      TimeRange() : range_{0.0,0.0} {} // initialize to have null
       TimeRange(double begin, double end) : range_{begin,end} {}
-      bool inRange(double t) const { return infinite() || (t >= range_[0] && t < range_[1]); }
+      bool inRange(double t) const {return t >= range_[0] && t < range_[1]; }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
       double mid() const { return 0.5*(range_[0]+range_[1]); }
       double range() const { return (range_[1]-range_[0]); }
       double& begin() { return range_[0]; }
       double& end() { return range_[1]; }
-      bool infinite() const { return end() + tbuff_ < begin(); }
+      bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
         return (end() > other.begin() || begin() < other.end()); }
       bool contains(TimeRange const& other) const {

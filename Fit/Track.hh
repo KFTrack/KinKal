@@ -169,7 +169,7 @@ namespace KinKal {
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
     TimeRange exrange = getRange(hits,exings);
-    if(!exrange.infinite()){
+    if(!exrange.null()){
       exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
       exrange.end() = std::max(exrange.end(),reftraj_.range().end());
     } else {
