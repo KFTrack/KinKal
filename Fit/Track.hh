@@ -168,11 +168,10 @@ namespace KinKal {
     // require the existing fit to be usable
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
-    TimeRange exrange = getRange(hits,exings);
-    if(!exrange.null()){
-      exrange = TimeRange(std::min(exrange.begin(),reftraj_.range().begin()), std::max(exrange.end(),reftraj_.range().end()));
-    } else {
-      exrange = reftraj_.range();
+    TimeRange exrange = reftraj_.range();
+    if(hits.size() >0 | exings.size() > 0){
+      TimeRange newrange = getRange(hits,exings);
+      exrange.combine(newrange);
     }
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
