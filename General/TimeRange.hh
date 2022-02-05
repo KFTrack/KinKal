@@ -23,8 +23,11 @@ namespace KinKal {
         return (begin() < other.begin() && end() > other.end()); }
       // force time to be in range
       void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
-      // test if a time is at the limit
-      bool atLimit(double time) const { return time >= end() || time <= begin(); }
+      // augment using another range
+      void combine(TimeRange const& other ) {
+        range_[0] = std::min(begin(),other.begin());
+        range_[1] = std::max(end(),other.end());
+      }
     private:
       std::array<double,2> range_; // range of times
   };
