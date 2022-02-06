@@ -44,7 +44,7 @@ namespace KKTest {
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
-        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tbuff_(0.01), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
+        osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
@@ -86,7 +86,6 @@ namespace KKTest {
       // time hit parameters
       double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
-      double tbuff_;
       double tol_; // tolerance on momentum accuracy due to BField effects
       double tprec_; // time precision on TCA
       double t0off_; // t0 offset
@@ -122,11 +121,11 @@ namespace KKTest {
     createTraj(pktraj);
     // divide time range
     double dt(0.0);
-    if(nhits_ > 0) dt = (pktraj.range().range()-2*tbuff_)/(nhits_);
+    if(nhits_ > 0) dt = (pktraj.range().range())/(nhits_);
     VEC3 bsim;
     // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
-      double htime = tbuff_ + pktraj.range().begin() + ihit*dt;
+      double htime = pktraj.range().begin() + ihit*dt;
       // extend the trajectory in the BFieldMap to this time
       extendTraj(pktraj,htime);
       // create the hit at this time
@@ -262,7 +261,7 @@ namespace KKTest {
     double tmax = fabs(zrange_/(CLHEP::c_light*tcost));
     VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
-    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax+tbuff_));
+    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
     pktraj = PKTRAJ(ktraj);
   }
 }

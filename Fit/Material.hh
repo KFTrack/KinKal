@@ -46,7 +46,7 @@ namespace KinKal {
       static double tbuff_; // small time buffer to avoid ambiguity
   };
 
-  template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-3;
+  template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-6; // small buffer to disambiguate this effect
 
   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing),
   ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0) {

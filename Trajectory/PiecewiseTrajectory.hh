@@ -144,7 +144,7 @@ namespace KinKal {
           // update ranges and add the piece.
           // first, make sure we don't loose range
           double tmax = std::max(newpiece.range().end(),pieces_.back().range().end());
-          // truncate the range of the current back to match with the start of the new piece.  Leave a buffer on the upper range to prevent overlap
+          // truncate the range of the current back to match with the start of the new piece.
           pieces_.back().range() = TimeRange(pieces_.back().range().begin(),newpiece.range().begin());
           pieces_.push_back(newpiece);
           pieces_.back().range() = TimeRange(pieces_.back().range().begin(),tmax);
