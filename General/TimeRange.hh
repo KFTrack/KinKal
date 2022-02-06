@@ -1,6 +1,6 @@
 #ifndef KinKal_TimeRange_hh
 #define KinKal_TimeRange_hh
-// simple struct to describe a time range, defined [ )
+// simple struct to describe a monotonic time range, defined [).
 #include <algorithm>
 #include <ostream>
 #include <array>
@@ -8,10 +8,9 @@
 namespace KinKal {
   class TimeRange {
     public:
-      TimeRange() : range_{0.0,0.0} {} // initialize to have null
+      TimeRange() : range_{0.0,0.0} {} // default to a null range (matches no times)
       TimeRange(double begin, double end) : range_{begin,end} {
-        if(begin > end)throw std::invalid_argument("Invalid Range");
-      }
+        if(begin > end)throw std::invalid_argument("Invalid Range"); }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
       double mid() const { return 0.5*(begin()+end()); }
@@ -24,7 +23,7 @@ namespace KinKal {
         return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range
       void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
-      // augment using another range
+      // augment another range
       void combine(TimeRange const& other ) {
         range_[0] = std::min(begin(),other.begin());
         range_[1] = std::max(end(),other.end());
