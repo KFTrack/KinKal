@@ -5,28 +5,16 @@
 //  the fit (BFieldMap maps, material model), the iteration schedule through which the fit should proceed,
 //  and the convergence criteria for that.
 //
-// struct to define a single meta-iteration of the KKTrk fit.  Each meta-iteration configuration is held
-// constant until the algebraic iteration implicit in the extended Kalman fit methodology converges.
 //
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/Fit/MetaIterConfig.hh"
 #include <vector>
 #include <memory>
 #include <algorithm>
-#include <any>
 #include <ostream>
 #include <istream>
-#include "KinKal/General/Vectors.hh"
 
 namespace KinKal {
-  struct MetaIterConfig {
-    double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
-    int miter_; // count of meta-iteration
-    // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
-    std::vector<std::any> updaters_;
-    MetaIterConfig() : temp_(0.0),  miter_(-1) {}
-    MetaIterConfig(double temp,  int miter) : temp_(temp), miter_(miter) {}
-    double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
-  };
-
   struct Config {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     using Schedule =  std::vector<MetaIterConfig>;
@@ -50,6 +38,5 @@ namespace KinKal {
     Schedule schedule_;
   };
   std::ostream& operator <<(std::ostream& os, Config const& kkconfig );
-  std::ostream& operator <<(std::ostream& os, MetaIterConfig const& miconfig );
 }
 #endif

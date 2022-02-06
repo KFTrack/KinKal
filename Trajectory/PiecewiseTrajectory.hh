@@ -84,8 +84,8 @@ namespace KinKal {
   }
 
   template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::prepend(TTRAJ const& newpiece, bool allowremove) {
-    // new piece can't have infinite range
-    if(newpiece.range().infinite())throw std::invalid_argument("Can't prepend infinite range traj");
+    // new piece can't have null range
+    if(newpiece.range().null())throw std::invalid_argument("Can't prepend null range traj");
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
     } else {
@@ -108,9 +108,9 @@ namespace KinKal {
         if(ipiece == 0){
           // update ranges and add the piece
           double tmin = std::min(newpiece.range().begin(),pieces_.front().range().begin());
-          pieces_.front().range().begin() = newpiece.range().end() +TimeRange::tbuff_;
+          pieces_.front().range() = TimeRange(newpiece.range().end(),pieces_.front().range().end());
           pieces_.push_front(newpiece);
-          pieces_.front().range().begin() = tmin;
+          pieces_.front().range() = TimeRange(tmin,pieces_.front().range().end());
         } else {
           throw std::invalid_argument("range error");
         }
@@ -119,8 +119,8 @@ namespace KinKal {
   }
 
   template <class TTRAJ> void PiecewiseTrajectory<TTRAJ>::append(TTRAJ const& newpiece, bool allowremove) {
-    // new piece can't have infinite range
-    if(newpiece.range().infinite())throw std::invalid_argument("Can't append infinite range traj");
+    // new piece can't have null range
+    if(newpiece.range().null())throw std::invalid_argument("Can't append null range traj");
     if(pieces_.empty()){
       pieces_.push_back(newpiece);
     } else {
@@ -144,10 +144,10 @@ namespace KinKal {
           // update ranges and add the piece.
           // first, make sure we don't loose range
           double tmax = std::max(newpiece.range().end(),pieces_.back().range().end());
-          // truncate the range of the current back to match with the start of the new piece.  Leave a buffer on the upper range to prevent overlap
-          pieces_.back().range().end() = newpiece.range().begin()-TimeRange::tbuff_;
+          // truncate the range of the current back to match with the start of the new piece.
+          pieces_.back().range() = TimeRange(pieces_.back().range().begin(),newpiece.range().begin());
           pieces_.push_back(newpiece);
-          pieces_.back().range().end() = tmax;
+          pieces_.back().range() = TimeRange(pieces_.back().range().begin(),tmax);
         } else {
           throw std::invalid_argument("range error");
         }

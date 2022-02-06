@@ -162,20 +162,22 @@ namespace KinKal {
   // extend an existing track
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {
     // update the configuration
-    auto const& oldconfig(config());
     config_.push_back(cfg);
     // configuation check
     if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
     // require the existing fit to be usable
     if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
-    TimeRange exrange = getRange(hits,exings);
-    exrange.begin() = std::min(exrange.begin(),reftraj_.range().begin());
-    exrange.end() = std::max(exrange.end(),reftraj_.range().end());
+    TimeRange exrange = reftraj_.range();
+    if(hits.size() >0 || exings.size() > 0){
+      TimeRange newrange = getRange(hits,exings);
+      exrange.combine(newrange);
+    }
     DOMAINCOL domains;
     if(config().bfcorr_ ) {
       // if the previous configuration didn't have domains, then create them for the full reference range
-      if(!oldconfig.bfcorr_){
+      auto oldconfig = config_.end();  --oldconfig; --oldconfig;
+      if(!oldconfig->bfcorr_){
         // create domains for the whole range
         createDomains(reftraj_, exrange,domains);
         // replace the reftraj with one with BField rotations
@@ -200,6 +202,8 @@ namespace KinKal {
     }
     // create the effects for the new info and the new domains
     createEffects(hits,exings,domains);
+    // update all the effects for this new configuration
+    for(auto& ieff : effects_ ) ieff->update(config());
     // now refit the track
     fit();
   }
@@ -298,9 +302,9 @@ namespace KinKal {
     // execute the schedule of meta-iterations
     for(auto imiconfig=config().schedule().begin(); imiconfig != config().schedule().end(); imiconfig++){
       auto miconfig  = *imiconfig;
-      miconfig.miter_  = std::distance(config().schedule().begin(),imiconfig);
       // algebraic convergence iteration
-      Status fstat(miconfig.miter_);
+      unsigned nmeta = history_.size() == 0? 0 : history_.back().miter_ + 1;
+      Status fstat(nmeta);
       history_.push_back(fstat);
       while(canIterate()) {
         // catch exceptions and record them in the status
@@ -358,9 +362,11 @@ namespace KinKal {
     }
     // trim the range to the physical elements (past the end sites)
     feff = effects_.begin(); feff++;
+    double fefftime = (*feff)->time() - config().tbuff_;
     beff = effects_.rbegin(); beff++;
-    fittraj_.front().range().begin() = (*feff)->time() - config().tbuff_;
-    fittraj_.back().range().end() = (*beff)->time() + config().tbuff_;
+    double befftime = (*beff)->time() + config().tbuff_;
+    fittraj_.front().range().combine(TimeRange(fefftime,fefftime));
+    fittraj_.back().range().combine(TimeRange(befftime,befftime));
     // compute parameter difference WRT reference.  Compare in the middle
     auto const& mtraj = fittraj_.nearestPiece(fittraj_.range().mid());
     auto const& rtraj = reftraj_.nearestPiece(fittraj_.range().mid());
@@ -386,15 +392,10 @@ namespace KinKal {
 
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::update(Status const& fstat, MetaIterConfig const& miconfig) {
+    if(fittraj_.pieces().size() > 0)reftraj_ = fittraj_; // swap if this isn't the 1st fit
     if(fstat.iter_ < 0) { // 1st iteration of a meta-iteration: update the state
-      if(fittraj_.pieces().size() > 0){ // if this isn't the 1st meta-iteration, swap the fit trajectory to the reference
-        reftraj_ = fittraj_;
-        for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
-      }
+      for(auto& ieff : effects_ ) ieff->update(reftraj_,miconfig);
     } else {
-      //swap the fit trajectory to the reference
-      reftraj_ = fittraj_;
-      // update the effects to use the new reference
       for(auto& ieff : effects_) ieff->update(reftraj_);
     }
     // sort the effects by time

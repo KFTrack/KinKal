@@ -22,6 +22,7 @@ namespace KinKal {
       Chisq chisq() const override;
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
+      void update(Config const& config) override {}
       void process(FitState& kkdata,TimeDir tdir) override;
       bool active() const override { return hit_->active(); }
       double time() const override { return hit_->time(); }

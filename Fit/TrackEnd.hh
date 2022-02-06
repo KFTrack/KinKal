@@ -20,6 +20,10 @@ namespace KinKal {
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override {
         vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
         return update(ref); }
+      void update(Config const& config) override {
+        dwt_ = config.dwt_;
+        bfcorr_ = config.bfcorr_;
+      };
       double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
       bool active() const override { return true; }
       void process(FitState& kkdata,TimeDir tdir) override;
@@ -28,7 +32,7 @@ namespace KinKal {
       virtual ~TrackEnd(){}
       // accessors
       TimeDir const& tDir() const { return tdir_; }
-      double deWeighting() const { return config_.dwt_; }
+      double deWeighting() const { return dwt_; }
       KTRAJ const& endTraj() const { return endtraj_; }
       Weights const& endEffect() const { return endeff_; }
 
@@ -39,7 +43,8 @@ namespace KinKal {
       TrackEnd(TrackEnd const& other) = delete;
       TrackEnd& operator =(TrackEnd const& other) = delete;
     private:
-      Config const& config_; // cache configuration
+      double dwt_;
+      bool bfcorr_;
       BFieldMap const& bfield_; // BField; needed to define reference
       TimeDir tdir_; // direction for this effect; note the early end points forwards, the late backwards
       VEC3 bnom_; // nominal BField
@@ -49,7 +54,7 @@ namespace KinKal {
   };
 
   template <class KTRAJ> TrackEnd<KTRAJ>::TrackEnd(Config const& config, BFieldMap const& bfield, PKTRAJ const& pktraj, TimeDir tdir) :
-    config_(config), bfield_(bfield), tdir_(tdir) , vscale_(1.0),
+    dwt_(config.dwt_), bfcorr_(config.bfcorr_), bfield_(bfield), tdir_(tdir) , vscale_(1.0),
     endtraj_(tdir == TimeDir::forwards ? pktraj.front() : pktraj.back()){
       update(pktraj);
     }
@@ -66,7 +71,7 @@ namespace KinKal {
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::update(PKTRAJ const& ref) {
     auto refend = (tdir_ == TimeDir::forwards) ? ref.front().params() : ref.back().params();
-    refend.covariance() *= (config_.dwt_/vscale_);
+    refend.covariance() *= (dwt_/vscale_);
     // convert this to a weight (inversion)
     endeff_ = Weights(refend);
     // set the range; this should buffer the original traj
@@ -83,9 +88,7 @@ namespace KinKal {
       if(fit.pieces().size() == 0){
         // take the end cache and  seed the fit with it
         // if we're using local BField, update accordingly
-        if(config_.bfcorr_ ){
-          endtraj_.setBNom(endtraj_.range().begin(),bnom_);
-        }
+        if(bfcorr_ ) endtraj_.setBNom(endtraj_.range().begin(),bnom_);
         // append this to the (empty) fit
         fit.append(endtraj_);
       } else

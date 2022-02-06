@@ -1,11 +1,5 @@
 #include "KinKal/Fit/Config.hh"
 namespace KinKal {
-  std::ostream& operator <<(std::ostream& ost, MetaIterConfig const& miconfig ) {
-      ost << "Meta-Iteration " << miconfig.miter_ << " temp " << miconfig.temp_;
-      ost << " with " << miconfig.updaters_.size() << " Dedicated Updaters";
-      return ost;
-  }
-
   std::ostream& operator <<(std::ostream& ost, Config const& kkconfig ) {
     ost << "Config maxniter " << kkconfig.maxniter_
       << " dweight " << kkconfig.dwt_

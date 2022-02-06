@@ -124,7 +124,7 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
       } else {
         double temp, mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
         ss >> temp >> mindoca >> maxdoca >> minprob;
-        MetaIterConfig mconfig(temp, nmiter++);
+        MetaIterConfig mconfig(temp);
         if(mindoca >0.0 || maxdoca > 0.0){
           // setup and insert the updater
           cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;

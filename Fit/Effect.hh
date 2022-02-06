@@ -31,6 +31,8 @@ namespace KinKal {
       virtual void update(PKTRAJ const& ref) = 0;
       // update this effect to start a new algebraic iteration squence using the new reference trajectory and configuration
       virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) = 0;
+      // update this effect for a new configuration
+      virtual void update(Config const& config) =0;
       // diagnostic printout
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // the following only has a non-trivial implementation for effects which (potentially) add information content to the fit

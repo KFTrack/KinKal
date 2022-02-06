@@ -9,7 +9,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "KinKal/Detector/Hit.hh"
-#include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/MetaIterConfig.hh"
 #include <vector>
 #include <stdexcept>
 #include <array>

@@ -9,7 +9,7 @@
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/Chisq.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/MetaIterConfig.hh"
 #include <ostream>
 
 namespace KinKal {

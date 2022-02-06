@@ -5,8 +5,9 @@
 # Globbing is not recommended, see: https://cmake.org/cmake/help/v3.12/command/file.html#filesystem
 
 # you can regenerate this list easily by running in this directory: ls -1 *.cc
-add_library(Fit SHARED 
+add_library(Fit SHARED
     Config.cc
+    MetaIterConfig.cc
     Status.cc
 )
 
