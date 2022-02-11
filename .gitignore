@@ -4,3 +4,5 @@ build/*
 KinKal/UnitTests/Dict.cc
 debug/*
 *.root
+.DS_Store
+.vscode
