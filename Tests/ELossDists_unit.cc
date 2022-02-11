@@ -97,24 +97,6 @@ int main(int argc, char **argv) {
   TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 100e-3);
   
   double nSamples = 100000;
-  
-  //Check which method generates faster 
-  auto start1 = std::chrono::high_resolution_clock::now(); //start time
-  for (int i = 0; i < nSamples; i++){
-    bLoss.sampleSTDGamma(momentum,radFrac);
-  }
-  auto finish1 = std::chrono::high_resolution_clock::now(); //end time
-  std::chrono::duration<double> elapsed1 = finish1 - start1;
-  std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
-
-  auto start2 = std::chrono::high_resolution_clock::now(); //start time
-  for (int i = 0; i < nSamples; i++){
-    bLoss.sampleSSPGamma(momentum,radFrac);
-  }
-  auto finish2 = std::chrono::high_resolution_clock::now(); //end time
-  std::chrono::duration<double> elapsed2 = finish2 - start2;
-  std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
-
 
   for (int i = 0; i < nSamples; i++){
 
@@ -153,6 +135,22 @@ int main(int argc, char **argv) {
   gPad->BuildLegend();
   canvas->Write();
 
+  // Uncheck the lines below to compare performance of two BremssLoss methods
+  // //Check which method generates faster 
+  // auto start1 = std::chrono::high_resolution_clock::now(); //start time
+  // for (int i = 0; i < nSamples; i++){
+  //   bLoss.sampleSTDGamma(momentum,radFrac);
+  // }
+  // auto finish1 = std::chrono::high_resolution_clock::now(); //end time
+  // std::chrono::duration<double> elapsed1 = finish1 - start1;
+  // std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
 
+  // auto start2 = std::chrono::high_resolution_clock::now(); //start time
+  // for (int i = 0; i < nSamples; i++){
+  //   bLoss.sampleSSPGamma(momentum,radFrac);
+  // }
+  // auto finish2 = std::chrono::high_resolution_clock::now(); //end time
+  // std::chrono::duration<double> elapsed2 = finish2 - start2;
+  // std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
 
 }
