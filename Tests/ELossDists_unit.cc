@@ -9,6 +9,10 @@
 #include <stdio.h>
 #include <iostream>
 #include <getopt.h>
+#include <iomanip>
+#include <random>
+#include <cmath>
+#include <chrono>
 
 #include "TH1F.h"
 #include "TSystem.h"
@@ -32,7 +36,7 @@ int main(int argc, char **argv) {
 
   string matname("straw-wall");
   double momentum(100.0);
-  double thickness(0.015);
+  double thickness(0.0015);
   int imass(0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
@@ -94,7 +98,24 @@ int main(int argc, char **argv) {
   
   double nSamples = 100000;
   
-    
+  //Check which method generates faster 
+  auto start1 = std::chrono::high_resolution_clock::now(); //start time
+  for (int i = 0; i < nSamples; i++){
+    bLoss.sampleSTDGamma(momentum,radFrac);
+  }
+  auto finish1 = std::chrono::high_resolution_clock::now(); //end time
+  std::chrono::duration<double> elapsed1 = finish1 - start1;
+  std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
+
+  auto start2 = std::chrono::high_resolution_clock::now(); //start time
+  for (int i = 0; i < nSamples; i++){
+    bLoss.sampleSSPGamma(momentum,radFrac);
+  }
+  auto finish2 = std::chrono::high_resolution_clock::now(); //end time
+  std::chrono::duration<double> elapsed2 = finish2 - start2;
+  std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
+
+
   for (int i = 0; i < nSamples; i++){
 
     // Here we assume that the particle loses energy first in collision and then in radiation
@@ -106,7 +127,7 @@ int main(int argc, char **argv) {
     histCol->Fill(colloss);
     elossTotal->Fill(bremloss+colloss);
   } 
-  
+
   histBrem->SetLineColor(kRed);
   histBrem->SetFillColor(kRed);
   histBrem->SetFillStyle(3001);
