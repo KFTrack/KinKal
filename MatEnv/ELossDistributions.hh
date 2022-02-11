@@ -1,5 +1,5 @@
-#ifndef KinKal_MatEnv_MoyalDist_HH
-#define KinKal_MatEnv_MoyalDist_HH
+#ifndef KinKal_MatEnv_ELossDistributions_HH
+#define KinKal_MatEnv_ELossDistributions_HH
 
 #include <iostream>
 #include <vector>

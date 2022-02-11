@@ -2,7 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
-#include "KinKal/MatEnv/MoyalDist.hh"
+#include "KinKal/MatEnv/ELossDistributions.hh"
 
 namespace KinKal {
   void MoyalDist::setCoeffs(int kmax){
