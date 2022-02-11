@@ -2,7 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
-#include "KinKal/MatEnv/MoyalDist.hh"
+#include "KinKal/MatEnv/ELossDistributions.hh"
 
 namespace KinKal {
   void MoyalDist::setCoeffs(int kmax){
@@ -81,4 +81,70 @@ namespace KinKal {
     double x = _mode + _sigma * z;
     return (x) ;
   }
+
+  double BremssLoss::sampleSTDGamma(double energy, double radthickness) const{
+    // We can use the std::gamma_distribution; However it is computaionally inefficient 
+    // for very small shape parameter and generates a lot of zeros. 
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::gamma_distribution<> dis(radthickness/M_LN2, 1.0);
+    double Y = 0; 
+    
+    do
+    {
+      Y =  dis(gen);
+    } while (Y < std::numeric_limits<double>::epsilon()); //condition to ignore zeros
+
+     double bremssFraction = std::exp(-Y); // [(E0 - hn)/E0]
+     double bremssLoss = energy * (1. - bremssFraction);
+
+    return bremssLoss;
+
+  }
+
+  double BremssLoss::sampleSSPGamma(double energy, double radthickness) const{
+    // This uses a method from https://arxiv.org/pdf/1302.1884.pdf
+    // which is supposed to work better for small shape parameters 
+    // Performs only slightly better than std::gamma_distribution 
+    double alpha = radthickness/M_LN2;
+    double lambda = -1. + 1./alpha;
+    double omega = alpha/(exp(1.)*(1.-alpha));
+    double rate = 1./(1. + omega);
+    double z =0;
+    double Y =0;
+    double eta_alpha = 0;
+    double h_alpha = 0;
+    
+    std::random_device rd;  // Will be used to obtain a seed for the random number engine
+    std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
+    std::uniform_real_distribution<> dis(0.0, 1.0);
+
+    do
+        {
+           double U = dis(gen);
+            if (U <= rate)
+            {
+                z = - log(U/rate);
+            } else {
+                z = log(dis(gen))/lambda;
+            }
+
+            h_alpha = exp( -z - exp(-z/alpha));
+            if(z>=0){
+                eta_alpha = exp(-z);
+            } else{
+                eta_alpha = omega * lambda * exp(lambda *z);
+            }
+
+            Y = exp(-z/alpha);
+        } while (h_alpha/eta_alpha < dis(gen) || (Y < std::numeric_limits<double>::epsilon()) ); //condition to ignore zeros
+        
+        
+        double bremssFraction = std::exp(-Y); // [(E0 - hn)/E0]
+        double bremssLoss = energy * (1. - bremssFraction);
+
+        return bremssLoss;
+
+  }
+
 }

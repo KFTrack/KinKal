@@ -1,5 +1,5 @@
-#ifndef KinKal_MatEnv_MoyalDist_HH
-#define KinKal_MatEnv_MoyalDist_HH
+#ifndef KinKal_MatEnv_ELossDistributions_HH
+#define KinKal_MatEnv_ELossDistributions_HH
 
 #include <iostream>
 #include <vector>
@@ -47,5 +47,16 @@ namespace KinKal {
       static constexpr double EG = 0.577215664901532860606;    //Euler-gamma constant; replace this with numerics when we move to c++20
       static constexpr double MFACTOR = EG + M_LN2;
   };
+
+  /// Putting in a class for Bremsstrahlung loss
+  class BremssLoss
+  {
+  
+    public:
+      double sampleSTDGamma(double energy, double radthickenss) const; //standard c++ library for gamma distribution
+      double sampleSSPGamma(double energy, double radthickenss) const; //implementation of gamma distribution for small shape parameter
+  };
+  
+  
 }
 #endif

@@ -11,7 +11,7 @@
 #include "TF1.h"
 #include "TStyle.h"
 #include "TPad.h"
-#include "KinKal/MatEnv/MoyalDist.hh"
+#include "KinKal/MatEnv/ELossDistributions.hh"
 
 void print_usage() {
   printf("Usage: MatEnv --mean f --rms f --kmax i --nsamples d \n");
