@@ -36,7 +36,7 @@ int main(int argc, char **argv) {
 
   string matname("straw-wall");
   double momentum(100.0);
-  double thickness(0.015);
+  double thickness(0.0015);
   int imass(0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
@@ -92,11 +92,11 @@ int main(int argc, char **argv) {
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
-  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 100e-3);
-  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 100e-3);
-  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 100e-3);
+  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 10e-3);
+  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 10e-3);
+  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 10e-3);
   
-  double nSamples = 100000;
+  double nSamples = 1000000;
 
   for (int i = 0; i < nSamples; i++){
 
@@ -135,22 +135,22 @@ int main(int argc, char **argv) {
   gPad->BuildLegend();
   canvas->Write();
 
-  // Uncheck the lines below to compare performance of two BremssLoss methods
-  // //Check which method generates faster 
-  auto start1 = std::chrono::high_resolution_clock::now(); //start time
-  for (int i = 0; i < nSamples; i++){
-    bLoss.sampleSTDGamma(momentum,radFrac);
-  }
-  auto finish1 = std::chrono::high_resolution_clock::now(); //end time
-  std::chrono::duration<double> elapsed1 = finish1 - start1;
-  std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
+  // // Uncheck the lines below to compare performance of two BremssLoss methods
+  // // //Check which method generates faster 
+  // auto start1 = std::chrono::high_resolution_clock::now(); //start time
+  // for (int i = 0; i < nSamples; i++){
+  //   bLoss.sampleSTDGamma(momentum,radFrac);
+  // }
+  // auto finish1 = std::chrono::high_resolution_clock::now(); //end time
+  // std::chrono::duration<double> elapsed1 = finish1 - start1;
+  // std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
 
-  auto start2 = std::chrono::high_resolution_clock::now(); //start time
-  for (int i = 0; i < nSamples; i++){
-    bLoss.sampleSSPGamma(momentum,radFrac);
-  }
-  auto finish2 = std::chrono::high_resolution_clock::now(); //end time
-  std::chrono::duration<double> elapsed2 = finish2 - start2;
-  std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
+  // auto start2 = std::chrono::high_resolution_clock::now(); //start time
+  // for (int i = 0; i < nSamples; i++){
+  //   bLoss.sampleSSPGamma(momentum,radFrac);
+  // }
+  // auto finish2 = std::chrono::high_resolution_clock::now(); //end time
+  // std::chrono::duration<double> elapsed2 = finish2 - start2;
+  // std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
 
 }
