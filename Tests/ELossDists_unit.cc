@@ -92,11 +92,11 @@ int main(int argc, char **argv) {
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
-  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 100e-3);
-  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 100e-3);
-  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 100e-3);
+  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 10e-3);
+  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 10e-3);
+  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 10e-3);
   
-  double nSamples = 100000;
+  double nSamples = 1000000;
 
   for (int i = 0; i < nSamples; i++){
 
@@ -135,8 +135,8 @@ int main(int argc, char **argv) {
   gPad->BuildLegend();
   canvas->Write();
 
-  // Uncheck the lines below to compare performance of two BremssLoss methods
-  // //Check which method generates faster 
+  // // Uncheck the lines below to compare performance of two BremssLoss methods
+  // // //Check which method generates faster 
   // auto start1 = std::chrono::high_resolution_clock::now(); //start time
   // for (int i = 0; i < nSamples; i++){
   //   bLoss.sampleSTDGamma(momentum,radFrac);

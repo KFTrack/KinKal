@@ -90,13 +90,10 @@ namespace KinKal {
     std::gamma_distribution<> dis(radthickness/M_LN2, 1.0);
     double Y = 0; 
     
-    do
-    {
-      Y =  dis(gen);
-    } while (Y < std::numeric_limits<double>::epsilon()); //condition to ignore zeros
-
-     double bremssFraction = std::exp(-Y); // [(E0 - hn)/E0]
-     double bremssLoss = energy * (1. - bremssFraction);
+    Y =  dis(gen);
+    
+    double bremssFraction = std::exp(-Y); // [(E0 - hn)/E0]
+    double bremssLoss = energy * (1. - bremssFraction);
 
     return bremssLoss;
 
@@ -137,7 +134,7 @@ namespace KinKal {
             }
 
             Y = exp(-z/alpha);
-        } while (h_alpha/eta_alpha < dis(gen) || (Y < std::numeric_limits<double>::epsilon()) ); //condition to ignore zeros
+        } while (h_alpha/eta_alpha < dis(gen) );
         
         
         double bremssFraction = std::exp(-Y); // [(E0 - hn)/E0]
