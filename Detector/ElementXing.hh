@@ -32,6 +32,8 @@ namespace KinKal {
       std::vector<MaterialXing>&  matXings() { return mxings_; }
       // calculate the cumulative material effect from these crossings
       void materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
+      // sum radiation fraction
+      double radiationFraction() const;
     private:
       std::vector<MaterialXing> mxings_; // Effect of each physical material component of this detector element on this trajectory
   };
@@ -53,6 +55,13 @@ namespace KinKal {
       momvar[MomBasis::phidir_] += scatvar;
     }
     // correct for time direction
+  }
+
+  template <class KTRAJ> double ElementXing<KTRAJ>::radiationFraction() const {
+    double retval(0.0);
+    for(auto const& mxing : mxings_)
+      retval += mxing.dmat_.radiationFraction(mxing.plen_/10.0); // Ugly conversion to cm FIXME!!
+    return retval;
   }
 }
 #endif
