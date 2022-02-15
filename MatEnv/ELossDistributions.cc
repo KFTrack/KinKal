@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
+#include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/MatEnv/ELossDistributions.hh"
 
 namespace KinKal {
@@ -142,6 +143,52 @@ namespace KinKal {
 
         return bremssLoss;
 
+  }
+
+  double DeltaRayLoss::sampleDRL(){
+
+    // Since the production of a high energy DR is rare and independent of each other,
+    // we assume the distrinbution of number of delta rays produced above cut-off energy
+    // is Poisson with a mean of _avgNumber
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::poisson_distribution<> pois(_avgNumber);
+
+    int producedDR = pois(gen);
+
+    // Sample producedDR energies from the CDF and sum them to obtain the 
+    // energy loss of each primary particle
+    double elossSum = 0;
+    double elossRand = 0;
+    double elossRandPrevious = 0;
+    int counter = 0;
+    std::uniform_real_distribution<double> unif(0,1);
+    for(int i=0; i < producedDR; i++){
+
+      // The following loop is for solving the equation for inverse CDF as suggested in
+      // Watts Jr, J. W. Calculation of energy deposition distributions for simple geometries. No. M452. 1973.
+      do 
+      { 
+        if(counter == 0){
+          elossRandPrevious = _cutoffEnergy;
+
+        } else {
+          elossRandPrevious = elossRand;
+        }
+        double rand = unif(gen);
+        double elossRandInv =  ( 1. /_cutoffEnergy) + (_beta*_beta/_elossMax)*std::log(_cutoffEnergy/elossRandPrevious) \
+                                - rand * ( ( 1. /_cutoffEnergy) -  ( 1. /_elossMax) + (_beta*_beta/_elossMax) * std::log(_cutoffEnergy/_elossMax) );
+                             
+        elossRand =  1./elossRandInv;
+        counter++;
+
+      } while (abs(elossRand - elossRandPrevious)/abs(elossRand) > 0.001);
+
+      elossSum += elossRand;
+      
+    }
+    return elossSum;
+    
   }
 
 }

@@ -27,6 +27,7 @@ using namespace std;
 using namespace MatEnv;
 using KinKal::MoyalDist;
 using KinKal::BremssLoss;
+using KinKal::DeltaRayLoss;
 
 void print_usage() {
   printf("Usage: MatEnv --material c --particle i --momentum f  --thickness f\n");
@@ -36,7 +37,7 @@ int main(int argc, char **argv) {
 
   string matname("straw-wall");
   double momentum(100.0);
-  double thickness(0.0015);
+  double thickness(0.015);
   int imass(0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
@@ -86,28 +87,38 @@ int main(int argc, char **argv) {
   std::cout << "abs(eloss) = " << abs(eloss)  << std::endl;
   std::cout << "elossrms = " << elossrms  << std::endl;
   BremssLoss bLoss;
-
-  double radFrac = dmat->radiationFraction(thickness);
+  
+  double cm(10.0);
+  double radFrac = dmat->radiationFraction(thickness/cm);
   std::cout << "radiation fraction == " << radFrac << std::endl;
+
+  DeltaRayLoss drLoss(dmat, momentum, thickness/cm, pmass);
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
   TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 10e-3);
   TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 10e-3);
+  TH1F* histDR = new TH1F("histDR", "Delta Ray Loss", 500,  0., 10e-3);
   TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 10e-3);
   
-  double nSamples = 1000000;
+  double nSamples = 10000;
 
   for (int i = 0; i < nSamples; i++){
 
     // Here we assume that the particle loses energy first in collision and then in radiation
     // Changing the order doesn't change the results. 
+    if(i%1000 == 0){
+      std::cout << "Sampled " << i << " events" << "\n";
+    }
     double colloss = mDist.sampleAR();
     double bremloss = bLoss.sampleSSPGamma(momentum - colloss,radFrac); 
+    double deltaloss = drLoss.sampleDRL();
+    //std::cout << "delta Loss " << deltaloss << "\n";
 
     histBrem->Fill(bremloss);
     histCol->Fill(colloss);
-    elossTotal->Fill(bremloss+colloss);
+    histDR->Fill(deltaloss);
+    elossTotal->Fill(bremloss+colloss+deltaloss);
   } 
 
   histBrem->SetLineColor(kRed);
@@ -119,6 +130,11 @@ int main(int argc, char **argv) {
   histCol->SetFillColor(kBlue);
   histCol->SetFillStyle(3001);
   histCol->Write();
+
+  histDR->SetLineColor(kBlue - 3);
+  histDR->SetFillColor(kBlue - 3);
+  histDR->SetFillStyle(3001);
+  histDR->Write();
 
   elossTotal->SetLineColor(kGreen);
   elossTotal->SetFillColor(kGreen);

@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <cmath>
+#include "KinKal/MatEnv/DetMaterial.hh"
 
 namespace KinKal {
   class MoyalDist{
@@ -51,12 +52,45 @@ namespace KinKal {
   /// Putting in a class for Bremsstrahlung loss
   class BremssLoss
   {
-  
     public:
       double sampleSTDGamma(double energy, double radthickenss) const; //standard c++ library for gamma distribution
       double sampleSSPGamma(double energy, double radthickenss) const; //implementation of gamma distribution for small shape parameter
   };
   
+  class DeltaRayLoss{
+    // This class is based on the calulcations presented in the following thesis
+    // Watts Jr, J. W. Calculation of energy deposition distributions for simple geometries. No. M452. 1973.
+    public:
+      DeltaRayLoss(const MatEnv::DetMaterial* dmat, double mom, double pathlen, double mass):
+      _cutoffEnergy(dmat->eexc()),
+      _beta(dmat->particleBeta(mom,mass)),
+      _gamma(dmat->particleGamma(mom,mass))
+      {
+        double beta2 = _beta * _beta;
+        double mratio = e_mass_/mass;
+        
+        _elossMax = 2*e_mass_*pow(_beta * _gamma,2)/
+          (1+2*_gamma*mratio + pow(mratio,2));
+        if(mass <= e_mass_){
+          _elossMax *= 0.5;
+        }
+        _xi = (0.307/2.) * (dmat->density() * dmat->zeff()/dmat->aeff()) * (1./beta2);
+        _avgNumber = _xi * pathlen * ( (1./_cutoffEnergy) - (1./_elossMax) \
+                             + (beta2/_elossMax) * std::log(_cutoffEnergy/_elossMax) );
+                                 
+      }
+
+      double sampleDRL();
+
+    private:
+      double _cutoffEnergy; //cut off energy 
+      double _elossMax; 
+      double _xi; 
+      double _beta;
+      double _gamma;
+      double _avgNumber; //average number of delta rays produced along pathlen X abovecutoffEnergy
+      static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
+  };
   
 }
 #endif
