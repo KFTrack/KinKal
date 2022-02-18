@@ -80,6 +80,8 @@ int main(int argc, char **argv) {
   MatDBInfo matdbinfo(sfinder,MatEnv::DetMaterial::moyalmean);
   const DetMaterial* dmat = matdbinfo.findDetMaterial(matname);
   std::cout << "Found DetMaterial " << dmat->name() << std::endl;
+
+  double cm(10.0);
   
   double eloss = dmat->energyLoss(momentum,thickness,pmass);
   double elossrms = dmat->energyLossRMS(momentum,thickness,pmass);
@@ -88,18 +90,18 @@ int main(int argc, char **argv) {
   std::cout << "elossrms = " << elossrms  << std::endl;
   BremssLoss bLoss;
   
-  double cm(10.0);
   double radFrac = dmat->radiationFraction(thickness/cm);
   std::cout << "radiation fraction == " << radFrac << std::endl;
 
   DeltaRayLoss drLoss(dmat, momentum, thickness/cm, pmass);
+  //drLoss.setCutOffEnergy(1e-3);
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
-  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 10e-3);
-  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 10e-3);
-  TH1F* histDR = new TH1F("histDR", "Delta Ray Loss", 500,  0., 10e-3);
-  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 10e-3);
+  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 0.1);
+  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 0.1);
+  TH1F* histDR = new TH1F("histDR", "Delta Ray Loss", 500,  0., 0.1);
+  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 0.1);
   
   double nSamples = 10000;
 
@@ -107,13 +109,15 @@ int main(int argc, char **argv) {
 
     // Here we assume that the particle loses energy first in collision and then in radiation
     // Changing the order doesn't change the results. 
-    if(i%1000 == 0){
-      std::cout << "Sampled " << i << " events" << "\n";
-    }
+    // if(i%1000 == 0){
+    //   std::cout << "Sampled " << i << " events" << "\n";
+    // }
     double colloss = mDist.sampleAR();
     double bremloss = bLoss.sampleSSPGamma(momentum - colloss,radFrac); 
     double deltaloss = drLoss.sampleDRL();
-    //std::cout << "delta Loss " << deltaloss << "\n";
+    // std::cout << "delta Loss " << deltaloss << "\t";
+    // std::cout << "brem Loss " << bremloss << "\t";
+    // std::cout << "Col Loss " << colloss << "\n";
 
     histBrem->Fill(bremloss);
     histCol->Fill(colloss);
@@ -131,8 +135,8 @@ int main(int argc, char **argv) {
   histCol->SetFillStyle(3001);
   histCol->Write();
 
-  histDR->SetLineColor(kBlue - 3);
-  histDR->SetFillColor(kBlue - 3);
+  histDR->SetLineColor(kMagenta);
+  histDR->SetFillColor(kMagenta);
   histDR->SetFillStyle(3001);
   histDR->Write();
 
@@ -147,6 +151,7 @@ int main(int argc, char **argv) {
   
   histCol->Draw("same");
   histBrem->Draw("same");
+  histDR->Draw("same");
   gPad->SetLogy();
   gPad->BuildLegend();
   canvas->Write();
