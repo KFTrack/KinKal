@@ -2,6 +2,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <cmath>
+#include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/MatEnv/ELossDistributions.hh"
 
 namespace KinKal {
@@ -142,6 +143,71 @@ namespace KinKal {
 
         return bremssLoss;
 
+  }
+
+  double DeltaRayLoss::sampleDRL() const{
+
+    // Since the production of a high energy DR is rare and independent of each other,
+    // we assume the distrinbution of number of delta rays produced above cut-off energy
+    // is Poisson with a mean of _avgNumber
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::poisson_distribution<> pois(_avgNumber);
+
+    int producedDR = pois(gen);
+
+    // Sample producedDR energies from the CDF and sum them to obtain the 
+    // energy loss of each primary particle
+    double elossSum = 0;
+    
+
+    std::uniform_real_distribution<double> unif(0,1);
+    for(int i=0; i < producedDR; i++){
+
+      // The following loop is for solving the equation for inverse CDF as suggested in
+      // Watts Jr, J. W. Calculation of energy deposition distributions for simple geometries. No. M452. 1973.
+      double rand = unif(gen);
+      double elossRand0 = 0;
+      double elossRand1 = 0;
+
+      int maxIter = 10;
+
+      for(int i=0; i < maxIter; i++){ //Use only 10 iterations to test for convergence
+        
+        if(i==0){
+          elossRand0 = _cutOffEnergy; //initial guess
+        } else {
+          elossRand0 = elossRand1;
+        }
+
+        // From CDF expression and using Newton Raphson method to get sample of energy elossRand1
+        double f_x = 1./_cutOffEnergy - 1./elossRand0 \
+                    + (_beta2/_elossMax)*std::log(_cutOffEnergy/elossRand0) \
+                    + (elossRand0 - _cutOffEnergy)/(_gamma*_mass) \
+                    - _avgNumber * rand;  
+        // define derivative for f_x to solve for elossRand
+        double g_x = std::pow(1./elossRand0, 2) \
+                     - _beta2*elossRand0/_elossMax \
+                     + std::pow(1./elossRand0, 2)/_gamma*_mass;
+        
+        elossRand1 = elossRand0 - f_x /g_x;
+        if(abs((elossRand1-elossRand0)/elossRand0) < 0.00001 && i<maxIter)
+          break;
+        else if (abs((elossRand1-elossRand0)/elossRand0) > 0.00001 && i>=maxIter)
+        {
+          i=0; 
+          rand = unif(gen);
+          elossRand0 = 0;
+          elossRand1 = 0;
+        }
+        
+      }
+
+      elossSum += elossRand1;
+      
+    }
+    return elossSum;
+    
   }
 
 }
