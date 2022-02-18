@@ -184,7 +184,9 @@ namespace KinKal {
         double f_x = 1./_cutOffEnergy - 1./elossRand0 \
                     + (_beta2/_elossMax)*std::log(_cutOffEnergy/elossRand0) \
                     + (elossRand0 - _cutOffEnergy)/(_gamma*_mass) \
-                    - _avgNumber * rand;  
+                    - rand * ( (1./_cutOffEnergy) - (1./_elossMax) \
+                             + (_beta2/_elossMax) * std::log(_cutOffEnergy/_elossMax) \
+                             + (_elossMax - _cutOffEnergy)/(_gamma * _mass));  
         // define derivative for f_x to solve for elossRand
         double g_x = std::pow(1./elossRand0, 2) \
                      - _beta2*elossRand0/_elossMax \
@@ -204,9 +206,12 @@ namespace KinKal {
       }
 
       elossSum += elossRand1;
+      // std::cout << "elossSum= " << elossSum << "\t producedDR = " << producedDR << "rand = " << rand << "\n"; 
       
     }
-    return elossSum;
+    // if(elossSum>0)
+    //   std::cout << "elossSum= " << elossSum << "\n";
+    return elossSum; 
     
   }
 
