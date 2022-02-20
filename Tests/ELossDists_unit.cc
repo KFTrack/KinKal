@@ -35,9 +35,10 @@ void print_usage() {
 
 int main(int argc, char **argv) {
 
-  string matname("straw-wall");
+  //string matname("straw-wall");
+  string matname("IT-Aluminum");
   double momentum(100.0);
-  double thickness(0.015);
+  double thickness(0.05);
   int imass(0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
@@ -94,16 +95,22 @@ int main(int argc, char **argv) {
   std::cout << "radiation fraction == " << radFrac << std::endl;
 
   DeltaRayLoss drLoss(dmat, momentum, thickness/cm, pmass);
-  //drLoss.setCutOffEnergy(1e-3);
+  drLoss.setCutOffEnergy(1e-3);
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
-  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 500, 0, 0.1);
-  TH1F* histCol = new TH1F("histCol", "Collision Loss", 500,  0., 0.1);
-  TH1F* histDR = new TH1F("histDR", "Delta Ray Loss", 500,  0., 0.1);
-  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 500,  0., 0.1);
+  TH1F* histBrem = new TH1F("histBrem", "Bremss Loss", 100, 0, 0.1);
+  TH1F* histCol = new TH1F("histCol", "Collision Loss", 100,  0., 0.1);
+  TH1F* histDR = new TH1F("histDR", "Delta Ray Loss", 100,  0., 0.1);
+  TH1F* elossTotal = new TH1F("elossTotal", "Total Loss", 100,  0., 0.1);
   
-  double nSamples = 10000;
+  double nSamples = 100000;
+  
+  
+  double bremloss = 0;
+  double secondaryloss = 0;
+  double primaryloss = 0;
+  double colloss = 0;
 
   for (int i = 0; i < nSamples; i++){
 
@@ -112,36 +119,35 @@ int main(int argc, char **argv) {
     // if(i%1000 == 0){
     //   std::cout << "Sampled " << i << " events" << "\n";
     // }
-    double colloss = mDist.sampleAR();
-    double bremloss = bLoss.sampleSSPGamma(momentum - colloss,radFrac); 
-    double deltaloss = drLoss.sampleDRL();
-    // std::cout << "delta Loss " << deltaloss << "\t";
-    // std::cout << "brem Loss " << bremloss << "\t";
-    // std::cout << "Col Loss " << colloss << "\n";
+    primaryloss = mDist.sampleAR();
+    secondaryloss = drLoss.sampleDRL();
+    colloss = secondaryloss + primaryloss - drLoss.getCutOffEnergy();
+
+    bremloss = bLoss.sampleSSPGamma(momentum - colloss,radFrac); 
 
     histBrem->Fill(bremloss);
-    histCol->Fill(colloss);
-    histDR->Fill(deltaloss);
-    elossTotal->Fill(bremloss+colloss+deltaloss);
+    histCol->Fill(primaryloss);
+    histDR->Fill(secondaryloss);
+    elossTotal->Fill(bremloss+colloss);
   } 
 
   histBrem->SetLineColor(kRed);
-  histBrem->SetFillColor(kRed);
+  //histBrem->SetFillColor(kRed);
   histBrem->SetFillStyle(3001);
   histBrem->Write();
 
   histCol->SetLineColor(kBlue);
-  histCol->SetFillColor(kBlue);
+  //histCol->SetFillColor(kBlue);
   histCol->SetFillStyle(3001);
   histCol->Write();
 
   histDR->SetLineColor(kMagenta);
-  histDR->SetFillColor(kMagenta);
+  //histDR->SetFillColor(kMagenta);
   histDR->SetFillStyle(3001);
   histDR->Write();
 
   elossTotal->SetLineColor(kGreen);
-  elossTotal->SetFillColor(kGreen);
+  //elossTotal->SetFillColor(kGreen);
   elossTotal->SetFillStyle(3001);
   elossTotal->Write();
 

@@ -92,6 +92,9 @@ namespace KinKal {
       void setCutOffEnergy(double cutoff) {
           _cutOffEnergy = cutoff;
       };
+      double getCutOffEnergy(){
+        return _cutOffEnergy;
+      };
 
     private:
       double _cutOffEnergy; //cut off energy 

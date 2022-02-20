@@ -154,8 +154,12 @@ namespace KinKal {
     std::mt19937 gen(rd());
     std::poisson_distribution<> pois(_avgNumber);
 
-    int producedDR = pois(gen);
-
+    int producedDR = 0;
+    do {
+      producedDR = pois(gen);
+    } while (producedDR == 0 );
+    
+    std::cout << "Produced DR " << producedDR << "\n"; 
     // Sample producedDR energies from the CDF and sum them to obtain the 
     // energy loss of each primary particle
     double elossSum = 0;
