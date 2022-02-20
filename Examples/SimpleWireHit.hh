@@ -59,22 +59,15 @@ namespace KinKal {
       this->tpdata_ = tpoca.tpData();
       this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
       // find the specific updater for this meta-iteration.  There should be at most 1
-      const SimpleWireHitUpdater* updater(0);
-      for(auto const& uparams : miconfig.updaters_){
-        auto const* whu = std::any_cast<SimpleWireHitUpdater>(&uparams);
-        if(whu != 0){
-          if(updater !=0) throw std::invalid_argument("Multiple SimpleWireHitUpdaters found");
-          updater = whu;
-        }
-      }
-      if(updater != 0){
+      auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
+      if(swhu != 0){
         // update the WireHitState
-        this->mindoca_ = std::min(updater->mindoca_,cellRadius());;
+        this->mindoca_ = std::min(swhu->mindoca_,cellRadius());;
         double doca = tpoca.doca();
         auto chisq = this->chisq();
-        if(fabs(doca) > updater->maxdoca_ || chisq.probability() < updater->minprob_ ) {
+        if(fabs(doca) > swhu->maxdoca_ || chisq.probability() < swhu->minprob_ ) {
           this->wstate_.state_ = WireHitState::inactive; // disable the hit if it's an outlier
-        } else if(fabs(doca) > updater->mindoca_ ) {
+        } else if(fabs(doca) > swhu->mindoca_ ) {
           this->wstate_.state_ = doca > 0.0 ? WireHitState::right : WireHitState::left;
         } else {
           // too close to the wire: don't try to disambiguate LR sign
@@ -84,7 +77,7 @@ namespace KinKal {
       WIREHIT::setResiduals(tpoca);
     } else
       throw std::runtime_error("PTCA failure");
-    // OK if no updater is found, hits may be frozen this meta-iteration
+    // OK if no swhu is found, hits may be frozen this meta-iteration
   }
 
 
