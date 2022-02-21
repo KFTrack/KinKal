@@ -6,6 +6,7 @@
 //
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Detector/StrawXingConfig.hh"
 #include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -54,14 +55,7 @@ namespace KinKal {
 
   template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     // search for an update to the xing configuration among this meta-iteration payload
-    const StrawXingConfig* sxconfig(0);
-    for(auto const& uparams : miconfig.updaters_){
-      auto const* sxc = std::any_cast<StrawXingConfig>(&uparams);
-      if(sxc != 0){
-        if(sxconfig !=0) throw std::invalid_argument("Multiple StrawXingConfig objects found");
-        sxconfig = sxc;
-      }
-    }
+    auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
     if(sxconfig != 0) sxconfig_ = *sxconfig;
     // use current xing time create a hint to the CA calculation: this speeds it up
     CAHint tphint(this->crossingTime(), this->crossingTime());

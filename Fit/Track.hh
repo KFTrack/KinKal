@@ -39,9 +39,9 @@
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/TrackEnd.hh"
-#include "KinKal/Fit/HitConstraint.hh"
+#include "KinKal/Fit/Measurement.hh"
 #include "KinKal/Fit/Material.hh"
-#include "KinKal/Fit/BFieldEffect.hh"
+#include "KinKal/Fit/BField.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/Status.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -60,10 +60,10 @@ namespace KinKal {
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using KKHIT = HitConstraint<KTRAJ>;
+      using KKHIT = Measurement<KTRAJ>;
       using KKMAT = Material<KTRAJ>;
       using KKEND = TrackEnd<KTRAJ>;
-      using KKBFIELD = BFieldEffect<KTRAJ>;
+      using KKBFIELD = BField<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;

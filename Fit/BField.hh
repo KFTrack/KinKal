@@ -1,7 +1,7 @@
-#ifndef KinKal_BFieldEffect_hh
-#define KinKal_BFieldEffect_hh
+#ifndef KinKal_BField_hh
+#define KinKal_BField_hh
 //
-// correct for the effect of BFieldMap inhomogenity; adjust the trajectory parameters using the BFieldMap
+// Effect to correct the fit parameters for the change in BField along a small piece of the trajectory.
 // This effect adds no information content or noise (presently), just transports the parameters
 //
 #include "KinKal/Fit/Effect.hh"
@@ -14,7 +14,7 @@
 #include <ostream>
 
 namespace KinKal {
-  template<class KTRAJ> class BFieldEffect : public Effect<KTRAJ> {
+  template<class KTRAJ> class BField : public Effect<KTRAJ> {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
@@ -28,12 +28,12 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       Parameters const& effect() const { return dbforw_; }
-      virtual ~BFieldEffect(){}
+      virtual ~BField(){}
       // disallow copy and equivalence
-      BFieldEffect(BFieldEffect const& ) = delete;
-      BFieldEffect& operator =(BFieldEffect const& ) = delete;
+      BField(BField const& ) = delete;
+      BField& operator =(BField const& ) = delete;
       // create from the domain range, the effect, and the
-      BFieldEffect(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
+      BField(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
         bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
       TimeRange const& range() const { return drange_; }
 
@@ -44,7 +44,7 @@ namespace KinKal {
       bool bfcorr_; // apply correction or not
   };
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void BField<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(bfcorr_){
       // forwards; just append the effect's parameter change
       if(tdir == TimeDir::forwards) {
@@ -59,7 +59,7 @@ namespace KinKal {
     KKEFF::setState(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref) {
+  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref) {
     double etime = time();
     // compute parameter change due to changing BNom across this domain
     if(bfcorr_){
@@ -71,15 +71,15 @@ namespace KinKal {
     KKEFF::updateState();
   }
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
+  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
     update(ref);
   }
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::append(PKTRAJ& fit) {
+  template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& fit) {
     if(bfcorr_){
       double etime = time();
       // make sure the piece is appendable
-      if(fit.back().range().begin() > etime) throw std::invalid_argument("BFieldEffect: Can't append piece");
+      if(fit.back().range().begin() > etime) throw std::invalid_argument("BField: Can't append piece");
       TimeRange newrange(etime,std::max(fit.range().end(),drange_.end()));
       // copy the back piece of fit and set its range
       KTRAJ newpiece(fit.back());
@@ -91,12 +91,12 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void BFieldEffect<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost << "BFieldEffect " << static_cast<Effect<KTRAJ>const&>(*this);
+  template<class KTRAJ> void BField<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "BField " << static_cast<Effect<KTRAJ>const&>(*this);
     ost << " effect " << dbforw_.parameters() << " domain range " << drange_ << std::endl;
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, BFieldEffect<KTRAJ> const& kkmat) {
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, BField<KTRAJ> const& kkmat) {
     kkmat.print(ost,0);
     return ost;
   }

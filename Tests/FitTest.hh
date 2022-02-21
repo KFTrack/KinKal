@@ -11,9 +11,9 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/HitConstraint.hh"
+#include "KinKal/Fit/Measurement.hh"
 #include "KinKal/Fit/Material.hh"
-#include "KinKal/Fit/BFieldEffect.hh"
+#include "KinKal/Fit/BField.hh"
 #include "KinKal/Fit/Track.hh"
 #include "KinKal/Tests/ToyMC.hh"
 #include "KinKal/Examples/HitInfo.hh"
@@ -129,7 +129,7 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
           // setup and insert the updater
           cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
           SimpleWireHitUpdater updater(mindoca,maxdoca,minprob);
-          mconfig.updaters_.push_back(std::any(updater));
+          mconfig.addUpdater(std::any(updater));
         }
         config.schedule_.push_back(mconfig);
       }
@@ -154,9 +154,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = HitConstraint<KTRAJ>;
+  using KKHIT = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
-  using KKBF = BFieldEffect<KTRAJ>;
+  using KKBFIELD = BField<KTRAJ>;
   using KKEND = TrackEnd<KTRAJ>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
@@ -716,7 +716,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 
         for(auto const& eff: kktrk.effects()) {
           const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-          const KKBF* kkbf = dynamic_cast<const KKBF*>(eff.get());
+          const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
           const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
           if(kkhit != 0){
             nkkhit_++;
