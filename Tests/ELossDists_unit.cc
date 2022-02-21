@@ -115,10 +115,7 @@ int main(int argc, char **argv) {
   for (int i = 0; i < nSamples; i++){
 
     // Here we assume that the particle loses energy first in collision and then in radiation
-    // Changing the order doesn't change the results. 
-    // if(i%1000 == 0){
-    //   std::cout << "Sampled " << i << " events" << "\n";
-    // }
+
     primaryloss = mDist.sampleAR();
     secondaryloss = drLoss.sampleDRL();
     colloss = secondaryloss + primaryloss;
@@ -160,23 +157,5 @@ int main(int argc, char **argv) {
   gPad->SetLogy();
   gPad->BuildLegend();
   canvas->Write();
-
-  // // Uncheck the lines below to compare performance of two BremssLoss methods
-  // // //Check which method generates faster 
-  // auto start1 = std::chrono::high_resolution_clock::now(); //start time
-  // for (int i = 0; i < nSamples; i++){
-  //   bLoss.sampleSTDGamma(momentum,radFrac);
-  // }
-  // auto finish1 = std::chrono::high_resolution_clock::now(); //end time
-  // std::chrono::duration<double> elapsed1 = finish1 - start1;
-  // std::cout << std::setw(50) << std::left << "Elapsed time for STDGamma method:" << elapsed1.count() << " s\n";
-
-  // auto start2 = std::chrono::high_resolution_clock::now(); //start time
-  // for (int i = 0; i < nSamples; i++){
-  //   bLoss.sampleSSPGamma(momentum,radFrac);
-  // }
-  // auto finish2 = std::chrono::high_resolution_clock::now(); //end time
-  // std::chrono::duration<double> elapsed2 = finish2 - start2;
-  // std::cout << std::setw(50) << std::left << "Elapsed time for SSPGamma method:" << elapsed2.count() << " s\n";
 
 }
