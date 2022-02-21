@@ -6,17 +6,11 @@
 //
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/Detector/MaterialXing.hh"
+#include "KinKal/Detector/StrawXingConfig.hh"
 #include "KinKal/MatEnv/MatDBInfo.hh"
 #include "KinKal/Trajectory/ClosestApproachData.hh"
 
 namespace KinKal {
-  // simple struct to hold crossing calculation configuration parameters
-  struct StrawXingConfig {
-    double minsigdoca_; // minimum doca sigma to integrate
-    double nsig_; // number of sigma past wall to consider 'inside' the straw
-    StrawXingConfig(double ddmax, double nsig) : minsigdoca_(ddmax), nsig_(nsig) {}
-  };
-
   class StrawMaterial {
     public:
       // explicit constructor from geometry and materials
