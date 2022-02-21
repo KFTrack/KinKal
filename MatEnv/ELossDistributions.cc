@@ -158,9 +158,9 @@ namespace KinKal {
     // The following is asking the distribution to produce delta ray everytime it is called.
     // The tail of the ionization loss results matches with GEANT4 simulation only if
     // a delta ray is produced. We will shift the distribution to zero at the end (by 
-    // subtracting the _cutOffEnergy). The becomes necessary to get the correct energy balance since 
-    // formulas for delta-ray distribution is not valid
-    // for small _cutOffEnergies and has been set to 1keV (or higher). 
+    // subtracting the _cutOffEnergy). I have found this to be necessary to get the correct energy balance. 
+    // It should be kept in mind that the formula for delta-ray distribution is valid
+    // only for _cutOffEnergies >> ionizationEnergy(hence the default cutoff of 1 keV or more). 
     do {
       producedDR = pois(gen);
     } while (producedDR == 0 ); 
@@ -201,7 +201,7 @@ namespace KinKal {
           g_x = DiffCDFHeavy(elossRand0);
         }
         
-        elossRand1 = elossRand0 - f_x /g_x; //Newton raphson method
+        elossRand1 = elossRand0 - f_x /g_x; //Newton-raphson method step
         if(abs((elossRand1-elossRand0)/elossRand0) < 0.00001 && i<maxIter)
           break;
         else if (abs((elossRand1-elossRand0)/elossRand0) > 0.00001 && i>=maxIter)
