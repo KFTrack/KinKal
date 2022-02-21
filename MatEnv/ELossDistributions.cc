@@ -201,7 +201,7 @@ namespace KinKal {
           g_x = DiffCDFHeavy(elossRand0);
         }
         
-        elossRand1 = elossRand0 - f_x /g_x;
+        elossRand1 = elossRand0 - f_x /g_x; //Newton raphson method
         if(abs((elossRand1-elossRand0)/elossRand0) < 0.00001 && i<maxIter)
           break;
         else if (abs((elossRand1-elossRand0)/elossRand0) > 0.00001 && i>=maxIter)
@@ -228,7 +228,6 @@ namespace KinKal {
   double DeltaRayLoss::CDFHeavy(double x, double random) const{
     // From delta-electron energy distribution in case of heany spin-1/2 
     // particle (Rossi-1952, also see  Handbook of Particle Detection and Imaging (2021))
-    //double f_x = dNdXHeavy(_cutOffEnergy, x) - random* dNdXHeavy(_cutOffEnergy, _elossMax);
     double f_x = dNdXIntegralHeavy(x) - dNdXIntegralHeavy(_cutOffEnergy) \
                 - random* ( dNdXIntegralHeavy(_elossMax) - dNdXIntegralHeavy(_cutOffEnergy) );
     return f_x;
@@ -245,6 +244,9 @@ namespace KinKal {
   }
 
   double DeltaRayLoss::dNdXIntegralHeavy(double x) const{
+    // The _beta2 factor has been deliberately left out here. 
+    // It cancels out when the ratio of 
+    // ( dNdXIntegralHeavy(x) - dNdXIntegralHeavy(_cutOffEnergy) / _avgNumber is taken.
     double integral = - 1./x \
                       - (_beta2/_elossMax)*std::log(x) \
                       + 0.5*x/_totalEnergy ;
@@ -261,7 +263,8 @@ namespace KinKal {
   }
 
   double DeltaRayLoss::DiffCDFElectron(double x) const{
-    // define derivative for f_x to solve for elossRand0
+    // The expression is obtained by expanding the expression given in Rossi 
+    // through partial fractions
     double g_x = std::pow(1./x, 2) \
                      + 1./(_totalEnergy * x) \
                      + 1./( (_totalEnergy - x ) * x) \

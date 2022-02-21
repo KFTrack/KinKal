@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
   //string matname("straw-wall");
   string matname("IT-Aluminum");
   double momentum(100.0);
-  double thickness(0.05);
+  double thickness(0.050);
   int imass(0);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
   const char* pnames[5] = {"electron","muon","pion","kaon","proton"};
