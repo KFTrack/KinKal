@@ -154,11 +154,22 @@ namespace KinKal {
     std::mt19937 gen(rd());
     std::poisson_distribution<> pois(_avgNumber);
 
-    int producedDR = pois(gen);
-
+    int producedDR = 0;
+    // The following is asking the distribution to produce delta ray everytime it is called.
+    // The tail of the ionization loss results matches with GEANT4 simulation only if
+    // a delta ray is produced. We will shift the distribution to zero at the end (by 
+    // subtracting the _cutOffEnergy). I have found this to be necessary to get the correct energy balance. 
+    // It should be kept in mind that the formula for delta-ray distribution is valid
+    // only for _cutOffEnergies >> ionizationEnergy(hence the default cutoff of 1 keV or more). 
+    do {
+      producedDR = pois(gen);
+    } while (producedDR == 0 ); 
+    
     // Sample producedDR energies from the CDF and sum them to obtain the 
     // energy loss of each primary particle
     double elossSum = 0;
+    double f_x = 0;
+    double g_x =0;
     
 
     std::uniform_real_distribution<double> unif(0,1);
@@ -179,20 +190,18 @@ namespace KinKal {
         } else {
           elossRand0 = elossRand1;
         }
-
-        // From CDF expression and using Newton Raphson method to get sample of energy elossRand1
-        double f_x = 1./_cutOffEnergy - 1./elossRand0 \
-                    + (_beta2/_elossMax)*std::log(_cutOffEnergy/elossRand0) \
-                    + (elossRand0 - _cutOffEnergy)/(_gamma*_mass) \
-                    - rand * ( (1./_cutOffEnergy) - (1./_elossMax) \
-                             + (_beta2/_elossMax) * std::log(_cutOffEnergy/_elossMax) \
-                             + (_elossMax - _cutOffEnergy)/(_gamma * _mass));  
-        // define derivative for f_x to solve for elossRand
-        double g_x = std::pow(1./elossRand0, 2) \
-                     - _beta2*elossRand0/_elossMax \
-                     + std::pow(1./elossRand0, 2)/_gamma*_mass;
         
-        elossRand1 = elossRand0 - f_x /g_x;
+        if(_isElectron){
+           // Use expression for electron (see Rossi 1952)
+           f_x = CDFElectron(elossRand0, rand);
+           g_x = DiffCDFElectron(elossRand0);
+        } else{
+          //Use expression for heavy spin 1/2 particles
+          f_x = CDFHeavy(elossRand0, rand);
+          g_x = DiffCDFHeavy(elossRand0);
+        }
+        
+        elossRand1 = elossRand0 - f_x /g_x; //Newton-raphson method step
         if(abs((elossRand1-elossRand0)/elossRand0) < 0.00001 && i<maxIter)
           break;
         else if (abs((elossRand1-elossRand0)/elossRand0) > 0.00001 && i>=maxIter)
@@ -206,13 +215,68 @@ namespace KinKal {
       }
 
       elossSum += elossRand1;
-      // std::cout << "elossSum= " << elossSum << "\t producedDR = " << producedDR << "rand = " << rand << "\n"; 
       
     }
-    // if(elossSum>0)
-    //   std::cout << "elossSum= " << elossSum << "\n";
-    return elossSum; 
+    // Energy Balance: Return _cutOffEnergy subtracted loss so that the delta-ray loss
+    // distriubution is shifted to zero. when it is added 
+    // Moyal energy loss estimate it does not shift the most probable energy loss value
+    // This also makes the result somewhat agnostic to _cutOffEnergy value. 
+    return (elossSum - _cutOffEnergy); 
     
+  }
+
+  double DeltaRayLoss::CDFHeavy(double x, double random) const{
+    // From delta-electron energy distribution in case of heany spin-1/2 
+    // particle (Rossi-1952, also see  Handbook of Particle Detection and Imaging (2021))
+    double f_x = dNdXIntegralHeavy(x) - dNdXIntegralHeavy(_cutOffEnergy) \
+                - random* ( dNdXIntegralHeavy(_elossMax) - dNdXIntegralHeavy(_cutOffEnergy) );
+    return f_x;
+
+  }
+
+  double DeltaRayLoss::DiffCDFHeavy(double x) const{
+    // From delta-electron energy distribution for heavy spin-1/2 
+    // particle (Rossi-1952, also see  Handbook of Particle Detection and Imaging (2021))
+    double g_x = std::pow(1./x, 2) \
+                     - _beta2*x/_elossMax \
+                     + std::pow(1./x, 2)/_totalEnergy;
+    return g_x;
+  }
+
+  double DeltaRayLoss::dNdXIntegralHeavy(double x) const{
+    // The _beta2 factor has been deliberately left out here. 
+    // It cancels out when the ratio of 
+    // ( dNdXIntegralHeavy(x) - dNdXIntegralHeavy(_cutOffEnergy) / _avgNumber is taken.
+    double integral = - 1./x \
+                      - (_beta2/_elossMax)*std::log(x) \
+                      + 0.5*x/_totalEnergy ;
+    return integral;
+  }
+
+  double DeltaRayLoss::CDFElectron(double x, double random) const{
+    // From delta-electron energy distribution electrons 
+    // (Rossi-1952, also see  Handbook of Particle Detection and Imaging (2021))
+    double f_x = dNdXIntegralElectron(x) - dNdXIntegralElectron(_cutOffEnergy) \
+                - random* ( dNdXIntegralElectron(_elossMax) - dNdXIntegralElectron(_cutOffEnergy) );
+    return f_x;
+
+  }
+
+  double DeltaRayLoss::DiffCDFElectron(double x) const{
+    // The expression is obtained by expanding the expression given in Rossi 
+    // through partial fractions
+    double g_x = std::pow(1./x, 2) \
+                     + 1./(_totalEnergy * x) \
+                     + 1./( (_totalEnergy - x ) * x) \
+                     + std::pow(1./(_totalEnergy - x), 2);
+    return g_x;
+  }
+
+  double DeltaRayLoss::dNdXIntegralElectron(double x) const{
+    double integral =  1./(_totalEnergy -x ) \
+                      -1./x \
+                      +(1./_totalEnergy)*std::log(x/(_totalEnergy -x));
+    return integral;
   }
 
 }

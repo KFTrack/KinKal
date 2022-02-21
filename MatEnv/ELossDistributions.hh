@@ -62,29 +62,31 @@ namespace KinKal {
     // Watts Jr, J. W. Calculation of energy deposition distributions for simple geometries. No. M452. 1973.
     public:
       DeltaRayLoss(const MatEnv::DetMaterial* dmat, double mom, double pathlen, double mass):
-      _cutOffEnergy(dmat->eexc()),
+      _cutOffEnergy(1e-3), //Default cutoff energy of 1 keV; it should be 1 keV or higher
       _beta(dmat->particleBeta(mom,mass)),
       _gamma(dmat->particleGamma(mom,mass)),
       _mass(mass)
       {
+        if( abs(mass - e_mass_) < 0.001){
+          _isElectron = true;
+        }
         _beta2 = _beta * _beta;
+        _totalEnergy = _gamma*_mass;
         double mratio = e_mass_/mass;
         
         _elossMax = 2*e_mass_*pow(_beta * _gamma,2)/
           (1+2*_gamma*mratio + pow(mratio,2));
-        if(mass <= e_mass_){
+        if(_isElectron){
           _elossMax *= 0.5;
         }
 
-        _xi = (0.307/2.) * (dmat->density() * dmat->zeff()/dmat->aeff()) * (1./_beta2); // 0.307 MeV mol^-1 cm  is from PDG
+        _xi = (0.307/2.) * (dmat->density() * dmat->zeff()/dmat->aeff()) ; // 0.307 MeV mol^-1 cm  is from PDG
         
-        //The expression for the term below is true for spin 1/2 particles
-        // This should be changed for spin 0 ans spin 1 but I don't think it is needed for Track Toy
-        // see E.A. Uehling, Ann. Rev. Nucl. Sci. 4, 315 (1954)
-        _avgNumber = _xi * pathlen * ( (1./_cutOffEnergy) - (1./_elossMax) \
-                             + (_beta2/_elossMax) * std::log(_cutOffEnergy/_elossMax) \
-                             + (_elossMax - _cutOffEnergy)/(_gamma * _mass));
-       
+        if(_isElectron){
+          _avgNumber = _xi * pathlen * (dNdXIntegralElectron(_elossMax) - dNdXIntegralElectron(_cutOffEnergy));
+        } else {
+          _avgNumber = _xi * pathlen * (1./_beta2) * ( dNdXIntegralHeavy(_elossMax) - dNdXIntegralHeavy(_cutOffEnergy) );
+        }
                                  
       }
 
@@ -92,9 +94,16 @@ namespace KinKal {
       void setCutOffEnergy(double cutoff) {
           _cutOffEnergy = cutoff;
       };
+      double getCutOffEnergy(){
+        return _cutOffEnergy;
+      };
+
+      double getIsEclectron(){
+        return _isElectron;
+      };
 
     private:
-      double _cutOffEnergy; //cut off energy 
+      double _cutOffEnergy; //cut off energy should be 1 - 100 keV
       double _elossMax; 
       double _xi; 
       double _beta;
@@ -103,6 +112,14 @@ namespace KinKal {
       double _mass;
       double _avgNumber; //average number of delta rays produced along pathlen X abovecutoffEnergy
       static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
+      bool   _isElectron;
+      double _totalEnergy;
+      double CDFHeavy(double x, double rand) const;
+      double DiffCDFHeavy(double x) const;
+      double dNdXIntegralHeavy(double x) const;
+      double CDFElectron(double x, double rand) const;
+      double DiffCDFElectron(double x) const;
+      double dNdXIntegralElectron(double x) const;
   };
   
 }
