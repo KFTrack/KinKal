@@ -95,7 +95,7 @@ int main(int argc, char **argv) {
   std::cout << "radiation fraction == " << radFrac << std::endl;
 
   DeltaRayLoss drLoss(dmat, momentum, thickness/cm, pmass);
-  drLoss.setCutOffEnergy(1e-3);
+  //drLoss.setCutOffEnergy(1e-3);
 
   
   std::unique_ptr<TFile> mFile( TFile::Open("ELossDists.root", "RECREATE") );
@@ -121,8 +121,7 @@ int main(int argc, char **argv) {
     // }
     primaryloss = mDist.sampleAR();
     secondaryloss = drLoss.sampleDRL();
-    colloss = secondaryloss + primaryloss - drLoss.getCutOffEnergy();
-
+    colloss = secondaryloss + primaryloss;
     bremloss = bLoss.sampleSSPGamma(momentum - colloss,radFrac); 
 
     histBrem->Fill(bremloss);
