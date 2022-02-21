@@ -30,27 +30,25 @@ namespace KinKal {
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
       virtual void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const = 0;
+      // define null ambiguity hit properties
+      virtual double nullVariance(Dimension dim,DriftInfo const& dinfo) const = 0;
+      virtual double nullOffset(Dimension dim,DriftInfo const& dinfo) const = 0;
       // WireHit specific functions
       ClosestApproachData const& closestApproach() const { return tpdata_; }
-      WireHitState const& hitState() const { return wstate_; }
+      WireHitState const& hitState() const { return whstate_; }
       Residual const& timeResidual() const { return rresid_[tresid]; }
       Residual const& spaceResidual() const { return rresid_[dresid]; }
       Line const& wire() const { return wire_; }
       BFieldMap const& bfield() const { return bfield_; }
       double precision() const { return precision_; }
-      double minDOCA() const { return mindoca_; }
       // constructor
-      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const&, double mindoca);
+      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whs);
       virtual ~WireHit(){}
     protected:
-      WireHitState wstate_; // current state
-      double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
-      ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
-      PTCA wirePTCA(PKTRAJ const& pktraj) const;
-      void setResiduals(PTCA const& tpoca); // compute the Residuals from PTCA
+      void setState(WireHitState::State state) { whstate_.state_ = state; }
     private:
-      double nullVariance(Dimension dim,DriftInfo const& dinfo) const;
-      double nullOffset(Dimension dim,DriftInfo const& dinfo) const;
+      WireHitState whstate_; // current state
+      ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       Line wire_; // local linear approximation to the wire of this hit.
       // the start time is the measurement time, the direction is from
@@ -61,41 +59,30 @@ namespace KinKal {
       double precision_; // precision for PTCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate, double mindoca) :
-    wstate_(wstate), mindoca_(mindoca), tpdata_(ptca.tpData()), bfield_(bfield), wire_(ptca.sensorTraj()), precision_(ptca.precision()) {}
-
-  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::wirePTCA(PKTRAJ const& pktraj) const {
-    CAHint tphint(wire_.range().mid(),wire_.range().mid());
-    // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
-    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
-    // re-compute the time point of closest approache
-    return PTCA(pktraj,wire_,tphint,precision_);
-  }
-
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    PTCA tpoca = wirePTCA(pktraj);
-    if(tpoca.usable()){
-      tpdata_ = tpoca.tpData();
-      this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
-      setResiduals(tpoca);
-    } else
-      throw std::runtime_error("PTCA failure");
-  }
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) :
+    whstate_(wstate), tpdata_(ptca.tpData()), bfield_(bfield), wire_(ptca.sensorTraj()), precision_(ptca.precision()) {}
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     update(pktraj);
   }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
-    if(ires ==0 && wstate_.active())
+    if(ires ==0 && whstate_.active())
       return true;
-    else if(ires ==1 && wstate_.state_ == WireHitState::null)
+    else if(ires ==1 && whstate_.state_ == WireHitState::null)
       return true;
     else
       return false;
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::setResiduals(PTCA const& tpoca) {
+  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
+    CAHint tphint(wire_.range().mid(),wire_.range().mid());
+    // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
+    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
+    PTCA tpoca(pktraj,wire_,tphint,precision_);
+    if(!tpoca.usable())throw std::runtime_error("PTCA failure");
+    tpdata_ = tpoca.tpData();
+    this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
     // compute drift parameters.  These are used even for null-ambiguity hits
     VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
     auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
@@ -104,9 +91,9 @@ namespace KinKal {
     POL2 drift(fabs(tpoca.doca()), phi);
     DriftInfo dinfo;
     distanceToTime(drift, dinfo);
-    if(wstate_.useDrift()){
+    if(whstate_.useDrift()){
       // translate PTCA to residual. Use ambiguity to convert drift time to a time difference.
-      double dsign = wstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
+      double dsign = whstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
       double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
       DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP();
       rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,dRdP);
@@ -130,27 +117,9 @@ namespace KinKal {
     return rresid_[ires];
   }
 
-  template <class KTRAJ> double WireHit<KTRAJ>::nullVariance(Dimension dim,DriftInfo const& dinfo) const {
-    switch (dim) {
-      case dresid: default:
-        return (mindoca_*mindoca_)/3.0; // doca is signed
-      case tresid:
-        return (mindoca_*mindoca_)/(dinfo.vdrift_*dinfo.vdrift_*12.0); // TOCA is always larger than the crossing time
-    }
-  }
-
-  template <class KTRAJ> double WireHit<KTRAJ>::nullOffset(Dimension dim,DriftInfo const& dinfo) const {
-    switch (dim) {
-      case dresid: default:
-        return 0.0; // not sure if there's a better answer
-      case tresid:
-        return -0.5*mindoca_/dinfo.vdrift_;
-    }
-  }
-
   template<class KTRAJ> void WireHit<KTRAJ>::print(std::ostream& ost, int detail) const {
     ost << " WireHit state ";
-    switch(wstate_.state_) {
+    switch(whstate_.state_) {
       case WireHitState::inactive:
         ost << "inactive";
         break;
