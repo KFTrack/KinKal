@@ -253,7 +253,7 @@ namespace MatEnv {
       //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
       constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
       double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
-      
+
       return -1.0 * mmean;
     }
 
@@ -402,7 +402,7 @@ namespace MatEnv {
 
 
         //forming the Moyal RMS
-        constexpr static double pisqrt2 = 2.2214414690791831 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+        constexpr static double pisqrt2 = M_PI/M_SQRT2 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
         double mrms = pisqrt2 * moyalsigma ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
 
         return mrms;
