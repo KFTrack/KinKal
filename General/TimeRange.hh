@@ -10,7 +10,7 @@ namespace KinKal {
     public:
       TimeRange() : range_{0.0,0.0} {} // default to a null range (matches no times)
       TimeRange(double begin, double end) : range_{begin,end} {
-        if(begin > end)throw std::invalid_argument("Invalid Range"); }
+        if(begin > end)throw std::invalid_argument("Invalid Time Range"); }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
       double mid() const { return 0.5*(begin()+end()); }
