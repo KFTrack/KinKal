@@ -68,10 +68,10 @@ namespace KinKal {
 
   template <class KTRAJ> void SimpleWireHitUpdater::update(SimpleWireHit<KTRAJ>& swh) const {
     swh.mindoca_ = std::min(mindoca_,swh.cellRadius());
+    WireHitState::State state;
     if(swh.closestApproach().usable()){
       double doca = swh.closestApproach().doca();
       auto chisq = swh.chisq();
-      WireHitState::State state;
       if(fabs(doca) > maxdoca_ || chisq.probability() < minprob_ ) {
         state = WireHitState::inactive; // disable the hit if it's an outlier
       } else if(fabs(doca) > mindoca_ ) {
