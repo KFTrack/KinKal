@@ -80,8 +80,10 @@ namespace KinKal {
         // too close to the wire: don't try to disambiguate LR sign
         state = WireHitState::null;
       }
-      swh.setState(state);
+    } else {
+      state = WireHitState::inactive;
     }
+    swh.setState(state);
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
@@ -100,10 +102,13 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+    WIREHIT::update(pktraj,miconfig);
   // look for an updater; if it's there, update the state
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
-    if(swhu != 0)swhu->update(*this);
-    WIREHIT::update(pktraj,miconfig);
+    if(swhu != 0){swhu->update(*this);
+      // update again
+      WIREHIT::update(pktraj,miconfig);
+    }
   }
 
 }
