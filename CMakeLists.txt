@@ -89,6 +89,9 @@ message( STATUS "Commits made since last tag: ${_build_ver_commits_since_tag}")
 message( STATUS "Commit short hash: ${_build_ver_commit_short}")
 
 
+# make the library names unique
+set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")
+
 # find the ROOT dependency
 find_package(ROOT REQUIRED COMPONENTS
         Core RIO Net Hist GenVector MLP Graf Graf3d Gpad Tree

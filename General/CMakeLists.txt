@@ -33,4 +33,4 @@ target_include_directories(General PRIVATE ${PROJECT_SOURCE_DIR}/..)
 target_link_libraries(General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
-set_target_properties(General PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(General PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

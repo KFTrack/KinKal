@@ -16,3 +16,5 @@ target_include_directories(Examples PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 
 # link ROOT libraries
 target_link_libraries(Examples ${ROOT_LIBRARIES})
+# set shared library version equal to project version
+set_target_properties(Examples PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
