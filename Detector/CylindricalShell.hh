@@ -5,7 +5,6 @@
 #ifndef KinKal_Detector_CylindricalShell_hh
 #define KinKal_Detector_CylindricalShell_hh
 #include "KinKal/General/TimeRange.hh"
-#include "KinKal/General/TrajUtilities.hh"
 #include <string>
 #include <vector>
 namespace KinKal {
