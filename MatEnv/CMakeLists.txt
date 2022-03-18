@@ -21,4 +21,4 @@ add_library(MatEnv SHARED
 target_include_directories(MatEnv PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
 # set shared library version equal to project version
-set_target_properties(MatEnv PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(MatEnv PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

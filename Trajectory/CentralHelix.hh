@@ -1,9 +1,9 @@
 #ifndef KinKal_CentralHelix_hh
 #define KinKal_CentralHelix_hh
 //
-// class desribing the looping helix basis for the kinematic Kalman fit
-// It provides geometric, kinematic, and algebraic representation of
-// a particule executing a multi-loop helix in a constant magnetic field.
+// class desribing a helix in terms of its impact parameter to the z axis, direction, and curvature.
+// It provides geometric, kinematic, and algebraic representation
+// a particule moving along an arc of a helix in a constant magnetic field.
 // Original Author Roberto Soleti (LBNL) 1/2020
 //
 

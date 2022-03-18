@@ -13,6 +13,8 @@ add_library(Trajectory SHARED
     LoopHelix.cc
     POCAUtil.cc
     )
+# make the library names unique
+set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")
 # create shared library with ROOT dict
 ROOT_GENERATE_DICTIONARY(TrajectoryDict
     LoopHelix.hh
@@ -27,4 +29,4 @@ target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)
 target_link_libraries(Trajectory General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
-set_target_properties(Trajectory PROPERTIES VERSION ${PROJECT_VERSION})
+set_target_properties(Trajectory PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
