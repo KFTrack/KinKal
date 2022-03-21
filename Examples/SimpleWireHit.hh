@@ -102,12 +102,14 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    WIREHIT::update(pktraj,miconfig);
   // look for an updater; if it's there, update the state
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
-    if(swhu != 0){swhu->update(*this);
-      // update again
-      WIREHIT::update(pktraj,miconfig);
+    if(swhu != 0){
+      auto tpoca = WIREHIT::updateRefTraj(pktraj);
+      swhu->update(*this);
+      WIREHIT::updateDrift(tpoca);
+    } else {
+      WIREHIT::update(pktraj,miconfig); // not sure this is needed: maybe just update the ref
     }
   }
 

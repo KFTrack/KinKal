@@ -89,8 +89,7 @@ namespace KinKal {
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq() const {
     if(this->active()) {
-      Parameters unbiased = unbiasedParameters();
-      return chisq(unbiased);
+      return hit_->chisq(unbiasedParameters());
     } else
       return Chisq();
   }
