@@ -18,6 +18,8 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using RESIDHIT = ResidualHit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
       enum Dimension { tresid=0, dresid=1};  // residual dimensions
       // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
@@ -89,7 +91,7 @@ namespace KinKal {
     PTCA tpoca(pktraj,wire_,tphint,precision_);
     if(!tpoca.usable())throw std::runtime_error("PTCA failure");
     tpdata_ = tpoca.tpData();
-    this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
+    HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
     return tpoca;
   }
 

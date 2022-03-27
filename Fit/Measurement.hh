@@ -30,23 +30,21 @@ namespace KinKal {
       virtual ~Measurement(){}
       // local functions
       // construct from a hit and reference trajectory
-      Measurement(HITPTR const& hit, PKTRAJ const& reftraj,double precision=1e-6);
+      Measurement(HITPTR const& hit, PKTRAJ const& reftraj);
       // the unbiased parameters are the fit parameters not including the information content of this effect
       Parameters unbiasedParameters() const;
       // access the contents
       HITPTR const& hit() const { return hit_; }
       Weights const& weightCache() const { return wcache_; }
       Weights const& hitWeight() const { return hitwt_; }
-      double precision() const { return precision_; }
     private:
       HITPTR hit_ ; // hit used for this constraint
       Weights wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute unbiased parameters and chisquared
       Weights hitwt_; // weight representation of the hits constraint
       double vscale_; // variance factor due to annealing 'temperature'
-      double precision_; // precision used in TCA calcuation
   };
 
-  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj,double precision) : hit_(hit), vscale_(1.0), precision_(precision) {
+  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj) : hit_(hit), vscale_(1.0) {
     update(reftraj);
   }
 

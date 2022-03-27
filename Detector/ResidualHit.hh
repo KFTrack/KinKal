@@ -11,6 +11,7 @@ namespace KinKal {
   template <class KTRAJ> class ResidualHit : public Hit<KTRAJ> {
     public:
       // override of some Hit interface.  Subclasses must still implement update and material methods
+      using HIT = Hit<KTRAJ>;
       Weights weight() const override;
       bool active() const override { return nDOF() > 0; }
       Chisq chisq() const override;
@@ -25,18 +26,12 @@ namespace KinKal {
       virtual Residual const& residual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
-
-    protected:
-      // allow subclasses to overwrite these during update
-      void setRefParams(KTRAJ const& reftraj) { refparams_ = reftraj.params(); }
-    private:
-      Parameters refparams_; // reference parameters, used to compute reference residuals
   };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
     auto const& resid = residual(ires);
     // compute the difference between these parameters and the reference parameters
-    DVEC dpvec = pdata.parameters() - refparams_.parameters();
+    DVEC dpvec = pdata.parameters() - HIT::refparams_.parameters();
     // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     return Residual(uresid,resid.variance(),resid.dRdP());
@@ -51,7 +46,7 @@ namespace KinKal {
         // find the reference residual
         auto const& res = residual(ires);
         // project the parameter covariance into a residual space variance
-        double rvar = ROOT::Math::Similarity(res.dRdP(),refparams_.covariance());
+        double rvar = ROOT::Math::Similarity(res.dRdP(),HIT::refparams_.covariance());
         // add the measurement variance
         rvar +=  res.variance();
         // add chisq for this DOF
@@ -107,7 +102,7 @@ namespace KinKal {
         DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
         // translate residual value into weight vector WRT the reference parameters
         // sign convention reflects resid = measurement - prediction
-        DVEC wvec = wmat*refparams_.parameters() + res.dRdP()*res.value()/tvar;
+        DVEC wvec = wmat*HIT::refparams_.parameters() + res.dRdP()*res.value()/tvar;
         // weights are linearly additive
         weight += Weights(wvec,wmat);
       }

@@ -13,7 +13,7 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-
+      using HIT = Hit<KTRAJ>;
       // Hit interface implementation
       unsigned nResid() const override { return 1; } // 1 time residual
       bool activeRes(unsigned ires=0) const override;
@@ -69,7 +69,7 @@ namespace KinKal {
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
-      this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
+      HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
     } else
       throw std::runtime_error("PTCA failure");
   }

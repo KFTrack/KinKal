@@ -79,7 +79,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   int iseed(124223);
   double Bgrad(0.0), By(0.0);
   bool simmat_(true), scinthit_(true), strawhit_(true);
-  double precision(1e-8);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
@@ -105,8 +104,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-                 break;
-      case 'P' : precision = atof(optarg);
                  break;
       case 'p' : imass = atoi(optarg);
                  break;
@@ -252,7 +249,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ipt(0);
   //  cout << tptraj << endl;
   for(auto& thit : thits) {
-    KKHIT kkhit(thit,tptraj,precision);
+    KKHIT kkhit(thit,tptraj);
     Residual ores;
     ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
