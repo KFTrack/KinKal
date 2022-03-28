@@ -75,10 +75,16 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // reset the annealing temp and hit precision
     vscale_ = miconfig.varianceScale();
-    // update the hit's internal state; the actual update depends on the hit
+     // reset the processing cache
+    wcache_ = Weights();
+   // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
-    // update the state of this object
-    update(pktraj);
+     // get the weight from the hit
+    hitwt_ = hit_->weight();
+    // scale weight for the temp
+    hitwt_ *= 1.0/vscale_;
+    // ready for processing!
+    KKEFF::updateState();
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

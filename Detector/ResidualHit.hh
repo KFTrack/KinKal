@@ -26,8 +26,11 @@ namespace KinKal {
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
       // set weight
-      Weights weight() const override;
-//      void setWeight();
+      Weights myweight() const;
+//      Weights weight() const override {
+//        auto wt = myweight();
+//        if(wt.fitData() != HIT::hitwt_.fitData()) throw std::runtime_error("PTCA failure");
+//        return myweight(); }
  };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
@@ -86,7 +89,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class KTRAJ> Weights ResidualHit<KTRAJ>::weight() const {
+  template <class KTRAJ> Weights ResidualHit<KTRAJ>::myweight() const {
     // start with a null weight
     Weights weight;
     for(unsigned ires=0; ires< nResid(); ires++) {

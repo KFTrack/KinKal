@@ -106,7 +106,8 @@ namespace KinKal {
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
     if(swhu != 0){
 //      auto tpoca = WIREHIT::updateRefTraj(pktraj);
-      WIREHIT::updateRefTraj(pktraj);
+//      WIREHIT::updateDrift(tpoca);
+      WIREHIT::update(pktraj,miconfig);
       swhu->update(*this);
       WIREHIT::update(pktraj,miconfig);
     } else {

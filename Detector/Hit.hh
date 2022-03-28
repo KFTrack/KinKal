@@ -23,7 +23,6 @@ namespace KinKal {
       Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
       virtual Weights weight() const { return hitwt_; }
-//     virtual Weights weight() const =0;
       // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
@@ -35,7 +34,6 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config);
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
-      Weights const& hitWeight() const { return hitwt_; }
       double weightScale() const { return wscale_; }
       Parameters const& referenceParameters() const { return refparams_; }
       // the constraint this hit implies WRT the current reference, expressed as a weight

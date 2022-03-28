@@ -78,7 +78,7 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updateRefTraj(pktraj);
     updateDrift(tpoca);
-    HIT::hitwt_ = RESIDHIT::weight();
+    HIT::hitwt_ = RESIDHIT::myweight();
 //    HIT::update(pktraj)
   }
 
@@ -91,7 +91,7 @@ namespace KinKal {
     // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
     if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
     PTCA tpoca(pktraj,wire_,tphint,precision_);
-    if(!tpoca.usable())throw std::runtime_error("PTCA failure");
+    if(!tpoca.usable())throw std::runtime_error("Weight inconsistency");
     tpdata_ = tpoca.tpData();
     HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
     return tpoca;

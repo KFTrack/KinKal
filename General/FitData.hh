@@ -50,6 +50,12 @@ namespace KinKal {
         mat_ += other.mat();
         return *this;
       }
+      bool operator == (FitData const& other) {
+        return vec_ == other.vec() && mat_ == other.mat();
+      }
+      bool operator != (FitData const& other) {
+        return vec_ != other.vec() && mat_ != other.mat();
+      }
     private:
       DVEC vec_; // parameters
       DMAT mat_; // parameter covariance
