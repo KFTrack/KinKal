@@ -16,14 +16,11 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
 
       // Hit interface overrrides
-      Weights weight() const override { return weight_; }
       bool active() const override { return ncons_ > 0; }
-      Chisq chisq() const override { return chisq(refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
+      Chisq chisq() const override { return chisq(HIT::refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
       // parameter constraints are absolute and can't be updated
-      void update(PKTRAJ const& pktraj) override { refparams_ = pktraj.nearestPiece(time()).params(); }
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
@@ -35,15 +32,15 @@ namespace KinKal {
     private:
       double time_; // time of this constraint: must be supplied on construction
       Parameters params_; // constraint parameters with covariance
-      Weights weight_; // weight from these parameters
-      Parameters refparams_; // reference parameters
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask off unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), weight_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
+    time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
+
+      Weights weight(params);
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
         if(pmask_[ipar]){
@@ -54,11 +51,11 @@ namespace KinKal {
         }
       }
       // Mask Off unused parameters
-      DMAT wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
+      DMAT wmat = ROOT::Math::Similarity(mask_,weight.weightMat());
       // 2 steps needed her, as otherwise root caching results in incomplete objects
-      DVEC wvec = weight_.weightVec();
+      DVEC wvec = weight.weightVec();
       DVEC wreduced = wvec*mask_;
-      weight_ = Weights(wreduced, wmat);
+      HIT::hitwt_ = Weights(wreduced, wmat);
     }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {

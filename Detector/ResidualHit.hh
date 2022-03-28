@@ -12,7 +12,6 @@ namespace KinKal {
     public:
       // override of some Hit interface.  Subclasses must still implement update and material methods
       using HIT = Hit<KTRAJ>;
-      Weights weight() const override;
       bool active() const override { return nDOF() > 0; }
       Chisq chisq() const override;
       Chisq chisq(Parameters const& params) const override;
@@ -26,7 +25,10 @@ namespace KinKal {
       virtual Residual const& residual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
-  };
+      // set weight
+      Weights weight() const override;
+//      void setWeight();
+ };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
     auto const& resid = residual(ires);

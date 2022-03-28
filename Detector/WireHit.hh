@@ -66,10 +66,6 @@ namespace KinKal {
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) :
     whstate_(wstate), tpdata_(ptca.tpData()), bfield_(bfield), wire_(ptca.sensorTraj()), precision_(ptca.precision()) {}
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    update(pktraj);
-  }
-
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && whstate_.active())
       return true;
@@ -82,6 +78,12 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updateRefTraj(pktraj);
     updateDrift(tpoca);
+    HIT::hitwt_ = RESIDHIT::weight();
+//    HIT::update(pktraj)
+  }
+
+  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+    update(pktraj);
   }
 
   template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updateRefTraj(PKTRAJ const& pktraj) {
