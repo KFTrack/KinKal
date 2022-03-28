@@ -17,12 +17,12 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // default
-      Hit(){}
+      Hit() : wscale_(1.0){}
       virtual ~Hit(){}
       // disallow copy and equivalence
       Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
-      virtual Weights weight() const { return hitwt_; }
+      Weights const& weight() const { return weight_; }
       // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
@@ -37,11 +37,11 @@ namespace KinKal {
       double weightScale() const { return wscale_; }
       Parameters const& referenceParameters() const { return refparams_; }
       // the constraint this hit implies WRT the current reference, expressed as a weight
-      Weights scaledweight() const { return hitwt_.scale(wscale_); }
+      Weights scaledweight() const { auto wt =  weight_; wt *= wscale_; return wt; }
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
     protected:
-      Weights hitwt_; // weight representation of the hits constraint.  Subclasses must set this in update
+      Weights weight_; // weight representation of the hits constraint.  Subclasses must set this in update
       double wscale_; // current annealing weight scaling
       Parameters refparams_; // reference parameters, used to compute reference residuals
   };

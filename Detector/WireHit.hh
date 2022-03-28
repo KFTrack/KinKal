@@ -78,12 +78,14 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updateRefTraj(pktraj);
     updateDrift(tpoca);
-    HIT::hitwt_ = RESIDHIT::myweight();
-//    HIT::update(pktraj)
-  }
+    HIT::weight_ = RESIDHIT::myweight();
+//    HIT::update(pktraj);
+ }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     update(pktraj);
+    //HIT::update(pktraj,miconfig); // FIXME
+    HIT::wscale_ = 1.0/miconfig.varianceScale();
   }
 
   template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updateRefTraj(PKTRAJ const& pktraj) {

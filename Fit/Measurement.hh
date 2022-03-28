@@ -41,10 +41,9 @@ namespace KinKal {
       HITPTR hit_ ; // hit used for this constraint
       Weights wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute unbiased parameters and chisquared
       Weights hitwt_; // weight representation of the hits constraint
-      double vscale_; // variance factor due to annealing 'temperature'
   };
 
-  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj) : hit_(hit), vscale_(1.0) {
+  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj) : hit_(hit) {
     update(reftraj);
   }
 
@@ -65,24 +64,18 @@ namespace KinKal {
     // update the hit
     hit_->update(pktraj);
     // get the weight from the hit
-    hitwt_ = hit_->weight();
-    // scale weight for the temp
-    hitwt_ *= 1.0/vscale_;
+    hitwt_ = hit_->scaledweight();
     // ready for processing!
     KKEFF::updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
-    // reset the annealing temp and hit precision
-    vscale_ = miconfig.varianceScale();
-     // reset the processing cache
+    // reset the processing cache
     wcache_ = Weights();
-   // update the hit's internal state; the actual update depends on the hit
+    // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
-     // get the weight from the hit
-    hitwt_ = hit_->weight();
-    // scale weight for the temp
-    hitwt_ *= 1.0/vscale_;
+    // get the weight from the hit
+    hitwt_ = hit_->scaledweight();
     // ready for processing!
     KKEFF::updateState();
   }

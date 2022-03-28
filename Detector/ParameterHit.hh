@@ -55,7 +55,7 @@ namespace KinKal {
       // 2 steps needed her, as otherwise root caching results in incomplete objects
       DVEC wvec = weight.weightVec();
       DVEC wreduced = wvec*mask_;
-      HIT::hitwt_ = Weights(wreduced, wmat);
+      HIT::weight_ = Weights(wreduced, wmat);
     }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {
