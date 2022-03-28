@@ -48,8 +48,8 @@ namespace KinKal {
       virtual ~WireHit(){}
     protected:
       void setState(WireHitState::State state) { whstate_.state_ = state; }
-      PTCA updateRefTraj(PKTRAJ const& pktraj);
-      void updateDrift(PTCA const& tpoca);
+      PTCA updatePTCA(PKTRAJ const& pktraj);
+      void updateResiduals(PTCA const& tpoca);
     private:
       WireHitState whstate_; // current state
       ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
@@ -76,19 +76,17 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    auto tpoca = updateRefTraj(pktraj);
-    updateDrift(tpoca);
-    HIT::weight_ = RESIDHIT::myweight();
-//    HIT::update(pktraj);
+    auto tpoca = updatePTCA(pktraj);
+    updateResiduals(tpoca);
+    RESIDHIT::setWeight();
  }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     update(pktraj);
-    //HIT::update(pktraj,miconfig); // FIXME
     HIT::wscale_ = 1.0/miconfig.varianceScale();
   }
 
-  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updateRefTraj(PKTRAJ const& pktraj) {
+  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePTCA(PKTRAJ const& pktraj) {
     CAHint tphint(wire_.range().mid(),wire_.range().mid());
     // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
     if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
@@ -99,7 +97,7 @@ namespace KinKal {
     return tpoca;
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::updateDrift(PTCA const& tpoca) {
+  template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(PTCA const& tpoca) {
     // compute drift parameters.  These are used even for null-ambiguity hits
     VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
     auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap

@@ -71,8 +71,7 @@ namespace KinKal {
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
       HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
-      HIT::weight_ = RESIDHIT::myweight();
-      //HIT::update(pktraj);
+      RESIDHIT::setWeight();
     } else
       throw std::runtime_error("PTCA failure");
   }
@@ -81,7 +80,6 @@ namespace KinKal {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
     update(pktraj);
     HIT::wscale_ = 1.0/miconfig.varianceScale();
-    // HIT::update(pktraj,miconfig); // FIXME
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {

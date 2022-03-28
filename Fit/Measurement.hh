@@ -64,7 +64,7 @@ namespace KinKal {
     // update the hit
     hit_->update(pktraj);
     // get the weight from the hit
-    hitwt_ = hit_->scaledweight();
+    hitwt_ = hit_->scaledWeight();
     // ready for processing!
     KKEFF::updateState();
   }
@@ -75,7 +75,7 @@ namespace KinKal {
     // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
     // get the weight from the hit
-    hitwt_ = hit_->scaledweight();
+    hitwt_ = hit_->scaledWeight();
     // ready for processing!
     KKEFF::updateState();
   }

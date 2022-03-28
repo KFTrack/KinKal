@@ -22,8 +22,7 @@ namespace KinKal {
       // disallow copy and equivalence
       Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
-      Weights const& weight() const { return weight_; }
-      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
+     // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual Chisq chisq() const =0;  // least-squares distance to reference parameters
@@ -34,10 +33,13 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config);
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
-      double weightScale() const { return wscale_; }
-      Parameters const& referenceParameters() const { return refparams_; }
       // the constraint this hit implies WRT the current reference, expressed as a weight
-      Weights scaledweight() const { auto wt =  weight_; wt *= wscale_; return wt; }
+      Weights const& weight() const { return weight_; }
+      // the same, scaled for annealing
+      Weights scaledWeight() const { auto wt =  weight_; wt *= wscale_; return wt; }
+      double weightScale() const { return wscale_; }
+      // parameters WRT which this hit's residual and weights are set
+      Parameters const& referenceParameters() const { return refparams_; }
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
     protected:
@@ -47,7 +49,7 @@ namespace KinKal {
   };
 
   template <class KTRAJ> void Hit<KTRAJ>::update(PKTRAJ const& pktraj) {
-  // update the reference parameters
+    // update the reference parameters
     refparams_ = pktraj.nearestPiece(time()).params();
   }
 

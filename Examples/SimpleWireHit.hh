@@ -105,7 +105,7 @@ namespace KinKal {
   // look for an updater; if it's there, update the state
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
     if(swhu != 0){
-//      auto tpoca = WIREHIT::updateRefTraj(pktraj);
+//      auto tpoca = WIREHIT::updatePTCA(pktraj);
 //      WIREHIT::updateDrift(tpoca);
       WIREHIT::update(pktraj,miconfig);
       swhu->update(*this);

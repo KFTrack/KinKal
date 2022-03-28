@@ -25,8 +25,9 @@ namespace KinKal {
       virtual Residual const& residual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
-      // set weight
-      Weights myweight() const;
+    protected:
+      // allow subclasses to set the weight
+      void setWeight();
  };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
@@ -85,7 +86,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class KTRAJ> Weights ResidualHit<KTRAJ>::myweight() const {
+  template <class KTRAJ> void ResidualHit<KTRAJ>::setWeight() {
     // start with a null weight
     Weights weight;
     for(unsigned ires=0; ires< nResid(); ires++) {
@@ -108,7 +109,7 @@ namespace KinKal {
         weight += Weights(wvec,wmat);
       }
     }
-    return weight;
+    HIT::weight_ = weight;
   }
 
 }
