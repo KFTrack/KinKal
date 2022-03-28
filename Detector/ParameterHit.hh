@@ -20,6 +20,9 @@ namespace KinKal {
       Chisq chisq() const override { return chisq(HIT::refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
+      void update(PKTRAJ const& pktraj) override { HIT::refparams_ = pktraj.nearestPiece(time()).params(); }
+      void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override {
+        HIT::wscale_ = 1.0/miconfig.varianceScale(); update(pktraj); }
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
@@ -30,7 +33,7 @@ namespace KinKal {
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
-      double time_; // time of this constraint: must be supplied on construction
+      double time_; // time of this constraint: must be supplied on construction and does not change
       Parameters params_; // constraint parameters with covariance
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask off unconstrainted parameters

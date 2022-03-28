@@ -28,9 +28,9 @@ namespace KinKal {
       virtual Chisq chisq() const =0;  // least-squares distance to reference parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       // update to a new reference, without changing state
-      virtual void update(PKTRAJ const& pktraj);
+      virtual void update(PKTRAJ const& pktraj) = 0;
       // update the internals of the hit, specific to this meta-iteraion
-      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config);
+      virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
       // the constraint this hit implies WRT the current reference, expressed as a weight
@@ -43,20 +43,10 @@ namespace KinKal {
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
     protected:
-      Weights weight_; // weight representation of the hits constraint.  Subclasses must set this in update
+      Weights weight_; // weight representation of the hit's constraint
       double wscale_; // current annealing weight scaling
-      Parameters refparams_; // reference parameters, used to compute reference residuals
+      Parameters refparams_; // reference parameters used for this hit's weight
   };
-
-  template <class KTRAJ> void Hit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // update the reference parameters
-    refparams_ = pktraj.nearestPiece(time()).params();
-  }
-
-  template <class KTRAJ> void Hit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
-    wscale_ = 1.0/miconfig.varianceScale();
-    update(pktraj);
-  }
 
   template<class KTRAJ> Chisq Hit<KTRAJ>::chisquared() const {
     if(active()){
