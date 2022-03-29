@@ -742,19 +742,25 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
               // straw hits can have multiple residuals
               if(strawhit->activeRes(STRAWHIT::tresid)){
-                hinfo.tresid_ = strawhit->residual(STRAWHIT::tresid).value();
-                hinfo.tresidvar_ = strawhit->residual(STRAWHIT::tresid).variance();
+                auto resid = strawhit->unbiasedResidual(STRAWHIT::tresid);
+                hinfo.tresid_ = resid.value();
+                hinfo.tresidvar_ = resid.variance();
+                hinfo.tresidpull_ = strawhit->pull(STRAWHIT::tresid);
               }
               //
               if(strawhit->activeRes(STRAWHIT::dresid)){
-                hinfo.dresid_ = strawhit->residual(STRAWHIT::dresid).value();
-                hinfo.dresidvar_ = strawhit->residual(STRAWHIT::dresid).variance();
+                auto resid = strawhit->unbiasedResidual(STRAWHIT::dresid);
+                hinfo.dresid_ = resid.value();
+                hinfo.dresidvar_ = resid.variance();
+                hinfo.dresidpull_ = strawhit->pull(STRAWHIT::dresid);
               }
               hinfovec.push_back(hinfo);
             } else if(scinthit != 0){
               hinfo.type_ = HitInfo::scint;
-              hinfo.tresid_ = scinthit->residual().value();
-              hinfo.tresidvar_ = scinthit->residual().variance();
+              auto resid = scinthit->unbiasedResidual(0);
+              hinfo.tresid_ = resid.value();
+              hinfo.tresidvar_ = resid.variance();
+              hinfo.tresidpull_ = scinthit->pull(0);
               hinfo.t0_ = scinthit->closestApproach().particleToca();
               hinfo.doca_ = scinthit->closestApproach().doca();
               hinfo.deltat_ = scinthit->closestApproach().deltaT();

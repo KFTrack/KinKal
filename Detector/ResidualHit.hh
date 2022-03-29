@@ -2,7 +2,7 @@
 #define KinKal_ResidualHit_hh
 //
 //  class representing a hit based on a set of uncorrelated but related (same sensor) measurements, expressed as residuals.
-//  Each residual esimates the 1-dimenaional tension between the measurement and the value predicted by a reference trajectory
+//  Each residual esimates the 1-dimenaional tension between the measurement and the value predicted by the reference trajectory
 //
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/Detector/Residual.hh"
@@ -21,9 +21,14 @@ namespace KinKal {
       // individual residuals may be active or inactive
       virtual bool activeRes(unsigned ires) const = 0;
       // reference residuals for this hit.  iDOF indexs the measurement and is hit-specific, outside the range will throw
+      // this is generally biased as the refefence includes the effect of this hit
       virtual Residual const& residual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
+      // unbiased residuals WRT the reference parameters
+      Residual unbiasedResidual(unsigned ires) const;
+      // unbiased pull of this residual (including the uncertainty on the reference parameters)
+      double pull(unsigned ires) const;
     protected:
       // allow subclasses to set the weight
       void setWeight();
@@ -36,6 +41,19 @@ namespace KinKal {
     // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     return Residual(uresid,resid.variance(),resid.dRdP());
+  }
+
+  template <class KTRAJ> Residual ResidualHit<KTRAJ>::unbiasedResidual(unsigned ires) const {
+    return residual(HIT::unbiasedParameters(),ires);
+  }
+
+  template <class KTRAJ> double ResidualHit<KTRAJ>::pull(unsigned ires) const {
+    auto uparams = HIT::unbiasedParameters();
+    auto ures = residual(uparams,ires);
+    // project the parameter covariance into residual space
+    double pvar = ROOT::Math::Similarity(ures.dRdP(),uparams.covariance());
+    double pval = ures.value()/sqrt(ures.variance() + pvar);
+    return pval;
   }
 
   template <class KTRAJ> Chisq ResidualHit<KTRAJ>::chisq(Parameters const& params) const {

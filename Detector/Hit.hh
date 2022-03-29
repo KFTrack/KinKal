@@ -2,8 +2,8 @@
 #define KinKal_Hit_hh
 //
 //  Base class to describe a measurement that constrains some aspect of the track fit
-//  The hit may be associated with a piece of detector material as well
-//  Used as part of the kinematic Kalman fit
+//  The constraint is expressed as a weight WRT a set of reference parameters.
+//  The base class is a purely algebraic object.
 //
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
@@ -37,8 +37,11 @@ namespace KinKal {
       // the same, scaled for annealing
       Weights scaledWeight() const { auto wt =  weight_; wt *= wscale_; return wt; }
       double weightScale() const { return wscale_; }
-      // parameters WRT which this hit's residual and weights are set
+      // parameters WRT which this hit's residual and weights are set.  These are generally biased
+      // in that they contain the information of this hit
       Parameters const& referenceParameters() const { return refparams_; }
+      // Unbiased parameters, taking out the hits effect
+      Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
     protected:
@@ -47,13 +50,20 @@ namespace KinKal {
       Parameters refparams_; // reference parameters used for this hit's weight
   };
 
+  template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
+    if(active()){
+      // convert the parameters to a weight, and subtract this hit's weight
+      Weights wt(refparams_);
+      // subtract out the effect of this hit's weight from the reference parameters
+      wt -= scaledWeight();
+      return Parameters(wt);
+    } else
+      return refparams_;
+  }
+
   template<class KTRAJ> Chisq Hit<KTRAJ>::chisquared() const {
     if(active()){
-      // subtract out the effect of this hit's weight from the reference parameters
-      Weights wt(refparams_);
-      wt -= weight();
-      Parameters uparams(wt);
-      return chisq(uparams);
+      return chisq(unbiasedParameters());
     } else
       return Chisq();
   }

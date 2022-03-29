@@ -2,7 +2,6 @@
 #define KinKal_WireHit_hh
 //
 //  class representing a drift wire measurement.  Implemented using PTCA between the particle traj and the wire
-//  Used as part of the kinematic Kalman fit
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Detector/WireHitStructs.hh"
@@ -78,8 +77,9 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updatePTCA(pktraj);
     updateResiduals(tpoca);
+    HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
     RESIDHIT::setWeight();
- }
+  }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
     update(pktraj);
@@ -93,7 +93,6 @@ namespace KinKal {
     PTCA tpoca(pktraj,wire_,tphint,precision_);
     if(!tpoca.usable())throw std::runtime_error("Weight inconsistency");
     tpdata_ = tpoca.tpData();
-    HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
     return tpoca;
   }
 
