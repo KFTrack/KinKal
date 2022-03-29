@@ -4,7 +4,7 @@
 #include "Math/Vector3D.h"
 namespace KinKal {
   struct HitInfo {
-    enum htype{straw=0, scint,constraint,unknown};
+    enum htype{straw=0, scint, parcon,unknown};
     HitInfo():
       active_(-1), type_(-1), state_(-1), ndof_(-1),
       time_(0.0), tresid_(0.0), tresidvar_(0.0), dresid_(0.0), dresidvar_(0.0), chisq_(0.0),

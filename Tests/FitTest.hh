@@ -723,14 +723,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             HitInfo hinfo;
             hinfo.active_ = kkhit->active();
             hinfo.time_ = kkhit->time();
-            hinfo.chisq_ = kkhit->chisq().chisq();
-            hinfo.ndof_ = kkhit->chisq().nDOF();
+            hinfo.chisq_ = kkhit->hit()->chisq().chisq();
+            hinfo.ndof_ = kkhit->hit()->chisq().nDOF();
             hinfo.state_ = WireHitState::inactive;
             hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
             hinfo.t0_ = 0.0;
             const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
             const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-            const PARHIT* constraint = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+            const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
             if(strawhit != 0){
               hinfo.type_ = HitInfo::straw;
               hinfo.state_ = strawhit->hitState().state_;
@@ -760,9 +760,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.docavar_ = scinthit->closestApproach().docaVar();
               hinfo.tocavar_ = scinthit->closestApproach().tocaVar();
               hinfovec.push_back(hinfo);
-            } else if(constraint != 0){
-              hinfo.type_ = HitInfo::constraint;
-              hinfo.dresid_ = sqrt(constraint->chisq().chisq());
+            } else if(parhit != 0){
+              hinfo.type_ = HitInfo::parcon;
+              hinfo.dresid_ = sqrt(parhit->chisq().chisq());
               hinfo.dresidvar_ = 1.0;
               hinfovec.push_back(hinfo);
             } else {

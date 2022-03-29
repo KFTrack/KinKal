@@ -35,10 +35,6 @@ namespace KinKal {
       virtual void update(Config const& config) =0;
       // diagnostic printout
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
-      // the following only has a non-trivial implementation for effects which (potentially) add information content to the fit
-      // chisquared (quality) associated with the most recent processing and current reference.  This is used to determine
-      // fit convergence
-      virtual Chisq chisq() const { return Chisq();}
       // chisquared WRT a given local parameter set.  This is a purely diagnostic function
       virtual Chisq chisq(Parameters const& pdata) const { return Chisq();} // chisq contribution WRT parameters
       // The following only has a non-trivial implemetation for effects which (potentially) alter the physical particle trajectory

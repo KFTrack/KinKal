@@ -19,7 +19,6 @@ namespace KinKal {
       using HITPTR = std::shared_ptr<HIT>;
 
       Chisq chisq(Parameters const& pdata) const override;
-      Chisq chisq() const override;
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override {}
@@ -31,15 +30,12 @@ namespace KinKal {
       // local functions
       // construct from a hit and reference trajectory
       Measurement(HITPTR const& hit, PKTRAJ const& reftraj);
-      // the unbiased parameters are the fit parameters not including the information content of this effect
-      Parameters unbiasedParameters() const;
+//      Parameters unbiasedParameters() const;
       // access the contents
       HITPTR const& hit() const { return hit_; }
-      Weights const& weightCache() const { return wcache_; }
       Weights const& hitWeight() const { return hitwt_; }
     private:
       HITPTR hit_ ; // hit used for this constraint
-      Weights wcache_; // sum of processing weights in opposite directions, excluding this hit's information. used to compute unbiased parameters and chisquared
       Weights hitwt_; // weight representation of the hits constraint
   };
 
@@ -50,8 +46,6 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // direction is irrelevant for processing hits
     if(this->active()){
-      // cache the processing weights, adding both processing directions
-      wcache_ += kkdata.wData();
       // add this effect's information
       kkdata.append(hitwt_);
     }
@@ -59,8 +53,6 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // reset the processing cache
-    wcache_ = Weights();
     // update the hit
     hit_->update(pktraj);
     // get the weight from the hit
@@ -70,8 +62,6 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
-    // reset the processing cache
-    wcache_ = Weights();
     // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
     // get the weight from the hit
@@ -82,21 +72,6 @@ namespace KinKal {
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {
     return hit_->chisq(pdata);
-  }
-
-  template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq() const {
-    if(this->active()) {
-      return hit_->chisq(unbiasedParameters());
-    } else
-      return Chisq();
-  }
-
-  template<class KTRAJ> Parameters Measurement<KTRAJ>::unbiasedParameters() const {
-    // this function can't be called on an unprocessed effect
-    if( !KKEFF::wasProcessed(TimeDir::forwards) || !KKEFF::wasProcessed(TimeDir::backwards))
-      throw  std::invalid_argument("Can't compute unbiased parameters for unprocessed constraint");
-    // Invert the cache to get unbiased parameters at this constraint
-    return Parameters(wcache_);
   }
 
   template <class KTRAJ> void Measurement<KTRAJ>::print(std::ostream& ost, int detail) const {
