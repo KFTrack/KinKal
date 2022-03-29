@@ -25,7 +25,6 @@ namespace KinKal {
      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
-      virtual Chisq chisq() const =0;  // least-squares distance to reference parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       // update to a new reference, without changing state
       virtual void update(PKTRAJ const& pktraj) = 0;

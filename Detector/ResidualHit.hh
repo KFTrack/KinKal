@@ -13,7 +13,6 @@ namespace KinKal {
       // override of some Hit interface.  Subclasses must still implement update and material methods
       using HIT = Hit<KTRAJ>;
       bool active() const override { return nDOF() > 0; }
-      Chisq chisq() const override;
       Chisq chisq(Parameters const& params) const override;
       // ResidualHit specific interface.
       unsigned nDOF() const;
@@ -37,25 +36,6 @@ namespace KinKal {
     // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     return Residual(uresid,resid.variance(),resid.dRdP());
-  }
-
-  template <class KTRAJ> Chisq ResidualHit<KTRAJ>::chisq() const {
-    double chisq(0.0);
-    unsigned ndof(0);
-    for(unsigned ires=0; ires< nResid(); ires++) {
-      if(activeRes(ires)) {
-        ndof++;
-        // find the reference residual
-        auto const& res = residual(ires);
-        // project the parameter covariance into a residual space variance
-        double rvar = ROOT::Math::Similarity(res.dRdP(),HIT::referenceParameters().covariance());
-        // add the measurement variance
-        rvar +=  res.variance();
-        // add chisq for this DOF
-        chisq += (res.value()*res.value())/rvar;
-      }
-    }
-    return Chisq(chisq, ndof);
   }
 
   template <class KTRAJ> Chisq ResidualHit<KTRAJ>::chisq(Parameters const& params) const {

@@ -17,7 +17,6 @@ namespace KinKal {
 
       // Hit interface overrrides
       bool active() const override { return ncons_ > 0; }
-      Chisq chisq() const override { return chisq(HIT::refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
       void update(PKTRAJ const& pktraj) override { HIT::refparams_ = pktraj.nearestPiece(time()).params(); }

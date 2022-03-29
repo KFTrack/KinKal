@@ -723,8 +723,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             HitInfo hinfo;
             hinfo.active_ = kkhit->active();
             hinfo.time_ = kkhit->time();
-            hinfo.chisq_ = kkhit->hit()->chisq().chisq();
-            hinfo.ndof_ = kkhit->hit()->chisq().nDOF();
+            hinfo.chisq_ = kkhit->hit()->chisquared().chisq();
+            hinfo.prob_ = kkhit->hit()->chisquared().probability();
+            hinfo.ndof_ = kkhit->hit()->chisquared().nDOF();
             hinfo.state_ = WireHitState::inactive;
             hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
             hinfo.t0_ = 0.0;
@@ -762,7 +763,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfovec.push_back(hinfo);
             } else if(parhit != 0){
               hinfo.type_ = HitInfo::parcon;
-              hinfo.dresid_ = sqrt(parhit->chisq().chisq());
+              hinfo.dresid_ = sqrt(parhit->chisquared().chisq());
               hinfo.dresidvar_ = 1.0;
               hinfovec.push_back(hinfo);
             } else {
