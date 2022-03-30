@@ -107,12 +107,10 @@ namespace KinKal {
     if(swhu != 0){
 //      auto tpoca = WIREHIT::updatePTCA(pktraj);
 //      WIREHIT::updateDrift(tpoca);
-      WIREHIT::update(pktraj,miconfig);
+//      WIREHIT::update(pktraj,miconfig);
       swhu->update(*this);
-      WIREHIT::update(pktraj,miconfig);
-    } else {
-      WIREHIT::update(pktraj,miconfig); // not sure this is needed: maybe just update the ref
     }
+    WIREHIT::update(pktraj,miconfig);
   }
 
 }

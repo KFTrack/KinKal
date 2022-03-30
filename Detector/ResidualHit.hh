@@ -66,6 +66,12 @@ namespace KinKal {
         auto res = residual(params,ires);
         // project the parameter covariance into a residual space variance
         double rvar = ROOT::Math::Similarity(res.dRdP(),params.covariance());
+        // check for unphysical values
+        if(rvar<0){
+//          std::cout << "neg resid var " << rvar << std::endl;
+          rvar = 0.0;
+        }
+        //throw std::runtime_error("Covariance inconsistency");
         // add the measurement variance
         rvar +=  res.variance();
         // add chisq for this DOF

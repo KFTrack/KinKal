@@ -723,9 +723,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             HitInfo hinfo;
             hinfo.active_ = kkhit->active();
             hinfo.time_ = kkhit->time();
-            hinfo.chisq_ = kkhit->hit()->chisquared().chisq();
-            hinfo.prob_ = kkhit->hit()->chisquared().probability();
-            hinfo.ndof_ = kkhit->hit()->chisquared().nDOF();
+            auto chisq = kkhit->hit()->chisquared();
+            hinfo.prob_ = chisq.probability();
+            hinfo.ndof_ = chisq.nDOF();
             hinfo.state_ = WireHitState::inactive;
             hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
             hinfo.t0_ = 0.0;
