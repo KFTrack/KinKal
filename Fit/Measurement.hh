@@ -78,7 +78,6 @@ namespace KinKal {
     ost << "Measurement " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
     if(detail > 0){
       hit_->print(ost,detail);
-      ost << " Measurement Weight " << hitwt_ << std::endl;
     }
   }
 

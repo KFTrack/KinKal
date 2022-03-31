@@ -69,7 +69,7 @@ namespace KinKal {
     pdiff += params_;  // this is now the difference of parameters but sum of covariances
     // invert the covariance matrix
     DMAT wmat = pdiff.covariance();
-    if(!wmat.Invert()) throw std::runtime_error("Inversion failure");
+    if(!wmat.Invert()) throw std::runtime_error("ParameterHit inversion failure");
     // zero out unconstrainted parts
     wmat = ROOT::Math::Similarity(mask_,wmat);
     double chisq = ROOT::Math::Similarity(pdiff.parameters(),wmat);

@@ -24,8 +24,9 @@ namespace KinKal {
         update(tpoca); }
       virtual ~StrawXing() {}
       // ElementXing interface
+      void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) override;
-      double crossingTime() const override { return tpdata_.particleToca(); }
+      double time() const override { return tpdata_.particleToca(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // specific interface: this xing is based on PTCA
       void update(PTCA const& tpoca);
@@ -53,18 +54,22 @@ namespace KinKal {
       throw std::runtime_error("CA failure");
   }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    // search for an update to the xing configuration among this meta-iteration payload
-    auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
-    if(sxconfig != 0) sxconfig_ = *sxconfig;
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj) {
     // use current xing time create a hint to the CA calculation: this speeds it up
-    CAHint tphint(this->crossingTime(), this->crossingTime());
+    CAHint tphint(this->time(), this->time());
     PTCA tpoca(pktraj,axis_,tphint,tprec_);
     update(tpoca);
   }
 
+  template <class KTRAJ> void StrawXing<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+    // search for an update to the xing configuration among this meta-iteration payload
+    auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
+    if(sxconfig != 0) sxconfig_ = *sxconfig;
+    update(pktraj);
+  }
+
   template <class KTRAJ> void StrawXing<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost <<"Straw Xing time " << this->crossingTime();
+    ost <<"Straw Xing time " << this->time();
     if(detail > 0){
       for(auto const& mxing : this->matXings()){
         ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;

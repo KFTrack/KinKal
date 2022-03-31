@@ -46,15 +46,7 @@ namespace KinKal {
 
   template<class KTRAJ> void BField<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(bfcorr_){
-      // forwards; just append the effect's parameter change
-      if(tdir == TimeDir::forwards) {
-        kkdata.append(dbforw_);
-      } else {
-        // SUBTRACT the effect going backwards: covariance change is sign-independent
-        Parameters reverse(dbforw_);
-        reverse.parameters() *= -1.0;
-        kkdata.append(reverse);
-      }
+      kkdata.append(dbforw_,tdir);
     }
     KKEFF::setState(tdir,KKEFF::processed);
   }

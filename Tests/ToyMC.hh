@@ -158,7 +158,7 @@ namespace KKTest {
 
   template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing) {
     double desum = 0.0;
-    double tstraw = sxing->crossingTime();
+    double tstraw = sxing->time();
     auto const& endpiece = pktraj.nearestPiece(tstraw);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);

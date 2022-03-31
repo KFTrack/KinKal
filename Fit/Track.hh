@@ -448,8 +448,8 @@ namespace KinKal {
       tmax = std::max(tmax,hit->time());
     }
     for(auto const& exing : exings){
-      tmin = std::min(tmin,exing->crossingTime());
-      tmax = std::max(tmax,exing->crossingTime());
+      tmin = std::min(tmin,exing->time());
+      tmax = std::max(tmax,exing->time());
     }
     // add a buffer to the time.  This must cover the uncertainty on t0 as the fit iterates
     return TimeRange(tmin-config().tbuff_,tmax+config().tbuff_);

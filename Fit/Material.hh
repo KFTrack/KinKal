@@ -19,7 +19,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
-      double time() const override { return dxing_->crossingTime() + tbuff_ ;}
+      double time() const override { return dxing_->time() + tbuff_ ;}
       bool active() const override { return  dxing_->active(); }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
@@ -49,39 +49,34 @@ namespace KinKal {
   template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-6; // small buffer to disambiguate this effect
 
   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing),
-  ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0) {
-    update(pktraj);
+  ref_(pktraj.nearestPiece(dxing->time())), vscale_(1.0) {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(dxing_->active()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
-        kkdata.append(mateff_);
+        kkdata.append(mateff_,tdir);
         cache_ += kkdata.wData();
       } else {
         // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
         cache_ += kkdata.wData();
-        // SUBTRACT the effect going backwards: covariance change is sign-independent
-        Parameters reverse(mateff_);
-        reverse.parameters() *= -1.0;
-        kkdata.append(reverse);
+        kkdata.append(mateff_,tdir);
       }
     }
     KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref) {
+    dxing_->update(ref);
     cache_ = Weights();
-    ref_ = ref.nearestPiece(dxing_->crossingTime());
+    ref_ = ref.nearestPiece(dxing_->time());
     updateCache();
     KKEFF::updateState();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-    // update the detector Xings for this effect
-    dxing_->update(ref,miconfig);
     update(ref);
   }
 
