@@ -78,8 +78,8 @@ namespace KinKal {
 
   template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
-    update(pktraj);
     HIT::wscale_ = 1.0/miconfig.varianceScale();
+    update(pktraj);
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {

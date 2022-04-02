@@ -82,8 +82,8 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    update(pktraj);
     HIT::wscale_ = 1.0/miconfig.varianceScale();
+    update(pktraj);
   }
 
   template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePTCA(PKTRAJ const& pktraj) {
