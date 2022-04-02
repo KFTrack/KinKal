@@ -400,6 +400,10 @@ namespace KinKal {
     }
     // sort the effects by time
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
+    if(config().plevel_ > 0){
+      std::cout << "Effects after update config " << miconfig << std::endl;
+      for(auto& ieff : effects_) ieff->print(std::cout,config().plevel_);
+    }
   }
 
   template<class KTRAJ> bool Track<KTRAJ>::canIterate() const {

@@ -30,13 +30,11 @@ namespace KinKal {
       // local functions
       // construct from a hit and reference trajectory
       Measurement(HITPTR const& hit, PKTRAJ const& reftraj);
-//      Parameters unbiasedParameters() const;
       // access the contents
       HITPTR const& hit() const { return hit_; }
-      Weights const& hitWeight() const { return hitwt_; }
+      Weights const& weight() const { return hit_->weight(); }
     private:
       HITPTR hit_ ; // hit used for this constraint
-      Weights hitwt_; // weight representation of the hits constraint
   };
 
   template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj) : hit_(hit) {
@@ -47,7 +45,7 @@ namespace KinKal {
     // direction is irrelevant for processing hits
     if(this->active()){
       // add this effect's information
-      kkdata.append(hitwt_);
+      kkdata.append(weight());
     }
     KKEFF::setState(tdir,KKEFF::processed);
   }
@@ -55,8 +53,6 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
     // update the hit
     hit_->update(pktraj);
-    // get the weight from the hit
-    hitwt_ = hit_->scaledWeight();
     // ready for processing!
     KKEFF::updateState();
   }
@@ -64,8 +60,6 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
-    // get the weight from the hit
-    hitwt_ = hit_->scaledWeight();
     // ready for processing!
     KKEFF::updateState();
   }

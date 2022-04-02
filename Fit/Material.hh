@@ -19,8 +19,8 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
-      double time() const override { return dxing_->time() + tbuff_ ;}
-      bool active() const override { return  dxing_->active(); }
+      double time() const override { return exing_->time() + tbuff_ ;}
+      bool active() const override { return  exing_->active(); }
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override {}
@@ -33,13 +33,13 @@ namespace KinKal {
       // accessors
       Parameters const& effect() const { return mateff_; }
       Weights const& cache() const { return cache_; }
-      EXING const& detXing() const { return *dxing_; }
+      EXING const& elementXing() const { return *exing_; }
       KTRAJ const& refKTraj() const { return ref_; }
     private:
       // update the local cache
       void updateCache();
-      EXINGPTR dxing_; // detector piece crossing for this effect
-      KTRAJ ref_; // reference to local trajectory
+      EXINGPTR exing_; // element crossing for this effect
+      KTRAJ ref_; // local reference trajectory
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
       double vscale_; // variance factor due to annealing 'temperature'
@@ -48,12 +48,14 @@ namespace KinKal {
 
   template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-6; // small buffer to disambiguate this effect
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing),
-  ref_(pktraj.nearestPiece(dxing->time())), vscale_(1.0) {
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : exing_(dxing),
+  ref_(pktraj.nearestPiece(dxing->time())),
+  vscale_(1.0) {
+   // update(ptraj);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    if(dxing_->active()){
+    if(exing_->active()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
         kkdata.append(mateff_,tdir);
@@ -68,9 +70,9 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref) {
-    dxing_->update(ref);
+    exing_->update(ref);
     cache_ = Weights();
-    ref_ = ref.nearestPiece(dxing_->time());
+    ref_ = ref.nearestPiece(exing_->time());
     updateCache();
     KKEFF::updateState();
   }
@@ -82,10 +84,10 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache() {
     mateff_ = Parameters();
-    if(dxing_->active()){
+    if(exing_->active()){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      dxing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
+      exing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
       // get the parameter derivative WRT momentum
       DPDV dPdM = ref_.dPardM(time());
       double mommag = ref_.momentum(time());
@@ -108,7 +110,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& fit) {
-    if(dxing_->active()){
+    if(exing_->active()){
       // create a trajectory piece from the cached weight
       double time = this->time();
       KTRAJ newpiece(ref_);
@@ -133,7 +135,7 @@ namespace KinKal {
     ost << " effect ";
     effect().print(ost,detail-2);
     ost << " ElementXing ";
-    dxing_->print(ost,detail);
+    exing_->print(ost,detail);
     if(detail >3){
       ost << " cache ";
       cache().print(ost,detail);

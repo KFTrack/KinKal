@@ -32,10 +32,11 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj, MetaIterConfig const& config) = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
-      // the constraint this hit implies WRT the current reference, expressed as a weight
+      // the constraint this hit implies WRT the current reference, expressed as a weight.  This will be used in the next fit iteration
       Weights const& weight() const { return weight_; }
+      // the constraint used in making the current reference
+      Weights const& referenceWeight() const { return refweight_; }
       // the same, scaled for annealing
-      Weights scaledWeight() const { auto wt =  weight_; wt *= wscale_; return wt; }
       double weightScale() const { return wscale_; }
       // parameters WRT which this hit's residual and weights are set.  These are generally biased
       // in that they contain the information of this hit
@@ -45,17 +46,25 @@ namespace KinKal {
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
     protected:
+      // update the weight
+      void setWeight(Weights const& weight){
+        refweight_ = weight_;
+        weight_ = weight;
+        weight_ *= wscale_;
+      }
+      Parameters refparams_; // reference parameters used for this hit's weight  Should be private FIXME
+      double wscale_; // current annealing weight scaling Should be private FIXME
+    private:
       Weights weight_; // weight representation of the hit's constraint
-      double wscale_; // current annealing weight scaling
-      Parameters refparams_; // reference parameters used for this hit's weight
+      Weights refweight_; // weight used in the previous iteration
   };
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
     if(active()){
       // convert the parameters to a weight, and subtract this hit's weight
       Weights wt(refparams_);
-      // subtract out the effect of this hit's weight from the reference parameters
-      wt -= scaledWeight();
+      // subtract out the effect of this hit's reference weight from the reference parameters
+      wt -= referenceWeight();
       return Parameters(wt);
     } else
       return refparams_;

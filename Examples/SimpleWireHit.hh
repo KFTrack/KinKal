@@ -71,7 +71,7 @@ namespace KinKal {
     WireHitState::State state;
     if(swh.closestApproach().usable()){
       double doca = swh.closestApproach().doca();
-      auto chisq = swh.chisquared();
+      auto chisq = swh.chisquared(); // unbiased chisquared
       if(fabs(doca) > maxdoca_ || chisq.probability() < minprob_ ) {
         state = WireHitState::inactive; // disable the hit if it's an outlier
       } else if(fabs(doca) > mindoca_ ) {

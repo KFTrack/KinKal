@@ -68,10 +68,10 @@ namespace KinKal {
         double rvar = ROOT::Math::Similarity(res.dRdP(),params.covariance());
         // check for unphysical values
         if(rvar<0){
-//          std::cout << "neg resid var " << rvar << std::endl;
+          std::cout << "neg resid var " << rvar << std::endl;
           rvar = 0.0;
+//          throw std::runtime_error("Covariance inconsistency");
         }
-        //throw std::runtime_error("Covariance inconsistency");
         // add the measurement variance
         rvar +=  res.variance();
         // add chisq for this DOF
@@ -113,7 +113,7 @@ namespace KinKal {
         weight += Weights(wvec,wmat);
       }
     }
-    HIT::weight_ = weight;
+    HIT::setWeight(weight);
   }
 
 }

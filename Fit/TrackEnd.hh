@@ -100,7 +100,7 @@ namespace KinKal {
     ost << "TrackEnd " << static_cast<Effect<KTRAJ>const&>(*this) << " direction " << tDir() << " deweight " << deWeighting() << std::endl;
     ost << "EndTraj ";
     endTraj().print(ost,detail);
-    if(detail > 0){
+    if(detail > 1){
       ost << "EndWeight " << endeff_ << std::endl;
     }
   }

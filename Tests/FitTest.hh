@@ -724,6 +724,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             hinfo.active_ = kkhit->active();
             hinfo.time_ = kkhit->time();
             auto chisq = kkhit->hit()->chisquared();
+            hinfo.chisq_ = chisq.chisq();
             hinfo.prob_ = chisq.probability();
             hinfo.ndof_ = chisq.nDOF();
             hinfo.state_ = WireHitState::inactive;
@@ -781,9 +782,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             KinKal::MaterialInfo minfo;
             minfo.time_ = kkmat->time();
             minfo.active_ = kkmat->active();
-            minfo.nxing_ = kkmat->detXing().matXings().size();
+            minfo.nxing_ = kkmat->elementXing().matXings().size();
             std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-            kkmat->detXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
+            kkmat->elementXing().materialEffects(kkmat->refKTraj(),TimeDir::forwards, dmom, momvar);
             minfo.dmomf_ = dmom[MomBasis::momdir_];
             minfo.momvar_ = momvar[MomBasis::momdir_];
             minfo.perpvar_ = momvar[MomBasis::perpdir_];
