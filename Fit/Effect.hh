@@ -22,7 +22,10 @@ namespace KinKal {
       static std::string const& stateName(State state);
       // type of the data payload used for processing the fit
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      // properties common to all effects
+      // create as unprocessed
+      Effect() : state_{{unprocessed,unprocessed}} {}
+      virtual ~Effect(){}
+      // Effect interface
       virtual double time() const = 0; // time of this effect
       virtual bool active() const = 0; // whether this effect is/was used in the fit
       // Add this effect to the ongoing fit in the given direction.
@@ -33,21 +36,22 @@ namespace KinKal {
       virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) = 0;
       // update this effect for a new configuration
       virtual void update(Config const& config) =0;
+      // update the particle trajectory for this effect
+      virtual void append(PKTRAJ& fit) =0;
+      // chisquared WRT a given local parameter set, assumed uncorrelatedd  This is used for convergence testing
+      virtual Chisq chisq(Parameters const& pdata) const  = 0;
       // diagnostic printout
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
-      // chisquared WRT a given local parameter set.  This is a purely diagnostic function
-      virtual Chisq chisq(Parameters const& pdata) const { return Chisq();} // chisq contribution WRT parameters
-      // The following only has a non-trivial implemetation for effects which (potentially) alter the physical particle trajectory
-      virtual void append(PKTRAJ& fit) {};
       // disallow copy and equivalence
       Effect(Effect const& ) = delete;
       Effect& operator =(Effect const& ) = delete;
+      // info about the processing
       State state(TimeDir tdir) const { return state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)]; }
-      void setState(TimeDir tdir, State state) { state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = state; }
       bool wasProcessed(TimeDir tdir) const { return state(tdir) == processed; }
+    protected:
+      // allow subclasses to update the state
+      void setState(TimeDir tdir, State state) { state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = state; }
       void updateState() { state_[0] = state_[1] = updated; }
-      Effect() : state_{{unprocessed,unprocessed}} {}
-      virtual ~Effect(){}
     private:
       std::array<State,2> state_; // state of processing in each direction
   };

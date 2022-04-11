@@ -27,6 +27,7 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       Parameters const& effect() const { return dbforw_; }
       virtual ~BField(){}
       // disallow copy and equivalence

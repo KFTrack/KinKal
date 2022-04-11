@@ -21,12 +21,13 @@ namespace KinKal {
       using EXINGPTR = std::shared_ptr<EXING>;
       double time() const override { return exing_->time() + tbuff_ ;}
       bool active() const override { return  exing_->active(); }
+      void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override {}
-      void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Material(){}
       // create from the material and a trajectory
       Material(EXINGPTR const& dxing, PKTRAJ const& pktraj);
@@ -122,7 +123,9 @@ namespace KinKal {
         // if this is the first piece, simply extend it back
         if(fit.pieces().size() ==1){
           fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
+          std::cout << "Adjusting fit range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
         } else {
+          std::cout << "Adjusting material range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
           newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
         }
       }

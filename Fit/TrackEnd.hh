@@ -16,6 +16,9 @@ namespace KinKal {
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       // provide interface
+      double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
+      bool active() const override { return true; }
+      void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override {
         vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
@@ -24,10 +27,8 @@ namespace KinKal {
         dwt_ = config.dwt_;
         bfcorr_ = config.bfcorr_;
       };
-      double time() const override { return (tdir_ == TimeDir::forwards) ? -std::numeric_limits<double>::max() : std::numeric_limits<double>::max(); } // make sure this is always at the end
-      bool active() const override { return true; }
-      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~TrackEnd(){}
       // accessors
