@@ -46,7 +46,7 @@ template <class KTRAJ>
 int ClosestApproachTest(int argc, char **argv) {
   using TCA = ClosestApproach<KTRAJ,Line>;
   using TCAP = PointClosestApproach<KTRAJ>;
-  using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+  using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
@@ -153,10 +153,10 @@ int ClosestApproachTest(int argc, char **argv) {
 
     // test against a piece-traj
     PKTRAJ pktraj(ktraj);
-    PTCA ptp(pktraj,tline,tphint,1e-8);
+    PCA pca(pktraj,tline,tphint,1e-8);
     if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
     if(tpp.status() != ClosestApproachData::converged)cout << "PointClosestApproach status " << tpp.statusName() << " doca " << tpp.doca() << " dt " << tpp.deltaT() << endl;
-    if(ptp.status() != ClosestApproachData::converged)cout << "PiecewiseClosestApproach status " << ptp.statusName() << " doca " << ptp.doca() << " dt " << ptp.deltaT() << endl;
+    if(pca.status() != ClosestApproachData::converged)cout << "PiecewiseClosestApproach status " << pca.statusName() << " doca " << pca.doca() << " dt " << pca.deltaT() << endl;
     VEC3 thpos, tlpos;
     thpos = tp.particlePoca().Vect();
     tlpos = tp.sensorPoca().Vect();

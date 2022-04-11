@@ -11,9 +11,9 @@ namespace KinKal {
       using WIREHIT = WireHit<KTRAJ>;
       using Dimension = typename WireHit<KTRAJ>::Dimension;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
 
-      SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate, double mindoca,
+      SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
           double driftspeed, double tvar, double rcell);
       // override updating.  I have to override both since they have the same name
       void update(PKTRAJ const& pktraj) override;
@@ -86,9 +86,9 @@ namespace KinKal {
     swh.setState(state);
   };
 
-  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
+  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
       double mindoca, double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,ptca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
+    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
     // simply translate distance to time using the fixed velocity
@@ -105,7 +105,7 @@ namespace KinKal {
   // look for an updater; if it's there, update the state
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
     if(swhu != 0){
-//      auto tpoca = WIREHIT::updatePTCA(pktraj);
+//      auto tpoca = WIREHIT::updatePCA(pktraj);
 //      WIREHIT::updateDrift(tpoca);
 //      WIREHIT::update(pktraj,miconfig);
       swhu->update(*this);

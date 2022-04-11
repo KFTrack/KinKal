@@ -19,14 +19,14 @@ namespace KinKal {
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
-      void update(PKTRAJ const& pktraj) override { HIT::refparams_ = pktraj.nearestPiece(time()).params(); }
+      void update(PKTRAJ const& pktraj) override { HIT::reftraj_ = pktraj.nearestPiece(time()); }
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override {
         HIT::wscale_ = 1.0/miconfig.varianceScale(); update(pktraj); }
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
-      ParameterHit(double time, Parameters const& params, PMASK const& pmask);
+      ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
       unsigned nDOF() const { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
@@ -39,7 +39,8 @@ namespace KinKal {
       unsigned ncons_; // number of parameters constrained
   };
 
-  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :
+  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask) :
+    HIT(reftraj),
     time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
 
       Weights weight(params);

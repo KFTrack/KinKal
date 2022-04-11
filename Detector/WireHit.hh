@@ -1,10 +1,11 @@
 #ifndef KinKal_WireHit_hh
 #define KinKal_WireHit_hh
 //
-//  class representing a drift wire measurement.  Implemented using PTCA between the particle traj and the wire
+//  class representing a drift wire measurement.  Implemented using PCA between the particle traj and the wire
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Detector/WireHitStructs.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -16,7 +17,7 @@ namespace KinKal {
   template <class KTRAJ> class WireHit : public ResidualHit<KTRAJ> {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using RESIDHIT = ResidualHit<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       enum Dimension { tresid=0, dresid=1};  // residual dimensions
@@ -43,12 +44,12 @@ namespace KinKal {
       BFieldMap const& bfield() const { return bfield_; }
       double precision() const { return precision_; }
       // constructor
-      WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whs);
+      WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whs);
       virtual ~WireHit(){}
     protected:
       void setState(WireHitState::State state) { whstate_.state_ = state; }
-      PTCA updatePTCA(PKTRAJ const& pktraj);
-      void updateResiduals(PTCA const& tpoca);
+      PCA updatePCA(PKTRAJ const& pktraj);
+      void updateResiduals(PCA const& tpoca);
     private:
       WireHitState whstate_; // current state
       ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
@@ -59,11 +60,12 @@ namespace KinKal {
       // is the effective signal propagation velocity, and the range describes the active wire length
       // (when multiplied by the propagation velocity).
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
-      double precision_; // precision for PTCA calculation; can change during processing schedule
+      double precision_; // precision for PCA calculation; can change during processing schedule
   };
 
-  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& wstate) :
-    whstate_(wstate), tpdata_(ptca.tpData()), bfield_(bfield), wire_(ptca.sensorTraj()), precision_(ptca.precision()) {}
+  template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& wstate) :
+    RESIDHIT(pca.particleTraj(),pca.particlePoca().T()),
+    whstate_(wstate), tpdata_(pca.tpData()), bfield_(bfield), wire_(pca.sensorTraj()), precision_(pca.precision()) {}
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && whstate_.active())
@@ -75,9 +77,9 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    auto tpoca = updatePTCA(pktraj);
+    auto tpoca = updatePCA(pktraj);
     updateResiduals(tpoca);
-    HIT::refparams_ = pktraj.nearestPiece(tpoca.particleToca()).params();
+    HIT::reftraj_ = pktraj.nearestPiece(tpoca.particleToca());
     RESIDHIT::setWeight();
   }
 
@@ -86,17 +88,17 @@ namespace KinKal {
     update(pktraj);
   }
 
-  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePTCA(PKTRAJ const& pktraj) {
+  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePCA(PKTRAJ const& pktraj) {
     CAHint tphint(wire_.range().mid(),wire_.range().mid());
-    // if we already computed PTCA in the previous iteration, use that to set the hint.  This speeds convergence
+    // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
-    PTCA tpoca(pktraj,wire_,tphint,precision_);
+    PCA tpoca(pktraj,wire_,tphint,precision_);
     if(!tpoca.usable())throw std::runtime_error("Weight inconsistency");
     tpdata_ = tpoca.tpData();
     return tpoca;
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(PTCA const& tpoca) {
+  template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(PCA const& tpoca) {
     // compute drift parameters.  These are used even for null-ambiguity hits
     VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
     auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
@@ -106,7 +108,7 @@ namespace KinKal {
     DriftInfo dinfo;
     distanceToTime(drift, dinfo);
     if(whstate_.useDrift()){
-      // translate PTCA to residual. Use ambiguity to convert drift time to a time difference.
+      // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
       double dsign = whstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
       double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
       // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)

@@ -208,7 +208,7 @@ namespace KinKal {
     fit();
   }
 
-  // replace the reference traj with one describing the 'same' trajectory in space, but using the local BField as reference
+  // replace the traj with one describing the 'same' trajectory in space, but using the local BField as reference
   template <class KTRAJ> void Track<KTRAJ>::replaceFitTraj(DOMAINCOL const& domains) {
   // create new traj
     PKTRAJ newfit;

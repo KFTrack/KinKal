@@ -21,11 +21,11 @@ namespace KinKal {
 
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_; }
+      void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       Parameters const& effect() const { return dbforw_; }

@@ -11,7 +11,6 @@
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Fit/Measurement.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
 
@@ -53,7 +52,6 @@ void print_usage() {
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
   using HIT = Hit<KTRAJ>;
   using HITPTR = std::shared_ptr<HIT>;
   using HITCOL = vector<HITPTR>;
@@ -249,7 +247,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ipt(0);
   //  cout << tptraj << endl;
   for(auto& thit : thits) {
-    KKHIT kkhit(thit,tptraj);
     Residual ores;
     ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
@@ -270,12 +267,12 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
         for(size_t istep=0;istep<nsteps; istep++){
           double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
           // modify the helix
-          KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+          KTRAJ modktraj = tptraj.nearestPiece(thit->time());
           modktraj.params().parameters()[ipar] += dpar;
           PKTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
-          kkhit.update(modtptraj);// refer to moded helix
+          thit->update(modtptraj);// refer to moded helix
           Residual mres;
           if(strawhit){
             mres = strawhit->residual(0);

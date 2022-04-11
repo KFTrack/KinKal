@@ -53,7 +53,7 @@ namespace KinKal {
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
     // update the hit
-    hit_->update(pktraj);
+//    hit_->update(pktraj);
     // ready for processing!
     KKEFF::updateState();
   }
@@ -65,9 +65,9 @@ namespace KinKal {
     KKEFF::updateState();
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& fit) {
-    // update the hit to this trajectory
-//    hit_->update(pktraj);
+  template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
+    // update the hit to this trajectory (only partially valid at this point)
+    hit_->update(pktraj);
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

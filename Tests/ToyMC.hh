@@ -35,7 +35,7 @@ namespace KKTest {
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
-      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
@@ -131,7 +131,7 @@ namespace KKTest {
       // create the hit at this time
       auto tline = generateStraw(pktraj,htime);
       CAHint tphint(htime,htime);
-      PTCA tp(pktraj,tline,tphint,tprec_);
+      PCA tp(pktraj,tline,tphint,tprec_);
       //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
       if(tr_.Uniform(0.0,1.0) > ineff_){
         WireHitState::State ambig(WireHitState::null);
@@ -215,8 +215,8 @@ namespace KKTest {
     Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
-    PTCA tp(pktraj,lline,tphint,tprec_);
-    thits.push_back(std::make_shared<SCINTHIT>(tp, scitsig_*scitsig_, shPosSig_*shPosSig_));
+    PCA pca(pktraj,lline,tphint,tprec_);
+    thits.push_back(std::make_shared<SCINTHIT>(pca, scitsig_*scitsig_, shPosSig_*shPosSig_));
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createSeed(KTRAJ& seed,DVEC const& sigmas,double seedsmear){

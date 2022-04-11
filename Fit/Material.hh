@@ -122,8 +122,8 @@ namespace KinKal {
       if(time < fit.back().range().begin()){
         // if this is the first piece, simply extend it back
         if(fit.pieces().size() ==1){
+//          std::cout << "Adjusting fit range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
           fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
-          std::cout << "Adjusting fit range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
         } else {
           std::cout << "Adjusting material range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
           newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));

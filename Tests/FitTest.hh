@@ -376,7 +376,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       cparams.covariance()[ipar][ipar] = perr*perr;
       cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
     }
-    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
+    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),seedtraj,cparams,mask));
   }
   // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
@@ -654,7 +654,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           cparams.covariance()[ipar][ipar] = perr*perr;
           cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
         }
-        thits.push_back(std::make_shared<PARHIT>(front.range().mid(),cparams,mask));
+        thits.push_back(std::make_shared<PARHIT>(front.range().mid(),seedtraj,cparams,mask));
       }
       if(extend){
         for(auto ihit = thits.begin(); ihit != thits.end();){
