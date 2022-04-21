@@ -103,7 +103,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
     // use derivatives of last piece to define new piece
-    KTRAJ const& back = ptraj.pieces().back();
+    KTRAJ const& back = *ptraj.pieces().back();
     double tcomp = back.range().end();
     DVEC pder = back.momDeriv(tcomp,tdir);
     // create modified helix
@@ -131,7 +131,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    KTRAJ const& front = ptraj.pieces().front();
+    KTRAJ const& front = *ptraj.pieces().front();
     double tcomp = front.range().begin();
     DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
@@ -175,12 +175,12 @@ int ParticleTrajectoryTest(int argc, char **argv) {
       icolor = kRed;
     else if(icolor == kRed)
       icolor = kBlue;
-    double tstart = piece.range().begin();
-    double ts = (piece.range().end()-piece.range().begin())/(npts-1);
+    double tstart = piece->range().begin();
+    double ts = (piece->range().end()-piece->range().begin())/(npts-1);
     VEC3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
       double t = tstart + ipt*ts;
-      ppos = piece.position3(t);
+      ppos = piece->position3(t);
       plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
     }
     plhel.back()->Draw();

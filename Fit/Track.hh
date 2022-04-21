@@ -222,7 +222,7 @@ namespace KinKal {
       while(dtime < domain.end()){
         // find the nearest piece of the current reftraj
         auto index = fittraj_->nearestIndex(dtime);
-        auto const& oldpiece = fittraj_->pieces()[index];
+        auto const& oldpiece = *fittraj_->pieces()[index];
         // create a new piece
         KTRAJ newpiece(oldpiece,bf,dtime);
         // set the range as needed
