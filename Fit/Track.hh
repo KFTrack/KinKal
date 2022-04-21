@@ -128,12 +128,13 @@ namespace KinKal {
       EXINGCOL exings_; // material xings used in this fit
       DOMAINCOL domains_; // BField domains used in this fit
   };
-  // sub-class constructor, based just on the seed.  It requires added hits to
+  // sub-class constructor, based just on the seed.  It requires added hits to create a functional track
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj ) :
-    bfield_(bfield), seedtraj_(seedtraj) {
-      config_.push_back(cfg);
-      if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-    }
+    bfield_(bfield), seedtraj_(seedtraj)
+  {
+    config_.push_back(cfg);
+    if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+  }
 
   // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield,seedtraj) {

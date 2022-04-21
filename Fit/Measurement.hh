@@ -52,9 +52,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // update the hit
-//    hit_->update(pktraj);
-    // ready for processing!
+    // update is done in append
     KKEFF::updateState();
   }
 
