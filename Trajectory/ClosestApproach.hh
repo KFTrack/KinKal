@@ -59,6 +59,8 @@ namespace KinKal {
       VEC3 const& sensorDirection() const { return tpdata_.sensorDirection(); }
       // calculate CA given the hint, and fill the state
       void findTCA(CAHint const& hint);
+      // return the hint from the current state
+      CAHint hint() const { return CAHint(particleToca(),sensorToca()); }
     private:
       double precision_; // precision used to define convergence
       KTRAJ const& ktraj_; // kinematic particle trajectory
