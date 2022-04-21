@@ -27,6 +27,9 @@ namespace KinKal {
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ptraj, STRAJ const& straj, double precision);
+      // explicitly construct from all content (no calculation)
+      ClosestApproach(KTRAJ const& ptraj, STRAJ const& straj, double precision,
+          ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return ktraj_; }
@@ -58,16 +61,20 @@ namespace KinKal {
       void findTCA(CAHint const& hint);
     private:
       double precision_; // precision used to define convergence
-      ClosestApproachData tpdata_; // data payload of CA calculation
       KTRAJ const& ktraj_; // kinematic particle trajectory
       STRAJ const& straj_; // sensor trajectory
-      // consider moving the followinginto ClosestApproachData TODO
+    protected:
+      ClosestApproachData tpdata_; // data payload of CA calculation
       DVEC dDdP_; // derivative of DOCA WRT Parameters
       DVEC dTdP_; // derivative of TOCA WRT Parameters
   };
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
     precision_(prec),ktraj_(ktraj), straj_(straj) {}
+
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec,
+    ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
+   precision_(prec),ktraj_(ktraj), straj_(straj), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
       double prec) : ClosestApproach(ktraj,straj,prec) {
