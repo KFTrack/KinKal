@@ -15,6 +15,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       bool active() const override { return nDOF() > 0; }
       Chisq chisq(Parameters const& params) const override;
+      void updateWeight() override;
       // ResidualHit specific interface.
       unsigned nDOF() const;
       // describe residuals associated with this hit
@@ -31,10 +32,7 @@ namespace KinKal {
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
       ResidualHit() {}
-    protected:
-      // allow subclasses to set the weight
-      void setWeight();
- };
+  };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
     auto const& resid = residual(ires);
@@ -72,7 +70,7 @@ namespace KinKal {
         if(rvar<0){
           std::cout << "neg resid var " << rvar << std::endl;
           rvar = 0.0;
-//          throw std::runtime_error("Covariance inconsistency");
+          //          throw std::runtime_error("Covariance inconsistency");
         }
         // add the measurement variance
         rvar +=  res.variance();
@@ -92,7 +90,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class KTRAJ> void ResidualHit<KTRAJ>::setWeight() {
+  template <class KTRAJ> void ResidualHit<KTRAJ>::updateWeight() {
     // start with a null weight
     Weights weight;
     for(unsigned ires=0; ires< nResid(); ires++) {
@@ -115,7 +113,7 @@ namespace KinKal {
         weight += Weights(wvec,wmat);
       }
     }
-    HIT::setWeight(weight);
+    this->setWeight(weight);
   }
 
 }

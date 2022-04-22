@@ -30,7 +30,7 @@ namespace KinKal {
       virtual ~Measurement(){}
       // local functions
       // construct from a hit and reference trajectory
-      Measurement(HITPTR const& hit, PKTRAJ const& reftraj);
+      Measurement(HITPTR const& hit);
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
       Weights const& weight() const { return hit_->weight(); }
@@ -38,33 +38,29 @@ namespace KinKal {
       HITPTR hit_ ; // hit used for this constraint
   };
 
-  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit, PKTRAJ const& reftraj) : hit_(hit) {
-    update(reftraj);
-  }
+  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit) : hit_(hit) {}
 
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    // direction is irrelevant for processing hits
-    if(this->active()){
-      // add this effect's information
-      kkdata.append(weight());
-    }
-    KKEFF::setState(tdir,KKEFF::processed);
+    // add this effect's information. direction is irrelevant for processing hits
+    if(this->active())kkdata.append(weight());
+    this->setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // update is done in append
-    KKEFF::updateState();
+    // update the weight
+    hit_->updateWeight();
+    this->updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // update the hit's internal state; the actual update depends on the hit
     hit_->update(pktraj,miconfig );
     // ready for processing!
-    KKEFF::updateState();
+    this->updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
-    // update the hit to this trajectory (only partially valid at this point)
+    // update the hit to reference this trajectory.  Should pick the end piece TODO
     hit_->update(pktraj);
   }
 

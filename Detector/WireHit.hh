@@ -82,9 +82,8 @@ namespace KinKal {
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updatePCA(pktraj);
-    updateResiduals(tpoca);
     this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
-    this->setWeight();
+    updateResiduals(tpoca);
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {

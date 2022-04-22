@@ -71,7 +71,6 @@ namespace KinKal {
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
       this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
-      this->setWeight();
     } else
       throw std::runtime_error("PCA failure");
   }

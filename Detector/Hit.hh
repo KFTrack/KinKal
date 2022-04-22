@@ -31,6 +31,8 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj) = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& config) = 0;
+      // update the weight
+      virtual void updateWeight() = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
       // the constraint this hit implies WRT the current trajectory, expressed as a weight
@@ -45,7 +47,6 @@ namespace KinKal {
       Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
-    protected:
       // update the weight
       void setWeight(Weights const& weight){
         weight_ = weight;

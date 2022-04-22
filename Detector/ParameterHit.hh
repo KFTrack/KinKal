@@ -22,6 +22,7 @@ namespace KinKal {
       void update(PKTRAJ const& pktraj) override { this->setRefTraj(pktraj.nearestTraj(time())); }
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override {
         this->setWeightScale(1.0/miconfig.varianceScale()); update(pktraj); }
+      void updateWeight() override {;} // this hit's weight never changes
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface

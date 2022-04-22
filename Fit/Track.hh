@@ -278,7 +278,7 @@ namespace KinKal {
     // append the effects.  First, loop over the hits
     for(auto& hit : hits ) {
       // create the hit effects and insert them in the set
-      effects_.emplace_back(std::make_unique<KKHIT>(hit,*reftraj_));
+      effects_.emplace_back(std::make_unique<KKHIT>(hit));
     }
     //add material effects
     for(auto& exing : exings) {
