@@ -8,6 +8,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
+#include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include <array>
 #include <stdexcept>
@@ -18,6 +19,7 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using CA = ClosestApproach<KTRAJ,Line>;
       using RESIDHIT = ResidualHit<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       enum Dimension { tresid=0, dresid=1};  // residual dimensions
@@ -25,7 +27,7 @@ namespace KinKal {
       unsigned nResid() const override { return 2; } // potentially 2 residuals
       bool activeRes(unsigned ires) const override;
       Residual const& residual(unsigned ires=tresid) const override;
-      double time() const override { return tpdata_.particleToca(); }
+      double time() const override { return tpca_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
       void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -36,13 +38,14 @@ namespace KinKal {
       virtual double nullVariance(Dimension dim,DriftInfo const& dinfo) const = 0;
       virtual double nullOffset(Dimension dim,DriftInfo const& dinfo) const = 0;
       // WireHit specific functions
-      ClosestApproachData const& closestApproach() const { return tpdata_; }
+      CA const& ca() const { return tpca_; }
+      ClosestApproachData const& closestApproach() const { return tpca_.tpData(); }
       WireHitState const& hitState() const { return whstate_; }
       Residual const& timeResidual() const { return rresid_[tresid]; }
       Residual const& spaceResidual() const { return rresid_[dresid]; }
       Line const& wire() const { return wire_; }
       BFieldMap const& bfield() const { return bfield_; }
-      double precision() const { return precision_; }
+      double precision() const { return tpca_.precision(); }
       // constructor
       WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whs);
       virtual ~WireHit(){}
@@ -51,21 +54,23 @@ namespace KinKal {
       PCA updatePCA(PKTRAJ const& pktraj);
       void updateResiduals(PCA const& tpoca);
     private:
-      WireHitState whstate_; // current state
-      ClosestApproachData tpdata_; // reference time and distance of closest approach to the wire
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
+      WireHitState whstate_; // current state
       Line wire_; // local linear approximation to the wire of this hit.
+      CA tpca_; // reference time and distance of closest approach to the wire
+      //      ClosestApproachData tpdata_; v// reference time and distance of closest approach to the wire
       // the start time is the measurement time, the direction is from
       // the physical source of the signal (particle) towards the measurement location, the vector magnitude
       // is the effective signal propagation velocity, and the range describes the active wire length
       // (when multiplied by the propagation velocity).
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
-      double precision_; // precision for PCA calculation; can change during processing schedule
   };
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& wstate) :
     RESIDHIT(pca.particleTraj(),pca.particlePoca().T()),
-    whstate_(wstate), tpdata_(pca.tpData()), bfield_(bfield), wire_(pca.sensorTraj()), precision_(pca.precision()) {}
+    bfield_(bfield),
+    whstate_(wstate), wire_(pca.sensorTraj()),
+    tpca_(pca.localParticleTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {}
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && whstate_.active())
@@ -91,10 +96,10 @@ namespace KinKal {
   template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePCA(PKTRAJ const& pktraj) {
     CAHint tphint(wire_.range().mid(),wire_.range().mid());
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
-    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
-    PCA tpoca(pktraj,wire_,tphint,precision_);
-    if(!tpoca.usable())throw std::runtime_error("Weight inconsistency");
-    tpdata_ = tpoca.tpData();
+    if(tpca_.usable()) tphint = tpca_.hint();
+    PCA tpoca(pktraj,wire_,tphint,precision());
+    if(!tpoca.usable())throw std::runtime_error("TPOCA failure");
+    tpca_ = tpoca.localClosestApproach();
     return tpoca;
   }
 
@@ -158,7 +163,7 @@ namespace KinKal {
       ost << std::endl;
     }
     if(detail > 1) {
-      ost << "Propagation speed " << wire_.speed() << " TPOCA " << tpdata_ << std::endl;
+      ost << "Propagation speed " << wire_.speed() << " TPOCA " << tpca_.tpData() << std::endl;
     }
   }
 
