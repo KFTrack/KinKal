@@ -17,7 +17,8 @@
 namespace KinKal {
   template <class KTRAJ> class PiecewiseTrajectory {
     public:
-      using DKTRAJ = std::deque<std::shared_ptr<KTRAJ>>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      using DKTRAJ = std::deque<KTRAJPTR>;
       // forward calls to the pieces
       void position3(VEC4& pos) const {nearestPiece(pos.T()).position3(pos); }
       VEC3 position3(double time) const { return nearestPiece(time).position3(time); }
@@ -40,6 +41,8 @@ namespace KinKal {
       void prepend(KTRAJ const& newpiece, bool allowremove=false);
       void add(KTRAJ const& newpiece, TimeDir tdir=TimeDir::forwards, bool allowremove=false);
       // Find the piece associated with a particular time
+      KTRAJPTR const& nearestTraj(double time) const { return pieces_[nearestIndex(time)]; }
+      KTRAJPTR const& indexTraj(size_t index) const { return pieces_[index]; }
       KTRAJ const& nearestPiece(double time) const { return *pieces_[nearestIndex(time)]; }
       KTRAJ const& piece(size_t index) const { return *pieces_[index]; }
       KTRAJ const& front() const { return *pieces_.front(); }

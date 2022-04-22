@@ -12,11 +12,13 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       PiecewiseClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // provide access to the local (non-piecewise) information implicit in this class
       size_t particleTrajIndex() const { return pindex_; }
       KTRAJ const& localParticleTraj() const { return this->particleTraj().piece(pindex_); }
-      KTCA localClosestApproach() const { return KTCA(localParticleTraj(),this->sensorTraj(),this->precision(),this->tpData(),this->dDdP(),this->dTdP()); }
+      KTRAJPTR const& localTraj() const { return this->particleTraj().indexTraj(pindex_); }
+      KTCA localClosestApproach() const { return KTCA(localTraj(),this->sensorTraj(),this->precision(),this->tpData(),this->dDdP(),this->dTdP()); }
     private:
       size_t pindex_; // indices to the local traj used in TCA calculation
   };

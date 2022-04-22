@@ -7,7 +7,7 @@
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
-#include "KinKal/Examples/ScintHit.hh"
+#include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
@@ -36,6 +36,7 @@
 #include <cstdlib>
 #include <cstring>
 
+#include "TF1.h"
 #include "TH1F.h"
 #include "TTree.h"
 #include "TBranch.h"
@@ -586,7 +587,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TAxis* xax = corravg->GetXaxis();
     TAxis* yax = corravg->GetYaxis();
     double nsig(10.0);
-    //    double pscale = nsig/sqrt(nhits);
     double pscale =  nsig;
     for(size_t ipar=0;ipar< NParams(); ipar++){
       auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
@@ -707,100 +707,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       tinfovec.clear();
       statush->Fill(fstat.status_);
       if(fstat.status_ != KinKal::Status::failed){
+//      if(fstat.usable()){
         // basic info
         auto const& fptraj = kktrk.fitTraj();
-        sbeg_ = seedtraj.range().begin();
-        send_ = seedtraj.range().end();
-        fbeg_ = fptraj.range().begin();
-        fend_ = fptraj.range().end();
-
-        for(auto const& eff: kktrk.effects()) {
-          const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
-          const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
-          const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
-          if(kkhit != 0){
-            nkkhit_++;
-            HitInfo hinfo;
-            hinfo.active_ = kkhit->active();
-            hinfo.time_ = kkhit->time();
-            auto chisq = kkhit->hit()->chisquared();
-            hinfo.chisq_ = chisq.chisq();
-            hinfo.prob_ = chisq.probability();
-            hinfo.ndof_ = chisq.nDOF();
-            hinfo.state_ = WireHitState::inactive;
-            hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
-            hinfo.t0_ = 0.0;
-            const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-            const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-            const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
-            if(strawhit != 0){
-              hinfo.type_ = HitInfo::straw;
-              hinfo.state_ = strawhit->hitState().state_;
-              hinfo.t0_ = strawhit->closestApproach().particleToca();
-              hinfo.doca_ = strawhit->closestApproach().doca();
-              hinfo.deltat_ = strawhit->closestApproach().deltaT();
-              hinfo.docavar_ = strawhit->closestApproach().docaVar();
-              hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
-              // straw hits can have multiple residuals
-              if(strawhit->activeRes(STRAWHIT::tresid)){
-                auto resid = strawhit->unbiasedResidual(STRAWHIT::tresid);
-                hinfo.tresid_ = resid.value();
-                hinfo.tresidvar_ = resid.variance();
-                hinfo.tresidpull_ = strawhit->pull(STRAWHIT::tresid);
-              }
-              //
-              if(strawhit->activeRes(STRAWHIT::dresid)){
-                auto resid = strawhit->unbiasedResidual(STRAWHIT::dresid);
-                hinfo.dresid_ = resid.value();
-                hinfo.dresidvar_ = resid.variance();
-                hinfo.dresidpull_ = strawhit->pull(STRAWHIT::dresid);
-              }
-              hinfovec.push_back(hinfo);
-            } else if(scinthit != 0){
-              hinfo.type_ = HitInfo::scint;
-              auto resid = scinthit->unbiasedResidual(0);
-              hinfo.tresid_ = resid.value();
-              hinfo.tresidvar_ = resid.variance();
-              hinfo.tresidpull_ = scinthit->pull(0);
-              hinfo.t0_ = scinthit->closestApproach().particleToca();
-              hinfo.doca_ = scinthit->closestApproach().doca();
-              hinfo.deltat_ = scinthit->closestApproach().deltaT();
-              hinfo.docavar_ = scinthit->closestApproach().docaVar();
-              hinfo.tocavar_ = scinthit->closestApproach().tocaVar();
-              hinfovec.push_back(hinfo);
-            } else if(parhit != 0){
-              hinfo.type_ = HitInfo::parcon;
-              hinfo.dresid_ = sqrt(parhit->chisquared().chisq());
-              hinfo.dresidvar_ = 1.0;
-              hinfovec.push_back(hinfo);
-            } else {
-              hinfo.type_ = HitInfo::unknown;
-            }
-          }
-          if(kkmat != 0){
-            nkkmat_++;
-            KinKal::MaterialInfo minfo;
-            minfo.time_ = kkmat->time();
-            minfo.active_ = kkmat->active();
-            minfo.nxing_ = kkmat->elementXing().matXings().size();
-            std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-            kkmat->elementXing().materialEffects(fptraj,TimeDir::forwards, dmom, momvar);
-            minfo.dmomf_ = dmom[MomBasis::momdir_];
-            minfo.momvar_ = momvar[MomBasis::momdir_];
-            minfo.perpvar_ = momvar[MomBasis::perpdir_];
-            minfovec.push_back(minfo);
-          }
-          if(kkbf != 0){
-            nkkbf_++;
-            BFieldInfo bfinfo;
-            bfinfo.active_ = kkbf->active();
-            bfinfo.time_ = kkbf->time();
-            bfinfo.range_ = kkbf->range().range();
-            bfinfovec.push_back(bfinfo);
-          }
-        }
-      }
-      if(fstat.usable()){
         // truth parameters, front and back
         double ttlow = tptraj.range().begin();
         double ttmid = tptraj.range().mid();
@@ -808,36 +717,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
         KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
         KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
-        for(size_t ipar=0;ipar<6;ipar++){
-          spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-          ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-          mtpars_.pars_[ipar] = mttraj.params().parameters()[ipar];
-          btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
-        }
-        ftmom_ = tptraj.momentum(ttlow);
-        mtmom_ = tptraj.momentum(ttmid);
-        btmom_ = tptraj.momentum(tthigh);
-        ndof->Fill(ndof_);
-        chisq->Fill(chisq_);
-        chisqndof->Fill(fstat.chisq_.chisqPerNDOF());
-        chisqprob->Fill(chiprob_);
-        if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
-        hniter->Fill(niter_);
-        hnmeta->Fill(nmeta_);
-
-        // step through the fit traj and compare to the truth
-        auto const& fptraj = kktrk.fitTraj();
-        double dt = fptraj.range().range()/nsteps;
-        for(unsigned istep=0;istep < nsteps;istep++){
-          double tstep = fptraj.range().begin()+dt*istep;
-          double ttrue;
-          double dperp = dTraj(fptraj,tptraj,tstep,ttrue);
-          ParticleTrajectoryInfo ktinfo;
-          ktinfo.time_ = tstep;
-          ktinfo.dperp_ = dperp;
-          ktinfo.dt_= tstep-ttrue;
-          tinfovec.push_back(ktinfo);
-        }
         // compare parameters at the first traj of both true and fit
         // correct the true parameters in case the BFieldMap isn't nominal
         // correct the sampling time for the t0 difference
@@ -852,20 +731,21 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         auto const& ffpars = fftraj.params();
         auto const& mfpars = mftraj.params();
         auto const& bfpars = bftraj.params();
-        double maxgap, avgap;
-        size_t igap;
-        fptraj.gaps(maxgap, igap, avgap);
-        maxgap_ = maxgap;
-        avgap_ = avgap;
-        igap_ = igap;
 
+        ndof->Fill(ndof_);
+        chisq->Fill(chisq_);
+        chisqndof->Fill(fstat.chisq_.chisqPerNDOF());
+        chisqprob->Fill(chiprob_);
+        if(chiprob_ > 0.0) logchisqprob->Fill(log10(chiprob_));
+        hniter->Fill(niter_);
+        hnmeta->Fill(nmeta_);
+        // accumulate parameter difference and pull
+        vector<double> fcerr(6,0.0), mcerr(6,0.0), bcerr(6,0.0);
         Parameters ftpars, mtpars, btpars;
         ftpars = fttraj.params();
         mtpars = mttraj.params();
         btpars = bttraj.params();
 
-        // accumulate parameter difference and pull
-        vector<double> fcerr(6,0.0), mcerr(6,0.0), bcerr(6,0.0);
         for(size_t ipar=0;ipar< NParams(); ipar++){
           fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
           mcerr[ipar] = sqrt(mfpars.covariance()[ipar][ipar]);
@@ -888,24 +768,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             corravg->Fill(ipar,jpar,fabs(corr));
           }
         }
-        // extract fit parameters and errors
-        for(size_t ipar=0;ipar<6;ipar++){
-          ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
-          mfitpars_.pars_[ipar] = mftraj.params().parameters()[ipar];
-          bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
-          ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
-          mfiterrs_.pars_[ipar] = sqrt(mftraj.params().covariance()(ipar,ipar));
-          bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
-        }
+        ftmom_ = tptraj.momentum(ttlow);
+        mtmom_ = tptraj.momentum(ttmid);
+        btmom_ = tptraj.momentum(tthigh);
         ffmom_ = fptraj.momentum(ftlow);
         mfmom_ = fptraj.momentum(ftmid);
         bfmom_ = fptraj.momentum(fthigh);
         ffmomerr_ = sqrt(fptraj.momentumVariance(ftlow));
         mfmomerr_ = sqrt(fptraj.momentumVariance(ftmid));
         bfmomerr_ = sqrt(fptraj.momentumVariance(fthigh));
-        fft_ = fptraj.range().begin();
-        mft_ = fptraj.range().mid();
-        bft_ = fptraj.range().end();
         fmomres->Fill((ffmom_-ftmom_));
         mmomres->Fill((mfmom_-mtmom_));
         bmomres->Fill((bfmom_-btmom_));
@@ -917,6 +788,138 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         //      ParticleStateEstimate tshigh = tptraj.state(thigh);
         //      ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
         //      ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
+        if(ttree && fstat.usable()){
+          sbeg_ = seedtraj.range().begin();
+          send_ = seedtraj.range().end();
+          fbeg_ = fptraj.range().begin();
+          fend_ = fptraj.range().end();
+
+          for(auto const& eff: kktrk.effects()) {
+            const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+            const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
+            const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
+            if(kkhit != 0){
+              nkkhit_++;
+              HitInfo hinfo;
+              hinfo.active_ = kkhit->active();
+              hinfo.time_ = kkhit->time();
+              auto chisq = kkhit->hit()->chisquared();
+              hinfo.chisq_ = chisq.chisq();
+              hinfo.prob_ = chisq.probability();
+              hinfo.ndof_ = chisq.nDOF();
+              hinfo.state_ = WireHitState::inactive;
+              hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
+              hinfo.t0_ = 0.0;
+              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+              const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+              const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+              if(strawhit != 0){
+                hinfo.type_ = HitInfo::straw;
+                hinfo.state_ = strawhit->hitState().state_;
+                hinfo.t0_ = strawhit->closestApproach().particleToca();
+                hinfo.doca_ = strawhit->closestApproach().doca();
+                hinfo.deltat_ = strawhit->closestApproach().deltaT();
+                hinfo.docavar_ = strawhit->closestApproach().docaVar();
+                hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
+                // straw hits can have multiple residuals
+                if(strawhit->activeRes(STRAWHIT::tresid)){
+                  auto resid = strawhit->unbiasedResidual(STRAWHIT::tresid);
+                  hinfo.tresid_ = resid.value();
+                  hinfo.tresidvar_ = resid.variance();
+                  hinfo.tresidpull_ = strawhit->pull(STRAWHIT::tresid);
+                }
+                //
+                if(strawhit->activeRes(STRAWHIT::dresid)){
+                  auto resid = strawhit->unbiasedResidual(STRAWHIT::dresid);
+                  hinfo.dresid_ = resid.value();
+                  hinfo.dresidvar_ = resid.variance();
+                  hinfo.dresidpull_ = strawhit->pull(STRAWHIT::dresid);
+                }
+                hinfovec.push_back(hinfo);
+              } else if(scinthit != 0){
+                hinfo.type_ = HitInfo::scint;
+                auto resid = scinthit->unbiasedResidual(0);
+                hinfo.tresid_ = resid.value();
+                hinfo.tresidvar_ = resid.variance();
+                hinfo.tresidpull_ = scinthit->pull(0);
+                hinfo.t0_ = scinthit->closestApproach().particleToca();
+                hinfo.doca_ = scinthit->closestApproach().doca();
+                hinfo.deltat_ = scinthit->closestApproach().deltaT();
+                hinfo.docavar_ = scinthit->closestApproach().docaVar();
+                hinfo.tocavar_ = scinthit->closestApproach().tocaVar();
+                hinfovec.push_back(hinfo);
+              } else if(parhit != 0){
+                hinfo.type_ = HitInfo::parcon;
+                hinfo.dresid_ = sqrt(parhit->chisquared().chisq());
+                hinfo.dresidvar_ = 1.0;
+                hinfovec.push_back(hinfo);
+              } else {
+                hinfo.type_ = HitInfo::unknown;
+              }
+            }
+            if(kkmat != 0){
+              nkkmat_++;
+              KinKal::MaterialInfo minfo;
+              minfo.time_ = kkmat->time();
+              minfo.active_ = kkmat->active();
+              minfo.nxing_ = kkmat->elementXing().matXings().size();
+              std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+              kkmat->elementXing().materialEffects(fptraj,TimeDir::forwards, dmom, momvar);
+              minfo.dmomf_ = dmom[MomBasis::momdir_];
+              minfo.momvar_ = momvar[MomBasis::momdir_];
+              minfo.perpvar_ = momvar[MomBasis::perpdir_];
+              minfovec.push_back(minfo);
+            }
+            if(kkbf != 0){
+              nkkbf_++;
+              BFieldInfo bfinfo;
+              bfinfo.active_ = kkbf->active();
+              bfinfo.time_ = kkbf->time();
+              bfinfo.range_ = kkbf->range().range();
+              bfinfovec.push_back(bfinfo);
+            }
+          }
+          fft_ = fptraj.range().begin();
+          mft_ = fptraj.range().mid();
+          bft_ = fptraj.range().end();
+          // extract fit parameters and errors
+          for(size_t ipar=0;ipar<6;ipar++){
+            ffitpars_.pars_[ipar] = fftraj.params().parameters()[ipar];
+            mfitpars_.pars_[ipar] = mftraj.params().parameters()[ipar];
+            bfitpars_.pars_[ipar] = bftraj.params().parameters()[ipar];
+            ffiterrs_.pars_[ipar] = sqrt(fftraj.params().covariance()(ipar,ipar));
+            mfiterrs_.pars_[ipar] = sqrt(mftraj.params().covariance()(ipar,ipar));
+            bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
+          }
+          for(size_t ipar=0;ipar<6;ipar++){
+            spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+            ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
+            mtpars_.pars_[ipar] = mttraj.params().parameters()[ipar];
+            btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
+          }
+
+          // step through the fit traj and compare to the truth
+          auto const& fptraj = kktrk.fitTraj();
+          double dt = fptraj.range().range()/nsteps;
+          for(unsigned istep=0;istep < nsteps;istep++){
+            double tstep = fptraj.range().begin()+dt*istep;
+            double ttrue;
+            double dperp = dTraj(fptraj,tptraj,tstep,ttrue);
+            ParticleTrajectoryInfo ktinfo;
+            ktinfo.time_ = tstep;
+            ktinfo.dperp_ = dperp;
+            ktinfo.dt_= tstep-ttrue;
+            tinfovec.push_back(ktinfo);
+          }
+          double maxgap, avgap;
+          size_t igap;
+          fptraj.gaps(maxgap, igap, avgap);
+          maxgap_ = maxgap;
+          avgap_ = avgap;
+          igap_ = igap;
+
+          ftree->Fill();
+        }
 
         // test
       } else if(printbad){
@@ -925,7 +928,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         cout << "Seed Traj " << seedtraj << endl;
         kktrk.print(cout,detail);
       }
-      if(ttree)ftree->Fill();
     }
     // Test fit success
     cout
@@ -951,10 +953,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     fdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr ffitr = fmomres->Fit("gaus","qS");
-    if(fabs(ffitr->Parameter(1))/ffitr->Error(1) > 10.0 || ffitr->Parameter(2) > 2.0*momsigma ){
-      cout << "Front momentum resolution out of tolerance "
-        << ffitr->Parameter(1) << " +- " << ffitr->Error(1) << " sigma " << ffitr->Parameter(2) << endl;
-      retval=-3;
+    TF1* gfit = fmomres->GetFunction("gaus");
+    if(gfit != 0){
+      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+        cout << "Front momentum resolution out of tolerance "
+          << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
+        retval=-3;
+      }
+    } else {
+      retval = -5;
     }
 
     fdpcan->Write();
@@ -967,10 +974,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     mdpcan->cd(NParams()+1);
     // Test momentum resolution
     TFitResultPtr mfitr = mmomres->Fit("gaus","qS");
-    if(fabs(mfitr->Parameter(1))/mfitr->Error(1) > 10.0 || mfitr->Parameter(2) > 2.0*momsigma ){
-      cout << "Mid momentum resolution out of tolerance "
-        << mfitr->Parameter(1) << " +- " << mfitr->Error(1) << " sigma " << mfitr->Parameter(2) << endl;
-      retval=-3;
+    gfit = mmomres->GetFunction("gaus");
+    if(gfit != 0){
+      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+        cout << "Middle momentum resolution out of tolerance "
+          << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
+        retval=-3;
+      }
+    } else {
+      retval = -5;
     }
     mdpcan->Write();
     TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
@@ -981,10 +993,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
     bdpcan->cd(NParams()+1);
     TFitResultPtr bfitr = bmomres->Fit("gaus","qS");
-    if(fabs(bfitr->Parameter(1))/bfitr->Error(1) > 10.0 || bfitr->Parameter(2) > 2.0*momsigma ){
-      cout << "Back momentum resolution out of tolerance "
-        << bfitr->Parameter(1) << " +- " << bfitr->Error(1) << " sigma " << bfitr->Parameter(2) << endl;
-      retval=-3;
+    gfit = bmomres->GetFunction("gaus");
+    if(gfit != 0){
+      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+        cout << "Back momentum resolution out of tolerance "
+          << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
+        retval=-3;
+      }
+    } else {
+      retval = -5;
     }
     bdpcan->Write();
     TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
@@ -992,10 +1009,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     for(size_t ipar=0;ipar<NParams();++ipar){
       fpullcan->cd(ipar+1);
       TFitResultPtr fpfitr =  fpull[ipar]->Fit("gaus","qS");
-      if(fpull[ipar]->GetEntries() > 1000 && (fabs(fpfitr->Parameter(1)) > 0.1 || (fpfitr->Parameter(2)-1.0) > 0.2)  ){
-        cout << "front pull " << fpull[ipar]->GetName() << " out of tolerance "
-          << fpfitr->Parameter(1) << " +- " << fpfitr->Error(1) << " sigma " << fpfitr->Parameter(2) << endl;
-        retval=-3;
+      gfit = fpull[ipar]->GetFunction("gaus");
+      if(gfit != 0){
+        if(fpull[ipar]->GetEntries() > 1000 && (fabs(gfit->GetParameter(1)) > 0.1 || (gfit->GetParameter(2)-1.0) > 0.2)  ){
+          cout << "front pull " << fpull[ipar]->GetName() << " out of tolerance "
+            << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
+          retval=-3;
+        }
+      } else {
+        retval = -5;
       }
     }
     fpullcan->cd(NParams()+1);
@@ -1008,7 +1030,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       mpull[ipar]->Fit("gaus","q");
     }
     mpullcan->cd(NParams()+1);
-    fmompull->Fit("gaus","q");
+    mmompull->Fit("gaus","q");
     mpullcan->Write();
     TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
     bpullcan->Divide(3,3);

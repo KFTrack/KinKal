@@ -10,15 +10,15 @@
 #include "KinKal/General/Chisq.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Fit/MetaIterConfig.hh"
+#include <memory>
 #include <ostream>
 
 namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      // default
-      Hit(PKTRAJ const& pktraj,double time) : reftraj_(pktraj.nearestPiece(time)),wscale_(1.0){}
-      Hit(KTRAJ const& ktraj) : reftraj_(ktraj),wscale_(1.0){}
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      Hit() : wscale_(1.0){}
       virtual ~Hit(){}
       // disallow copy and equivalence
       Hit(Hit const& ) = delete;
@@ -33,15 +33,14 @@ namespace KinKal {
       virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& config) = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // accessors
-      // the constraint this hit implies WRT the current reference, expressed as a weight.  This will be used in the next fit iteration
+      // the constraint this hit implies WRT the current trajectory, expressed as a weight
       Weights const& weight() const { return weight_; }
-      // the constraint used in making the current reference
-      Weights const& referenceWeight() const { return refweight_; }
       // the same, scaled for annealing
       double weightScale() const { return wscale_; }
+      KTRAJ const& referenceTrajectory() const { return *reftraj_; }  // trajectory WRT which the weight etc is defined
       // parameters WRT which this hit's residual and weights are set.  These are generally biased
       // in that they contain the information of this hit
-      Parameters const& referenceParameters() const { return reftraj_.params(); }
+      Parameters const& referenceParameters() const { return referenceTrajectory().params(); }
       // Unbiased parameters, taking out the hits effect
       Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
@@ -49,15 +48,17 @@ namespace KinKal {
     protected:
       // update the weight
       void setWeight(Weights const& weight){
-        refweight_ = weight_;
         weight_ = weight;
         weight_ *= wscale_;
       }
-      KTRAJ reftraj_; // reference parameters used for this hit's weight  Should be private FIXME
-      double wscale_; // current annealing weight scaling Should be private FIXME
+      void setWeightScale(double wscale) {
+        wscale_ = wscale;
+      }
+      void setRefTraj(KTRAJPTR const& reftraj) { reftraj_ = reftraj; }
     private:
+      double wscale_; // current annealing weight scaling
       Weights weight_; // weight representation of the hit's constraint
-      Weights refweight_; // weight used in the previous iteration
+      KTRAJPTR reftraj_; // reference WRT this hits weight was calculated
   };
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
@@ -65,10 +66,10 @@ namespace KinKal {
       // convert the parameters to a weight, and subtract this hit's weight
       Weights wt(referenceParameters());
       // subtract out the effect of this hit's reference weight from the reference parameters
-      wt -= referenceWeight();
+      wt -= weight_;
       return Parameters(wt);
     } else
-      return reftraj_.params();
+      return referenceParameters();
   }
 
   template<class KTRAJ> Chisq Hit<KTRAJ>::chisquared() const {

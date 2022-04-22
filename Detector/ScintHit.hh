@@ -1,7 +1,7 @@
 #ifndef KinKal_ScintHit_hh
 #define KinKal_ScintHit_hh
 //
-//  simple example hit subclass representing a time measurement using scintillator light from a crystal or plastic scintillator
+//  simple hit subclass representing a time measurement using scintillator light from a crystal or plastic scintillator
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Trajectory/Line.hh"
@@ -25,7 +25,6 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
       ScintHit(PCA const& pca, double tvar, double wvar, double precision=1e-8) :
-        RESIDHIT(pca.particleTraj(),pca.particlePoca().T()),
         saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision) {}
       virtual ~ScintHit(){}
       Residual const& timeResidual() const { return rresid_; }
@@ -71,15 +70,15 @@ namespace KinKal {
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
-      HIT::reftraj_ = pktraj.nearestPiece(tpoca.particleToca());
-      RESIDHIT::setWeight();
+      this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
+      this->setWeight();
     } else
       throw std::runtime_error("PCA failure");
   }
 
   template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
-    HIT::wscale_ = 1.0/miconfig.varianceScale();
+    this->setWeightScale(1.0/miconfig.varianceScale());
     update(pktraj);
   }
 

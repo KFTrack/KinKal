@@ -30,9 +30,7 @@ namespace KinKal {
       Residual unbiasedResidual(unsigned ires) const;
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
-      // construct from a trajectory (as reference)
-      ResidualHit(KTRAJ const& ktraj) : HIT(ktraj) {}
-      ResidualHit(PKTRAJ const& pktraj,double time) :  HIT(pktraj,time) {}
+      ResidualHit() {}
     protected:
       // allow subclasses to set the weight
       void setWeight();

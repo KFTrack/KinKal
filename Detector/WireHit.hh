@@ -67,10 +67,9 @@ namespace KinKal {
   };
 
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& wstate) :
-    RESIDHIT(pca.particleTraj(),pca.particlePoca().T()),
     bfield_(bfield),
     whstate_(wstate), wire_(pca.sensorTraj()),
-    tpca_(pca.localParticleTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {}
+    tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {}
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && whstate_.active())
@@ -84,12 +83,12 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
     auto tpoca = updatePCA(pktraj);
     updateResiduals(tpoca);
-    HIT::reftraj_ = pktraj.nearestPiece(tpoca.particleToca());
-    RESIDHIT::setWeight();
+    this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
+    this->setWeight();
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    HIT::wscale_ = 1.0/miconfig.varianceScale();
+    this->setWeightScale(1.0/miconfig.varianceScale());
     update(pktraj);
   }
 

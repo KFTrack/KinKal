@@ -19,9 +19,9 @@ namespace KinKal {
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
-      void update(PKTRAJ const& pktraj) override { HIT::reftraj_ = pktraj.nearestPiece(time()); }
+      void update(PKTRAJ const& pktraj) override { this->setRefTraj(pktraj.nearestTraj(time())); }
       void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override {
-        HIT::wscale_ = 1.0/miconfig.varianceScale(); update(pktraj); }
+        this->setWeightScale(1.0/miconfig.varianceScale()); update(pktraj); }
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
@@ -40,7 +40,6 @@ namespace KinKal {
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask) :
-    HIT(reftraj),
     time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
 
       Weights weight(params);
