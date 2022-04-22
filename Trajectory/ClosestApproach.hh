@@ -35,6 +35,7 @@ namespace KinKal {
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return *ktrajptr_; }
+      KTRAJPTR const& particleTrajPtr() const { return ktrajptr_; }
       STRAJ const& sensorTraj() const { return straj_; }
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       DVEC const& dDdP() const { return dDdP_; }

@@ -51,8 +51,7 @@ namespace KinKal {
       virtual ~WireHit(){}
     protected:
       void setState(WireHitState::State state) { whstate_.state_ = state; }
-      PCA updatePCA(PKTRAJ const& pktraj);
-      void updateResiduals(PCA const& tpoca);
+      void updateResiduals(WireHitState const& whstate);
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       WireHitState whstate_; // current state
@@ -81,9 +80,13 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    auto tpoca = updatePCA(pktraj);
-    this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
-    updateResiduals(tpoca);
+    // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
+    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
+    PCA tpoca(pktraj,wire_,tphint,precision());
+    if(!tpoca.usable())throw std::runtime_error("TPOCA failure");
+    tpca_ = tpoca.localClosestApproach();
+    this->setRefTraj(tpca_.particleTrajPtr());
+    updateResiduals(whstate_);
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
@@ -91,43 +94,33 @@ namespace KinKal {
     update(pktraj);
   }
 
-  template <class KTRAJ> PiecewiseClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::updatePCA(PKTRAJ const& pktraj) {
-    CAHint tphint(wire_.range().mid(),wire_.range().mid());
-    // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
-    if(tpca_.usable()) tphint = tpca_.hint();
-    PCA tpoca(pktraj,wire_,tphint,precision());
-    if(!tpoca.usable())throw std::runtime_error("TPOCA failure");
-    tpca_ = tpoca.localClosestApproach();
-    return tpoca;
-  }
-
-  template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(PCA const& tpoca) {
+  template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {
     // compute drift parameters.  These are used even for null-ambiguity hits
-    VEC3 bvec = bfield_.fieldVect(tpoca.particlePoca().Vect());
+    VEC3 bvec = bfield_.fieldVect(tpca_.particlePoca().Vect());
     auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
-    VEC3 dvec = tpoca.delta().Vect();
+    VEC3 dvec = tpca_.delta().Vect();
     double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
-    POL2 drift(fabs(tpoca.doca()), phi);
+    POL2 drift(fabs(tpca_.doca()), phi);
     DriftInfo dinfo;
     distanceToTime(drift, dinfo);
-    if(whstate_.useDrift()){
+    if(whstate.useDrift()){
       // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
-      double dsign = whstate_.lrSign()*tpoca.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
-      double dt = tpoca.deltaT()-dinfo.tdrift_*dsign;
+      double dsign = whstate.lrSign()*tpca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
+      double dt = tpca_.deltaT()-dinfo.tdrift_*dsign;
       // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-      DVEC dRdP = tpoca.dDdP()*dsign/dinfo.vdrift_ - tpoca.dTdP();
+      DVEC dRdP = tpca_.dDdP()*dsign/dinfo.vdrift_ - tpca_.dTdP();
       rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,dRdP);
     } else {
       // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
-      DVEC dRdP = -tpoca.lSign()*tpoca.dDdP();
-      double dd = tpoca.doca() + nullOffset(dresid,dinfo);
+      DVEC dRdP = -tpca_.lSign()*tpca_.dDdP();
+      double dd = tpca_.doca() + nullOffset(dresid,dinfo);
       double nulldvar = nullVariance(dresid,dinfo);
       rresid_[dresid] = Residual(dd,nulldvar,dRdP);
       //  interpret TOCA as a residual
-      double dt = tpoca.deltaT() + nullOffset(tresid,dinfo);
+      double dt = tpca_.deltaT() + nullOffset(tresid,dinfo);
       // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
       double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
-      rresid_[tresid] = Residual(dt,nulltvar,-tpoca.dTdP());
+      rresid_[tresid] = Residual(dt,nulltvar,-tpca_.dTdP());
       // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
     }
   }
