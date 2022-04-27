@@ -63,11 +63,11 @@ namespace KinKal {
     param(cx_) = pos.X() - mom.Y()*momToRad;
     param(cy_) = pos.Y() + mom.X()*momToRad;
      // test
-    auto testpos = position3(pos0.T());
-    auto testmom = momentum3(pos0.T());
-    auto dp = testpos - pos0.Vect();
-    auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
+//    auto testpos = position3(pos0.T());
+//    auto testmom = momentum3(pos0.T());
+//    auto dp = testpos - pos0.Vect();
+//    auto dm = testmom - mom0.Vect();
+//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
  }
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {

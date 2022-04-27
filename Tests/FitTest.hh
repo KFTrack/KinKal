@@ -706,8 +706,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
-      if(fstat.status_ != KinKal::Status::failed){
-//      if(fstat.usable()){
+      if(fstat.usable()){
         // basic info
         auto const& fptraj = kktrk.fitTraj();
         // truth parameters, front and back
