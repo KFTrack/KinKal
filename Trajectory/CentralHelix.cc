@@ -80,7 +80,7 @@ namespace KinKal {
     auto testmom = momentum3(pos0.T());
     auto dp = testpos - pos0.Vect();
     auto dm = testmom - mom0.Vect();
-    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Rotation Error");
+    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
     // check
     auto lmom = localMomentum(pos0.T());
     auto tcent = center();

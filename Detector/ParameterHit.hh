@@ -6,6 +6,7 @@
 //
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/General/Vectors.hh"
+//#include "KinKal/General/Parameters.hh"
 #include <stdexcept>
 namespace KinKal {
 
@@ -41,24 +42,27 @@ namespace KinKal {
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
-
-      Weights weight(params);
+    time_(time), params_(params), pmask_(pmask), ncons_(0) {
+      // create the mask matrix; Use a temporary, not the data member, as root has caching problems with that (??)
+      DMAT mask = ROOT::Math::SMatrixIdentity();
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
         if(pmask_[ipar]){
           ncons_++;
         } else {
-          // zero unconstrained values
-          mask_(ipar,ipar) = 0.0;
+          mask(ipar,ipar) = 0.0;
         }
       }
       // Mask Off unused parameters
-      DMAT wmat = ROOT::Math::Similarity(mask_,weight.weightMat());
-      // 2 steps needed her, as otherwise root caching results in incomplete objects
+      // 2 steps needed here, as otherwise root caching results in incomplete objects
+      Weights weight(params);
+      DMAT wmat = weight.weightMat();
+      wmat = ROOT::Math::Similarity(mask,wmat);
       DVEC wvec = weight.weightVec();
-      DVEC wreduced = wvec*mask_;
+      DVEC wreduced = wvec*mask;
       HIT::setWeight(Weights(wreduced, wmat));
+      // record the mask matrix for later use in chisq
+      mask_ = mask;
     }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {
