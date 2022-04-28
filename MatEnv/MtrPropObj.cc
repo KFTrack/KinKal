@@ -3,9 +3,9 @@
 //      $Id: MtrPropObj.cc 516 2010-01-15 08:22:00Z stroili $
 //
 // Description:
-//      Class MtrPropObj 
+//      Class MtrPropObj
 //      Source file (see.hh file for more details)
-// 
+//
 // Environment:
 //	Software developed for the BaBar Detector at the SLAC B-Factory.
 //
@@ -42,7 +42,7 @@ namespace MatEnv {
 
   static const double GasThreshold    = 10.*mg/cm3;
 
-  // Constructor to create Material from scratch 
+  // Constructor to create Material from scratch
 
   MtrPropObj::MtrPropObj()
     : _matDensity(0),
@@ -117,17 +117,17 @@ namespace MatEnv {
     _shellCorrectionVector = new std::vector< double >( numShellV );
     _state = new std::string( theMaterial->getState() );
 
-    if (_matDensity*g/cm3 < universe_mean_density) { 
+    if (_matDensity*g/cm3 < universe_mean_density) {
       ErrMsg(error)
-	<< " Warning: define a material with density=0 is not allowed. \n"
-	<< " The material " << *_matName << " will be constructed with the"
-	<< " default minimal density: " << universe_mean_density/(g/cm3) 
-	<< "g/cm3" << endmsg;
+        << " Warning: define a material with density=0 is not allowed. \n"
+        << " The material " << *_matName << " will be constructed with the"
+        << " default minimal density: " << universe_mean_density/(g/cm3)
+        << "g/cm3" << endmsg;
       _matDensity = universe_mean_density/(g/cm3);
-    } 
+    }
 
     int ncomp = theMaterial->getNbrComp();
-    if (ncomp == 0) 
+    if (ncomp == 0)
     {
       // Initialize theElementVector allocating one
       // element corresponding to this material
@@ -153,7 +153,7 @@ namespace MatEnv {
 
   }
 
-  MtrPropObj::~MtrPropObj() 
+  MtrPropObj::~MtrPropObj()
   {
     delete _matName;
     delete _state;
@@ -221,30 +221,30 @@ namespace MatEnv {
     MtrPropObj::operator==(const MtrPropObj& other) const
     {
       bool equal = true;
-      if ( *_matName != other.getName() || 
-	  _matDensity != other.getDensity() || 
-	  _cdensity != other.getCdensity() ||
-	  _mdensity != other.getMdensity() ||
-	  _adensity != other.getAdensity() ||
-	  _x0density != other.getX0density() ||
-	  _x1density != other.getX1density() ||
-	  _taul != other.getTaul() ||
-	  _dEdxFactor != other.getDEdxFactor() ||
-	  _meanExciEnergy != other.getMeanExciEnergy() ||
-	  _radLength != other.getRadLength() ||
-	  _intLength != other.getIntLength() 
-	 ) equal=false;
+      if ( *_matName != other.getName() ||
+          _matDensity != other.getDensity() ||
+          _cdensity != other.getCdensity() ||
+          _mdensity != other.getMdensity() ||
+          _adensity != other.getAdensity() ||
+          _x0density != other.getX0density() ||
+          _x1density != other.getX1density() ||
+          _taul != other.getTaul() ||
+          _dEdxFactor != other.getDEdxFactor() ||
+          _meanExciEnergy != other.getMeanExciEnergy() ||
+          _radLength != other.getRadLength() ||
+          _intLength != other.getIntLength()
+         ) equal=false;
 
       const std::vector< double >& myV = *_shellCorrectionVector;
       const std::vector< double >& otherV = other.getShellCorrectionVector();
       size_t i=0, length = myV.size();
       if ( length != otherV.size() )
       {
-	equal = false;
+        equal = false;
       }
       else
       {
-	for ( i=0; i<length; i++ ) if ( myV[i] != otherV[i] ) equal = false;
+        for ( i=0; i<length; i++ ) if ( myV[i] != otherV[i] ) equal = false;
       }
 
       return equal;
@@ -320,37 +320,36 @@ namespace MatEnv {
 
   void
     MtrPropObj::AddElement(ElmPropObj* element, int nAtoms)
-    {   
+    {
       // initialization
       if ( _numberOfElements == 0 ) {
-	_atomsVector        = new std::vector< int >( _maxNbComponents );
-	_massFractionVector = new std::vector< double >( _maxNbComponents );
+        _atomsVector        = new std::vector< int >( _maxNbComponents );
+        _massFractionVector = new std::vector< double >( _maxNbComponents );
       }
 
       // filling ...
       if ( _numberOfElements < _maxNbComponents ) {
-	(*_theElementVector)[_numberOfElements] = element;
-	(*_atomsVector)     [_numberOfElements] = nAtoms;
-	_numberOfComponents = ++_numberOfElements;
+        (*_theElementVector)[_numberOfElements] = element;
+        (*_atomsVector)     [_numberOfElements] = nAtoms;
+        _numberOfComponents = ++_numberOfElements;
       }
       else
-	ErrMsg(error)
-	  << "Attempt to add more than the declared number of elements." 
-	  << endmsg; 
+        ErrMsg(error)
+          << "Attempt to add more than the declared number of elements."
+          << endmsg;
 
       // filled.
-      if ( _numberOfElements == _maxNbComponents ) {     
-	// compute proportion by mass
-	size_t i=0;
-	double Zmol(0.), Amol(0.);
-	for (i=0;i<_numberOfElements;i++) {
-	  Zmol +=  (*_atomsVector)[i]*(*_theElementVector)[i]->getZ();
-	  Amol +=  (*_atomsVector)[i]*(*_theElementVector)[i]->getA();
-	}
-	for (i=0;i<_numberOfElements;i++) {
-	  (*_massFractionVector)[i] = (*_atomsVector)[i]*(*_theElementVector)[i]->getA()/Amol;
-	}
-	ComputeDerivedQuantities();
+      if ( _numberOfElements == _maxNbComponents ) {
+        // compute proportion by mass
+        size_t i=0;
+        double Amol(0.);
+        for (i=0;i<_numberOfElements;i++) {
+          Amol +=  (*_atomsVector)[i]*(*_theElementVector)[i]->getA();
+        }
+        for (i=0;i<_numberOfElements;i++) {
+          (*_massFractionVector)[i] = (*_atomsVector)[i]*(*_theElementVector)[i]->getA()/Amol;
+        }
+        ComputeDerivedQuantities();
       }
     }
 
@@ -361,53 +360,53 @@ namespace MatEnv {
     {
       // if atomsVector is non-NULL, complain. Apples and oranges.  $$$
       if ( _atomsVector != 0 ) {
-	ErrMsg(error)
-	  << "This material is already being defined via elements by"
-	  << "atoms." << endmsg;
+        ErrMsg(error)
+          << "This material is already being defined via elements by"
+          << "atoms." << endmsg;
       }
 
       // initialization
       if ( _numberOfComponents == 0)
       {
-	_massFractionVector = new std::vector< double >( 100 );
-	// zero all the elements before doing +=
-	for ( size_t zeroer = 0; zeroer<100; zeroer++ )
-	  (*_massFractionVector)[zeroer]=0;
+        _massFractionVector = new std::vector< double >( 100 );
+        // zero all the elements before doing +=
+        for ( size_t zeroer = 0; zeroer<100; zeroer++ )
+          (*_massFractionVector)[zeroer]=0;
       }
 
 
       // filling ...
       if (_numberOfComponents < _maxNbComponents) {
-	size_t el = 0;
-	while ((el<_numberOfElements)&&(element!=(*_theElementVector)[el])) el++;
-	if (el<_numberOfElements) (*_massFractionVector)[el] += fraction;
-	else {
-	  if(el>=_theElementVector->size()) _theElementVector->resize(el+1);
-	  (*_theElementVector)[el] = element;
-	  (*_massFractionVector)[el] = fraction;
-	  _numberOfElements ++;
-	}
-	_numberOfComponents++;  
+        size_t el = 0;
+        while ((el<_numberOfElements)&&(element!=(*_theElementVector)[el])) el++;
+        if (el<_numberOfElements) (*_massFractionVector)[el] += fraction;
+        else {
+          if(el>=_theElementVector->size()) _theElementVector->resize(el+1);
+          (*_theElementVector)[el] = element;
+          (*_massFractionVector)[el] = fraction;
+          _numberOfElements ++;
+        }
+        _numberOfComponents++;
       }
       else
-	ErrMsg(error)
-	  << "Attempt to add more than the declared number of components."
-	  << endmsg;
+        ErrMsg(error)
+          << "Attempt to add more than the declared number of components."
+          << endmsg;
 
       // filled.
       if (_numberOfComponents == _maxNbComponents) {
-	// check sum of weights -- OK?
-	size_t i;
-	double wtSum(0.0);
-	for (i=0;i<_numberOfElements;i++) { wtSum +=  (*_massFractionVector)[i]; }
-	if (fabs(1.-wtSum) > 0.001) {
-	  ErrMsg(error)
-	    << "WARNING !! - Fractional masses do not sum to 1: Delta is > 0.001"
-	    << "( the weights are NOT renormalized; the results may be wrong)" 
-	    << endmsg;
-	}
+        // check sum of weights -- OK?
+        size_t i;
+        double wtSum(0.0);
+        for (i=0;i<_numberOfElements;i++) { wtSum +=  (*_massFractionVector)[i]; }
+        if (fabs(1.-wtSum) > 0.001) {
+          ErrMsg(error)
+            << "WARNING !! - Fractional masses do not sum to 1: Delta is > 0.001"
+            << "( the weights are NOT renormalized; the results may be wrong)"
+            << endmsg;
+        }
 
-	ComputeDerivedQuantities();
+        ComputeDerivedQuantities();
 
       }
     }
@@ -419,55 +418,55 @@ namespace MatEnv {
     {
       // if atomsVector is non-NULL, complain. Apples and oranges.  $$$
       if ( _atomsVector != 0 ) {
-	ErrMsg(error)
-	  << "This material is already being defined via elements by"
-	  << "atoms." << endmsg;
+        ErrMsg(error)
+          << "This material is already being defined via elements by"
+          << "atoms." << endmsg;
       }
       // initialization
       if (_numberOfComponents == 0) {
-	_massFractionVector = new std::vector< double >( 100 );
-	// zero all the elements before doing +=
-	for ( size_t zeroer = 0; zeroer<100; zeroer++ )
-	  (*_massFractionVector)[zeroer]=0;
+        _massFractionVector = new std::vector< double >( 100 );
+        // zero all the elements before doing +=
+        for ( size_t zeroer = 0; zeroer<100; zeroer++ )
+          (*_massFractionVector)[zeroer]=0;
       }
 
 
       // filling ...
       if (_numberOfComponents < _maxNbComponents) {
-	for (size_t elm=0; elm < material->getNumberOfElements(); elm++)
-	{ 
-	  ElmPropObj* element = (*(material->getElementVector()))[elm];
-	  size_t el = 0;
-	  while ((el<_numberOfElements)&&(element!=(*_theElementVector)[el])) el++;
-	  if (el<_numberOfElements) (*_massFractionVector)[el] += fraction
-	    *(material->getFractionVector())[elm];
-	  else {
-	    if(el>=_theElementVector->size()) _theElementVector->resize(el+1);
-	    (*_theElementVector)[el] = element;
-	    (*_massFractionVector)[el] = fraction*(material->getFractionVector())[elm];
-	    _numberOfElements ++;
-	  }
-	} 
-	_numberOfComponents++;  
+        for (size_t elm=0; elm < material->getNumberOfElements(); elm++)
+        {
+          ElmPropObj* element = (*(material->getElementVector()))[elm];
+          size_t el = 0;
+          while ((el<_numberOfElements)&&(element!=(*_theElementVector)[el])) el++;
+          if (el<_numberOfElements) (*_massFractionVector)[el] += fraction
+            *(material->getFractionVector())[elm];
+          else {
+            if(el>=_theElementVector->size()) _theElementVector->resize(el+1);
+            (*_theElementVector)[el] = element;
+            (*_massFractionVector)[el] = fraction*(material->getFractionVector())[elm];
+            _numberOfElements ++;
+          }
+        }
+        _numberOfComponents++;
       }
       else
-	ErrMsg(error)
-	  << "Attempt to add more than the declared number of components."
-	  << endmsg;
+        ErrMsg(error)
+          << "Attempt to add more than the declared number of components."
+          << endmsg;
       // filled.
       if (_numberOfComponents == _maxNbComponents) {
-	// check sum of weights -- OK?
-	size_t i;
-	double wtSum(0.0);
-	for (i=0;i<_numberOfElements;i++) { wtSum +=  (*_massFractionVector)[i]; }
-	if (fabs(1.-wtSum) > 0.001) {
-	  ErrMsg(error)
-	    << "WARNING !! - Fractional masses do not sum to 1: Delta is > 0.001"
-	    << "( the weights are NOT renormalized; the results may be wrong)" 
-	    << endmsg;
-	}
+        // check sum of weights -- OK?
+        size_t i;
+        double wtSum(0.0);
+        for (i=0;i<_numberOfElements;i++) { wtSum +=  (*_massFractionVector)[i]; }
+        if (fabs(1.-wtSum) > 0.001) {
+          ErrMsg(error)
+            << "WARNING !! - Fractional masses do not sum to 1: Delta is > 0.001"
+            << "( the weights are NOT renormalized; the results may be wrong)"
+            << endmsg;
+        }
 
-	ComputeDerivedQuantities();
+        ComputeDerivedQuantities();
       }
     }
 
@@ -486,22 +485,22 @@ namespace MatEnv {
       _totNbOfAtomsPerVolume = 0.;
       _vecNbOfAtomsPerVolume = new std::vector< double >( _numberOfElements );
       _totNbOfElectPerVolume = 0.;
-      for (size_t i=0;i<_numberOfElements;i++) 
+      for (size_t i=0;i<_numberOfElements;i++)
       {
-	Zi = (*_theElementVector)[i]->getZ();
-	Ai = (*_theElementVector)[i]->getA();
-	Ai *= g/mole;
+        Zi = (*_theElementVector)[i]->getZ();
+        Ai = (*_theElementVector)[i]->getA();
+        Ai *= g/mole;
 
-	ElmPropObj* element = (*_theElementVector)[i];
-	(*_theTau0Vector)[i] = element->getTau0(); 
-	(*_theAlowVector)[i] = element->getAlow(); 
-	(*_theBlowVector)[i] = element->getBlow(); 
-	(*_theClowVector)[i] = element->getClow(); 
-	(*_theZVector)[i]    = element->getZ(); 
+        ElmPropObj* element = (*_theElementVector)[i];
+        (*_theTau0Vector)[i] = element->getTau0();
+        (*_theAlowVector)[i] = element->getAlow();
+        (*_theBlowVector)[i] = element->getBlow();
+        (*_theClowVector)[i] = element->getClow();
+        (*_theZVector)[i]    = element->getZ();
 
-	(*_vecNbOfAtomsPerVolume)[i] = Avogadro*density*(*_massFractionVector)[i]/Ai;
-	_totNbOfAtomsPerVolume += (*_vecNbOfAtomsPerVolume)[i];
-	_totNbOfElectPerVolume += (*_vecNbOfAtomsPerVolume)[i]*Zi;
+        (*_vecNbOfAtomsPerVolume)[i] = Avogadro*density*(*_massFractionVector)[i]/Ai;
+        _totNbOfAtomsPerVolume += (*_vecNbOfAtomsPerVolume)[i];
+        _totNbOfElectPerVolume += (*_vecNbOfAtomsPerVolume)[i]*Zi;
 
       }
 
@@ -515,7 +514,7 @@ namespace MatEnv {
   {
     double radinv = 0.0 ;
     for (size_t i=0;i<_numberOfElements;i++) {
-      radinv += (*_vecNbOfAtomsPerVolume)[i]*((*_theElementVector)[i]->getRadTsai()); 
+      radinv += (*_vecNbOfAtomsPerVolume)[i]*((*_theElementVector)[i]->getRadTsai());
     }
     _radLength = (radinv <= 0.0 ? DBL_MAX : 1./radinv);
 
@@ -541,8 +540,8 @@ namespace MatEnv {
     MtrPropObj::ComputeOtherParams()
     {
 
-      // _dEdxFactor (in Mev/(g/cm2)) is exactly equal to 0.153536*Z/A 
-      // (see R.M. Sternheimer et al. in Atomic and Nuclear Data Tables 
+      // _dEdxFactor (in Mev/(g/cm2)) is exactly equal to 0.153536*Z/A
+      // (see R.M. Sternheimer et al. in Atomic and Nuclear Data Tables
       // vol. 30, N02, March 1984, page 267.)
 
       _dEdxFactor = twopi_mc2_rcl2*_totNbOfElectPerVolume;
@@ -565,23 +564,23 @@ namespace MatEnv {
 
       for (size_t i=0; i<_numberOfElements; i++)
       {
-	logMeanExciEnergy += (*_vecNbOfAtomsPerVolume)[i]
-	  *((*_theElementVector)[i]->getZ())
-	  *log((*_theElementVector)[i]->getMeanExciEnergy());
+        logMeanExciEnergy += (*_vecNbOfAtomsPerVolume)[i]
+          *((*_theElementVector)[i]->getZ())
+          *log((*_theElementVector)[i]->getMeanExciEnergy());
       }
       logMeanExciEnergy /= _totNbOfElectPerVolume;
       _meanExciEnergy = exp(logMeanExciEnergy);
 
       for (int j=0; j<=2; j++)
       {
-	(*_shellCorrectionVector)[j] = 0.;
-	for (size_t k=0; k<_numberOfElements; k++)
-	{
-	  (*_shellCorrectionVector)[j] += (*_vecNbOfAtomsPerVolume)[k] 
-	    *((*_theElementVector)[k]->getShellCorrectionVector()[j]);
-	}
-	(*_shellCorrectionVector)[j] /= _totNbOfElectPerVolume;
-      } 
+        (*_shellCorrectionVector)[j] = 0.;
+        for (size_t k=0; k<_numberOfElements; k++)
+        {
+          (*_shellCorrectionVector)[j] += (*_vecNbOfAtomsPerVolume)[k]
+            *((*_theElementVector)[k]->getShellCorrectionVector()[j]);
+        }
+        (*_shellCorrectionVector)[j] /= _totNbOfElectPerVolume;
+      }
 
       // Compute parameters for the density effect correction in DE/Dx formula.
       // The parametrization is from R.M. Sternheimer, Phys. Rev.B,3:3681 (1971)
@@ -592,64 +591,64 @@ namespace MatEnv {
       _cdensity = 1. + log(_meanExciEnergy*_meanExciEnergy/(Cd2*_totNbOfElectPerVolume));
 
       //
-      // condensed materials  
+      // condensed materials
       //
       if ((*_state == "solid")||(*_state == "liquid")) {
-	const double E100keV  = 100.*keV; 
-	const double ClimiS[] = {3.681 , 5.215 };
-	const double X0valS[] = {1.0   , 1.5   };
-	const double X1valS[] = {2.0   , 3.0   };
+        const double E100keV  = 100.*keV;
+        const double ClimiS[] = {3.681 , 5.215 };
+        const double X0valS[] = {1.0   , 1.5   };
+        const double X1valS[] = {2.0   , 3.0   };
 
-	if(_meanExciEnergy < E100keV) icase = 0 ;
-	else                          icase = 1 ;
+        if(_meanExciEnergy < E100keV) icase = 0 ;
+        else                          icase = 1 ;
 
-	if(_cdensity < ClimiS[icase]) _x0density = 0.2;
-	else                          _x0density = 0.326*_cdensity-X0valS[icase];
+        if(_cdensity < ClimiS[icase]) _x0density = 0.2;
+        else                          _x0density = 0.326*_cdensity-X0valS[icase];
 
-	_x1density = X1valS[icase] ; 
-	_mdensity = 3.0;
+        _x1density = X1valS[icase] ;
+        _mdensity = 3.0;
 
-	//special: Hydrogen
-	if ((_numberOfElements==1)&&(getZ()==1)) {
-	  _x0density = 0.425; _x1density = 2.0; _mdensity = 5.949;
-	}
+        //special: Hydrogen
+        if ((_numberOfElements==1)&&(getZ()==1)) {
+          _x0density = 0.425; _x1density = 2.0; _mdensity = 5.949;
+        }
       }
 
       //
       // gases
       //
-      if (*_state == "gas") { 
+      if (*_state == "gas") {
 
-	const double ClimiG[] = { 10. , 10.5 , 11. , 11.5 , 12.25 , 13.804};
-	const double X0valG[] = { 1.6 , 1.7 ,  1.8 ,  1.9 , 2.0   ,  2.0 };
-	const double X1valG[] = { 4.0 , 4.0 ,  4.0 ,  4.0 , 4.0   ,  5.0 };
+        const double ClimiG[] = { 10. , 10.5 , 11. , 11.5 , 12.25 , 13.804};
+        const double X0valG[] = { 1.6 , 1.7 ,  1.8 ,  1.9 , 2.0   ,  2.0 };
+        const double X1valG[] = { 4.0 , 4.0 ,  4.0 ,  4.0 , 4.0   ,  5.0 };
 
-	icase = 5;
-	_x0density = 0.326*_cdensity-2.5 ; _x1density = 5.0 ; _mdensity = 3. ; 
-	while((icase > 0)&&(_cdensity < ClimiG[icase])) icase-- ;
-	_x0density = X0valG[icase]  ; _x1density = X1valG[icase] ;
+        icase = 5;
+        _x0density = 0.326*_cdensity-2.5 ; _x1density = 5.0 ; _mdensity = 3. ;
+        while((icase > 0)&&(_cdensity < ClimiG[icase])) icase-- ;
+        _x0density = X0valG[icase]  ; _x1density = X1valG[icase] ;
 
-	//special: Hydrogen
-	if ((_numberOfElements==1)&&(getZ()==1.)) {
-	  _x0density = 1.837; _x1density = 3.0; _mdensity = 4.754;
-	}
+        //special: Hydrogen
+        if ((_numberOfElements==1)&&(getZ()==1.)) {
+          _x0density = 1.837; _x1density = 3.0; _mdensity = 4.754;
+        }
 
-	//special: Helium
-	if ((_numberOfElements==1)&&(getZ()==2.)) {
-	  _x0density = 2.191; _x1density = 3.0; _mdensity = 3.297;
-	}
+        //special: Helium
+        if ((_numberOfElements==1)&&(getZ()==2.)) {
+          _x0density = 2.191; _x1density = 3.0; _mdensity = 3.297;
+        }
 
-	// change parameters if the gas is not in STP.
-	// For the correction the density(STP) is needed. 
-	// Density(STP) is calculated here : 
+        // change parameters if the gas is not in STP.
+        // For the correction the density(STP) is needed.
+        // Density(STP) is calculated here :
 
-	double DensitySTP = _matDensity*STP_Pressure*_temp/(_pressure*STP_Temperature);
+        double DensitySTP = _matDensity*STP_Pressure*_temp/(_pressure*STP_Temperature);
 
-	double ParCorr = log(_matDensity/DensitySTP) ;
+        double ParCorr = log(_matDensity/DensitySTP) ;
 
-	_cdensity  -= ParCorr;
-	_x0density -= ParCorr/twoln10 ;
-	_x1density -= ParCorr/twoln10 ;
+        _cdensity  -= ParCorr;
+        _x0density -= ParCorr/twoln10 ;
+        _x1density -= ParCorr/twoln10 ;
       }
 
       double Xa = _cdensity/twoln10 ;
@@ -660,50 +659,50 @@ namespace MatEnv {
     MtrPropObj::print()
     {
       ErrMsg( routine ) << " Name: " << getName()
-	<< "  Density: " << getDensity() << endl
-	<< " _cdensity: "  << getCdensity()  
-	<< " _mdensity: "  << getMdensity()  
-	<< " _adensity: "  << getAdensity()  
-	<< " _x0density: " << getX0density()  
-	<< " _x1density: " << getX1density() << endl
-	<< " _taul: "      << getTaul()
-	<< " _meanExciEnergy: " << getMeanExciEnergy()
-	<< " _radLength: " << getRadLength() 
-	<< " _intLength: " << getIntLength()
-	<< endmsg;
+        << "  Density: " << getDensity() << endl
+        << " _cdensity: "  << getCdensity()
+        << " _mdensity: "  << getMdensity()
+        << " _adensity: "  << getAdensity()
+        << " _x0density: " << getX0density()
+        << " _x1density: " << getX1density() << endl
+        << " _taul: "      << getTaul()
+        << " _meanExciEnergy: " << getMeanExciEnergy()
+        << " _radLength: " << getRadLength()
+        << " _intLength: " << getIntLength()
+        << endmsg;
     }
 
   double
     MtrPropObj::getZ() const
-    { 
+    {
       if (_numberOfElements > 1) {
-	//    ErrMsg(error)
-	//  << "WARNING in getZ. The material: " << *_matName << " is a mixture." 
-	//  <<" the Atomic number is not well defined." << endmsg; 
-	double Zsum = 0.0;
-	for (size_t i = 0; i<_numberOfElements; i++)
-	  Zsum += (*_vecNbOfAtomsPerVolume)[i]/_totNbOfAtomsPerVolume * 
-	    ((*_theElementVector)[i]->getZ());
-	return Zsum;
+        //    ErrMsg(error)
+        //  << "WARNING in getZ. The material: " << *_matName << " is a mixture."
+        //  <<" the Atomic number is not well defined." << endmsg;
+        double Zsum = 0.0;
+        for (size_t i = 0; i<_numberOfElements; i++)
+          Zsum += (*_vecNbOfAtomsPerVolume)[i]/_totNbOfAtomsPerVolume *
+            ((*_theElementVector)[i]->getZ());
+        return Zsum;
 
-      } 
-      return (*_theElementVector)[0]->getZ();      
+      }
+      return (*_theElementVector)[0]->getZ();
     }
 
   double
     MtrPropObj::getA() const
-    { 
-      if (_numberOfElements > 1) { 
-	// ErrMsg(error)
-	//  << "WARNING in getA. The material: " << *_matName << " is a mixture." 
-	//  <<" the Atomic mass is not well defined." << endmsg; 
-	double Asum = 0.0;
-	for (size_t i = 0; i<_numberOfElements; i++)
-	  Asum += (*_vecNbOfAtomsPerVolume)[i]/_totNbOfAtomsPerVolume * 
-	    ((*_theElementVector)[i]->getA());
-	return Asum;
-      } 
-      return  (*_theElementVector)[0]->getA();      
+    {
+      if (_numberOfElements > 1) {
+        // ErrMsg(error)
+        //  << "WARNING in getA. The material: " << *_matName << " is a mixture."
+        //  <<" the Atomic mass is not well defined." << endmsg;
+        double Asum = 0.0;
+        for (size_t i = 0; i<_numberOfElements; i++)
+          Asum += (*_vecNbOfAtomsPerVolume)[i]/_totNbOfAtomsPerVolume *
+            ((*_theElementVector)[i]->getA());
+        return Asum;
+      }
+      return  (*_theElementVector)[0]->getA();
     }
 }
 
