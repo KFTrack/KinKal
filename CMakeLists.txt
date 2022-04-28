@@ -70,7 +70,7 @@ if(GIT_FOUND)
     #    set (_build_ver_commit_short ${CMAKE_MATCH_5})
     message( STATUS "Version string correctly matched: major= ${_build_ver_maj}, minor= ${_build_ver_min}, patch= ${_build_ver_patch}, other=${_build_ver_commits_since_tag}")
   else()
-    message ("Version not parsed!")
+    message (STATUS "Version not parsed!")
   endif()
 else()
   message( STATUS "Git not found!")
@@ -128,11 +128,10 @@ add_compile_options(
   "-Werror=sign-compare"
   #    "-Wshadow"
   # debug flags
-  "$<$<CONFIG:DEBUG>:-O0;-g>"
+  "$<$<CONFIG:DEBUG>:-O0;-g;-ftrapping-math>"
   # release flags
   "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
   )
-
 # install rules
 include(GNUInstallDirs)
 
@@ -148,6 +147,7 @@ if(ENABLE_CLANG_TIDY_WITH_FIXES)
 endif()
 
 if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
+  message(STATUS "debug build")
   if (COVERAGE)
     add_compile_options("-fprofile-arcs" "-ftest-coverage")
     if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
@@ -164,6 +164,11 @@ if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         )
     endif()
+  endif()
+  if (SANITIZE)
+    message(STATUS "Sanitize build")
+    add_compile_options("-fsanitize=address" "-fno-omit-frame-pointer")
+    add_link_options("-fsanitize=address")
   endif()
 endif()
 

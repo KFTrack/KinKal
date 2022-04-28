@@ -30,7 +30,7 @@ namespace KinKal {
     VEC4 delta() const { return sensCA_-partCA_; } // measurement - prediction convention
     double deltaT() const { return sensCA_.T() - partCA_.T(); }
     bool usable() const { return status_ < diverged; }
-    ClosestApproachData() : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0)  {}
+    ClosestApproachData() : status_(invalid), doca_(-1.0), docavar_(-1.0), tocavar_(-1.0), lsign_(0.0)  {}
     TPStat status_; // status of computation
     double doca_, docavar_, tocavar_, lsign_;
     VEC3 pdir_, sdir_; // particle and sensor directions at CA, signed by time propagation
