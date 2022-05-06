@@ -17,7 +17,7 @@ namespace KinKal {
           double driftspeed, double tvar, double rcell);
       // override updating.  I have to override both since they have the same name
       void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update(MetaIterConfig const& config) override;
       // WireHit interface implementations
       void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const override;
       double cellRadius() const { return rcell_; }
@@ -88,7 +88,9 @@ namespace KinKal {
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
       double mindoca, double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
+    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {
+      update(pca.particleTraj());
+    }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
     // simply translate distance to time using the fixed velocity
@@ -101,7 +103,7 @@ namespace KinKal {
     WIREHIT::update(pktraj);
   }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(MetaIterConfig const& miconfig) {
   // look for an updater; if it's there, update the state
     auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
     if(swhu != 0){
@@ -110,7 +112,7 @@ namespace KinKal {
 //      WIREHIT::update(pktraj,miconfig);
       swhu->update(*this);
     }
-    WIREHIT::update(pktraj,miconfig);
+    WIREHIT::update(miconfig);
   }
 
 }

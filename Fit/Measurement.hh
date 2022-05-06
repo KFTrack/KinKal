@@ -54,7 +54,7 @@ namespace KinKal {
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // update the hit's internal state; the actual update depends on the hit
-    hit_->update(pktraj,miconfig );
+    hit_->update(miconfig );
     // ready for processing!
     this->updateState();
   }

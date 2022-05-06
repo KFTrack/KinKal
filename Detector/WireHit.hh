@@ -29,7 +29,7 @@ namespace KinKal {
       Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update(MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
@@ -89,9 +89,9 @@ namespace KinKal {
     updateResiduals(whstate_);
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void WireHit<KTRAJ>::update(MetaIterConfig const& miconfig) {
     this->setWeightScale(1.0/miconfig.varianceScale());
-    update(pktraj);
+//    update(pktraj);
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {

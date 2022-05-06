@@ -30,7 +30,7 @@ namespace KinKal {
       // update to a new reference, without changing internal state
       virtual void update(PKTRAJ const& pktraj) = 0;
       // update the internals of the hit, specific to this meta-iteraion
-      virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& config) = 0;
+      virtual void update(MetaIterConfig const& config) = 0;
       // update the weight
       virtual void updateWeight() = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;

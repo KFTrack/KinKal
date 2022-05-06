@@ -21,11 +21,10 @@ namespace KinKal {
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
       void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void update( MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
-      ScintHit(PCA const& pca, double tvar, double wvar, double precision=1e-8) :
-        saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision) {}
+      ScintHit(PCA const& pca, double tvar, double wvar, double precision=1e-8);
       virtual ~ScintHit(){}
       Residual const& timeResidual() const { return rresid_; }
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
@@ -43,6 +42,12 @@ namespace KinKal {
       Residual rresid_; // residual WRT most recent reference parameters
       double precision_; // current precision
   };
+
+  template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar, double precision) :
+    saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision)
+  {
+    update(pca.particleTraj());
+  }
 
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires == 0 && active_)
@@ -75,10 +80,10 @@ namespace KinKal {
       throw std::runtime_error("PCA failure");
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+  template <class KTRAJ> void ScintHit<KTRAJ>::update(MetaIterConfig const& miconfig) {
     // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
     this->setWeightScale(1.0/miconfig.varianceScale());
-    update(pktraj);
+//    update(pktraj);
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {
