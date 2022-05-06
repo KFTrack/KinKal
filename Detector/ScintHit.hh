@@ -13,14 +13,16 @@ namespace KinKal {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using CA = ClosestApproach<KTRAJ,Line>;
       using RESIDHIT = ResidualHit<KTRAJ>;
       using HIT = Hit<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       // Hit interface implementation
       unsigned nResid() const override { return 1; } // 1 time residual
       bool activeRes(unsigned ires=0) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
-      void update(PKTRAJ const& pktraj) override;
+      void update(KTRAJPTR const& ktrajptr) override;
       void update( MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
@@ -46,7 +48,7 @@ namespace KinKal {
   template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar, double precision) :
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision)
   {
-    update(pca.particleTraj());
+    update(pca.particleTraj().nearestTraj(pca.particleToca()));
   }
 
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -61,13 +63,13 @@ namespace KinKal {
     return rresid_;
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj) {
+  template <class KTRAJ> void ScintHit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
     // compute PCA
     CAHint tphint( saxis_.t0(), saxis_.t0());
     // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
     // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
     //    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
-    PCA tpoca(pktraj,saxis_,tphint,precision_);
+    CA tpoca(ktrajptr,saxis_,tphint,precision_);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();
       // residual is just delta-T at CA.
@@ -75,7 +77,7 @@ namespace KinKal {
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
-      this->setRefTraj(pktraj.nearestTraj(tpoca.particleToca()));
+      HIT::update(ktrajptr);
     } else
       throw std::runtime_error("PCA failure");
   }

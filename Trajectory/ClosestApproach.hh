@@ -27,8 +27,11 @@ namespace KinKal {
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
+      // same, using Ptrs
+      ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double precision);
+      ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision);
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision,
           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
@@ -79,12 +82,20 @@ namespace KinKal {
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
     precision_(prec),ktrajptr_(new KTRAJ(ktraj)), straj_(straj) {}
 
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double prec) :
+    precision_(prec),ktrajptr_(ktrajptr), straj_(straj) {}
+
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double prec,
     ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
    precision_(prec),ktrajptr_(ktrajptr), straj_(straj), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
       double prec) : ClosestApproach(ktraj,straj,prec) {
+    findTCA(hint);
+  }
+
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, CAHint const& hint,
+      double prec) : ClosestApproach(ktrajptr,straj,prec) {
     findTCA(hint);
   }
 

@@ -1,7 +1,7 @@
 #ifndef KinKal_WireHit_hh
 #define KinKal_WireHit_hh
 //
-//  class representing a drift wire measurement.  Implemented using PCA between the particle traj and the wire
+//  class representing a drift wire measurement.  Implemented using CA between the particle traj and the wire
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Detector/WireHitStructs.hh"
@@ -17,18 +17,18 @@ namespace KinKal {
 
   template <class KTRAJ> class WireHit : public ResidualHit<KTRAJ> {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using CA = ClosestApproach<KTRAJ,Line>;
       using RESIDHIT = ResidualHit<KTRAJ>;
       using HIT = Hit<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       enum Dimension { tresid=0, dresid=1};  // residual dimensions
       // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
       bool activeRes(unsigned ires) const override;
       Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
-      void update(PKTRAJ const& pktraj) override;
+      void update(KTRAJPTR const& ktrajptr) override;
       void update(MetaIterConfig const& config) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
@@ -68,7 +68,9 @@ namespace KinKal {
   template <class KTRAJ> WireHit<KTRAJ>::WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& wstate) :
     bfield_(bfield),
     whstate_(wstate), wire_(pca.sensorTraj()),
-    tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {}
+    tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
+      HIT::update(tpca_.particleTrajPtr());
+    }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires ==0 && whstate_.active())
@@ -79,13 +81,13 @@ namespace KinKal {
       return false;
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
+  template <class KTRAJ> void WireHit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
+    // otherwise use the time at the center of the wire
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
-    PCA tpoca(pktraj,wire_,tphint,precision());
-    if(!tpoca.usable())throw std::runtime_error("TPOCA failure");
-    tpca_ = tpoca.localClosestApproach();
-    this->setRefTraj(tpca_.particleTrajPtr());
+     tpca_ = CA(ktrajptr,wire_,tphint,precision());
+    if(!tpca_.usable())throw std::runtime_error("TPOCA failure");
+    HIT::update(ktrajptr);
     updateResiduals(whstate_);
   }
 

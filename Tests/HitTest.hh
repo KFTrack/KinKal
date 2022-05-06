@@ -178,11 +178,11 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
-      strawhit->update(tptraj);
+//      strawhit->update(tptraj);
       res = strawhit->residual(0);
       tpdata = strawhit->closestApproach();
     } else if(scinthit && scinthit_){
-      scinthit->update(tptraj);
+//      scinthit->update(tptraj);
       res = scinthit->residual(0);
       tpdata = scinthit->closestApproach();
     } else
@@ -272,7 +272,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           PKTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
-          thit->update(modtptraj);// refer to moded helix
+          thit->update(modtptraj.backPtr());// refer to moded helix
           Residual mres;
           if(strawhit){
             mres = strawhit->residual(0);

@@ -15,12 +15,13 @@ namespace KinKal {
       using PMASK = std::array<bool,NParams()>; // parameter mask
       using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       // Hit interface overrrides
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
-      void update(PKTRAJ const& pktraj) override { this->setRefTraj(pktraj.nearestTraj(time())); }
+      void update(KTRAJPTR const& ktrajptr) override { HIT::update(ktrajptr); }
       void update( MetaIterConfig const& miconfig) override { this->setWeightScale(1.0/miconfig.varianceScale());}
       void updateWeight() override {;} // this hit's weight never changes
       // parameter constraints are absolute and can't be updated

@@ -49,6 +49,8 @@ namespace KinKal {
       KTRAJ const& back() const { return *pieces_.back(); }
       KTRAJ& front() { return *pieces_.front(); }
       KTRAJ& back() { return *pieces_.back(); }
+      KTRAJPTR const& frontPtr() const { return pieces_.front(); }
+      KTRAJPTR const& backPtr() const { return pieces_.back(); }
       size_t nearestIndex(double time) const;
       DKTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps

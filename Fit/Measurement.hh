@@ -60,8 +60,8 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
-    // update the hit to reference this trajectory.  Should pick the end piece TODO
-    hit_->update(pktraj);
+    // update the hit to reference this trajectory.  Use the end piece
+    hit_->update(pktraj.backPtr());
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

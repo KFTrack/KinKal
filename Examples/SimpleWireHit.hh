@@ -10,13 +10,13 @@ namespace KinKal {
     public:
       using WIREHIT = WireHit<KTRAJ>;
       using Dimension = typename WireHit<KTRAJ>::Dimension;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
           double driftspeed, double tvar, double rcell);
       // override updating.  I have to override both since they have the same name
-      void update(PKTRAJ const& pktraj) override;
+      void update(KTRAJPTR const& ktrajptr) override;
       void update(MetaIterConfig const& config) override;
       // WireHit interface implementations
       void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const override;
@@ -89,7 +89,7 @@ namespace KinKal {
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
       double mindoca, double driftspeed, double tvar, double rcell) :
     WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {
-      update(pca.particleTraj());
+      update(pca.localTraj());
     }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
@@ -99,8 +99,8 @@ namespace KinKal {
     dinfo.tdriftvar_ = tvar_;
   }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    WIREHIT::update(pktraj);
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
+    WIREHIT::update(ktrajptr);
   }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(MetaIterConfig const& miconfig) {

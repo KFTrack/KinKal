@@ -16,7 +16,6 @@
 namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       Hit() : wscale_(1.0){}
       virtual ~Hit(){}
@@ -28,7 +27,7 @@ namespace KinKal {
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       // update to a new reference, without changing internal state
-      virtual void update(PKTRAJ const& pktraj) = 0;
+      virtual void update(KTRAJPTR const& ktrajptr) = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void update(MetaIterConfig const& config) = 0;
       // update the weight
@@ -55,12 +54,15 @@ namespace KinKal {
       void setWeightScale(double wscale) {
         wscale_ = wscale;
       }
-      void setRefTraj(KTRAJPTR const& reftraj) { reftraj_ = reftraj; }
     private:
       double wscale_; // current annealing weight scaling
       Weights weight_; // weight representation of the hit's constraint
       KTRAJPTR reftraj_; // reference WRT this hits weight was calculated
   };
+
+  template<class KTRAJ> void Hit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
+    reftraj_ = ktrajptr;
+  }
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
     if(active()){
