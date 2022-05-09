@@ -54,14 +54,14 @@ namespace KinKal {
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // update the hit's internal state; the actual update depends on the hit
-    hit_->update(miconfig );
+    hit_->updateState(miconfig );
     // ready for processing!
     this->updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
     // update the hit to reference this trajectory.  Use the end piece
-    hit_->update(pktraj.backPtr());
+    hit_->updateReference(pktraj.backPtr());
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

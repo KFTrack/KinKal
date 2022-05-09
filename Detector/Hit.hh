@@ -26,13 +26,13 @@ namespace KinKal {
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
-      // update to a new reference, without changing internal state
-      virtual void update(KTRAJPTR const& ktrajptr) = 0;
-      // update the internals of the hit, specific to this meta-iteraion
-      virtual void update(MetaIterConfig const& config) = 0;
       // update the weight
       virtual void updateWeight() = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
+      // update to a new reference, without changing internal state
+      virtual void updateReference(KTRAJPTR const& ktrajptr);
+      // update the internals of the hit, specific to this meta-iteraion
+      virtual void updateState(MetaIterConfig const& config);
       // accessors
       // the constraint this hit implies WRT the current trajectory, expressed as a weight
       Weights const& weight() const { return weight_; }
@@ -46,13 +46,11 @@ namespace KinKal {
       Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
+    protected:
       // update the weight
       void setWeight(Weights const& weight){
         weight_ = weight;
         weight_ *= wscale_;
-      }
-      void setWeightScale(double wscale) {
-        wscale_ = wscale;
       }
     private:
       double wscale_; // current annealing weight scaling
@@ -60,8 +58,12 @@ namespace KinKal {
       KTRAJPTR reftraj_; // reference WRT this hits weight was calculated
   };
 
-  template<class KTRAJ> void Hit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
+  template<class KTRAJ> void Hit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     reftraj_ = ktrajptr;
+  }
+
+  template <class KTRAJ> void Hit<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
+    wscale_ = 1.0/miconfig.varianceScale();
   }
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {

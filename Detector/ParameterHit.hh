@@ -21,8 +21,6 @@ namespace KinKal {
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
-      void update(KTRAJPTR const& ktrajptr) override { HIT::update(ktrajptr); }
-      void update( MetaIterConfig const& miconfig) override { this->setWeightScale(1.0/miconfig.varianceScale());}
       void updateWeight() override {;} // this hit's weight never changes
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;

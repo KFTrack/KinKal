@@ -28,8 +28,7 @@ namespace KinKal {
       bool activeRes(unsigned ires) const override;
       Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
-      void update(KTRAJPTR const& ktrajptr) override;
-      void update(MetaIterConfig const& config) override;
+      void updateReference(KTRAJPTR const& ktrajptr) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
@@ -50,18 +49,18 @@ namespace KinKal {
       WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whs);
       virtual ~WireHit(){}
     protected:
-      void setState(WireHitState::State state) { whstate_.state_ = state; }
+      // allow subclasses to update the internal state or residuals
+      void setWireHitState(WireHitState::State state) { whstate_.state_ = state; }
       void updateResiduals(WireHitState const& whstate);
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       WireHitState whstate_; // current state
-      Line wire_; // local linear approximation to the wire of this hit.
-      CA tpca_; // reference time and distance of closest approach to the wire
-      //      ClosestApproachData tpdata_; v// reference time and distance of closest approach to the wire
+      Line wire_; // local linear approximation to the wire of this hit, encoding all (local) position and time information.
       // the start time is the measurement time, the direction is from
-      // the physical source of the signal (particle) towards the measurement location, the vector magnitude
-      // is the effective signal propagation velocity, and the range describes the active wire length
+      // the physical source of the signal (particle) to the measurement recording location (electronics), the direction magnitude
+      // is the effective signal propagation velocity along the wire, and the time range describes the active wire length
       // (when multiplied by the propagation velocity).
+      CA tpca_; // reference time and position of closest approach to the wire
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
   };
 
@@ -69,7 +68,7 @@ namespace KinKal {
     bfield_(bfield),
     whstate_(wstate), wire_(pca.sensorTraj()),
     tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
-      HIT::update(tpca_.particleTrajPtr());
+      HIT::updateReference(tpca_.particleTrajPtr());
     }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -81,22 +80,20 @@ namespace KinKal {
       return false;
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void WireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     // otherwise use the time at the center of the wire
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
      tpca_ = CA(ktrajptr,wire_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("TPOCA failure");
-    HIT::update(ktrajptr);
+    HIT::updateReference(ktrajptr);
+    // update residuals without changing state
     updateResiduals(whstate_);
   }
 
-  template <class KTRAJ> void WireHit<KTRAJ>::update(MetaIterConfig const& miconfig) {
-    this->setWeightScale(1.0/miconfig.varianceScale());
-//    update(pktraj);
-  }
-
   template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {
+    // update the state
+    whstate_ = whstate;
     // compute drift parameters.  These are used even for null-ambiguity hits
     VEC3 bvec = bfield_.fieldVect(tpca_.particlePoca().Vect());
     auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
@@ -105,9 +102,9 @@ namespace KinKal {
     POL2 drift(fabs(tpca_.doca()), phi);
     DriftInfo dinfo;
     distanceToTime(drift, dinfo);
-    if(whstate.useDrift()){
+    if(whstate_.useDrift()){
       // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
-      double dsign = whstate.lrSign()*tpca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
+      double dsign = whstate_.lrSign()*tpca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
       double dt = tpca_.deltaT()-dinfo.tdrift_*dsign;
       // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
       DVEC dRdP = tpca_.dDdP()*dsign/dinfo.vdrift_ - tpca_.dTdP();

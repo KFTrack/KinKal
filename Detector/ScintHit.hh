@@ -22,8 +22,7 @@ namespace KinKal {
       bool activeRes(unsigned ires=0) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
-      void update(KTRAJPTR const& ktrajptr) override;
-      void update( MetaIterConfig const& config) override;
+      void updateReference(KTRAJPTR const& ktrajptr) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
       ScintHit(PCA const& pca, double tvar, double wvar, double precision=1e-8);
@@ -48,7 +47,7 @@ namespace KinKal {
   template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar, double precision) :
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision)
   {
-    update(pca.particleTraj().nearestTraj(pca.particleToca()));
+    updateReference(pca.particleTraj().nearestTraj(pca.particleToca()));
   }
 
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -63,7 +62,7 @@ namespace KinKal {
     return rresid_;
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     // compute PCA
     CAHint tphint( saxis_.t0(), saxis_.t0());
     // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
@@ -77,15 +76,9 @@ namespace KinKal {
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
-      HIT::update(ktrajptr);
+      HIT::updateReference(ktrajptr);
     } else
       throw std::runtime_error("PCA failure");
-  }
-
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(MetaIterConfig const& miconfig) {
-    // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
-    this->setWeightScale(1.0/miconfig.varianceScale());
-//    update(pktraj);
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {

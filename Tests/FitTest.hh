@@ -20,6 +20,7 @@
 #include "KinKal/Examples/MaterialInfo.hh"
 #include "KinKal/Examples/BFieldInfo.hh"
 #include "KinKal/Examples/ParticleTrajectoryInfo.hh"
+#include "KinKal/Examples/DOCAWireHitUpdater.hh"
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>
@@ -129,7 +130,7 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
         if(mindoca >0.0 || maxdoca > 0.0){
           // setup and insert the updater
           cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
-          SimpleWireHitUpdater updater(mindoca,maxdoca);
+          DOCAWireHitUpdater updater(mindoca,maxdoca);
           mconfig.addUpdater(std::any(updater));
         }
         config.schedule_.push_back(mconfig);

@@ -6,3 +6,4 @@ debug/*
 *.root
 .DS_Store
 .vscode
+.*.swp
