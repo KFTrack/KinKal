@@ -4,9 +4,6 @@ namespace KinKal{
   using VEC = std::vector<double>;
   using MAT = std::vector<std::vector<double>>;
   
-  // CylBFieldMap::CylBFieldMap(std::string const& file)
-  //   : B_dat(file), Br_interp(B_dat.r(), B_dat.z(), B_dat.Br()),
-  //   Bz_interp(B_dat.r(), B_dat.z(), B_dat.Bz()) {}
   CylBFieldMap::CylBFieldMap(std::string const& file)
     : B_dat(file), Br_interp(B_dat.r_, B_dat.z_, B_dat.Br_),
     Bz_interp(B_dat.r_, B_dat.z_, B_dat.Bz_) {}
