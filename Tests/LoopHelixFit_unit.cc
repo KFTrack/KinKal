@@ -8,6 +8,8 @@ int main(int argc, char **argv) {
     arguments.push_back(argv[0]);
     arguments.push_back("--Bgrad");
     arguments.push_back("-0.036"); // mu2e-like field gradient
+    arguments.push_back("--Schedule");
+    arguments.push_back("Schedule_driftfit.txt");
     std::vector<char*> myargv;
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());

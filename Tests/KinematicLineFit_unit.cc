@@ -13,12 +13,14 @@ int main(int argc, char *argv[]){
     arguments.push_back("5");
     arguments.push_back("--Bz");
     arguments.push_back("0.0");
+    arguments.push_back("--Schedule");
+    arguments.push_back("Schedule_driftfit.txt");
     std::vector<char*> myargv;
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());
     myargv.push_back(nullptr);
     return FitTest<KinematicLine>(myargv.size()-1,myargv.data(),sigmas);
-  } else 
+  } else
     return FitTest<KinematicLine>(argc,argv,sigmas);
 }
 
