@@ -21,12 +21,13 @@ namespace KinKal {
 
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_; }
+      void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       Parameters const& effect() const { return dbforw_; }
       virtual ~BField(){}
       // disallow copy and equivalence
@@ -46,15 +47,7 @@ namespace KinKal {
 
   template<class KTRAJ> void BField<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(bfcorr_){
-      // forwards; just append the effect's parameter change
-      if(tdir == TimeDir::forwards) {
-        kkdata.append(dbforw_);
-      } else {
-        // SUBTRACT the effect going backwards: covariance change is sign-independent
-        Parameters reverse(dbforw_);
-        reverse.parameters() *= -1.0;
-        kkdata.append(reverse);
-      }
+      kkdata.append(dbforw_,tdir);
     }
     KKEFF::setState(tdir,KKEFF::processed);
   }

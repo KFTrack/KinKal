@@ -36,6 +36,11 @@ namespace KinKal {
         fitdata_.mat() *= scale;
         return *this;
       }
+      Weights scale(double scale) const {
+        Weights retval = *this;
+        retval *= scale;
+        return retval;
+      }
       void print(std::ostream& ost=std::cout,int detail=0) const {
         ost << "Weights wVec " << weightVec() << std::endl;
         if(detail > 1)

@@ -6,6 +6,7 @@
 //
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/General/Vectors.hh"
+//#include "KinKal/General/Parameters.hh"
 #include <stdexcept>
 namespace KinKal {
 
@@ -14,51 +15,52 @@ namespace KinKal {
       using PMASK = std::array<bool,NParams()>; // parameter mask
       using HIT = Hit<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       // Hit interface overrrides
-      Weights weight() const override { return weight_; }
       bool active() const override { return ncons_ > 0; }
-      Chisq chisq() const override { return chisq(refparams_); } // this is the BIASED chisquared, should take out the weight of this constraint, FIXME!
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
+      void updateWeight() override {;} // this hit's weight never changes
       // parameter constraints are absolute and can't be updated
-      void update(PKTRAJ const& pktraj) override { refparams_ = pktraj.nearestPiece(time()).params(); }
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override { update(pktraj); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
-      ParameterHit(double time, Parameters const& params, PMASK const& pmask);
+      ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
       unsigned nDOF() const { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
-      double time_; // time of this constraint: must be supplied on construction
+      double time_; // time of this constraint: must be supplied on construction and does not change
       Parameters params_; // constraint parameters with covariance
-      Weights weight_; // weight from these parameters
-      Parameters refparams_; // reference parameters
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask off unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
   };
 
-  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), weight_(params), pmask_(pmask), mask_(ROOT::Math::SMatrixIdentity()), ncons_(0) {
+  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask) :
+    time_(time), params_(params), pmask_(pmask), ncons_(0) {
+      // create the mask matrix; Use a temporary, not the data member, as root has caching problems with that (??)
+      DMAT mask = ROOT::Math::SMatrixIdentity();
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
         if(pmask_[ipar]){
           ncons_++;
         } else {
-          // zero unconstrained values
-          mask_(ipar,ipar) = 0.0;
+          mask(ipar,ipar) = 0.0;
         }
       }
       // Mask Off unused parameters
-      DMAT wmat = ROOT::Math::Similarity(mask_,weight_.weightMat());
-      // 2 steps needed her, as otherwise root caching results in incomplete objects
-      DVEC wvec = weight_.weightVec();
-      DVEC wreduced = wvec*mask_;
-      weight_ = Weights(wreduced, wmat);
+      // 2 steps needed here, as otherwise root caching results in incomplete objects
+      Weights weight(params);
+      DMAT wmat = weight.weightMat();
+      wmat = ROOT::Math::Similarity(mask,wmat);
+      DVEC wvec = weight.weightVec();
+      DVEC wreduced = wvec*mask;
+      HIT::setWeight(Weights(wreduced, wmat));
+      // record the mask matrix for later use in chisq
+      mask_ = mask;
     }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {
@@ -70,7 +72,7 @@ namespace KinKal {
     pdiff += params_;  // this is now the difference of parameters but sum of covariances
     // invert the covariance matrix
     DMAT wmat = pdiff.covariance();
-    if(!wmat.Invert()) throw std::runtime_error("Inversion failure");
+    if(!wmat.Invert()) throw std::runtime_error("ParameterHit inversion failure");
     // zero out unconstrainted parts
     wmat = ROOT::Math::Similarity(mask_,wmat);
     double chisq = ROOT::Math::Similarity(pdiff.parameters(),wmat);

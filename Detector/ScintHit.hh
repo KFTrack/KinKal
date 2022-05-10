@@ -1,7 +1,7 @@
 #ifndef KinKal_ScintHit_hh
 #define KinKal_ScintHit_hh
 //
-//  simple example hit subclass representing a time measurement using scintillator light from a crystal or plastic scintillator
+//  simple hit subclass representing a time measurement using scintillator light from a crystal or plastic scintillator
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Trajectory/Line.hh"
@@ -12,19 +12,20 @@ namespace KinKal {
   template <class KTRAJ> class ScintHit : public ResidualHit<KTRAJ> {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
-
+      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using CA = ClosestApproach<KTRAJ,Line>;
+      using RESIDHIT = ResidualHit<KTRAJ>;
+      using HIT = Hit<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       // Hit interface implementation
       unsigned nResid() const override { return 1; } // 1 time residual
       bool activeRes(unsigned ires=0) const override;
       Residual const& residual(unsigned ires=0) const override;
       double time() const override { return tpdata_.particleToca(); }
-      void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      void updateReference(KTRAJPTR const& ktrajptr) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
-      ScintHit(PTCA const& ptca, double tvar, double wvar, double precision=1e-8) :
-        saxis_(ptca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(ptca.tpData()), precision_(precision) {}
+      ScintHit(PCA const& pca, double tvar, double wvar, double precision=1e-8);
       virtual ~ScintHit(){}
       Residual const& timeResidual() const { return rresid_; }
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
@@ -43,6 +44,12 @@ namespace KinKal {
       double precision_; // current precision
   };
 
+  template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar, double precision) :
+    saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true), tpdata_(pca.tpData()), precision_(precision)
+  {
+    updateReference(pca.particleTraj().nearestTraj(pca.particleToca()));
+  }
+
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires == 0 && active_)
       return true;
@@ -55,13 +62,13 @@ namespace KinKal {
     return rresid_;
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // compute PTCA
+  template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+    // compute PCA
     CAHint tphint( saxis_.t0(), saxis_.t0());
     // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
     // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
     //    if(tpdata_.usable()) tphint = CAHint(tpdata_.particleToca(),tpdata_.sensorToca());
-    PTCA tpoca(pktraj,saxis_,tphint,precision_);
+    CA tpoca(ktrajptr,saxis_,tphint,precision_);
     if(tpoca.usable()){
       tpdata_ = tpoca.tpData();
       // residual is just delta-T at CA.
@@ -69,14 +76,9 @@ namespace KinKal {
       double dd2 = tpoca.dirDot()*tpoca.dirDot();
       double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
       rresid_ = Residual(tpoca.deltaT(),totvar,-tpoca.dTdP());
-      this->setRefParams(pktraj.nearestPiece(tpoca.particleToca()));
+      HIT::updateReference(ktrajptr);
     } else
-      throw std::runtime_error("PTCA failure");
-  }
-
-  template <class KTRAJ> void ScintHit<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
-    // for now, no updates are needed.  Eventually could test for consistency, update errors, etc
-    update(pktraj);
+      throw std::runtime_error("PCA failure");
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {

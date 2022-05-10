@@ -19,27 +19,26 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
-      double time() const override { return dxing_->crossingTime() + tbuff_ ;}
-      bool active() const override { return  dxing_->active(); }
+      double time() const override { return exing_->time() + tbuff_ ;}
+      bool active() const override { return  exing_->active(); }
+      void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
       void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
       void update(Config const& config) override {}
-      void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void process(FitState& kkdata,TimeDir tdir) override;
       void append(PKTRAJ& fit) override;
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
+      void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Material(){}
       // create from the material and a trajectory
       Material(EXINGPTR const& dxing, PKTRAJ const& pktraj);
       // accessors
       Parameters const& effect() const { return mateff_; }
       Weights const& cache() const { return cache_; }
-      EXING const& detXing() const { return *dxing_; }
-      KTRAJ const& refKTraj() const { return ref_; }
+      EXING const& elementXing() const { return *exing_; }
     private:
       // update the local cache
-      void updateCache();
-      EXINGPTR dxing_; // detector piece crossing for this effect
-      KTRAJ ref_; // reference to local trajectory
+      void updateCache(KTRAJ const&);
+      EXINGPTR exing_; // element crossing for this effect
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
       double vscale_; // variance factor due to annealing 'temperature'
@@ -48,55 +47,50 @@ namespace KinKal {
 
   template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-6; // small buffer to disambiguate this effect
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : dxing_(dxing),
-  ref_(pktraj.nearestPiece(dxing->crossingTime())), vscale_(1.0) {
-    update(pktraj);
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : exing_(dxing),
+  vscale_(1.0) {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    if(dxing_->active()){
+    if(exing_->active()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
-        kkdata.append(mateff_);
+        kkdata.append(mateff_,tdir);
         cache_ += kkdata.wData();
       } else {
         // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
         cache_ += kkdata.wData();
-        // SUBTRACT the effect going backwards: covariance change is sign-independent
-        Parameters reverse(mateff_);
-        reverse.parameters() *= -1.0;
-        kkdata.append(reverse);
+        kkdata.append(mateff_,tdir);
       }
     }
     KKEFF::setState(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref) {
+  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& pktraj) {
+    exing_->update(pktraj);
     cache_ = Weights();
-    ref_ = ref.nearestPiece(dxing_->crossingTime());
-    updateCache();
+   auto const& ktraj = pktraj.nearestPiece(exing_->time());
+    updateCache(ktraj);
     KKEFF::updateState();
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
+  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ktraj, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-    // update the detector Xings for this effect
-    dxing_->update(ref,miconfig);
-    update(ref);
+    update(ktraj);
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::updateCache() {
+  template<class KTRAJ> void Material<KTRAJ>::updateCache(KTRAJ const& ktraj) {
     mateff_ = Parameters();
-    if(dxing_->active()){
+    if(exing_->active()){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      dxing_->materialEffects(ref_,TimeDir::forwards, dmom, momvar);
+      exing_->materialEffects(ktraj,TimeDir::forwards, dmom, momvar);
       // get the parameter derivative WRT momentum
-      DPDV dPdM = ref_.dPardM(time());
-      double mommag = ref_.momentum(time());
+      DPDV dPdM = ktraj.dPardM(time());
+      double mommag = ktraj.momentum(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
         auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = ref_.direction(time(),mdir);
+        auto dir = ktraj.direction(time(),mdir);
         // project the momentum derivatives onto this direction
         DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
         // convert derivative vector to a Nx1 matrix
@@ -113,10 +107,11 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& fit) {
-    if(dxing_->active()){
+    if(exing_->active()){
       // create a trajectory piece from the cached weight
       double time = this->time();
-      KTRAJ newpiece(ref_);
+//      KTRAJ newpiece(ref_);
+      KTRAJ newpiece(fit.back());
       newpiece.params() = Parameters(cache_);
       // extend as necessary: absolute time can shift during iterations
       newpiece.range() = TimeRange(time,std::max(time+tbuff_,fit.range().end()));
@@ -124,9 +119,12 @@ namespace KinKal {
       if(time < fit.back().range().begin()){
         // if this is the first piece, simply extend it back
         if(fit.pieces().size() ==1){
+//          std::cout << "Adjusting fit range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
           fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
         } else {
-          newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
+//          std::cout << "Adjusting material range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
+          throw std::invalid_argument("New piece start is earlier than last piece start");
+//         newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
         }
       }
       fit.append(newpiece);
@@ -138,11 +136,11 @@ namespace KinKal {
     ost << " effect ";
     effect().print(ost,detail-2);
     ost << " ElementXing ";
-    dxing_->print(ost,detail);
+    exing_->print(ost,detail);
     if(detail >3){
       ost << " cache ";
       cache().print(ost,detail);
-      ost << "Reference " << ref_ << std::endl;
+//      ost << "Reference " << ref_ << std::endl;
     }
   }
 

@@ -30,7 +30,7 @@ namespace KinKal {
         if(ndof_ > 0 && chisq_ > 0.0)
           return TMath::Prob(chisq_,ndof_);
         else
-          return -1.0;}
+          return 0.0;}
     private:
       double chisq_; // value of chisquared
       int ndof_; // associated number of degrees of freedom

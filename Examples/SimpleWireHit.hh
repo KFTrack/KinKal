@@ -4,20 +4,23 @@
 // Simple implementation of a wire hit, for testing purpopses
 //
 #include "KinKal/Detector/WireHit.hh"
+#include "KinKal/Examples/DOCAWireHitUpdater.hh"
+#include <stdexcept>
 namespace KinKal {
 
   template <class KTRAJ> class SimpleWireHit : public WireHit<KTRAJ> {
     public:
+      using HIT = Hit<KTRAJ>;
       using WIREHIT = WireHit<KTRAJ>;
       using Dimension = typename WireHit<KTRAJ>::Dimension;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using CA = ClosestApproach<KTRAJ,Line>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
-      SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate, double mindoca,
+      SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
           double driftspeed, double tvar, double rcell);
-      // override updating.  I have to override both since they have the same name
-      void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& config) override;
+      // Use dedicated updater
+      void updateState(MetaIterConfig const& config) override;
       // WireHit interface implementations
       void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const override;
       double cellRadius() const { return rcell_; }
@@ -33,9 +36,24 @@ namespace KinKal {
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
       double rcell_; // straw radius
-      // allow the updater access
-      friend class SimpleWireHitUpdater;
   };
+
+  //trivial 'updater' that sets the wire hit state to null
+  class NullWireHitUpdater {
+    public:
+      WireHitState wireHitState() const { return WireHitState(WireHitState::null); }
+  };
+
+  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
+      double mindoca, double driftspeed, double tvar, double rcell) :
+    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
+
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
+    // simply translate distance to time using the fixed velocity
+    dinfo.tdrift_ = drift.R()/dvel_;
+    dinfo.vdrift_ = dvel_;
+    dinfo.tdriftvar_ = tvar_;
+  }
 
   template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullVariance(Dimension dim,DriftInfo const& dinfo) const {
     switch (dim) {
@@ -55,61 +73,33 @@ namespace KinKal {
     }
   }
 
-  // simple updater based on DOCA
-  class SimpleWireHitUpdater {
-    public:
-      SimpleWireHitUpdater(double mindoca,double maxdoca, double minprob ) : mindoca_(mindoca), maxdoca_(maxdoca), minprob_(minprob) {}
-      template <class KTRAJ> void update(SimpleWireHit<KTRAJ>& swh) const;
-    private:
-      double mindoca_; // minimum DOCA value to sign LR ambiguity
-      double maxdoca_; // maximum DOCA to still use a hit
-      double minprob_; // minimum residual probability to keep using a hit
-  };
-
-  template <class KTRAJ> void SimpleWireHitUpdater::update(SimpleWireHit<KTRAJ>& swh) const {
-    swh.mindoca_ = std::min(mindoca_,swh.cellRadius());
-    WireHitState::State state;
-    if(swh.closestApproach().usable()){
-      double doca = swh.closestApproach().doca();
-      auto chisq = swh.chisq();
-      if(fabs(doca) > maxdoca_ || chisq.probability() < minprob_ ) {
-        state = WireHitState::inactive; // disable the hit if it's an outlier
-      } else if(fabs(doca) > mindoca_ ) {
-        state = doca > 0.0 ? WireHitState::right : WireHitState::left;
-      } else {
-        // too close to the wire: don't try to disambiguate LR sign
-        state = WireHitState::null;
-      }
-    } else {
-      state = WireHitState::inactive;
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
+    // look for an updater; if found, use it to update the state
+    auto nwhu = miconfig.findUpdater<NullWireHitUpdater>();
+    auto dwhu = miconfig.findUpdater<DOCAWireHitUpdater>();
+    if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
+    if(nwhu != 0){
+      mindoca_ = cellRadius();
+      auto whstate = nwhu->wireHitState();
+      // set the residuals based on this state
+      this->updateResiduals(whstate);
+    } else if(dwhu != 0){
+      // update minDoca (for null ambiguity error estimate)
+      mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
+      // compute the unbiased closest approach
+      auto const& ca = this->closestApproach();
+      auto uparams = HIT::unbiasedParameters();
+      KTRAJ utraj(uparams,ca.particleTraj());
+      CA uca(utraj,this->wire(),ca.hint(),ca.precision());
+      //
+      WireHitState whstate(WireHitState::inactive);
+//      if(ca.usable())whstate = dwhu->wireHitState(ca.doca());
+      if(uca.usable())whstate = dwhu->wireHitState(uca.doca());
+      // set the residuals based on this state
+      this->updateResiduals(whstate);
     }
-    swh.setState(state);
-  };
-
-  template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PTCA const& ptca, WireHitState const& whstate,
-      double mindoca, double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,ptca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
-
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
-    // simply translate distance to time using the fixed velocity
-    dinfo.tdrift_ = drift.R()/dvel_;
-    dinfo.vdrift_ = dvel_;
-    dinfo.tdriftvar_ = tvar_;
+    // update the temp.
+    HIT::updateState(miconfig);
   }
-
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj) {
-    WIREHIT::update(pktraj);
-  }
-
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) {
-    WIREHIT::update(pktraj,miconfig);
-  // look for an updater; if it's there, update the state
-    auto swhu = miconfig.findUpdater<SimpleWireHitUpdater>();
-    if(swhu != 0){swhu->update(*this);
-      // update again
-      WIREHIT::update(pktraj,miconfig);
-    }
-  }
-
 }
 #endif

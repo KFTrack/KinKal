@@ -7,6 +7,7 @@
 //
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
+#include "KinKal/General/TimeDir.hh"
 namespace KinKal {
   class FitState {
     public:
@@ -16,13 +17,18 @@ namespace KinKal {
       // accessors
       bool hasParameters() const { return hasParameters_; }
       bool hasWeights() const { return hasWeights_; }
-      // add to either parameters or weights
-      void append(Parameters const& pdata) {
-        pData() += pdata;
+      // add to either parameters or weights.  Parameters can have a direction
+      void append(Parameters const& pdata,TimeDir tdir=TimeDir::forwards) {
+        if(tdir==TimeDir::forwards)
+          pData().parameters() += pdata.parameters();
+        else
+          pData().parameters() -= pdata.parameters();
+        pData().covariance() += pdata.covariance();
         // this invalidates the weight information
         hasParameters_ = true;
         hasWeights_ = false;
       }
+
       void append(Weights const& wdata) {
         wData() += wdata;
         // this invalidates the parameter information

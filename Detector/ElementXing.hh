@@ -1,7 +1,7 @@
 #ifndef KinKal_ElementXing_hh
 #define KinKal_ElementXing_hh
 //
-//  Describe the material effects of a kinematic trajectory crossing a detector element (piece of the detector)
+//  Describe the material effects of a particle crossing a detector element (piece of the detector)
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/General/MomBasis.hh"
@@ -20,11 +20,11 @@ namespace KinKal {
   template <class KTRAJ> class ElementXing {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      // construct from a time
       ElementXing() {}
       virtual ~ElementXing() {}
+      virtual void update(PKTRAJ const& pktraj) =0;
       virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) =0;
-      virtual double crossingTime() const=0;
+      virtual double time() const=0; // time the particle crosses thie element
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
       bool active() const { return mxings_.size() > 0; }
@@ -40,7 +40,7 @@ namespace KinKal {
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy
-    double mom = pktraj.momentum(crossingTime());
+    double mom = pktraj.momentum(time());
     double mass = pktraj.mass();
     double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     if(tdir == TimeDir::backwards)dmFdE *= -1.0;
@@ -54,7 +54,6 @@ namespace KinKal {
       momvar[MomBasis::perpdir_] += scatvar;
       momvar[MomBasis::phidir_] += scatvar;
     }
-    // correct for time direction
   }
 
   template <class KTRAJ> double ElementXing<KTRAJ>::radiationFraction() const {

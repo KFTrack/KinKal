@@ -23,9 +23,12 @@ namespace KinKal {
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
       PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, PCAHint const& hint, double precision);
-      // construct without a hint: TCA isn't calculated, state is invalid
+      // construct without a hint
       PointClosestApproach(KTRAJ const& ptraj, VEC4 const& point, double precision);
-      // accessors
+      // construct with full data
+      PointClosestApproach(KTRAJ const& ptraj, VEC4 const& point, double precision,
+           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
+     // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return ktraj_; }
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
@@ -55,14 +58,18 @@ namespace KinKal {
       // calculate CA given the hint, and fill the state
   private:
       double precision_; // precision used to define convergence
-      ClosestApproachData tpdata_; // data payload of CA calculation
       KTRAJ const& ktraj_; // kinematic particle trajectory
+      ClosestApproachData tpdata_; // data payload of CA calculation
       DVEC dDdP_; // derivative of DOCA WRT Parameters
       DVEC dTdP_; // derivative of TOCA WRT Parameters
   };
 
   template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double prec) :
       PointClosestApproach(ktraj,point,PCAHint(point.T()), prec) {}
+
+  template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double prec,
+            ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
+   precision_(prec), ktraj_(ktraj), tpdata_(tpdata), dDdP_(dDdP), dTdP_(dTdP) {}
 
   template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, PCAHint const& hint,
       double prec) : precision_(prec), ktraj_(ktraj) {

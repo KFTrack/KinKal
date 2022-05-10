@@ -43,7 +43,7 @@ void print_usage() {
 template <class KTRAJ>
 int ParticleTrajectoryTest(int argc, char **argv) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using PTCA = PiecewiseClosestApproach<KTRAJ,Line>;
+  using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);
@@ -103,7 +103,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
     // use derivatives of last piece to define new piece
-    KTRAJ const& back = ptraj.pieces().back();
+    KTRAJ const& back = *ptraj.pieces().back();
     double tcomp = back.range().end();
     DVEC pder = back.momDeriv(tcomp,tdir);
     // create modified helix
@@ -131,7 +131,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   }
   // prepend pieces
   for(int istep=0;istep < nsteps; istep++){
-    KTRAJ const& front = ptraj.pieces().front();
+    KTRAJ const& front = *ptraj.pieces().front();
     double tcomp = front.range().begin();
     DVEC pder = front.momDeriv(tcomp,tdir);
     // create modified helix
@@ -175,12 +175,12 @@ int ParticleTrajectoryTest(int argc, char **argv) {
       icolor = kRed;
     else if(icolor == kRed)
       icolor = kBlue;
-    double tstart = piece.range().begin();
-    double ts = (piece.range().end()-piece.range().begin())/(npts-1);
+    double tstart = piece->range().begin();
+    double ts = (piece->range().end()-piece->range().begin())/(npts-1);
     VEC3 ppos;
     for(unsigned ipt=0;ipt<npts;ipt++){
       double t = tstart + ipt*ts;
-      ppos = piece.position3(t);
+      ppos = piece->position3(t);
       plhel.back()->SetPoint(ipt,ppos.X(),ppos.Y(),ppos.Z());
     }
     plhel.back()->Draw();
@@ -225,15 +225,15 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   Line tline(lpos, ptraj.range().mid(), pvel, wlen);
   // create ClosestApproach from these
   CAHint tphint(ptraj.range().mid(),0.0);
-  PTCA tp(ptraj,tline, tphint,1e-8);
-  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
+  PCA pca(ptraj,tline, tphint,1e-8);
+  cout << "ClosestApproach status " << pca.statusName() << " doca " << pca.doca() << " dt " << pca.deltaT() << endl;
   VEC3 thpos, tlpos;
-  thpos = tp.particlePoca().Vect();
-  tlpos = tp.sensorPoca().Vect();
-  double refd = tp.doca();
+  thpos = pca.particlePoca().Vect();
+  tlpos = pca.sensorPoca().Vect();
+  double refd = pca.doca();
   cout << " Helix Pos " << midpos << " ClosestApproach KTRAJ pos " << thpos << " ClosestApproach Line pos " << tlpos << endl;
-  cout << " ClosestApproach particlePoca " << tp.particlePoca() << " ClosestApproach sensorPoca " << tp.sensorPoca()  << " DOCA " << refd << endl;
-  if(tp.status() == ClosestApproachData::converged) {
+  cout << " ClosestApproach particlePoca " << pca.particlePoca() << " ClosestApproach sensorPoca " << pca.sensorPoca()  << " DOCA " << refd << endl;
+  if(pca.status() == ClosestApproachData::converged) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
@@ -244,13 +244,13 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     line->SetLineColor(kOrange);
     line->Draw();
     TPolyLine3D* poca = new TPolyLine3D(2);
-    poca->SetPoint(0,tp.particlePoca().X() ,tp.particlePoca().Y() ,tp.particlePoca().Z());
-    poca->SetPoint(1,tp.sensorPoca().X() ,tp.sensorPoca().Y() ,tp.sensorPoca().Z());
+    poca->SetPoint(0,pca.particlePoca().X() ,pca.particlePoca().Y() ,pca.particlePoca().Z());
+    poca->SetPoint(1,pca.sensorPoca().X() ,pca.sensorPoca().Y() ,pca.sensorPoca().Z());
     poca->SetLineColor(kBlack);
     poca->Draw();
   }
 
-  cout << "ClosestApproach dDdP" << tp.dDdP() << " dTdP " << tp.dTdP() << endl;
+  cout << "ClosestApproach dDdP" << pca.dDdP() << " dTdP " << pca.dTdP() << endl;
 
   pttcan->Write();
 

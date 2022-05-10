@@ -6,12 +6,11 @@
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
-#include "KinKal/Examples/ScintHit.hh"
+#include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
-#include "KinKal/Fit/Measurement.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Tests/ToyMC.hh"
 
@@ -53,7 +52,6 @@ void print_usage() {
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
   using HIT = Hit<KTRAJ>;
   using HITPTR = std::shared_ptr<HIT>;
   using HITCOL = vector<HITPTR>;
@@ -79,7 +77,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   int iseed(124223);
   double Bgrad(0.0), By(0.0);
   bool simmat_(true), scinthit_(true), strawhit_(true);
-  double precision(1e-8);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
@@ -105,8 +102,6 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           long_options, &long_index )) != -1) {
     switch (opt) {
       case 'm' : mom = atof(optarg);
-                 break;
-      case 'P' : precision = atof(optarg);
                  break;
       case 'p' : imass = atoi(optarg);
                  break;
@@ -183,11 +178,9 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
-      strawhit->update(tptraj);
       res = strawhit->residual(0);
-      tpdata = strawhit->closestApproach();
+      tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
-      scinthit->update(tptraj);
       res = scinthit->residual(0);
       tpdata = scinthit->closestApproach();
     } else
@@ -252,14 +245,13 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   unsigned ipt(0);
   //  cout << tptraj << endl;
   for(auto& thit : thits) {
-    KKHIT kkhit(thit,tptraj,precision);
     Residual ores;
     ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       ores = strawhit->residual(0);
-      tpdata = strawhit->closestApproach();
+      tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
       ores = scinthit->residual(0);
       tpdata = scinthit->closestApproach();
@@ -273,12 +265,12 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
         for(size_t istep=0;istep<nsteps; istep++){
           double dpar = delpars[ipar]*(-0.5 + double(istep)/double(nsteps));
           // modify the helix
-          KTRAJ modktraj = tptraj.nearestPiece(kkhit.time());
+          KTRAJ modktraj = tptraj.nearestPiece(thit->time());
           modktraj.params().parameters()[ipar] += dpar;
           PKTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
-          kkhit.update(modtptraj);// refer to moded helix
+          thit->updateReference(modtptraj.backPtr());// refer to moded helix
           Residual mres;
           if(strawhit){
             mres = strawhit->residual(0);
