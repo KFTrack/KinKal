@@ -54,10 +54,9 @@ namespace KinKal{
 
   VEC3 CylBFieldMap::fieldDeriv(VEC3 const& position, VEC3 const& velocity) const {
     Grad grad = fieldGrad(position);
-    // matrix times vector = vector
-    // VEC3 retval = grad * velocity;
-    // FIXME! Testing with using values on the diagonal
-    VEC3 retval(grad[0][0]*velocity.X(), grad[1][1]*velocity.Y(), grad[2][2]*velocity.Z());
+    VEC3 retval(grad[0][0]*velocity.X()+grad[0][1]*velocity.Y()+grad[0][2]*velocity.Z(),
+      grad[1][0]*velocity.X()+grad[1][1]*velocity.Y()+grad[1][2]*velocity.Z(),
+      grad[2][0]*velocity.X()+grad[2][1]*velocity.Y()+grad[2][2]*velocity.Z());
     return retval;
   }
 
