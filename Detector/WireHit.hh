@@ -37,14 +37,15 @@ namespace KinKal {
       virtual double nullVariance(Dimension dim,DriftInfo const& dinfo) const = 0;
       virtual double nullOffset(Dimension dim,DriftInfo const& dinfo) const = 0;
       // WireHit specific functions
-      CA const& ca() const { return tpca_; }
-      ClosestApproachData const& closestApproach() const { return tpca_.tpData(); }
-      WireHitState const& hitState() const { return whstate_; }
-      Residual const& timeResidual() const { return rresid_[tresid]; }
-      Residual const& spaceResidual() const { return rresid_[dresid]; }
-      Line const& wire() const { return wire_; }
-      BFieldMap const& bfield() const { return bfield_; }
-      double precision() const { return tpca_.precision(); }
+      auto const& closestApproach() const { return tpca_; }
+      auto const& hitState() const { return whstate_; }
+      auto const& timeResidual() const { return rresid_[tresid]; }
+      auto const& distResidual() const { return rresid_[dresid]; }
+      auto const& wire() const { return wire_; }
+      auto const& bfield() const { return bfield_; }
+      bool hasTimeResidual() const { return whstate_ != WireHitState::inactive; }
+      bool hasDistResidual() const { return whstate_ == WireHitState::null; }
+      auto precision() const { return tpca_.precision(); }
       // constructor
       WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whs);
       virtual ~WireHit(){}
@@ -72,12 +73,9 @@ namespace KinKal {
     }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
-    if(ires ==0 && whstate_.active())
-      return true;
-    else if(ires ==1 && whstate_.state_ == WireHitState::null)
-      return true;
-    else
-      return false;
+    if(ires == tresid) return hasTimeResidual();
+    if(ires == dresid) return hasDistResidual();
+    return false;
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {

@@ -124,16 +124,24 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
         plevel;
         config.plevel_ = Config::printLevel(plevel);
       } else {
-        double temp, mindoca(-1.0),maxdoca(-1.0), minprob(-1.0);
-        ss >> temp >> mindoca >> maxdoca >> minprob;
+        int utype(-1);
+        double temp, mindoca(-1.0),maxdoca(-1.0);
+        ss >> temp >> utype;
         MetaIterConfig mconfig(temp);
-        if(mindoca >0.0 || maxdoca > 0.0){
-          // setup and insert the updater
-          cout << "SimpleWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca << " minprob " << minprob << endl;
+        if(utype == 0 ){
+          cout << "NullWireHitUpdater for iteration " << nmiter << endl;
+          mconfig.addUpdater(std::any(NullWireHitUpdater()));
+        } else if(utype == 1) {
+          ss >>  mindoca >> maxdoca;
+          cout << "DOCAWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca  << endl;
           DOCAWireHitUpdater updater(mindoca,maxdoca);
           mconfig.addUpdater(std::any(updater));
+        } else if(utype > 0){
+          cout << "Unknown updater " << utype << endl;
+          return -20;
         }
         config.schedule_.push_back(mconfig);
+        ++nmiter;
       }
     }
   }
@@ -807,12 +815,18 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.chisq_ = chisq.chisq();
               hinfo.prob_ = chisq.probability();
               hinfo.ndof_ = chisq.nDOF();
-              hinfo.state_ = WireHitState::inactive;
+              hinfo.state_ = -10;
               hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
               hinfo.t0_ = 0.0;
               const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
               const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
               const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+              hinfo.dresid_ = -1000.0;
+              hinfo.dresidvar_ =  -1.0;
+              hinfo.dresidpull_ =  -1000.0;
+              hinfo.tresid_ = -1000.0;
+              hinfo.tresidvar_ =  -1.0;
+              hinfo.tresidpull_ =  -1000.0;
               if(strawhit != 0){
                 hinfo.type_ = HitInfo::straw;
                 hinfo.state_ = strawhit->hitState().state_;

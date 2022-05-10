@@ -16,6 +16,8 @@ namespace KinKal {
     State state_; // left-right ambiguity
     bool useDrift() const { return state_ == left || state_ == right; }
     bool active() const { return state_ != inactive; }
+    bool operator == (WireHitState::State state) const { return state_ == state; }
+    bool operator != (WireHitState::State state) const { return state_ != state; }
     double lrSign() const {
       switch (state_) {
         case left:

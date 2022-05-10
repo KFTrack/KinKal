@@ -5,6 +5,7 @@
 //
 #include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
+#include <stdexcept>
 namespace KinKal {
 
   template <class KTRAJ> class SimpleWireHit : public WireHit<KTRAJ> {
@@ -13,6 +14,7 @@ namespace KinKal {
       using WIREHIT = WireHit<KTRAJ>;
       using Dimension = typename WireHit<KTRAJ>::Dimension;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using CA = ClosestApproach<KTRAJ,Line>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
@@ -34,6 +36,12 @@ namespace KinKal {
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
       double rcell_; // straw radius
+  };
+
+  //trivial 'updater' that sets the wire hit state to null
+  class NullWireHitUpdater {
+    public:
+      WireHitState wireHitState() const { return WireHitState(WireHitState::null); }
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
@@ -66,18 +74,27 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
-    // look for an updater; if it's there, update the state
+    // look for an updater; if found, use it to update the state
+    auto nwhu = miconfig.findUpdater<NullWireHitUpdater>();
     auto dwhu = miconfig.findUpdater<DOCAWireHitUpdater>();
-    if(dwhu != 0){
+    if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
+    if(nwhu != 0){
+      mindoca_ = cellRadius();
+      auto whstate = nwhu->wireHitState();
+      // set the residuals based on this state
+      this->updateResiduals(whstate);
+    } else if(dwhu != 0){
       // update minDoca (for null ambiguity error estimate)
-      mindoca_ = std::min(mindoca_,cellRadius());
-      // compute the unbiased CA FIXME
-      WireHitState whstate;
-      if(this->closestApproach().usable()) {
-        whstate = dwhu->wireHitState(this->closestApproach().doca());
-      } else {
-        whstate = WireHitState::inactive;
-      }
+      mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
+      // compute the unbiased closest approach
+      auto const& ca = this->closestApproach();
+      auto uparams = HIT::unbiasedParameters();
+      KTRAJ utraj(uparams,ca.particleTraj());
+      CA uca(utraj,this->wire(),ca.hint(),ca.precision());
+      //
+      WireHitState whstate(WireHitState::inactive);
+//      if(ca.usable())whstate = dwhu->wireHitState(ca.doca());
+      if(uca.usable())whstate = dwhu->wireHitState(uca.doca());
       // set the residuals based on this state
       this->updateResiduals(whstate);
     }

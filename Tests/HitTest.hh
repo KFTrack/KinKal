@@ -179,7 +179,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       res = strawhit->residual(0);
-      tpdata = strawhit->closestApproach();
+      tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
       res = scinthit->residual(0);
       tpdata = scinthit->closestApproach();
@@ -251,7 +251,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       ores = strawhit->residual(0);
-      tpdata = strawhit->closestApproach();
+      tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
       ores = scinthit->residual(0);
       tpdata = scinthit->closestApproach();
