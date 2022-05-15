@@ -182,7 +182,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
       res = scinthit->residual(0);
-      tpdata = scinthit->closestApproach();
+      tpdata = scinthit->closestApproach().tpData();
     } else
       continue;
     TPolyLine3D* line = new TPolyLine3D(2);
@@ -254,7 +254,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
       ores = scinthit->residual(0);
-      tpdata = scinthit->closestApproach();
+      tpdata = scinthit->closestApproach().tpData();
     } else
       continue;
     auto pder = ores.dRdP();

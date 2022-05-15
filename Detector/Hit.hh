@@ -42,7 +42,7 @@ namespace KinKal {
       // parameters WRT which this hit's residual and weights are set.  These are generally biased
       // in that they contain the information of this hit
       Parameters const& referenceParameters() const { return referenceTrajectory().params(); }
-      // Unbiased parameters, taking out the hits effect
+      // Unbiased parameters, taking out this hit's effect
       Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;

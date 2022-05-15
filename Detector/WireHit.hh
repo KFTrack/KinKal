@@ -83,7 +83,7 @@ namespace KinKal {
     // otherwise use the time at the center of the wire
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
      tpca_ = CA(ktrajptr,wire_,tphint,precision());
-    if(!tpca_.usable())throw std::runtime_error("TPOCA failure");
+    if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
     HIT::updateReference(ktrajptr);
     // update residuals without changing state
     updateResiduals(whstate_);
