@@ -63,17 +63,14 @@ namespace KinKal {
         kkdata.append(mateff_,tdir);
       }
     }
-    KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& pktraj) {
     cache_ = Weights();
-    KKEFF::updateState();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ktraj, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-    exing_->updateState(miconfig);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache(KTRAJ const& ktraj) {

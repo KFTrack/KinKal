@@ -18,12 +18,9 @@ namespace KinKal {
 
   template<class KTRAJ> class Effect {
     public:
-      enum State{unprocessed=-1,processed,updated,failed};
-      static std::string const& stateName(State state);
       // type of the data payload used for processing the fit
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
-      // create as unprocessed
-      Effect() : state_{{unprocessed,unprocessed}} {}
+      Effect() {}
       virtual ~Effect(){}
       // Effect interface
       virtual double time() const = 0; // time of this effect
@@ -45,36 +42,11 @@ namespace KinKal {
       // disallow copy and equivalence
       Effect(Effect const& ) = delete;
       Effect& operator =(Effect const& ) = delete;
-      // info about the processing
-      State state(TimeDir tdir) const { return state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)]; }
-      bool wasProcessed(TimeDir tdir) const { return state(tdir) == processed; }
-    protected:
-      // allow subclasses to update the state
-      void setState(TimeDir tdir, State state) { state_[static_cast<std::underlying_type<TimeDir>::type>(tdir)] = state; }
-      void updateState() { state_[0] = state_[1] = updated; }
-    private:
-      std::array<State,2> state_; // state of processing in each direction
   };
 
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Effect<KTRAJ> const& eff) {
-    ost << (eff.active() ? "Active " : "Inactive ") << "time " << eff.time() << " state " <<
-      TimeDir::forwards << " " << eff.stateName(eff.state(TimeDir::forwards))  << " : " <<
-      TimeDir::backwards << " " << eff.stateName(eff.state(TimeDir::backwards));
+    ost << (eff.active() ? "Active " : "Inactive ") << "time " << eff.time();
     return ost;
-  }
-
-  template <class KTRAJ> std::string const& Effect<KTRAJ>::stateName(Effect::State state) {
-    const static std::vector<std::string> stateNames_ = { "Unprocessed", "Processed", "Updated", "Failed" };
-    switch (state) {
-      case unprocessed: default:
-        return stateNames_[0];
-      case processed:
-        return stateNames_[1];
-      case updated:
-        return stateNames_[2];
-      case failed:
-        return stateNames_[3];
-    }
   }
 }
 

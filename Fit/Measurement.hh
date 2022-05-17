@@ -43,20 +43,16 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // add this effect's information. direction is irrelevant for processing hits
     if(this->active())kkdata.append(weight());
-    this->setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
     // update the weight
     hit_->updateWeight();
-    this->updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
     // update the hit's internal state; the actual update depends on the hit
     hit_->updateState(miconfig );
-    // ready for processing!
-    this->updateState();
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {

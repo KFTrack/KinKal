@@ -67,7 +67,6 @@ namespace KinKal {
     else
       // at the opposite end, cache the final parameters
       endtraj_.params() = kkdata.pData();
-    KKEFF::setState(tdir,KKEFF::processed);
   }
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::update(PKTRAJ const& ref) {
@@ -80,7 +79,6 @@ namespace KinKal {
     // update BField reference
     double endtime = (tdir_ == TimeDir::forwards) ? ref.range().begin() : ref.range().end();
     bnom_ = bfield_.fieldVect(ref.position3(endtime));
-    KKEFF::updateState();
   }
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::append(PKTRAJ& fit) {
