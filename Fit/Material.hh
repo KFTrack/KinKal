@@ -67,16 +67,13 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& pktraj) {
-    exing_->update(pktraj);
     cache_ = Weights();
-   auto const& ktraj = pktraj.nearestPiece(exing_->time());
-    updateCache(ktraj);
     KKEFF::updateState();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ktraj, MetaIterConfig const& miconfig) {
     vscale_ = miconfig.varianceScale();
-    update(ktraj);
+    exing_->updateState(miconfig);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache(KTRAJ const& ktraj) {
@@ -106,30 +103,31 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& fit) {
+  template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& pktraj) {
     if(exing_->active()){
       // create a trajectory piece from the cached weight
       double time = this->time();
-//      KTRAJ newpiece(ref_);
-      KTRAJ newpiece(fit.back());
+      KTRAJ newpiece(pktraj.back());
       newpiece.params() = Parameters(cache_);
       // extend as necessary: absolute time can shift during iterations
-      newpiece.range() = TimeRange(time,std::max(time+tbuff_,fit.range().end()));
+      newpiece.range() = TimeRange(time,std::max(time+tbuff_,pktraj.range().end()));
       // make sure the piece is appendable; if not, adjust
-      if(time < fit.back().range().begin()){
+      if(time < pktraj.back().range().begin()){
         // if this is the first piece, simply extend it back
-        if(fit.pieces().size() ==1){
-//          std::cout << "Adjusting fit range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
-          fit.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,fit.range().end()));
+        if(pktraj.pieces().size() ==1){
+//          std::cout << "Adjusting pktraj range, time " << time << " end piece begin " << pktraj.back().range().begin() << std::endl;
+          pktraj.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,pktraj.range().end()));
         } else {
-//          std::cout << "Adjusting material range, time " << time << " end piece begin " << fit.back().range().begin() << std::endl;
+//          std::cout << "Adjusting material range, time " << time << " end piece begin " << pktraj.back().range().begin() << std::endl;
           throw std::invalid_argument("New piece start is earlier than last piece start");
-//         newpiece.setRange(TimeRange(fit.back().range().begin()+tbuff_,fit.range().end()));
+//         newpiece.setRange(TimeRange(pktraj.back().range().begin()+tbuff_,pktraj.range().end()));
         }
       }
-      fit.append(newpiece);
+      pktraj.append(newpiece);
     }
-  }
+    // update the xing
+    exing_->updateReference(pktraj.backPtr());
+}
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "Material " << static_cast<Effect<KTRAJ>const&>(*this);

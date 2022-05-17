@@ -20,10 +20,11 @@ namespace KinKal {
   template <class KTRAJ> class ElementXing {
     public:
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}
-      virtual void update(PKTRAJ const& pktraj) =0;
-      virtual void update(PKTRAJ const& pktraj,MetaIterConfig const& miconfig) =0;
+      virtual void updateReference(KTRAJPTR const& ktrajptr);
+      virtual void updateState(MetaIterConfig const& config) =0;
       virtual double time() const=0; // time the particle crosses thie element
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
@@ -34,8 +35,10 @@ namespace KinKal {
       void materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
       // sum radiation fraction
       double radiationFraction() const;
-    private:
+      KTRAJ const& referenceTrajectory() const { return *reftraj_; }  // trajectory WRT which the xing is defined
+   private:
       std::vector<MaterialXing> mxings_; // Effect of each physical material component of this detector element on this trajectory
+      KTRAJPTR reftraj_; // reference WRT this hits weight was calculated
   };
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(PKTRAJ const& pktraj, TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
@@ -62,5 +65,10 @@ namespace KinKal {
       retval += mxing.dmat_.radiationFraction(mxing.plen_/10.0); // Ugly conversion to cm FIXME!!
     return retval;
   }
+
+  template<class KTRAJ> void ElementXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+    reftraj_ = ktrajptr;
+  }
+
 }
 #endif
