@@ -20,13 +20,8 @@ namespace KinKal {
       bool active() const override { return true; }
       void process(FitState& kkdata,TimeDir tdir) override;
       void update(PKTRAJ const& ref) override;
-      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override {
-        vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
-        return update(ref); }
-      void update(Config const& config) override {
-        dwt_ = config.dwt_;
-        bfcorr_ = config.bfcorr_;
-      };
+      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
+      void update(Config const& config) override;
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -80,6 +75,16 @@ namespace KinKal {
     double endtime = (tdir_ == TimeDir::forwards) ? ref.range().begin() : ref.range().end();
     bnom_ = bfield_.fieldVect(ref.position3(endtime));
   }
+
+  template<class KTRAJ> void TrackEnd<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
+    vscale_ = miconfig.varianceScale(); // annealing scale for covariance deweighting, to avoid numerical effects
+    return update(ref);
+  }
+
+  template<class KTRAJ> void TrackEnd<KTRAJ>::update(Config const& config) {
+    dwt_ = config.dwt_;
+    bfcorr_ = config.bfcorr_;
+  };
 
   template<class KTRAJ> void TrackEnd<KTRAJ>::append(PKTRAJ& fit) {
     // Test the fit is empty and we're going in the right direction
