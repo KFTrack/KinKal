@@ -368,12 +368,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   seedmom.SetM(fitmass);
   // buffer the seed range
   TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
-  KTRAJ seedtraj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
-  if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj,sigmas,seedsmear);
-  if(nevents == 0)cout << "Seed Traj " << seedtraj << endl;
+  KTRAJ straj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
+  if(invert) straj.invertCT(); // for testing wrong propagation direction
+  toy.createSeed(straj,sigmas,seedsmear);
+  if(nevents == 0)cout << "Seed Traj " << straj << endl;
   // Create the Track from these hits
-  //
+   PKTRAJ seedtraj(straj);
+   //
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -387,7 +388,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       cparams.covariance()[ipar][ipar] = perr*perr;
       cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
     }
-    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),tptraj,cparams,mask));
+    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),seedtraj,cparams,mask));
   }
   // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
