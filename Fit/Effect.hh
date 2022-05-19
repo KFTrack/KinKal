@@ -27,12 +27,10 @@ namespace KinKal {
       virtual bool active() const = 0; // whether this effect is/was used in the fit
       // Add this effect to the ongoing fit in the given direction.
       virtual void process(FitState& kkdata,TimeDir tdir) = 0;
-      // update this effect for a new reference trajectory within the existing algebraic iteration sequence
-      virtual void update(PKTRAJ const& ref) = 0;
-      // update this effect to start a new algebraic iteration squence using the new reference trajectory and configuration
-      virtual void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) = 0;
+      // update this effect for a new algebraic iteration, perhaps with a new config
+      virtual void updateState(MetaIterConfig const& miconfig,bool first) = 0;
       // update this effect for a new configuration
-      virtual void update(Config const& config) =0;
+      virtual void updateConfig(Config const& config) =0;
       // update the particle trajectory for this effect
       virtual void append(PKTRAJ& fit) =0;
       // chisquared WRT a given local parameter set, assumed uncorrelatedd  This is used for convergence testing

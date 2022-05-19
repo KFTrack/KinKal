@@ -22,9 +22,8 @@ namespace KinKal {
       double time() const override { return exing_->time() + tbuff_ ;}
       bool active() const override { return  exing_->active(); }
       void process(FitState& kkdata,TimeDir tdir) override;
-      void update(PKTRAJ const& ref) override;
-      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
-      void update(Config const& config) override {}
+      void updateState(MetaIterConfig const& miconfig,bool first) override;
+      void updateConfig(Config const& config) override {}
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -65,12 +64,9 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& pktraj) {
+  template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
+    if(first)vscale_ = miconfig.varianceScale();
     cache_ = Weights();
-  }
-
-  template<class KTRAJ> void Material<KTRAJ>::update(PKTRAJ const& ktraj, MetaIterConfig const& miconfig) {
-    vscale_ = miconfig.varianceScale();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache(KTRAJ const& ktraj) {

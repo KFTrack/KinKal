@@ -46,7 +46,10 @@ namespace KinKal {
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
       double mindoca, double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {}
+    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {
+      // I have to call this here, not in WireHit constructor, as before the Null functions are undefined
+      WIREHIT::updateResiduals(whstate);
+    }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
     // simply translate distance to time using the fixed velocity
@@ -77,12 +80,12 @@ namespace KinKal {
     // look for an updater; if found, use it to update the state
     auto nwhu = miconfig.findUpdater<NullWireHitUpdater>();
     auto dwhu = miconfig.findUpdater<DOCAWireHitUpdater>();
+    WireHitState whstate = this->hitState();
     if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
     if(nwhu != 0){
       mindoca_ = cellRadius();
-      auto whstate = nwhu->wireHitState();
+      whstate = nwhu->wireHitState();
       // set the residuals based on this state
-      this->updateResiduals(whstate);
     } else if(dwhu != 0){
       // update minDoca (for null ambiguity error estimate)
       mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
@@ -92,13 +95,14 @@ namespace KinKal {
       KTRAJ utraj(uparams,ca.particleTraj());
       CA uca(utraj,this->wire(),ca.hint(),ca.precision());
       //
-      WireHitState whstate(WireHitState::inactive);
+      whstate = WireHitState(WireHitState::inactive);
 //      if(ca.usable())whstate = dwhu->wireHitState(ca.doca());
       if(uca.usable())whstate = dwhu->wireHitState(uca.doca());
       // set the residuals based on this state
-      this->updateResiduals(whstate);
     }
-    // update the temp.
+    // update residuals
+    this->updateResiduals(whstate);
+   // update the temp.
     HIT::updateState(miconfig);
   }
 }

@@ -21,9 +21,8 @@ namespace KinKal {
       double time() const override { return hit_->time(); }
       bool active() const override { return hit_->active(); }
       void process(FitState& kkdata,TimeDir tdir) override;
-      void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
-      void update(Config const& config) override {}
+      void updateState(MetaIterConfig const& miconfig,bool first) override;
+      void updateConfig(Config const& config) override {}
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -45,15 +44,11 @@ namespace KinKal {
     if(this->active())kkdata.append(weight());
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // update the weight
-    hit_->updateWeight();
-  }
-
-  template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+  template<class KTRAJ> void Measurement<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     // update the hit's internal state; the actual update depends on the hit
-    hit_->updateState(miconfig );
-  }
+    if(first)hit_->updateState(miconfig );
+    hit_->updateWeight();
+}
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
     // update the hit to reference this trajectory.  Use the end piece

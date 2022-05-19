@@ -22,9 +22,8 @@ namespace KinKal {
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_; }
       void process(FitState& kkdata,TimeDir tdir) override;
-      void update(PKTRAJ const& ref) override;
-      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
-      void update(Config const& config) override { bfcorr_ = config.bfcorr_; }
+      void updateState(MetaIterConfig const& miconfig,bool first) override {}
+      void updateConfig(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
@@ -49,13 +48,6 @@ namespace KinKal {
     if(bfcorr_){
       kkdata.append(dbforw_,tdir);
     }
-  }
-
-  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref) {
-  }
-
-  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
-    update(ref);
   }
 
   template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& pktraj) {

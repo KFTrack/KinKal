@@ -24,23 +24,26 @@ namespace KinKal {
       void updateWeight() override {;} // this hit's weight never changes
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      // ParameterHit-specfic interface
+      void updateReference(KTRAJPTR const& ktrajptr) override { reftraj_ = ktrajptr; }
+      KTRAJPTR const& refTrajPtr() const override { return reftraj_; }
+     // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
-      ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask);
+      ParameterHit(double time, PKTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
       unsigned nDOF() const { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
       double time_; // time of this constraint: must be supplied on construction and does not change
+      KTRAJPTR reftraj_; // reference WRT this hits weight was calculated
       Parameters params_; // constraint parameters with covariance
       PMASK pmask_; // subset of parmeters to constrain
       DMAT mask_; // matrix to mask off unconstrainted parameters
       unsigned ncons_; // number of parameters constrained
   };
 
-  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, KTRAJ const& reftraj, Parameters const& params, PMASK const& pmask) :
-    time_(time), params_(params), pmask_(pmask), ncons_(0) {
+  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, PKTRAJ const& ptraj, Parameters const& params, PMASK const& pmask) :
+    time_(time), reftraj_(ptraj.nearestTraj(time)), params_(params), pmask_(pmask), ncons_(0) {
       // create the mask matrix; Use a temporary, not the data member, as root has caching problems with that (??)
       DMAT mask = ROOT::Math::SMatrixIdentity();
       // count constrained parameters, and mask off unused parameters

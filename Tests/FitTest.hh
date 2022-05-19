@@ -164,10 +164,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
+  using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBFIELD = BField<KTRAJ>;
-  using KKEND = TrackEnd<KTRAJ>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
@@ -341,8 +340,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   cout << "Main fit config " << config << endl;
   // read the schedule from the file
   Config exconfig;
-  if(extend) makeConfig(exfile,exconfig);
-  cout << "Extension config " << exconfig << endl;
+  if(extend){
+    makeConfig(exfile,exconfig);
+    cout << "Extension config " << exconfig << endl;
+  }
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
@@ -386,7 +387,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       cparams.covariance()[ipar][ipar] = perr*perr;
       cparams.parameters()[ipar] += tr_.Gaus(0.0,perr);
     }
-    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),seedtraj,cparams,mask));
+    thits.push_back(std::make_shared<PARHIT>(front.range().mid(),tptraj,cparams,mask));
   }
   // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
@@ -803,7 +804,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           fend_ = fptraj.range().end();
 
           for(auto const& eff: kktrk.effects()) {
-            const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+            const KKMEAS* kkhit = dynamic_cast<const KKMEAS*>(eff.get());
             const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
