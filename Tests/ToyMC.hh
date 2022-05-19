@@ -55,7 +55,7 @@ namespace KKTest {
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ& pktraj, HITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
-      double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
+      double createStrawMaterial(PKTRAJ& pktraj, EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
       void setTolerance(double tol) { tol_ = tol; }
@@ -156,10 +156,12 @@ namespace KKTest {
     if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
   }
 
-  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, EXING* sxing) {
     double desum = 0.0;
     double tstraw = sxing->time();
-    auto const& endpiece = pktraj.nearestPiece(tstraw);
+    auto const& endtraj = pktraj.nearestTraj(tstraw);
+    auto const& endpiece = *endtraj;
+    sxing->updateReference(endtraj);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
