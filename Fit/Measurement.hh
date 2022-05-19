@@ -47,9 +47,10 @@ namespace KinKal {
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     // update the hit's internal state; the actual update depends on the hit
-    if(first)hit_->updateState(miconfig );
-    hit_->updateWeight();
-}
+    hit_->updateState(miconfig,first);
+    // then update the weight to use in the next processing
+    hit_->updateWeight(miconfig);
+  }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
     // update the hit to reference this trajectory.  Use the end piece

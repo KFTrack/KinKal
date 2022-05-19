@@ -17,7 +17,7 @@ namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      Hit() : wscale_(1.0){}
+      Hit() {}
       virtual ~Hit(){}
       // disallow copy and equivalence
       Hit(Hit const& ) = delete;
@@ -26,48 +26,31 @@ namespace KinKal {
       virtual bool active() const =0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
-      // update the weight
-      virtual void updateWeight() = 0;
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // update to a new reference, without changing internal state
       virtual void updateReference(KTRAJPTR const& ktrajptr) = 0;
       virtual KTRAJPTR const& refTrajPtr() const = 0;
-      KTRAJ const& referenceTrajectory() const { return *refTrajPtr(); }  // trajectory WRT which the weight etc is defined
+      // update the internals of the hit, specific to this meta-iteraion
+      virtual void updateState(MetaIterConfig const& config,bool first) = 0;
+       // update the weight
+      virtual void updateWeight(MetaIterConfig const& config) = 0;
+      virtual Weights const& weight() const = 0;
+    KTRAJ const& referenceTrajectory() const { return *refTrajPtr(); }  // trajectory WRT which the weight etc is defined
       // parameters WRT which this hit's residual and weights are set.  These are generally biased
       // in that they contain the information of this hit
       Parameters const& referenceParameters() const { return referenceTrajectory().params(); }
-      // update the internals of the hit, specific to this meta-iteraion
-      virtual void updateState(MetaIterConfig const& config);
-      // accessors
-      // the constraint this hit implies WRT the current trajectory, expressed as a weight
-      Weights const& weight() const { return weight_; }
-      // the same, scaled for annealing
-      double weightScale() const { return wscale_; }
-      // Unbiased parameters, taking out this hit's effect
+      // Unbiased parameters, taking out this hit's effect from the reference
       Parameters unbiasedParameters() const;
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
-    protected:
-      // update the weight
-      void setWeight(Weights const& weight){
-        weight_ = weight;
-        weight_ *= wscale_;
-      }
-    private:
-      double wscale_; // current annealing weight scaling
-      Weights weight_; // weight representation of the hit's constraint
   };
-
-  template <class KTRAJ> void Hit<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
-    wscale_ = 1.0/miconfig.varianceScale();
-  }
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
     if(active()){
       // convert the parameters to a weight, and subtract this hit's weight
       Weights wt(referenceParameters());
       // subtract out the effect of this hit's reference weight from the reference parameters
-      wt -= weight_;
+      wt -= weight();
       return Parameters(wt);
     } else
       return referenceParameters();

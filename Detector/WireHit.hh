@@ -70,7 +70,7 @@ namespace KinKal {
     bfield_(bfield),
     whstate_(wstate), wire_(pca.sensorTraj()),
     tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
-      updateReference(tpca_.particleTrajPtr());
+//      updateReference(tpca_.particleTrajPtr());
     }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {

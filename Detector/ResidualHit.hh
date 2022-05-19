@@ -15,7 +15,8 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       bool active() const override { return nDOF() > 0; }
       Chisq chisq(Parameters const& params) const override;
-      void updateWeight() override;
+      void updateWeight(MetaIterConfig const& config) override;
+      Weights const& weight() const override { return weight_; }
       // ResidualHit specific interface.
       unsigned nDOF() const;
       // describe residuals associated with this hit
@@ -32,6 +33,8 @@ namespace KinKal {
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
       ResidualHit() {}
+    private:
+      Weights weight_; // weight of this hit computed from the residuals
   };
 
   template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
@@ -90,9 +93,9 @@ namespace KinKal {
     return retval;
   }
 
-  template <class KTRAJ> void ResidualHit<KTRAJ>::updateWeight() {
+  template <class KTRAJ> void ResidualHit<KTRAJ>::updateWeight(MetaIterConfig const& miconfig) {
     // start with a null weight
-    Weights weight;
+    weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
       if(activeRes(ires)) {
         auto const& res = residual(ires);
@@ -110,12 +113,12 @@ namespace KinKal {
         // sign convention reflects resid = measurement - prediction
         DVEC wvec = wmat*HIT::referenceParameters().parameters() + res.dRdP()*res.value()/tvar;
         // weights are linearly additive
-        weight += Weights(wvec,wmat);
+        weight_ += Weights(wvec,wmat);
       }
     }
-    this->setWeight(weight);
+    // now scale by the temp
+    weight_ *= 1.0/miconfig.varianceScale();
   }
-
 }
 
 #endif

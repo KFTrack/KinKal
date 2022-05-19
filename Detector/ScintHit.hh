@@ -24,6 +24,7 @@ namespace KinKal {
       double time() const override { return tpca_.particleToca(); }
       void updateReference(KTRAJPTR const& ktrajptr) override;
       KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
+      void updateState(MetaIterConfig const& config,bool first) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // scintHit explicit interface
       ScintHit(PCA const& pca, double tvar, double wvar);
@@ -48,7 +49,7 @@ namespace KinKal {
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true),
     tpca_(pca.localTraj(),saxis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP())
   {
-    updateReference(tpca_.particleTrajPtr());
+//    updateReference(tpca_.particleTrajPtr());
   }
 
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -71,8 +72,12 @@ namespace KinKal {
     //    if(tpca_.usable()) tphint = CAHint(tpca_.particleToca(),tpca_.sensorToca());
     tpca_ = CA(ktrajptr,saxis_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("ScintHit TPOCA failure");
+    }
+
+  template <class KTRAJ> void ScintHit<KTRAJ>::updateState(MetaIterConfig const& config,bool first) {
     // residual is just delta-T at CA.
     // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
+    // Might want to do more updating (set activity) based on DOCA in future: TODO
     double dd2 = tpca_.dirDot()*tpca_.dirDot();
     double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
     rresid_ = Residual(tpca_.deltaT(),totvar,-tpca_.dTdP());

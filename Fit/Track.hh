@@ -284,13 +284,13 @@ namespace KinKal {
     for(auto& hit : hits ) {
       // create the hit effects and insert them in the collection
       effects_.emplace_back(std::make_unique<KKMEAS>(hit));
-      // update hit reference
+      // update hit reference; this should be done on construction FIXME
       hit->updateReference(fittraj_->nearestTraj(hit->time()));
     }
     //add material effects
     for(auto& exing : exings) {
       effects_.emplace_back(std::make_unique<KKMAT>(exing,*fittraj_));
-      // update xing reference
+      // update xing reference; should be done on construction FIXME
       exing->updateReference(fittraj_->nearestTraj(exing->time()));
     }
     // add BField effects
