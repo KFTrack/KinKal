@@ -34,9 +34,10 @@ namespace KinKal {
       Parameters const& effect() const { return mateff_; }
       Weights const& cache() const { return cache_; }
       EXING const& elementXing() const { return *exing_; }
-    private:
-      // update the local cache
-      void updateCache(KTRAJ const&);
+      KTRAJ const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
+   private:
+      // update the local cache representing the effect of this material on the reference parameters
+      void updateCache();
       EXINGPTR exing_; // element crossing for this effect
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
@@ -66,21 +67,24 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     if(first)vscale_ = miconfig.varianceScale();
+    // reset the weight in prep for the next processing
     cache_ = Weights();
+    updateCache();
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::updateCache(KTRAJ const& ktraj) {
+  template<class KTRAJ> void Material<KTRAJ>::updateCache() {
+    // reset parameters before rebuilding from scratch
     mateff_ = Parameters();
     if(exing_->active()){
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      exing_->materialEffects(ktraj,TimeDir::forwards, dmom, momvar);
+      exing_->materialEffects(TimeDir::forwards, dmom, momvar);
       // get the parameter derivative WRT momentum
-      DPDV dPdM = ktraj.dPardM(time());
-      double mommag = ktraj.momentum(time());
+      DPDV dPdM = referenceTrajectory().dPardM(time());
+      double mommag = referenceTrajectory().momentum(time());
       for(int idir=0;idir<MomBasis::ndir; idir++) {
         auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = ktraj.direction(time(),mdir);
+        auto dir = referenceTrajectory().direction(time(),mdir);
         // project the momentum derivatives onto this direction
         DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
         // convert derivative vector to a Nx1 matrix

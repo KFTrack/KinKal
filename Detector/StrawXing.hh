@@ -26,6 +26,7 @@ namespace KinKal {
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config) override;
       double time() const override { return tpca_.particleToca(); }
+      KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
       auto const& closestApproach() const { return tpca_; }
@@ -46,15 +47,13 @@ namespace KinKal {
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
     sxconfig_(0.05*smat.strawRadius(),1.0) // hardcoded values, should come from outside, FIXME
   {
-    EXING::updateReference(tpca_.particleTrajPtr());
-//    smat_.findXings(tpca_,sxconfig_,EXING::matXings());
+//    this->updateReference(tpca_.particleTrajPtr());
   }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.range().mid(),axis_.range().mid());
     tpca_ = CA(ktrajptr,axis_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
-    EXING::updateReference(ktrajptr);
     // update the material effects
     smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
  }
