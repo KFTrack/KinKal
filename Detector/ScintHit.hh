@@ -48,9 +48,7 @@ namespace KinKal {
   template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar) :
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar), active_(true),
     tpca_(pca.localTraj(),saxis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP())
-  {
-//    updateReference(tpca_.particleTrajPtr());
-  }
+  {}
 
   template <class KTRAJ> bool ScintHit<KTRAJ>::activeRes(unsigned ires) const {
     if(ires == 0 && active_)

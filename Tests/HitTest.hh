@@ -244,6 +244,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   }
   unsigned ipt(0);
   //  cout << tptraj << endl;
+  MetaIterConfig miconfig;
   for(auto& thit : thits) {
     Residual ores;
     ClosestApproachData tpdata;
@@ -271,6 +272,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
           thit->updateReference(modtptraj.backPtr());// refer to moded helix
+          thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){
             mres = strawhit->residual(0);
