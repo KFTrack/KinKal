@@ -337,12 +337,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // setup fit configuration
   Config config;
   makeConfig(sfile,config);
-  cout << "Main fit config " << config << endl;
+  cout << "Main fit " << config << endl;
   // read the schedule from the file
   Config exconfig;
   if(extend){
     makeConfig(exfile,exconfig);
-    cout << "Extension config " << exconfig << endl;
+    cout << "Extension " << exconfig << endl;
   }
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
@@ -417,6 +417,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
   float fft_,mft_, bft_;
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
+  int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
 
@@ -545,6 +546,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ftree->Branch("nkkbf", &nkkbf_,"nkkbf/I");
       ftree->Branch("nkkmat", &nkkmat_,"nkkmat/I");
       ftree->Branch("nkkhit", &nkkhit_,"nkkhit/I");
+      ftree->Branch("nactivehit", &nactivehit_,"nactivehit/I");
+      ftree->Branch("nstrawhit", &nstrawhit_,"nstrawhit/I");
+      ftree->Branch("nnull", &nnull_,"nnull/I");
+      ftree->Branch("nscinthit", &nscinthit_,"nscinthit/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
       ftree->Branch("nmeta", &nmeta_,"nmeta/I");
@@ -804,12 +809,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           fbeg_ = fptraj.range().begin();
           fend_ = fptraj.range().end();
 
+          nactivehit_ = nstrawhit_ = nnull_ = nscinthit_ = 0;
           for(auto const& eff: kktrk.effects()) {
             const KKMEAS* kkhit = dynamic_cast<const KKMEAS*>(eff.get());
             const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
+              if(kkhit->active())nactivehit_++;
               HitInfo hinfo;
               hinfo.active_ = kkhit->active();
               hinfo.time_ = kkhit->time();
@@ -830,6 +837,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.tresidvar_ =  -1.0;
               hinfo.tresidpull_ =  -1000.0;
               if(strawhit != 0){
+                if(strawhit->active()){
+                  nstrawhit_++;
+                  if(!strawhit->hitState().useDrift())nnull_++;
+                }
                 hinfo.type_ = HitInfo::straw;
                 hinfo.state_ = strawhit->hitState().state_;
                 hinfo.t0_ = strawhit->closestApproach().particleToca();
@@ -853,6 +864,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 }
                 hinfovec.push_back(hinfo);
               } else if(scinthit != 0){
+                if(scinthit->active())nscinthit_++;
                 hinfo.type_ = HitInfo::scint;
                 auto resid = scinthit->unbiasedResidual(0);
                 hinfo.tresid_ = resid.value();
