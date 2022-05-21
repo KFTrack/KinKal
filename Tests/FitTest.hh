@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --exten s --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -201,7 +201,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool fitmat(true);
   bool extend(false);
   string exfile;
-  double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
@@ -393,14 +392,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
     for(auto ihit = thits.begin(); ihit != thits.end();){
-      if(tr_.Uniform(0.0,1.0) < extendfrac){
+      if(tr_.Uniform(0.0,1.0) < ineff){
         exthits.push_back(*ihit);
         ihit = thits.erase(ihit);
       } else
         ++ihit;
     }
     for(auto ixing = dxings.begin(); ixing != dxings.end();){
-      if(tr_.Uniform(0.0,1.0) < extendfrac){
+      if(tr_.Uniform(0.0,1.0) < ineff){
         exdxings.push_back(*ixing);
         ixing = dxings.erase(ixing);
       } else
@@ -674,14 +673,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       }
       if(extend){
         for(auto ihit = thits.begin(); ihit != thits.end();){
-          if(tr_.Uniform(0.0,1.0) < extendfrac){
+          if(tr_.Uniform(0.0,1.0) < ineff){
             exthits.push_back(*ihit);
             ihit = thits.erase(ihit);
           } else
             ++ihit;
         }
         for(auto ixing = dxings.begin(); ixing != dxings.end();){
-          if(tr_.Uniform(0.0,1.0) < extendfrac){
+          if(tr_.Uniform(0.0,1.0) < ineff){
             exdxings.push_back(*ixing);
             ixing = dxings.erase(ixing);
           } else
