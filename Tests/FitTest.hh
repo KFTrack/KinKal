@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --exten s --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -164,10 +164,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   };
 
   using KKEFF = Effect<KTRAJ>;
-  using KKHIT = Measurement<KTRAJ>;
+  using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBFIELD = BField<KTRAJ>;
-  using KKEND = TrackEnd<KTRAJ>;
   using PKTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
@@ -177,7 +176,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using EXINGCOL = std::vector<EXINGPTR>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
-  using STRAWHIT = WireHit<KTRAJ>;
+  using STRAWHIT = SimpleWireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
@@ -202,7 +201,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool fitmat(true);
   bool extend(false);
   string exfile;
-  double extendfrac(0.0);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
   double zrange(3000);
@@ -338,11 +336,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // setup fit configuration
   Config config;
   makeConfig(sfile,config);
-  cout << "Main fit config " << config << endl;
+  cout << "Main fit " << config << endl;
   // read the schedule from the file
   Config exconfig;
-  if(extend) makeConfig(exfile,exconfig);
-  cout << "Extension config " << exconfig << endl;
+  if(extend){
+    makeConfig(exfile,exconfig);
+    cout << "Extension " << exconfig << endl;
+  }
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
@@ -367,12 +367,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   seedmom.SetM(fitmass);
   // buffer the seed range
   TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
-  KTRAJ seedtraj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
-  if(invert) seedtraj.invertCT(); // for testing wrong propagation direction
-  toy.createSeed(seedtraj,sigmas,seedsmear);
-  if(nevents == 0)cout << "Seed Traj " << seedtraj << endl;
+  KTRAJ straj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
+  if(invert) straj.invertCT(); // for testing wrong propagation direction
+  toy.createSeed(straj,sigmas,seedsmear);
+  if(nevents == 0)cout << "Seed Traj " << straj << endl;
   // Create the Track from these hits
-  //
+   PKTRAJ seedtraj(straj);
+   //
   // if requested, constrain a parameter
   PMASK mask = {false};
   if(conspar >= 0 && conspar < (int)NParams()){
@@ -391,14 +392,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // if extending, take a random set of hits and materials out, to be replaced later
   if(extend){
     for(auto ihit = thits.begin(); ihit != thits.end();){
-      if(tr_.Uniform(0.0,1.0) < extendfrac){
+      if(tr_.Uniform(0.0,1.0) < ineff){
         exthits.push_back(*ihit);
         ihit = thits.erase(ihit);
       } else
         ++ihit;
     }
     for(auto ixing = dxings.begin(); ixing != dxings.end();){
-      if(tr_.Uniform(0.0,1.0) < extendfrac){
+      if(tr_.Uniform(0.0,1.0) < ineff){
         exdxings.push_back(*ixing);
         ixing = dxings.erase(ixing);
       } else
@@ -415,6 +416,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
   float fft_,mft_, bft_;
   int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
+  int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
 
@@ -543,6 +545,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ftree->Branch("nkkbf", &nkkbf_,"nkkbf/I");
       ftree->Branch("nkkmat", &nkkmat_,"nkkmat/I");
       ftree->Branch("nkkhit", &nkkhit_,"nkkhit/I");
+      ftree->Branch("nactivehit", &nactivehit_,"nactivehit/I");
+      ftree->Branch("nstrawhit", &nstrawhit_,"nstrawhit/I");
+      ftree->Branch("nnull", &nnull_,"nnull/I");
+      ftree->Branch("nscinthit", &nscinthit_,"nscinthit/I");
       ftree->Branch("chiprob", &chiprob_,"chiprob/F");
       ftree->Branch("niter", &niter_,"niter/I");
       ftree->Branch("nmeta", &nmeta_,"nmeta/I");
@@ -667,14 +673,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       }
       if(extend){
         for(auto ihit = thits.begin(); ihit != thits.end();){
-          if(tr_.Uniform(0.0,1.0) < extendfrac){
+          if(tr_.Uniform(0.0,1.0) < ineff){
             exthits.push_back(*ihit);
             ihit = thits.erase(ihit);
           } else
             ++ihit;
         }
         for(auto ixing = dxings.begin(); ixing != dxings.end();){
-          if(tr_.Uniform(0.0,1.0) < extendfrac){
+          if(tr_.Uniform(0.0,1.0) < ineff){
             exdxings.push_back(*ixing);
             ixing = dxings.erase(ixing);
           } else
@@ -715,16 +721,40 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
+      // truth parameters, front and back
+      double ttlow = tptraj.range().begin();
+      double ttmid = tptraj.range().mid();
+      double tthigh = tptraj.range().end();
+      KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+      KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
+      KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
+      Parameters ftpars, mtpars, btpars;
+      ftpars = fttraj.params();
+      mtpars = mttraj.params();
+      btpars = bttraj.params();
+      ftmom_ = tptraj.momentum(ttlow);
+      mtmom_ = tptraj.momentum(ttmid);
+      btmom_ = tptraj.momentum(tthigh);
+      // seed
+      sbeg_ = seedtraj.range().begin();
+      send_ = seedtraj.range().end();
+      for(size_t ipar=0;ipar<6;ipar++){
+        spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+        ftpars_.pars_[ipar] = ftpars.parameters()[ipar];
+        mtpars_.pars_[ipar] = mtpars.parameters()[ipar];
+        btpars_.pars_[ipar] = btpars.parameters()[ipar];
+      }
+      // fit: initialize to 0
+      ffmom_ = -1.0;
+      mfmom_ = -1.0;
+      bfmom_ = -1.0;
+      ffmomerr_ = -1.0;
+      mfmomerr_ = -1.0;
+      bfmomerr_ = -1.0;
+
       if(fstat.usable()){
         // basic info
         auto const& fptraj = kktrk.fitTraj();
-        // truth parameters, front and back
-        double ttlow = tptraj.range().begin();
-        double ttmid = tptraj.range().mid();
-        double tthigh = tptraj.range().end();
-        KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
-        KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
-        KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
         // compare parameters at the first traj of both true and fit
         // correct the true parameters in case the BFieldMap isn't nominal
         // correct the sampling time for the t0 difference
@@ -749,10 +779,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         hnmeta->Fill(nmeta_);
         // accumulate parameter difference and pull
         vector<double> fcerr(6,0.0), mcerr(6,0.0), bcerr(6,0.0);
-        Parameters ftpars, mtpars, btpars;
-        ftpars = fttraj.params();
-        mtpars = mttraj.params();
-        btpars = bttraj.params();
 
         for(size_t ipar=0;ipar< NParams(); ipar++){
           fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
@@ -776,9 +802,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             corravg->Fill(ipar,jpar,fabs(corr));
           }
         }
-        ftmom_ = tptraj.momentum(ttlow);
-        mtmom_ = tptraj.momentum(ttmid);
-        btmom_ = tptraj.momentum(tthigh);
         ffmom_ = fptraj.momentum(ftlow);
         mfmom_ = fptraj.momentum(ftmid);
         bfmom_ = fptraj.momentum(fthigh);
@@ -797,17 +820,20 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         //      ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
         //      ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
         if(ttree && fstat.usable()){
-          sbeg_ = seedtraj.range().begin();
-          send_ = seedtraj.range().end();
           fbeg_ = fptraj.range().begin();
           fend_ = fptraj.range().end();
 
+          nactivehit_ = nstrawhit_ = nnull_ = nscinthit_ = 0;
           for(auto const& eff: kktrk.effects()) {
-            const KKHIT* kkhit = dynamic_cast<const KKHIT*>(eff.get());
+            const KKMEAS* kkhit = dynamic_cast<const KKMEAS*>(eff.get());
             const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
+              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+              const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+              const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
+              if(kkhit->active())nactivehit_++;
               HitInfo hinfo;
               hinfo.active_ = kkhit->active();
               hinfo.time_ = kkhit->time();
@@ -818,9 +844,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.state_ = -10;
               hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
               hinfo.t0_ = 0.0;
-              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-              const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-              const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
               hinfo.dresid_ = -1000.0;
               hinfo.dresidvar_ =  -1.0;
               hinfo.dresidpull_ =  -1000.0;
@@ -828,9 +851,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.tresidvar_ =  -1.0;
               hinfo.tresidpull_ =  -1000.0;
               if(strawhit != 0){
+                if(strawhit->active()){
+                  nstrawhit_++;
+                  if(!strawhit->hitState().useDrift())nnull_++;
+                }
                 hinfo.type_ = HitInfo::straw;
                 hinfo.state_ = strawhit->hitState().state_;
                 hinfo.t0_ = strawhit->closestApproach().particleToca();
+                hinfo.id_ = strawhit->id();
                 hinfo.doca_ = strawhit->closestApproach().doca();
                 hinfo.deltat_ = strawhit->closestApproach().deltaT();
                 hinfo.docavar_ = strawhit->closestApproach().docaVar();
@@ -851,6 +879,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 }
                 hinfovec.push_back(hinfo);
               } else if(scinthit != 0){
+                if(scinthit->active())nscinthit_++;
                 hinfo.type_ = HitInfo::scint;
                 auto resid = scinthit->unbiasedResidual(0);
                 hinfo.tresid_ = resid.value();
@@ -878,7 +907,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               minfo.active_ = kkmat->active();
               minfo.nxing_ = kkmat->elementXing().matXings().size();
               std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-              kkmat->elementXing().materialEffects(fptraj,TimeDir::forwards, dmom, momvar);
+              kkmat->elementXing().materialEffects(TimeDir::forwards, dmom, momvar);
               minfo.dmomf_ = dmom[MomBasis::momdir_];
               minfo.momvar_ = momvar[MomBasis::momdir_];
               minfo.perpvar_ = momvar[MomBasis::perpdir_];
@@ -905,12 +934,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             mfiterrs_.pars_[ipar] = sqrt(mftraj.params().covariance()(ipar,ipar));
             bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
           }
-          for(size_t ipar=0;ipar<6;ipar++){
-            spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-            ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-            mtpars_.pars_[ipar] = mttraj.params().parameters()[ipar];
-            btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
-          }
 
           // step through the fit traj and compare to the truth
           auto const& fptraj = kktrk.fitTraj();
@@ -931,17 +954,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           maxgap_ = maxgap;
           avgap_ = avgap;
           igap_ = igap;
-
-          ftree->Fill();
         }
-
-        // test
       } else if(printbad){
         cout << "Bad Fit event " << ievent << " status " << kktrk.fitStatus() << endl;
         cout << "True Traj " << tptraj << endl;
         cout << "Seed Traj " << seedtraj << endl;
         kktrk.print(cout,detail);
       }
+      if(ttree)ftree->Fill();
     }
     // Test fit success
     cout

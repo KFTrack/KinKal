@@ -35,6 +35,7 @@ namespace KinKal {
         hasWeights_ = true;
         hasParameters_ = false;
       }
+
       Parameters& pData() {
         if(!hasParameters_ && hasWeights_ ){
           // invert the weight

@@ -21,9 +21,8 @@ namespace KinKal {
       double time() const override { return hit_->time(); }
       bool active() const override { return hit_->active(); }
       void process(FitState& kkdata,TimeDir tdir) override;
-      void update(PKTRAJ const& pktraj) override;
-      void update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) override;
-      void update(Config const& config) override {}
+      void updateState(MetaIterConfig const& miconfig,bool first) override;
+      void updateConfig(Config const& config) override {}
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -33,6 +32,7 @@ namespace KinKal {
       Measurement(HITPTR const& hit);
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
+      KTRAJ const& referenceTrajectory() const { return hit_->referenceTrajectory(); }
       Weights const& weight() const { return hit_->weight(); }
     private:
       HITPTR hit_ ; // hit used for this constraint
@@ -43,20 +43,13 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // add this effect's information. direction is irrelevant for processing hits
     if(this->active())kkdata.append(weight());
-    this->setState(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj) {
-    // update the weight
-    hit_->updateWeight();
-    this->updateState();
-  }
-
-  template<class KTRAJ> void Measurement<KTRAJ>::update(PKTRAJ const& pktraj, MetaIterConfig const& miconfig) {
+  template<class KTRAJ> void Measurement<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     // update the hit's internal state; the actual update depends on the hit
-    hit_->updateState(miconfig );
-    // ready for processing!
-    this->updateState();
+    hit_->updateState(miconfig,first);
+    // then update the weight to use in the next processing
+    hit_->updateWeight(miconfig);
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {

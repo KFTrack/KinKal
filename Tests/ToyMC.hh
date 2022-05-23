@@ -55,7 +55,7 @@ namespace KKTest {
       void createTraj(PKTRAJ& pktraj);
       void createScintHit(PKTRAJ& pktraj, HITCOL& thits);
       void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
-      double createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing);
+      double createStrawMaterial(PKTRAJ& pktraj, EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
       void setTolerance(double tol) { tol_ = tol; }
@@ -138,7 +138,7 @@ namespace KKTest {
         if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
         WireHitState whstate(ambig);
         double mindoca = std::min(ambigdoca_,rstraw_);
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_));
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_, ihit));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
@@ -156,15 +156,17 @@ namespace KKTest {
     if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
   }
 
-  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, const EXING* sxing) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, EXING* sxing) {
     double desum = 0.0;
     double tstraw = sxing->time();
-    auto const& endpiece = pktraj.nearestPiece(tstraw);
+    auto const& endtraj = pktraj.nearestTraj(tstraw);
+    auto const& endpiece = *endtraj;
+    sxing->updateReference(endtraj);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
     std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing->materialEffects(pktraj,TimeDir::forwards, dmom, momvar);
+    sxing->materialEffects(TimeDir::forwards, dmom, momvar);
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
       auto mdir = static_cast<MomBasis::Direction>(idir);
       double momsig = sqrt(momvar[idir]);
@@ -198,8 +200,13 @@ namespace KKTest {
     // first, find the position at showermax_.
     VEC3 shmaxTrue,shmaxMeas;
     double tend = thits.back()->time();
+    // extend to the calorimeter z
     VEC3 pvel = pktraj.velocity(tend);
     double shstart = tend + coff_/pvel.Z();
+// extend the trajectory to here
+    extendTraj(pktraj,shstart);
+    pvel = pktraj.velocity(shstart);
+    // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
     auto endpos = pktraj.position4(shstart);
     shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max

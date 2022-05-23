@@ -29,6 +29,7 @@ namespace KinKal {
       Residual const& residual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
       void updateReference(KTRAJPTR const& ktrajptr) override;
+      KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // virtual interface that must be implemented by concrete WireHit subclasses
       // given a drift DOCA and direction in the cell, compute drift time and velocity
@@ -69,7 +70,6 @@ namespace KinKal {
     bfield_(bfield),
     whstate_(wstate), wire_(pca.sensorTraj()),
     tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
-      HIT::updateReference(tpca_.particleTrajPtr());
     }
 
   template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
@@ -82,11 +82,8 @@ namespace KinKal {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     // otherwise use the time at the center of the wire
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
-     tpca_ = CA(ktrajptr,wire_,tphint,precision());
-    if(!tpca_.usable())throw std::runtime_error("TPOCA failure");
-    HIT::updateReference(ktrajptr);
-    // update residuals without changing state
-    updateResiduals(whstate_);
+    tpca_ = CA(ktrajptr,wire_,tphint,precision());
+    if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
 
   template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {

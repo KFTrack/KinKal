@@ -22,9 +22,8 @@ namespace KinKal {
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_; }
       void process(FitState& kkdata,TimeDir tdir) override;
-      void update(PKTRAJ const& ref) override;
-      void update(PKTRAJ const& ref, MetaIterConfig const& miconfig) override;
-      void update(Config const& config) override { bfcorr_ = config.bfcorr_; }
+      void updateState(MetaIterConfig const& miconfig,bool first) override {}
+      void updateConfig(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PKTRAJ& fit) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
@@ -49,38 +48,25 @@ namespace KinKal {
     if(bfcorr_){
       kkdata.append(dbforw_,tdir);
     }
-    KKEFF::setState(tdir,KKEFF::processed);
   }
 
-  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref) {
-    double etime = time();
-    // compute parameter change due to changing BNom across this domain
-    if(bfcorr_){
-      auto const& begtraj = ref.nearestPiece(drange_.begin());
-      auto const& endtraj = ref.nearestPiece(drange_.end());
-      dbforw_.parameters() = begtraj.dPardB(etime,endtraj.bnom());
-    }
-    // eventually include field map uncertainties in dbforw_ covariance TODO!
-    KKEFF::updateState();
-  }
-
-  template<class KTRAJ> void BField<KTRAJ>::update(PKTRAJ const& ref, MetaIterConfig const& miconfig) {
-    update(ref);
-  }
-
-  template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& fit) {
+  template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& pktraj) {
     if(bfcorr_){
       double etime = time();
       // make sure the piece is appendable
-      if(fit.back().range().begin() > etime) throw std::invalid_argument("BField: Can't append piece");
-      TimeRange newrange(etime,std::max(fit.range().end(),drange_.end()));
-      // copy the back piece of fit and set its range
-      KTRAJ newpiece(fit.back());
+      if(pktraj.back().range().begin() > etime) throw std::invalid_argument("BField: Can't append piece");
+      TimeRange newrange(etime,std::max(pktraj.range().end(),drange_.end()));
+      // copy the back piece of pktraj and set its range
+      KTRAJ newpiece(pktraj.back());
       newpiece.range() = newrange;
       // update the parameters according to the change in bnom across this domain
-      VEC3 newbnom = bfield_.fieldVect(fit.position3(drange_.end()));
+      VEC3 newbnom = bfield_.fieldVect(pktraj.position3(drange_.end()));
       newpiece.setBNom(etime,newbnom);
-      fit.append(newpiece);
+      pktraj.append(newpiece);
+      //
+      auto const& begtraj = pktraj.nearestPiece(drange_.begin());
+      auto const& endtraj = pktraj.nearestPiece(drange_.end());
+      dbforw_.parameters() = begtraj.dPardB(etime,endtraj.bnom());
     }
   }
 

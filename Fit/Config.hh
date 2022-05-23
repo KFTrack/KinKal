@@ -24,7 +24,7 @@ namespace KinKal {
     Schedule const& schedule() const { return schedule_; }
 
     // algebraic iteration parameters
-    int maxniter_; // maximum number of algebraic iterations for this config
+    unsigned maxniter_; // maximum number of algebraic iterations for this config
     double dwt_; // dweighting of initial seed covariance
     double convdchisq_; // maximum change in chisquared/dof for convergence
     double divdchisq_; // minimum change in chisquared/dof for divergence
