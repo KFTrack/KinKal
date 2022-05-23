@@ -12,6 +12,9 @@ add_library(General SHARED
     Weights.cc
     BFieldMap.cc
     AxialBFieldMap.cc
+    InterpBilinear.cc
+    CylBMap.cc
+    CylBFieldMap.cc
     )
 
 # create shared library with ROOT dict
