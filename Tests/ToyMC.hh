@@ -200,8 +200,13 @@ namespace KKTest {
     // first, find the position at showermax_.
     VEC3 shmaxTrue,shmaxMeas;
     double tend = thits.back()->time();
+    // extend to the calorimeter z
     VEC3 pvel = pktraj.velocity(tend);
     double shstart = tend + coff_/pvel.Z();
+// extend the trajectory to here
+    extendTraj(pktraj,shstart);
+    pvel = pktraj.velocity(shstart);
+    // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
     auto endpos = pktraj.position4(shstart);
     shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max

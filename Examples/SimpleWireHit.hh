@@ -49,7 +49,7 @@ namespace KinKal {
     WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {
       // I have to call this here, not in WireHit constructor, as before this object is
       // instantiated Null functions are undefined and residuals cant be calculated
-      this->updateResiduals(whstate);
+//      this->updateResiduals(whstate);
     }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {

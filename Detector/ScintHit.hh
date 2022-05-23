@@ -63,16 +63,32 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
-    // compute PCA
-    CAHint tphint( saxis_.t0(), saxis_.t0());
-    // don't update the hint: initial T0 values can be very poor, which can push the CA calculation onto the wrong helix loop,
-    // from which it's impossible to ever get back to the correct one.  Active loop checking might be useful eventually too TODO
-    //    if(tpca_.usable()) tphint = CAHint(tpca_.particleToca(),tpca_.sensorToca());
+    // use previous hint, or initialize from the sensor time
+    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(saxis_.t0(), saxis_.t0());
     tpca_ = CA(ktrajptr,saxis_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("ScintHit TPOCA failure");
-    }
+  }
 
   template <class KTRAJ> void ScintHit<KTRAJ>::updateState(MetaIterConfig const& config,bool first) {
+    // check that TPCA position is consistent with the physical sensor. This can be off if the CA algorithm finds the wrong helix branch
+    // early in the fit when t0 has very large errors.
+    // If it is unphysical try to adjust it back using a better hint.
+    auto ppos = tpca_.particlePoca().Vect();
+    auto sstart = saxis_.startPosition();
+    auto send = saxis_.endPosition();
+    double slen = (send-sstart).R();
+    // tolerance should come from the config.  Should also test relative to the error. FIXME
+    double tol = slen*1.0;
+    if( (ppos-sstart).Dot(saxis_.direction()) < -tol ||
+        (ppos-send).Dot(saxis_.direction()) > tol) {
+      // adjust hint to the middle and try agian
+      double sspeed = tpca_.particleTraj().velocity(tpca_.particleToca()).Dot(saxis_.direction());
+      double sdist = (ppos - saxis_.position3(saxis_.range().mid())).Dot(saxis_.direction());
+      auto tphint = tpca_.hint();
+      tphint.particleToca_ -= sdist/sspeed;
+      tpca_ = CA(tpca_.particleTrajPtr(),saxis_,tphint,precision());
+      // should check if this is still unphysical and disable the hit if so FIXME
+    }
     // residual is just delta-T at CA.
     // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
     // Might want to do more updating (set activity) based on DOCA in future: TODO
