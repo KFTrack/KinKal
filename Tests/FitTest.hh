@@ -961,7 +961,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         cout << "Seed Traj " << seedtraj << endl;
         kktrk.print(cout,detail);
       }
-      ftree->Fill();
+      if(ttree)ftree->Fill();
     }
     // Test fit success
     cout
