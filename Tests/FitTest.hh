@@ -815,6 +815,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
+              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+              const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
+              const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
               if(kkhit->active())nactivehit_++;
               HitInfo hinfo;
               hinfo.active_ = kkhit->active();
@@ -826,9 +829,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               hinfo.state_ = -10;
               hinfo.pos_ = fptraj.position3(kkhit->hit()->time());
               hinfo.t0_ = 0.0;
-              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
-              const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
-              const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
               hinfo.dresid_ = -1000.0;
               hinfo.dresidvar_ =  -1.0;
               hinfo.dresidpull_ =  -1000.0;

@@ -128,7 +128,7 @@ namespace KinKal {
       BFieldMap const& bfield_; // magnetic field map
       std::vector<Status> history_; // fit status history; records the current iteration
       PKTRAJ seedtraj_; // seed for the fit
-      std::unique_ptr<PKTRAJ> fittraj_; // result of the current fit, becomes the reference when the fit is algebraically iterated
+      std::unique_ptr<PKTRAJ> fittraj_; // result of the current fit
       KKEFFCOL effects_; // effects used in this fit, sorted by time
       HITCOL hits_; // hits used in this fit
       EXINGCOL exings_; // material xings used in this fit
@@ -332,9 +332,7 @@ namespace KinKal {
   // single algebraic iteration
   template <class KTRAJ> void Track<KTRAJ>::fitIteration(MetaIterConfig const& miconfig) {
     if(config().plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fitStatus().iter_ << std::endl;
-    // update the effects for this configuration
-    update(miconfig);
-    // fit in both directions (order doesn't matter)
+    // initialize the iteration; this prepares the effects, finds the iteration limits, and initializes the fit state
     FitStateArray states;
     KKEFFFWDBND fwdbnds;
     KKEFFREVBND revbnds;
@@ -347,10 +345,6 @@ namespace KinKal {
       status().chisq_ += dchisq;
       // process
       effptr->process(states[0],TimeDir::forwards);
-      // should I update the state using the result of the processing? TODO
-//      auto params = states[0].pData();
-//      params.covariance() *=  config().dwt_;
-//      states[1] = FitState(params);
       if(config().plevel_ >= Config::detailed){
         std::cout << "Chisq total " << status().chisq_ << " increment " << dchisq << " ";
         effptr->print(std::cout,config().plevel_);
@@ -360,10 +354,14 @@ namespace KinKal {
       auto effptr = beff->get();
       effptr->process(states[1],TimeDir::backwards);
     }
-    // convert the fit result into a new trajectory; start with an empty ptraj, then
-    // initialize to the ends
+    // convert the fit result into a new trajectory
+    // initialize the parameters to the backward processing end
     auto front = fittraj_->front();
     front.params() = states[1].pData();
+    // extend range if needed
+    TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds[0]->get()->time()),
+        std::max(fittraj_->range().end(),revbnds[0]->get()->time()));
+    front.setRange(maxrange);
     auto ptraj = std::make_unique<PKTRAJ>(front);
     // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
     for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
@@ -378,6 +376,8 @@ namespace KinKal {
       MetaIterConfig const& miconfig,
       KKEFFFWDBND& fwdbnd,
       KKEFFREVBND& revbnd, FitStateArray& states) {
+    // update the effects for this configuration; this will sort the effects
+    update(miconfig);
     // set bounds between first and last measurement
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkhit = dynamic_cast<const KKMEAS*>(ieff->get());
@@ -405,12 +405,13 @@ namespace KinKal {
     auto fwdtraj = fittraj_->nearestPiece(fwdtime);
     auto revtraj = fittraj_->nearestPiece(revtime);
     // if we're using local BField, update accordingly
-    // this shouldn't be needed if the previous fit was already corrected:TODO
+    // this isn't needed if the previous fit was already corrected:TODO
     if(config().bfcorr_ ){
       fwdtraj.setBNom(fwdtime,bfield_.fieldVect(fittraj_->position3(fwdtime)));
       revtraj.setBNom(revtime,bfield_.fieldVect(fittraj_->position3(revtime)));
     }
-    // dweight previous fit and use that to initialize the fit state
+    // dweight the covariance, scaled by the temperature.
+    // To be consistent with hit errors I should scale by the ratio of current to previous temperature FIXME
     fwdtraj.params().covariance() *= ( config().dwt_/miconfig.varianceScale());
     revtraj.params().covariance() *= ( config().dwt_/miconfig.varianceScale());
     auto fwdeff = Weights(fwdtraj.params());
@@ -421,14 +422,14 @@ namespace KinKal {
 
   // finalize after iteration
   template <class KTRAJ> void Track<KTRAJ>::finalizeIteration() {
-    // compute parameter difference WRT reference.  Compare in the middle
-    auto const& mtraj = fittraj_->nearestPiece(fittraj_->range().mid());
-    auto const& rtraj = fittraj_->nearestPiece(fittraj_->range().mid());
-    DVEC dpar = mtraj.params().parameters() - rtraj.params().parameters();
-    DMAT refwt = rtraj.params().covariance();
-    if(!refwt.Invert())throw std::runtime_error("Reference covariance uninvertible");
-    double delta = ROOT::Math::Similarity(dpar,refwt);
-    double dchisq = config().convdchisq_ + 1.0e-4; // initialize to not converge on 0th iteration
+    // to test for compute parameter difference WRT reference.  Compare in the middle
+    auto const& seedmid = seedtraj_.nearestPiece(fittraj_->range().mid());
+    auto const& fitmid = fittraj_->nearestPiece(fittraj_->range().mid());
+    DVEC dpar = seedmid.params().parameters() - fitmid.params().parameters();
+    DMAT seedwt = seedmid.params().covariance();
+    if(!seedwt.Invert())throw std::runtime_error("Reference covariance uninvertible");
+    double delta = ROOT::Math::Similarity(dpar,seedwt);
+    double dchisq = config().convdchisq_ + 1e-4;  // initialize to insure 0th iteration doesn't converge
     if(fitStatus().iter_ > 0){
       auto prevstat = history_.rbegin();
       prevstat++;

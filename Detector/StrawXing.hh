@@ -25,7 +25,7 @@ namespace KinKal {
       // ElementXing interface
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config) override;
-      double time() const override { return tpca_.particleToca(); }
+      double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
@@ -37,6 +37,7 @@ namespace KinKal {
       Line axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
       CA tpca_; // result of most recent TPOCA
+      double toff_; // small time offset
       StrawXingConfig sxconfig_;
       // should add state for displaced wire/straw TODO
   };
@@ -45,6 +46,7 @@ namespace KinKal {
     axis_(pca.sensorTraj()),
     smat_(smat),
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
+    toff_(smat.strawRadius()*0.5/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire
     sxconfig_(0.05*smat.strawRadius(),1.0) // hardcoded values, should come from outside, FIXME
   {
 //    this->updateReference(tpca_.particleTrajPtr());

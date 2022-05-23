@@ -19,7 +19,7 @@ namespace KinKal {
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
-      double time() const override { return exing_->time() + tbuff_ ;}
+      double time() const override { return exing_->time();}
       bool active() const override { return  exing_->active(); }
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
@@ -42,10 +42,7 @@ namespace KinKal {
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
       double vscale_; // variance factor due to annealing 'temperature'
-      static double tbuff_; // small time buffer to avoid ambiguity
   };
-
-  template<class KTRAJ> double Material<KTRAJ>::tbuff_ = 1.0e-6; // small buffer to disambiguate this effect
 
   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : exing_(dxing),
   vscale_(1.0) {
@@ -67,12 +64,12 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     if(first)vscale_ = miconfig.varianceScale();
-    // reset the weight in prep for the next processing
-    cache_ = Weights();
     updateCache();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateCache() {
+    // reset the weight
+    cache_ = Weights();
     // reset parameters before rebuilding from scratch
     mateff_ = Parameters();
     if(exing_->active()){
@@ -106,20 +103,10 @@ namespace KinKal {
       double time = this->time();
       KTRAJ newpiece(pktraj.back());
       newpiece.params() = Parameters(cache_);
-      // extend as necessary: absolute time can shift during iterations
-      newpiece.range() = TimeRange(time,std::max(time+tbuff_,pktraj.range().end()));
-      // make sure the piece is appendable; if not, adjust
-      if(time < pktraj.back().range().begin()){
-        // if this is the first piece, simply extend it back
-        if(pktraj.pieces().size() ==1){
-//          std::cout << "Adjusting pktraj range, time " << time << " end piece begin " << pktraj.back().range().begin() << std::endl;
-          pktraj.front().setRange(TimeRange(newpiece.range().begin()-tbuff_,pktraj.range().end()));
-        } else {
-//          std::cout << "Adjusting material range, time " << time << " end piece begin " << pktraj.back().range().begin() << std::endl;
-          throw std::invalid_argument("New piece start is earlier than last piece start");
-//         newpiece.setRange(TimeRange(pktraj.back().range().begin()+tbuff_,pktraj.range().end()));
-        }
-      }
+      newpiece.range() = TimeRange(time,pktraj.range().end());
+      // make sure the piece is appendable
+      if(time < pktraj.back().range().begin())
+        throw std::invalid_argument("New piece start is earlier than last piece start");
       pktraj.append(newpiece);
     }
     // update the xing
@@ -135,7 +122,6 @@ namespace KinKal {
     if(detail >3){
       ost << " cache ";
       cache().print(ost,detail);
-//      ost << "Reference " << ref_ << std::endl;
     }
   }
 
@@ -143,6 +129,5 @@ namespace KinKal {
     kkmat.print(ost,0);
     return ost;
   }
-
 }
 #endif

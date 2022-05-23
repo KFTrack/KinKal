@@ -3,7 +3,6 @@
 //
 //  Base class to describe a measurement that constrains some aspect of the track fit
 //  The constraint is expressed as a weight WRT a set of reference parameters.
-//  The base class is a purely algebraic object.
 //
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
