@@ -380,22 +380,18 @@ namespace KinKal {
     update(miconfig);
     // set bounds between first and last measurement
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
-      auto const* kkhit = dynamic_cast<const KKMEAS*>(ieff->get());
-      if(kkhit != 0 && kkhit->active()){
+      auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
+      if(kkmeas != 0 && kkmeas->active()){
         fwdbnd[0] = ieff;
-        revbnd[1] = KKEFFREV(ieff+1);
-        auto const* revhit = dynamic_cast<const KKMEAS*>(revbnd[1]->get());
-        if(revhit != kkhit)throw std::runtime_error("Inconsistent bounds");
+        revbnd[1] = KKEFFREV(ieff);
         break;
       }
     }
     for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
-      auto const* kkhit = dynamic_cast<const KKMEAS*>(ieff->get());
-      if(kkhit != 0 && kkhit->active()){
+      auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
+      if(kkmeas != 0 && kkmeas->active()){
         revbnd[0] = ieff;
-        fwdbnd[1] = ieff.base()-1;
-        auto const* fwdhit = dynamic_cast<const KKMEAS*>(fwdbnd[1]->get());
-        if(fwdhit != kkhit)throw std::runtime_error("Inconsistent bounds");
+        fwdbnd[1] = ieff.base();
         break;
       }
     }

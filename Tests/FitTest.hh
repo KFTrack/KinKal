@@ -176,7 +176,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using EXINGCOL = std::vector<EXINGPTR>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
-  using STRAWHIT = WireHit<KTRAJ>;
+  using STRAWHIT = SimpleWireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
@@ -721,16 +721,40 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       minfovec.clear();
       tinfovec.clear();
       statush->Fill(fstat.status_);
+      // truth parameters, front and back
+      double ttlow = tptraj.range().begin();
+      double ttmid = tptraj.range().mid();
+      double tthigh = tptraj.range().end();
+      KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
+      KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
+      KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
+      Parameters ftpars, mtpars, btpars;
+      ftpars = fttraj.params();
+      mtpars = mttraj.params();
+      btpars = bttraj.params();
+      ftmom_ = tptraj.momentum(ttlow);
+      mtmom_ = tptraj.momentum(ttmid);
+      btmom_ = tptraj.momentum(tthigh);
+      // seed
+      sbeg_ = seedtraj.range().begin();
+      send_ = seedtraj.range().end();
+      for(size_t ipar=0;ipar<6;ipar++){
+        spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
+        ftpars_.pars_[ipar] = ftpars.parameters()[ipar];
+        mtpars_.pars_[ipar] = mtpars.parameters()[ipar];
+        btpars_.pars_[ipar] = btpars.parameters()[ipar];
+      }
+      // fit: initialize to 0
+      ffmom_ = -1.0;
+      mfmom_ = -1.0;
+      bfmom_ = -1.0;
+      ffmomerr_ = -1.0;
+      mfmomerr_ = -1.0;
+      bfmomerr_ = -1.0;
+
       if(fstat.usable()){
         // basic info
         auto const& fptraj = kktrk.fitTraj();
-        // truth parameters, front and back
-        double ttlow = tptraj.range().begin();
-        double ttmid = tptraj.range().mid();
-        double tthigh = tptraj.range().end();
-        KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
-        KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
-        KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);
         // compare parameters at the first traj of both true and fit
         // correct the true parameters in case the BFieldMap isn't nominal
         // correct the sampling time for the t0 difference
@@ -755,10 +779,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         hnmeta->Fill(nmeta_);
         // accumulate parameter difference and pull
         vector<double> fcerr(6,0.0), mcerr(6,0.0), bcerr(6,0.0);
-        Parameters ftpars, mtpars, btpars;
-        ftpars = fttraj.params();
-        mtpars = mttraj.params();
-        btpars = bttraj.params();
 
         for(size_t ipar=0;ipar< NParams(); ipar++){
           fcerr[ipar] = sqrt(ffpars.covariance()[ipar][ipar]);
@@ -782,9 +802,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             corravg->Fill(ipar,jpar,fabs(corr));
           }
         }
-        ftmom_ = tptraj.momentum(ttlow);
-        mtmom_ = tptraj.momentum(ttmid);
-        btmom_ = tptraj.momentum(tthigh);
         ffmom_ = fptraj.momentum(ftlow);
         mfmom_ = fptraj.momentum(ftmid);
         bfmom_ = fptraj.momentum(fthigh);
@@ -803,8 +820,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         //      ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
         //      ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
         if(ttree && fstat.usable()){
-          sbeg_ = seedtraj.range().begin();
-          send_ = seedtraj.range().end();
           fbeg_ = fptraj.range().begin();
           fend_ = fptraj.range().end();
 
@@ -843,6 +858,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 hinfo.type_ = HitInfo::straw;
                 hinfo.state_ = strawhit->hitState().state_;
                 hinfo.t0_ = strawhit->closestApproach().particleToca();
+                hinfo.id_ = strawhit->id();
                 hinfo.doca_ = strawhit->closestApproach().doca();
                 hinfo.deltat_ = strawhit->closestApproach().deltaT();
                 hinfo.docavar_ = strawhit->closestApproach().docaVar();
@@ -918,12 +934,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             mfiterrs_.pars_[ipar] = sqrt(mftraj.params().covariance()(ipar,ipar));
             bfiterrs_.pars_[ipar] = sqrt(bftraj.params().covariance()(ipar,ipar));
           }
-          for(size_t ipar=0;ipar<6;ipar++){
-            spars_.pars_[ipar] = seedtraj.params().parameters()[ipar];
-            ftpars_.pars_[ipar] = fttraj.params().parameters()[ipar];
-            mtpars_.pars_[ipar] = mttraj.params().parameters()[ipar];
-            btpars_.pars_[ipar] = bttraj.params().parameters()[ipar];
-          }
 
           // step through the fit traj and compare to the truth
           auto const& fptraj = kktrk.fitTraj();
@@ -944,17 +954,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           maxgap_ = maxgap;
           avgap_ = avgap;
           igap_ = igap;
-
-          ftree->Fill();
         }
-
-        // test
       } else if(printbad){
         cout << "Bad Fit event " << ievent << " status " << kktrk.fitStatus() << endl;
         cout << "True Traj " << tptraj << endl;
         cout << "Seed Traj " << seedtraj << endl;
         kktrk.print(cout,detail);
       }
+      ftree->Fill();
     }
     // Test fit success
     cout

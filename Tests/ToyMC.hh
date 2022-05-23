@@ -138,7 +138,7 @@ namespace KKTest {
         if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
         WireHitState whstate(ambig);
         double mindoca = std::min(ambigdoca_,rstraw_);
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_));
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_, ihit));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);

@@ -18,7 +18,7 @@ namespace KinKal {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
-          double driftspeed, double tvar, double rcell);
+          double driftspeed, double tvar, double rcell,int id);
       // Use dedicated updater
       void updateState(MetaIterConfig const& config,bool first) override;
       // WireHit interface implementations
@@ -31,11 +31,13 @@ namespace KinKal {
       double driftVelocity() const { return dvel_; }
       double timeVariance() const { return tvar_; }
       double minDOCA() const { return mindoca_; }
+      int id() const { return id_; }
     private:
       double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
       double rcell_; // straw radius
+      int id_; // id
   };
 
   //trivial 'updater' that sets the wire hit state to null
@@ -45,8 +47,8 @@ namespace KinKal {
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
-      double mindoca, double driftspeed, double tvar, double rcell) :
-    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell) {
+      double mindoca, double driftspeed, double tvar, double rcell, int id) :
+    WIREHIT(bfield,pca,whstate), mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell), id_(id) {
       // I have to call this here, not in WireHit constructor, as before this object is
       // instantiated Null functions are undefined and residuals cant be calculated
 //      this->updateResiduals(whstate);
@@ -91,16 +93,14 @@ namespace KinKal {
       } else if(dwhu != 0){
         // update minDoca (for null ambiguity error estimate)
         mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
-        // compute the unbiased closest approach
+        // compute the unbiased closest approach.  This is brute-force
+        // a more clever solution is to linearly correct the residuals for the change in parameters
         auto const& ca = this->closestApproach();
         auto uparams = HIT::unbiasedParameters();
         KTRAJ utraj(uparams,ca.particleTraj());
         CA uca(utraj,this->wire(),ca.hint(),ca.precision());
         //
-        whstate = WireHitState(WireHitState::inactive);
-        //      if(ca.usable())whstate = dwhu->wireHitState(ca.doca());
-        if(uca.usable())whstate = dwhu->wireHitState(uca.doca());
-        // set the residuals based on this state
+        whstate = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }
     // update residuals
