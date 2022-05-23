@@ -15,6 +15,7 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;
       // Effect Interface
@@ -23,7 +24,8 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void append(PKTRAJ& fit) override;
+      void updateReference(KTRAJPTR const& ltrajptr) override;
+      void append(PKTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Measurement(){}
@@ -52,9 +54,16 @@ namespace KinKal {
     hit_->updateWeight(miconfig);
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj) {
+  template<class KTRAJ> void Measurement<KTRAJ>::append(PKTRAJ& pktraj,TimeDir tdir) {
     // update the hit to reference this trajectory.  Use the end piece
-    hit_->updateReference(pktraj.backPtr());
+    if(tdir == TimeDir::forwards)
+      hit_->updateReference(pktraj.backPtr());
+    else
+      hit_->updateReference(pktraj.frontPtr());
+  }
+
+  template<class KTRAJ> void Measurement<KTRAJ>::updateReference(KTRAJPTR const& ltrajptr) {
+    hit_->updateReference(ltrajptr);
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

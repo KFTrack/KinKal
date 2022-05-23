@@ -236,7 +236,12 @@ namespace KinKal {
         dtime = newpiece.range().end()+epsilon; // to avoid boundary
       }
     }
-    // update all the effects to refer to the new fittraj FIXME
+    // update existing effects to reference this trajectory
+    for (auto& eff : effects_) {
+      auto const& ltrajptr = newtraj->nearestTraj(eff->time());
+      eff->updateReference(ltrajptr);
+    }
+
     // swap
     fittraj_.swap(newtraj);
   }
@@ -365,7 +370,7 @@ namespace KinKal {
     auto ptraj = std::make_unique<PKTRAJ>(front);
     // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
     for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
-      ieff->get()->append(*ptraj);
+      ieff->get()->append(*ptraj,TimeDir::forwards);
     }
     finalizeIteration(); // this sets the status for this iteration
     fittraj_.swap(ptraj);;

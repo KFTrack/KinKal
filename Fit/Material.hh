@@ -17,6 +17,7 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       double time() const override { return exing_->time();}
@@ -24,7 +25,8 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void append(PKTRAJ& fit) override;
+      void append(PKTRAJ& fit,TimeDir tdir) override;
+      void updateReference(KTRAJPTR const& ltrajptr) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Material(){}
@@ -35,7 +37,7 @@ namespace KinKal {
       Weights const& cache() const { return cache_; }
       EXING const& elementXing() const { return *exing_; }
       KTRAJ const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
-   private:
+    private:
       // update the local cache representing the effect of this material on the reference parameters
       void updateCache();
       EXINGPTR exing_; // element crossing for this effect
@@ -97,21 +99,32 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& pktraj) {
+  template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& pktraj,TimeDir tdir) {
     if(exing_->active()){
       // create a trajectory piece from the cached weight
-      double time = this->time();
-      KTRAJ newpiece(pktraj.back());
+      double etime = this->time();
+      KTRAJ newpiece = (tdir == TimeDir::forwards) ? pktraj.back() : pktraj.front();
       newpiece.params() = Parameters(cache_);
-      newpiece.range() = TimeRange(time,pktraj.range().end());
+      newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(etime,pktraj.range().end()) : TimeRange(pktraj.range().begin(),etime);
       // make sure the piece is appendable
-      if(time < pktraj.back().range().begin())
-        throw std::invalid_argument("New piece start is earlier than last piece start");
-      pktraj.append(newpiece);
+      if( (tdir == TimeDir::forwards && etime < pktraj.back().range().begin()) ||
+          (tdir == TimeDir::backwards && etime > pktraj.front().range().end()) )
+        throw std::invalid_argument("New piece overlaps existing traj");
+      if( tdir == TimeDir::forwards)
+        pktraj.append(newpiece);
+      else
+        pktraj.prepend(newpiece);
     }
     // update the xing
-    exing_->updateReference(pktraj.backPtr());
-}
+    if( tdir == TimeDir::forwards)
+      exing_->updateReference(pktraj.backPtr());
+    else
+      exing_->updateReference(pktraj.frontPtr());
+  }
+
+  template<class KTRAJ> void Material<KTRAJ>::updateReference(KTRAJPTR const& ltrajptr) {
+    exing_->updateReference(ltrajptr);
+  }
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "Material " << static_cast<Effect<KTRAJ>const&>(*this);
