@@ -28,7 +28,15 @@ namespace KinKal {
         hasParameters_ = true;
         hasWeights_ = false;
       }
-
+// append parameter vector, leaving covariance as-is
+      void append(DVEC const& pvec,TimeDir tdir=TimeDir::forwards) {
+        if(tdir==TimeDir::forwards)
+          pData().parameters() += pvec;
+        else
+          pData().parameters() -= pvec;
+        hasParameters_ = true;
+        hasWeights_ = false;
+      }
       void append(Weights const& wdata) {
         wData() += wdata;
         // this invalidates the parameter information
