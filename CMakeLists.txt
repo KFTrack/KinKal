@@ -126,6 +126,7 @@ add_compile_options(
   "-Woverloaded-virtual"
   "-fdiagnostics-color=always"
   "-Werror=sign-compare"
+  "-Wno-error=maybe-uninitialized"
   #    "-Wshadow"
   # debug flags
   "$<$<CONFIG:DEBUG>:-O0;-g;-ftrapping-math>"
