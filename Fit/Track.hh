@@ -113,15 +113,15 @@ namespace KinKal {
       void update(MetaIterConfig const& miconfig);
       void fitIteration(MetaIterConfig const& miconfig);
       void finalizeIteration();
-      void initIteration(MetaIterConfig const& miconfig,
-          KKEFFFWDBND& fwdbnd, KKEFFREVBND& revbnd, FitStateArray& states);
+      void initIteration(MetaIterConfig const& miconfig, FitStateArray& states);
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createRefTraj(PKTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
       void replaceFitTraj(DOMAINCOL const& domains);
       void extendRefTraj(DOMAINCOL const& domains);
+      void extendEffects(TimeDir tdir );
       auto& status() { return history_.back(); } // most recent status
-     // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
+      // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
       void createDomains(PKTRAJ const& pktraj, TimeRange const& range, std::vector<TimeRange>& ranges, TimeDir tdir=TimeDir::forwards) const;
       // payload
       CONFIGCOL config_; // configuration
@@ -133,6 +133,8 @@ namespace KinKal {
       HITCOL hits_; // hits used in this fit
       EXINGCOL exings_; // material xings used in this fit
       DOMAINCOL domains_; // BField domains used in this fit
+      KKEFFFWDBND fwdbnds_; // bounds for iterating
+      KKEFFREVBND revbnds_;
   };
   // sub-class constructor, based just on the seed.  It requires added hits to create a functional track
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, PKTRAJ const& seedtraj ) :
@@ -331,6 +333,11 @@ namespace KinKal {
       } while(canIterate());
       if(!status().usable())break;
     }
+    // if the fit is usable, extend it out through the passive effects on the either end
+    if(status().usable()){
+      extendEffects(TimeDir::forwards);
+      extendEffects(TimeDir::backwards);
+    }
     if(config().plevel_ > Config::none)print(std::cout, config().plevel_);
   }
 
@@ -339,11 +346,9 @@ namespace KinKal {
     if(config().plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fitStatus().iter_ << std::endl;
     // initialize the iteration; this prepares the effects, finds the iteration limits, and initializes the fit state
     FitStateArray states;
-    KKEFFFWDBND fwdbnds;
-    KKEFFREVBND revbnds;
-    initIteration(miconfig, fwdbnds,revbnds,states);
+    initIteration(miconfig, states);
     // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
-    for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
+    for(auto feff=fwdbnds_[0];feff!=fwdbnds_[1];++feff){
       auto effptr = feff->get();
       // update chisquared increment WRT the current state: only needed once
       Chisq dchisq = effptr->chisq(states[0].pData());
@@ -355,7 +360,7 @@ namespace KinKal {
         effptr->print(std::cout,config().plevel_);
       }
     }
-    for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
+    for(auto beff = revbnds_[0]; beff!=revbnds_[1]; ++beff){
       auto effptr = beff->get();
       effptr->process(states[1],TimeDir::backwards);
     }
@@ -364,12 +369,12 @@ namespace KinKal {
     auto front = fittraj_->front();
     front.params() = states[1].pData();
     // extend range if needed
-    TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds[0]->get()->time()),
-        std::max(fittraj_->range().end(),revbnds[0]->get()->time()));
+    TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds_[0]->get()->time()),
+        std::max(fittraj_->range().end(),revbnds_[0]->get()->time()));
     front.setRange(maxrange);
     auto ptraj = std::make_unique<PKTRAJ>(front);
     // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
-    for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
+    for(auto& ieff=fwdbnds_[0]; ieff != fwdbnds_[1]; ++ieff) {
       ieff->get()->append(*ptraj,TimeDir::forwards);
     }
     finalizeIteration(); // this sets the status for this iteration
@@ -377,32 +382,29 @@ namespace KinKal {
   }
 
   // initialize before iteration
-  template <class KTRAJ> void Track<KTRAJ>::initIteration(
-      MetaIterConfig const& miconfig,
-      KKEFFFWDBND& fwdbnd,
-      KKEFFREVBND& revbnd, FitStateArray& states) {
+  template <class KTRAJ> void Track<KTRAJ>::initIteration( MetaIterConfig const& miconfig, FitStateArray& states) {
     // update the effects for this configuration; this will sort the effects
     update(miconfig);
     // set bounds between first and last measurement
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){
-        fwdbnd[0] = ieff;
-        revbnd[1] = KKEFFREV(ieff);
+        fwdbnds_[0] = ieff;
+        revbnds_[1] = KKEFFREV(ieff);
         break;
       }
     }
     for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){
-        revbnd[0] = ieff;
-        fwdbnd[1] = ieff.base();
+        revbnds_[0] = ieff;
+        fwdbnds_[1] = ieff.base();
         break;
       }
     }
     // sample the previous fit at the specified ends
-    double fwdtime = fwdbnd[0]->get()->time();
-    double revtime = revbnd[0]->get()->time();
+    double fwdtime = fwdbnds_[0]->get()->time();
+    double revtime = revbnds_[0]->get()->time();
     auto fwdtraj = fittraj_->nearestPiece(fwdtime);
     auto revtraj = fittraj_->nearestPiece(revtime);
     // if we're using local BField, update accordingly
@@ -459,6 +461,19 @@ namespace KinKal {
       std::cout << "Effects after update config " << miconfig << std::endl;
       for(auto& ieff : effects_) ieff->print(std::cout,config().plevel_);
     }
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::extendEffects(TimeDir tdir ) {
+//    if(tdir == TimeDir::forwards) {
+//      // first, update all the effects to the current traj
+//    for(auto feff=fwdbnds_[1]; feff != effects_.end(); ++feff){
+//      feff->get()->setReference(
+//    }
+//
+//    } else {
+//
+//
+//    }
   }
 
   template<class KTRAJ> bool Track<KTRAJ>::canIterate() const {

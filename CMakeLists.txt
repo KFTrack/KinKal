@@ -158,7 +158,11 @@ if (CMAKE_BUILD_TYPE MATCHES "^Debug$")
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
         )
     elseif (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
-      link_libraries(-lgcov) # gcov symbols
+      # gcc doesn't like the lazy memory evaluation in root SMatrix,  This turns a fatal error into a warning (the code runs fine)
+      add_compile_options(
+        "-Wno-error=maybe-uninitialized"
+        )
+        link_libraries(-lgcov) # gcov symbols
       add_custom_target(coverage
         COMMAND gcovr -r ${CMAKE_SOURCE_DIR} ${PROJECT_BINARY_DIR} -s --exclude-directories Tests
         WORKING_DIRECTORY ${PROJECT_BINARY_DIR}
