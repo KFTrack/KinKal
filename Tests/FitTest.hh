@@ -114,14 +114,14 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
   }
   string line;
   int plevel(-1);
-  unsigned nmiter(0);
+   unsigned nmiter(0);
   while (getline(ifs,line)){
     if(strncmp(line.c_str(),"#",1)!=0){
       istringstream ss(line);
       if(plevel < 0) {
         ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
         config.pdchi2_ >> config.tbuff_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
-        plevel;
+        config.ends_ >> plevel;
         config.plevel_ = Config::printLevel(plevel);
       } else {
         int utype(-1);
