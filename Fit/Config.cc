@@ -6,7 +6,6 @@ namespace KinKal {
       << " converge dchisq/dof " << kkconfig.convdchisq_
       << " diverge dchisq/dof " << kkconfig.divdchisq_
       << " dpar chisq " << kkconfig.pdchi2_
-      << " time buffer " << kkconfig.tbuff_
       << " fractional momentum tolerance " << kkconfig.tol_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_

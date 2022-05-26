@@ -61,7 +61,7 @@ namespace KinKal {
         throw std::invalid_argument("BField: Can't append piece");
       // assume the next domain has ~about the same range
       TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(pktraj.range().end(),drange_.end())) :
-        TimeRange(etime,std::max(pktraj.range().end(),drange_.end()));
+        TimeRange(std::min(pktraj.range().begin(),drange_.begin()),etime);
       // update the parameters according to the change in bnom across this domain
       // This corresponds to keeping the physical position and momentum constant, but referring to the BField
       // at the end vs the begining of the domain
@@ -73,6 +73,7 @@ namespace KinKal {
       newpiece.setBNom(etime,bend);
       newpiece.range() = newrange;
       // extract the parameter change for the next processing BEFORE appending
+      // This should really be done in updateState, but it's easier here and has no knock-on effects
       dpfwd_ = (tdir == TimeDir::forwards) ? newpiece.params().parameters() - pktraj.back().params().parameters() : pktraj.back().params().parameters() - newpiece.params().parameters();
       if( tdir == TimeDir::forwards){
         pktraj.append(newpiece);

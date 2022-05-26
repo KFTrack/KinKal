@@ -68,7 +68,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --exten s --lighthit i --TimeBuffer f\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -120,7 +120,7 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
       istringstream ss(line);
       if(plevel < 0) {
         ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
-        config.pdchi2_ >> config.tbuff_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
+        config.pdchi2_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
         config.ends_ >> plevel;
         config.plevel_ = Config::printLevel(plevel);
       } else {
@@ -244,7 +244,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"constrainpar",     required_argument, 0, 'c' },
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
-    {"extendconfig",     required_argument, 0, 'X'  },
+    {"extend",     required_argument, 0, 'X'  },
     {"lighthit",     required_argument, 0, 'L'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {NULL, 0,0,0}
@@ -366,7 +366,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   auto bmid = BF->fieldVect(seedpos.Vect());
   seedmom.SetM(fitmass);
   // buffer the seed range
-  TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
+  TimeRange seedrange(tptraj.range().begin(),tptraj.range().end());
   KTRAJ straj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
   if(invert) straj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(straj,sigmas,seedsmear);
@@ -653,7 +653,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       auto const& midhel = tptraj.nearestPiece(tmid);
       auto seedmom = midhel.momentum4(tmid);
       seedmom.SetM(fitmass);
-      TimeRange seedrange(tptraj.range().begin()-config.tbuff_,tptraj.range().end()+config.tbuff_);
+      TimeRange seedrange(tptraj.range().begin(),tptraj.range().end());
       auto seedpos = midhel.position4(tmid);
       auto bmid = BF->fieldVect(seedpos.Vect());
       KTRAJ seedtraj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
@@ -712,7 +712,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       // accumulate chisquared info
       chisq_ = fstat.chisq_.chisq();
       ndof_ = fstat.chisq_.nDOF();
-      niter_ = fstat.iter_;
       nmeta_ = fstat.miter_;
       status_ = fstat.status_;
       chiprob_ = fstat.chisq_.probability();
@@ -722,9 +721,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       tinfovec.clear();
       statush->Fill(fstat.status_);
       // truth parameters, front and back
-      double ttlow = tptraj.range().begin();
+      double ttlow = thits.front()->time();
       double ttmid = tptraj.range().mid();
-      double tthigh = tptraj.range().end();
+      double tthigh = thits.back()->time();
       KTRAJ const& fttraj = tptraj.nearestPiece(ttlow);
       KTRAJ const& mttraj = tptraj.nearestPiece(ttmid);
       KTRAJ const& bttraj = tptraj.nearestPiece(tthigh);

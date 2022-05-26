@@ -103,13 +103,15 @@ namespace KinKal {
     if(exing_->active()){
       // create a trajectory piece from the cached weight
       double etime = this->time();
-      KTRAJ newpiece = (tdir == TimeDir::forwards) ? pktraj.back() : pktraj.front();
-      newpiece.params() = Parameters(cache_);
-      newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(etime,pktraj.range().end()) : TimeRange(pktraj.range().begin(),etime);
-      // make sure the piece is appendable
+      // make sure this effect is appendable
       if( (tdir == TimeDir::forwards && etime < pktraj.back().range().begin()) ||
           (tdir == TimeDir::backwards && etime > pktraj.front().range().end()) )
-        throw std::invalid_argument("New piece overlaps existing traj");
+        throw std::invalid_argument("New piece overlaps existing");
+      KTRAJ newpiece = (tdir == TimeDir::forwards) ? pktraj.back() : pktraj.front();
+      newpiece.params() = Parameters(cache_);
+      // make sure the range includes the transit time
+      newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(pktraj.range().end(),etime+exing_->transitTime())) :
+        TimeRange(std::min(pktraj.range().begin(),etime-exing_->transitTime()),etime);
       if( tdir == TimeDir::forwards)
         pktraj.append(newpiece);
       else
