@@ -14,7 +14,7 @@ int main(int argc, char *argv[]){
     arguments.push_back("--Bz");
     arguments.push_back("0.0");
     arguments.push_back("--Schedule");
-    arguments.push_back("Schedule_driftfit.txt");
+    arguments.push_back("driftfit.txt");
     std::vector<char*> myargv;
     for (const auto& arg : arguments)
       myargv.push_back((char*)arg.data());

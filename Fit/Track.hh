@@ -473,11 +473,11 @@ namespace KinKal {
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds);
     // update the end effects: this makes their internal content consistent with the others
-    // use the final meta-iteration, updating the internal state as well
+    // use the final meta-iteration
     for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
-      feff->get()->updateState(config().schedule().back(),true);
+      feff->get()->updateState(config().schedule().back(),false);
     for(auto reff=revbnds[1]; reff != effects_.rend(); ++reff)
-      reff->get()->updateState(config().schedule().back(),true);
+      reff->get()->updateState(config().schedule().back(),false);
     // then process these sites.  Start with the state at the apropriate end, but without any deweighting
     FitStateArray states;
     initFitState(states, 1.0); // no deweighting
