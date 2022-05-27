@@ -26,6 +26,7 @@ namespace KinKal {
       virtual void updateReference(KTRAJPTR const& ktrajptr) = 0;
       virtual void updateState(MetaIterConfig const& config) =0;
       virtual double time() const=0; // time the particle crosses thie element
+      virtual double transitTime() const=0; // time to cross this element
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive

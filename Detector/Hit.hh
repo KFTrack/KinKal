@@ -34,7 +34,7 @@ namespace KinKal {
        // update the weight
       virtual void updateWeight(MetaIterConfig const& config) = 0;
       virtual Weights const& weight() const = 0;
-    KTRAJ const& referenceTrajectory() const { return *refTrajPtr(); }  // trajectory WRT which the weight etc is defined
+      KTRAJ const& referenceTrajectory() const { return *refTrajPtr(); }  // trajectory WRT which the weight etc is defined
       // parameters WRT which this hit's residual and weights are set.  These are generally biased
       // in that they contain the information of this hit
       Parameters const& referenceParameters() const { return referenceTrajectory().params(); }

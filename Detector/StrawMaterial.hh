@@ -27,6 +27,8 @@ namespace KinKal {
             matdbinfo.findDetMaterial(wiremat)) {}
       // pathlength through straw components, given closest approach
       void pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, double& wallpath, double& gaspath, double& wirepath) const;
+      // transit length given closest approach
+      double transitLength(ClosestApproachData const& cadata) const;
       // find the material crossings given doca and error on doca.  Should allow for straw and wire to have different axes TODO
       void findXings(ClosestApproachData const& cadata,StrawXingConfig const& caconfig, std::vector<MaterialXing>& mxings) const;
       double strawRadius() const { return srad_; }

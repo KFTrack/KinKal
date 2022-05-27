@@ -26,6 +26,7 @@ namespace KinKal {
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config) override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
+      double transitTime() const override; // time to cross this element
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
@@ -33,7 +34,7 @@ namespace KinKal {
       auto const& strawMaterial() const { return smat_; }
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
-   private:
+    private:
       Line axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
       CA tpca_; // result of most recent TPOCA
@@ -46,10 +47,10 @@ namespace KinKal {
     axis_(pca.sensorTraj()),
     smat_(smat),
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
-    toff_(smat.strawRadius()*0.5/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire
+    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire
     sxconfig_(0.05*smat.strawRadius(),1.0) // hardcoded values, should come from outside, FIXME
   {
-//    this->updateReference(tpca_.particleTrajPtr());
+    //    this->updateReference(tpca_.particleTrajPtr());
   }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
@@ -58,7 +59,7 @@ namespace KinKal {
     if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
     // update the material effects
     smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
- }
+  }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
     // search for an update to the xing configuration among this meta-iteration payload
@@ -67,6 +68,10 @@ namespace KinKal {
       sxconfig_ = *sxconfig;
       smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
     }
+  }
+
+  template <class KTRAJ> double StrawXing<KTRAJ>::transitTime() const {
+    return smat_.transitLength(tpca_.tpData())/tpca_.particleTraj().speed(tpca_.particleToca());
   }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::print(std::ostream& ost,int detail) const {

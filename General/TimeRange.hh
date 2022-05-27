@@ -13,6 +13,8 @@ namespace KinKal {
         if(begin > end)throw std::invalid_argument("Invalid Time Range"); }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
+      double rbegin() const { return range_[1]; }
+      double rend() const { return range_[0]; }
       double mid() const { return 0.5*(begin()+end()); }
       double range() const { return (end()-begin()); }
       bool inRange(double t) const {return t >= begin() && t < end(); }

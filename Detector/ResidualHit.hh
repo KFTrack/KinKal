@@ -71,11 +71,11 @@ namespace KinKal {
         double rvar = ROOT::Math::Similarity(res.dRdP(),params.covariance());
         // check for unphysical values
         if(rvar<0){
-          std::cout << "neg resid var " << rvar << std::endl;
-          rvar = 0.0;
-          chisq = -1.0;
-          break;
-          //          throw std::runtime_error("Covariance inconsistency");
+//          std::cout << "neg resid var " << rvar << std::endl;
+//          rvar = 0.0;
+//          chisq = -1.0;
+//          break;
+          throw std::runtime_error("Covariance projection inconsistency");
         }
         // add the measurement variance
         rvar +=  res.variance();
