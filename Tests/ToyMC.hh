@@ -162,6 +162,8 @@ namespace KKTest {
     auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
     sxing->updateReference(endtraj);
+    MetaIterConfig miconfig(0.0);
+    sxing->updateState(miconfig,true);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);

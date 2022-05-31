@@ -45,6 +45,8 @@ namespace KinKal {
       const MatEnv::DetMaterial* wallmat_; // material of the straw wall
       const MatEnv::DetMaterial* gasmat_; // material of the straw gas
       const MatEnv::DetMaterial* wiremat_; // material of the wire
+      // utility to calculate material factor given the cosine of the angle of the particle WRT the straw
+      double angleFactor(double dirdot) const;
   };
 }
 #endif

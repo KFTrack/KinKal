@@ -66,6 +66,7 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     if(first)vscale_ = miconfig.varianceScale();
+    exing_->updateState(miconfig,first);
     updateCache();
   }
 
