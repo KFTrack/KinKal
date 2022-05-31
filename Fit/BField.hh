@@ -52,42 +52,42 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void BField<KTRAJ>::append(PTRAJ& pktraj,TimeDir tdir) {
+  template<class KTRAJ> void BField<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
     if(bfcorr_){
       double etime = time();
       // make sure the piece is appendable
-      if((tdir == TimeDir::forwards && pktraj.back().range().begin() > etime) ||
-          (tdir == TimeDir::backwards && pktraj.front().range().end() < etime) )
+      if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
+          (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
         throw std::invalid_argument("BField: Can't append piece");
       // assume the next domain has ~about the same range
-      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(pktraj.range().end(),drange_.end())) :
-        TimeRange(std::min(pktraj.range().begin(),drange_.begin()),etime);
+      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),drange_.end())) :
+        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),etime);
       // update the parameters according to the change in bnom across this domain
       // This corresponds to keeping the physical position and momentum constant, but referring to the BField
       // at the end vs the begining of the domain
       // Use the 1st order approximation: the exact method tried below doesn't do any better (slightly worse)
-      VEC3 bend = (tdir == TimeDir::forwards) ? bfield_.fieldVect(pktraj.position3(drange_.end())) : bfield_.fieldVect(pktraj.position3(drange_.begin()));
+      VEC3 bend = (tdir == TimeDir::forwards) ? bfield_.fieldVect(ptraj.position3(drange_.end())) : bfield_.fieldVect(ptraj.position3(drange_.begin()));
       // update the parameter change due to the BField change.  Note this assumes the traj piece
       // at the begining of the domain has the same bnom as the BField at that point in space
-      KTRAJ newpiece = (tdir == TimeDir::forwards) ? pktraj.back() : pktraj.front();
+      KTRAJ newpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
       newpiece.setBNom(etime,bend);
       newpiece.range() = newrange;
       // extract the parameter change for the next processing BEFORE appending
       // This should really be done in updateState, but it's easier here and has no knock-on effects
-      dpfwd_ = (tdir == TimeDir::forwards) ? newpiece.params().parameters() - pktraj.back().params().parameters() : pktraj.back().params().parameters() - newpiece.params().parameters();
+      dpfwd_ = (tdir == TimeDir::forwards) ? newpiece.params().parameters() - ptraj.back().params().parameters() : ptraj.back().params().parameters() - newpiece.params().parameters();
       if( tdir == TimeDir::forwards){
-        pktraj.append(newpiece);
+        ptraj.append(newpiece);
       } else {
-        pktraj.prepend(newpiece);
+        ptraj.prepend(newpiece);
       }
       // exact calculation (for reference)
       // extract the particle state at this transition
-      // auto pstate = pktraj.back().stateEstimate(etime);
+      // auto pstate = ptraj.back().stateEstimate(etime);
       // re-compute the trajectory at the domain end using this state
       // KTRAJ newpiece(pstate,bend,newrange);
       // set the parameter change for the next processing BEFORE appending
-      // dpfwd_ = newpiece.params().parameters()-pktraj.back().params().parameters();
-      // pktraj.append(newpiece);
+      // dpfwd_ = newpiece.params().parameters()-ptraj.back().params().parameters();
+      // ptraj.append(newpiece);
     }
   }
 

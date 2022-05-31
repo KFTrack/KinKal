@@ -51,11 +51,11 @@ namespace KKTest {
       Line generateStraw(PTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
-      void extendTraj(PTRAJ& pktraj,double htime);
-      void createTraj(PTRAJ& pktraj);
-      void createScintHit(PTRAJ& pktraj, HITCOL& thits);
-      void simulateParticle(PTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
-      double createStrawMaterial(PTRAJ& pktraj, EXING* sxing);
+      void extendTraj(PTRAJ& ptraj,double htime);
+      void createTraj(PTRAJ& ptraj);
+      void createScintHit(PTRAJ& ptraj, HITCOL& thits);
+      void simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
+      double createStrawMaterial(PTRAJ& ptraj, EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
       void setTolerance(double tol) { tol_ = tol; }
@@ -116,22 +116,22 @@ namespace KKTest {
     return Line(mpos,tmeas,vprop,wlen_);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
-    createTraj(pktraj);
+    createTraj(ptraj);
     // divide time range
     double dt(0.0);
-    if(nhits_ > 0) dt = (pktraj.range().range())/(nhits_);
+    if(nhits_ > 0) dt = (ptraj.range().range())/(nhits_);
     VEC3 bsim;
     // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
-      double htime = pktraj.range().begin() + ihit*dt;
+      double htime = ptraj.range().begin() + ihit*dt;
       // extend the trajectory in the BFieldMap to this time
-      extendTraj(pktraj,htime);
+      extendTraj(ptraj,htime);
       // create the hit at this time
-      auto tline = generateStraw(pktraj,htime);
+      auto tline = generateStraw(ptraj,htime);
       CAHint tphint(htime,htime);
-      PCA tp(pktraj,tline,tphint,tprec_);
+      PCA tp(ptraj,tline,tphint,tprec_);
       //      std::cout << "doca " << tp.doca() << " sensor TOCA " << tp.sensorToca() - fabs(tp.doca())/sdrift_ << " particle TOCA " << tp.particleToca() << " hit time " << htime << std::endl;
       if(tr_.Uniform(0.0,1.0) > ineff_){
         WireHitState::State ambig(WireHitState::null);
@@ -144,22 +144,22 @@ namespace KKTest {
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
       if(addmat) dxings.push_back(xing);
       if(simmat_){
-        double defrac = createStrawMaterial(pktraj, xing.get());
+        double defrac = createStrawMaterial(ptraj, xing.get());
         // terminate if there is catastrophic energy loss
         if(fabs(defrac) > 0.1)break;
       }
     }
     if(lighthit_ && tr_.Uniform(0.0,1.0) > ineff_){
-      createScintHit(pktraj,thits);
+      createScintHit(ptraj,thits);
     }
     // extend if there are no hits
-    if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
+    if(thits.size() == 0) extendTraj(ptraj,ptraj.range().end());
   }
 
-  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& pktraj, EXING* sxing) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& ptraj, EXING* sxing) {
     double desum = 0.0;
     double tstraw = sxing->time();
-    auto const& endtraj = pktraj.nearestTraj(tstraw);
+    auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
     sxing->updateReference(endtraj);
     double mom = endpiece.momentum(tstraw);
@@ -189,27 +189,27 @@ namespace KKTest {
     }
     // generate a new piece and append
     VEC3 bnom = bfield_.fieldVect(endpos.Vect());
-    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,pktraj.range().end()));
+    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,ptraj.range().end()));
     //      newend.print(cout,1);
-    pktraj.append(newend);
+    ptraj.append(newend);
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& pktraj, HITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
     VEC3 shmaxTrue,shmaxMeas;
     double tend = thits.back()->time();
     // extend to the calorimeter z
-    VEC3 pvel = pktraj.velocity(tend);
+    VEC3 pvel = ptraj.velocity(tend);
     double shstart = tend + coff_/pvel.Z();
 // extend the trajectory to here
-    extendTraj(pktraj,shstart);
-    pvel = pktraj.velocity(shstart);
+    extendTraj(ptraj,shstart);
+    pvel = ptraj.velocity(shstart);
     // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
-    auto endpos = pktraj.position4(shstart);
-    shmaxTrue = pktraj.position3(shmaxtime); // true position at shower-max
+    auto endpos = ptraj.position4(shstart);
+    shmaxTrue = ptraj.position3(shmaxtime); // true position at shower-max
     // smear the x-y position by the transverse variance.
     shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
     shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
@@ -222,7 +222,7 @@ namespace KKTest {
     Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
-    PCA pca(pktraj,lline,tphint,tprec_);
+    PCA pca(ptraj,lline,tphint,tprec_);
     thits.push_back(std::make_shared<SCINTHIT>(pca, scitsig_*scitsig_, shPosSig_*shPosSig_));
   }
 
@@ -236,30 +236,30 @@ namespace KKTest {
     }
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& pktraj,double htime) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& ptraj,double htime) {
     ROOT::Math::SMatrix<double,3> bgrad;
     VEC3 pos,vel, dBdt;
-    pos = pktraj.position3(htime);
-    vel = pktraj.velocity(htime);
+    pos = ptraj.position3(htime);
+    vel = ptraj.velocity(htime);
     dBdt = bfield_.fieldDeriv(pos,vel);
-    //    std::cout << "end time " << pktraj.back().range().begin() << " hit time " << htime << std::endl;
+    //    std::cout << "end time " << ptraj.back().range().begin() << " hit time " << htime << std::endl;
     if(dBdt.R() != 0.0){
-      double tbeg = bfield_.rangeInTolerance(pktraj.back(),pktraj.back().range().begin(),tol_);
-      double tend = pktraj.back().range().end();
+      double tbeg = bfield_.rangeInTolerance(ptraj.back(),ptraj.back().range().begin(),tol_);
+      double tend = ptraj.back().range().end();
       while(tbeg < htime) {
-        auto pos = pktraj.position4(tbeg);
-        auto mom =  pktraj.momentum4(tbeg);
-        double tnew = bfield_.rangeInTolerance(pktraj.back(),tbeg,tol_);
-        VEC3 bf = bfield_.fieldVect(pktraj.position3(0.5*(tbeg+tnew)));
+        auto pos = ptraj.position4(tbeg);
+        auto mom =  ptraj.momentum4(tbeg);
+        double tnew = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+        VEC3 bf = bfield_.fieldVect(ptraj.position3(0.5*(tbeg+tnew)));
         TimeRange prange(tbeg,tend);
-        KTRAJ newend(pos,mom,pktraj.charge(),bf,prange);
-        pktraj.append(newend);
+        KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
+        ptraj.append(newend);
         tbeg = tnew;
       }
     }
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PTRAJ& pktraj) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PTRAJ& ptraj) {
     // randomize the position and momentum
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
@@ -269,7 +269,7 @@ namespace KKTest {
     VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
-    pktraj = PTRAJ(ktraj);
+    ptraj = PTRAJ(ktraj);
   }
 }
 #endif

@@ -13,7 +13,7 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      PiecewiseClosestApproach(PTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
+      PiecewiseClosestApproach(PTRAJ const& ptraj, STRAJ const& straj, CAHint const& hint, double precision);
       // provide access to the local (non-piecewise) information implicit in this class
       size_t particleTrajIndex() const { return pindex_; }
       KTRAJ const& localParticleTraj() const { return this->particleTraj().piece(pindex_); }
@@ -23,7 +23,7 @@ namespace KinKal {
       size_t pindex_; // indices to the local traj used in TCA calculation
   };
 
-  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& pktraj, STRAJ const& straj, CAHint const& hint, double prec) : ClosestApproach<ParticleTrajectory<KTRAJ>,STRAJ>(pktraj,straj,prec) {
+  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& ptraj, STRAJ const& straj, CAHint const& hint, double prec) : ClosestApproach<ParticleTrajectory<KTRAJ>,STRAJ>(ptraj,straj,prec) {
     // iteratively find the nearest piece, and CA for that piece.  Start at hints if availalble, otherwise the middle
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter TODO
     unsigned niter=0;

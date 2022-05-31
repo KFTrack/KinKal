@@ -54,12 +54,12 @@ namespace KinKal {
     hit_->updateWeight(miconfig);
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::append(PTRAJ& pktraj,TimeDir tdir) {
+  template<class KTRAJ> void Measurement<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
     // update the hit to reference this trajectory.  Use the end piece
     if(tdir == TimeDir::forwards)
-      hit_->updateReference(pktraj.backPtr());
+      hit_->updateReference(ptraj.backPtr());
     else
-      hit_->updateReference(pktraj.frontPtr());
+      hit_->updateReference(ptraj.frontPtr());
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateReference(KTRAJPTR const& ltrajptr) {

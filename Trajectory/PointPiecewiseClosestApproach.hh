@@ -13,8 +13,8 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = PointClosestApproach<KTRAJ>;
       // the constructor is the only non-inherited function
-      PointPiecewiseClosestApproach(PTRAJ const& pktraj, VEC4 const& point, PCAHint const& hint, double precision);
-      PointPiecewiseClosestApproach(PTRAJ const& pktraj, VEC4 const& point, double precision);
+      PointPiecewiseClosestApproach(PTRAJ const& ptraj, VEC4 const& point, PCAHint const& hint, double precision);
+      PointPiecewiseClosestApproach(PTRAJ const& ptraj, VEC4 const& point, double precision);
          // provide access to the local (non-piecewise) information implicit in this class
       size_t particleTrajIndex() const { return pindex_; }
       KTRAJ const& localParticleTraj() const { return this->particleTraj().piece(pindex_); }
@@ -23,12 +23,12 @@ namespace KinKal {
       size_t pindex_; // indices to the local traj used in TCA calculation
   };
 
-  template<class KTRAJ> PointPiecewiseClosestApproach<KTRAJ>::PointPiecewiseClosestApproach(PTRAJ const& pktraj, VEC4 const& point, double prec) :
-  PointPiecewiseClosestApproach(pktraj,point, PCAHint(point.T()), prec) {}
+  template<class KTRAJ> PointPiecewiseClosestApproach<KTRAJ>::PointPiecewiseClosestApproach(PTRAJ const& ptraj, VEC4 const& point, double prec) :
+  PointPiecewiseClosestApproach(ptraj,point, PCAHint(point.T()), prec) {}
 
   // iteratively find the nearest piece, and CA for that piece.  Start at hints if availalble, otherwise the middle
-  template<class KTRAJ> PointPiecewiseClosestApproach<KTRAJ>::PointPiecewiseClosestApproach(PTRAJ const& pktraj, VEC4 const& point, PCAHint const& hint, double prec) :
-    KTCA(pktraj,point,prec) {
+  template<class KTRAJ> PointPiecewiseClosestApproach<KTRAJ>::PointPiecewiseClosestApproach(PTRAJ const& ptraj, VEC4 const& point, PCAHint const& hint, double prec) :
+    KTCA(ptraj,point,prec) {
     // iteratively find the nearest piece, and CA for that piece.  Start at hints if availalble, otherwise the middle
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter=0;
