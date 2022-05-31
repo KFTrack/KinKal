@@ -167,7 +167,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBFIELD = BField<KTRAJ>;
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
   using MEASCOL = std::vector<MEASPTR>;
@@ -346,7 +346,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
-  PKTRAJ tptraj;
+  PTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings,fitmat);
   if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
   //  cout << "vector of hit points " << thits.size() << endl;
@@ -372,7 +372,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.createSeed(straj,sigmas,seedsmear);
   if(nevents == 0)cout << "Seed Traj " << straj << endl;
   // Create the Track from these hits
-   PKTRAJ seedtraj(straj);
+   PTRAJ seedtraj(straj);
    //
   // if requested, constrain a parameter
   PMASK mask = {false};
@@ -643,7 +643,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
       // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
-      PKTRAJ tptraj;
+      PTRAJ tptraj;
       thits.clear();
       dxings.clear();
       exthits.clear();

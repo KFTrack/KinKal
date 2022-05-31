@@ -40,7 +40,7 @@ void print_usage() {
 
 template <class KTRAJ>
 int BFieldMapTest(int argc, char **argv) {
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   using HIT = Hit<KTRAJ>;
   using HITPTR = std::shared_ptr<HIT>;
   using EXING = ElementXing<KTRAJ>;
@@ -102,7 +102,7 @@ int BFieldMapTest(int argc, char **argv) {
   // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
   toy.setTolerance(tol);
-  PKTRAJ tptraj;
+  PTRAJ tptraj;
   HITCOL thits;
   EXINGCOL dxings;
   toy.simulateParticle(tptraj, thits, dxings);
@@ -110,8 +110,8 @@ int BFieldMapTest(int argc, char **argv) {
   auto pos = tptraj.position4(tptraj.range().begin());
   auto momv = tptraj.momentum4(pos.T());
   KTRAJ start(pos,momv,icharge,bnom,tptraj.range());
-  PKTRAJ xptraj(start);
-  PKTRAJ lptraj(start);
+  PTRAJ xptraj(start);
+  PTRAJ lptraj(start);
   // see how far I can go within tolerance
   TimeRange prange = start.range();
   do {
@@ -305,7 +305,7 @@ int BFieldMapTest(int argc, char **argv) {
   // particle path, it just tests mechanics
   // loop over the time ranges given by the 'sim' trajectory
   KTRAJ const& sktraj = tptraj.front();
-  PKTRAJ rsktraj(sktraj);
+  PTRAJ rsktraj(sktraj);
   for (auto const& piece : tptraj.pieces()) {
     // rotate the parameters at the end of this piece to form the next.  Sample B in the middle of that range
     KTRAJ newpiece(*piece,BF->fieldVect(sktraj.position3(piece->range().mid())),piece->range().begin());

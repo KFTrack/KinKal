@@ -17,7 +17,7 @@ namespace KinKal {
   template<class KTRAJ> class BField : public Effect<KTRAJ> {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
       bool active() const override { return bfcorr_; }
@@ -26,7 +26,7 @@ namespace KinKal {
       void updateConfig(Config const& config) override { bfcorr_ = config.bfcorr_; }
       void updateReference(KTRAJPTR const& ltrajptr) override {} // nothing explicit here
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void append(PKTRAJ& fit,TimeDir tdir) override;
+      void append(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       auto const& parameterChange() const { return dpfwd_; }
       virtual ~BField(){}
@@ -52,7 +52,7 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void BField<KTRAJ>::append(PKTRAJ& pktraj,TimeDir tdir) {
+  template<class KTRAJ> void BField<KTRAJ>::append(PTRAJ& pktraj,TimeDir tdir) {
     if(bfcorr_){
       double etime = time();
       // make sure the piece is appendable

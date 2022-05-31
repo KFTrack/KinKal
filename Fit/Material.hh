@@ -16,7 +16,7 @@ namespace KinKal {
   template<class KTRAJ> class Material : public Effect<KTRAJ> {
     public:
       using KKEFF = Effect<KTRAJ>;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
@@ -25,13 +25,13 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void append(PKTRAJ& fit,TimeDir tdir) override;
+      void append(PTRAJ& fit,TimeDir tdir) override;
       void updateReference(KTRAJPTR const& ltrajptr) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Material(){}
       // create from the material and a trajectory
-      Material(EXINGPTR const& dxing, PKTRAJ const& pktraj);
+      Material(EXINGPTR const& dxing, PTRAJ const& pktraj);
       // accessors
       Parameters const& effect() const { return mateff_; }
       Weights const& cache() const { return cache_; }
@@ -46,7 +46,7 @@ namespace KinKal {
       double vscale_; // variance factor due to annealing 'temperature'
   };
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PKTRAJ const& pktraj) : exing_(dxing),
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PTRAJ const& pktraj) : exing_(dxing),
   vscale_(1.0) {
   }
 
@@ -99,7 +99,7 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::append(PKTRAJ& pktraj,TimeDir tdir) {
+  template<class KTRAJ> void Material<KTRAJ>::append(PTRAJ& pktraj,TimeDir tdir) {
     if(exing_->active()){
       // create a trajectory piece from the cached weight
       double etime = this->time();

@@ -20,14 +20,14 @@ namespace KinKal {
       double zpos() const { return zpos_;}
       double zhalf() const { return zhalf_;}
       // find the 1st intersection of the trajectory with this cylinder, starting from the given time
-      template<class PKTRAJ> KinKal::TimeRange intersect(PKTRAJ const& pktraj, double tstart, double tstep) const;
+      template<class PTRAJ> KinKal::TimeRange intersect(PTRAJ const& pktraj, double tstart, double tstep) const;
       // find all intersections of a trajectory with this cylinder.
       template<class KTRAJ> void intersect(KTRAJ const& ktraj, TimeRanges& tranges,double tstart, double tstep) const;
     private:
       double radius_, rhalf_, zpos_, zhalf_;
   };
 
-  template<class PKTRAJ> void CylindricalShell::intersect(PKTRAJ const& pktraj, TimeRanges& tranges, double tstart, double tstep) const {
+  template<class PTRAJ> void CylindricalShell::intersect(PTRAJ const& pktraj, TimeRanges& tranges, double tstart, double tstep) const {
     using KinKal::TimeRange;
     tranges.clear();
     TimeRange trange(tstart,tstart);
@@ -37,7 +37,7 @@ namespace KinKal {
     } while( (!trange.null()) && trange.end() < pktraj.range().end());
   }
 
-  template<class PKTRAJ> KinKal::TimeRange CylindricalShell::intersect(PKTRAJ const& pktraj, double tstart, double tstep) const {
+  template<class PTRAJ> KinKal::TimeRange CylindricalShell::intersect(PTRAJ const& pktraj, double tstart, double tstep) const {
     using KinKal::TimeRange;
     double ttest = tstart;
     auto pos = pktraj.position3(ttest);

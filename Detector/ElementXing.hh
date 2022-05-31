@@ -19,7 +19,7 @@
 namespace KinKal {
   template <class KTRAJ> class ElementXing {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}

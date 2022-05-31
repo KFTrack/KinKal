@@ -22,7 +22,7 @@ namespace KKTest {
   using namespace KinKal;
   template <class KTRAJ> class ToyMC {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;
       using HITCOL = std::vector<HITPTR>;
@@ -48,14 +48,14 @@ namespace KKTest {
         smat_(matdb_,rstraw_, wthick_,rwire_) {}
 
       // generate a straw at the given time.  direction and drift distance are random
-      Line generateStraw(PKTRAJ const& traj, double htime);
+      Line generateStraw(PTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
-      void extendTraj(PKTRAJ& pktraj,double htime);
-      void createTraj(PKTRAJ& pktraj);
-      void createScintHit(PKTRAJ& pktraj, HITCOL& thits);
-      void simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
-      double createStrawMaterial(PKTRAJ& pktraj, EXING* sxing);
+      void extendTraj(PTRAJ& pktraj,double htime);
+      void createTraj(PTRAJ& pktraj);
+      void createScintHit(PTRAJ& pktraj, HITCOL& thits);
+      void simulateParticle(PTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
+      double createStrawMaterial(PTRAJ& pktraj, EXING* sxing);
       // set functions, for special purposes
       void setInefficiency(double ineff) { ineff_ = ineff; }
       void setTolerance(double tol) { tol_ = tol; }
@@ -93,7 +93,7 @@ namespace KKTest {
 
   };
 
-  template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PKTRAJ const& traj, double htime) {
+  template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
     auto hdir = traj.direction(htime);
@@ -116,7 +116,7 @@ namespace KKTest {
     return Line(mpos,tmeas,vprop,wlen_);
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PKTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& pktraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
     createTraj(pktraj);
     // divide time range
@@ -156,7 +156,7 @@ namespace KKTest {
     if(thits.size() == 0) extendTraj(pktraj,pktraj.range().end());
   }
 
-  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PKTRAJ& pktraj, EXING* sxing) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& pktraj, EXING* sxing) {
     double desum = 0.0;
     double tstraw = sxing->time();
     auto const& endtraj = pktraj.nearestTraj(tstraw);
@@ -195,7 +195,7 @@ namespace KKTest {
     return desum/mom;
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PKTRAJ& pktraj, HITCOL& thits) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& pktraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax_.
     VEC3 shmaxTrue,shmaxMeas;
@@ -236,7 +236,7 @@ namespace KKTest {
     }
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PKTRAJ& pktraj,double htime) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& pktraj,double htime) {
     ROOT::Math::SMatrix<double,3> bgrad;
     VEC3 pos,vel, dBdt;
     pos = pktraj.position3(htime);
@@ -259,7 +259,7 @@ namespace KKTest {
     }
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PKTRAJ& pktraj) {
+  template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PTRAJ& pktraj) {
     // randomize the position and momentum
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
@@ -269,7 +269,7 @@ namespace KKTest {
     VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
-    pktraj = PKTRAJ(ktraj);
+    pktraj = PTRAJ(ktraj);
   }
 }
 #endif

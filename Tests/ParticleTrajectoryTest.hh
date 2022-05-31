@@ -42,7 +42,7 @@ void print_usage() {
 
 template <class KTRAJ>
 int ParticleTrajectoryTest(int argc, char **argv) {
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
@@ -99,7 +99,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   TimeRange range(tstart,tend);
   KTRAJ lhel(origin,momv,icharge,bnom,range);
   // create initial piecewise helix from this
-  PKTRAJ ptraj(lhel);
+  PTRAJ ptraj(lhel);
   // append pieces
   for(int istep=0;istep < nsteps; istep++){
     // use derivatives of last piece to define new piece

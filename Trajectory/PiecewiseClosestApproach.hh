@@ -10,10 +10,10 @@
 namespace KinKal {
   template<class KTRAJ, class STRAJ> class PiecewiseClosestApproach : public ClosestApproach<ParticleTrajectory<KTRAJ>,STRAJ> {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      PiecewiseClosestApproach(PKTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
+      PiecewiseClosestApproach(PTRAJ const& pktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // provide access to the local (non-piecewise) information implicit in this class
       size_t particleTrajIndex() const { return pindex_; }
       KTRAJ const& localParticleTraj() const { return this->particleTraj().piece(pindex_); }

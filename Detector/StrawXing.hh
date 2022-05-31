@@ -14,7 +14,7 @@
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public ElementXing<KTRAJ> {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
