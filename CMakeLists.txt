@@ -132,6 +132,12 @@ add_compile_options(
   # release flags
   "$<$<CONFIG:RELEASE>:-O3;-DNDEBUG;-fno-omit-frame-pointer>"
   )
+if (CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
+  # gcc doesn't like the lazy memory evaluation in root SMatrix,  This turns a fatal error into a warning (the code runs fine)
+  add_compile_options(
+    "-Wno-error=maybe-uninitialized"
+    )
+endif()
 # install rules
 include(GNUInstallDirs)
 
