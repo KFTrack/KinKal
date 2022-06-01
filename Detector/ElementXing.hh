@@ -19,12 +19,12 @@
 namespace KinKal {
   template <class KTRAJ> class ElementXing {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}
       virtual void updateReference(KTRAJPTR const& ktrajptr) = 0;
-      virtual void updateState(MetaIterConfig const& config) =0;
+      virtual void updateState(MetaIterConfig const& config,bool first) =0;
       virtual double time() const=0; // time the particle crosses thie element
       virtual double transitTime() const=0; // time to cross this element
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined

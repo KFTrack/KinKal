@@ -5,6 +5,7 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
+#include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
 #include "KinKal/Detector/ScintHit.hh"
@@ -127,20 +128,21 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
         int utype(-1);
         double temp, mindoca(-1.0),maxdoca(-1.0);
         ss >> temp >> utype;
-        MetaIterConfig mconfig(temp);
+        MetaIterConfig miconfig(temp);
+        miconfig.addUpdater(StrawXingConfig(0.3,5.0,10.0)); // hardcoded values, should come from outside, FIXME
         if(utype == 0 ){
           cout << "NullWireHitUpdater for iteration " << nmiter << endl;
-          mconfig.addUpdater(std::any(NullWireHitUpdater()));
+          miconfig.addUpdater(std::any(NullWireHitUpdater()));
         } else if(utype == 1) {
           ss >>  mindoca >> maxdoca;
           cout << "DOCAWireHitUpdater for iteration " << nmiter << " with mindoca " << mindoca << " maxdoca " << maxdoca  << endl;
           DOCAWireHitUpdater updater(mindoca,maxdoca);
-          mconfig.addUpdater(std::any(updater));
+          miconfig.addUpdater(std::any(updater));
         } else if(utype > 0){
           cout << "Unknown updater " << utype << endl;
           return -20;
         }
-        config.schedule_.push_back(mconfig);
+        config.schedule_.push_back(miconfig);
         ++nmiter;
       }
     }
@@ -167,13 +169,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
   using KKBFIELD = BField<KTRAJ>;
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
   using MEASCOL = std::vector<MEASPTR>;
   using EXING = ElementXing<KTRAJ>;
   using EXINGPTR = std::shared_ptr<EXING>;
   using EXINGCOL = std::vector<EXINGPTR>;
+  using STRAWXING = StrawXing<KTRAJ>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
   using STRAWHIT = SimpleWireHit<KTRAJ>;
@@ -346,7 +349,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // generate hits
   MEASCOL thits, exthits; // this program shares hit ownership with Track
   EXINGCOL dxings, exdxings; // this program shares det xing ownership with Track
-  PKTRAJ tptraj;
+  PTRAJ tptraj;
   toy.simulateParticle(tptraj, thits, dxings,fitmat);
   if(nevents == 0)cout << "True initial " << tptraj.front() << endl;
   //  cout << "vector of hit points " << thits.size() << endl;
@@ -372,7 +375,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.createSeed(straj,sigmas,seedsmear);
   if(nevents == 0)cout << "Seed Traj " << straj << endl;
   // Create the Track from these hits
-   PKTRAJ seedtraj(straj);
+   PTRAJ seedtraj(straj);
    //
   // if requested, constrain a parameter
   PMASK mask = {false};
@@ -643,7 +646,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
       // create a random true initial helix with hits and material interactions from this.  This also handles BFieldMap inhomogeneity truth tracking
-      PKTRAJ tptraj;
+      PTRAJ tptraj;
       thits.clear();
       dxings.clear();
       exthits.clear();
@@ -862,7 +865,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 hinfo.deltat_ = strawhit->closestApproach().deltaT();
                 hinfo.docavar_ = strawhit->closestApproach().docaVar();
                 hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
-                // straw hits can have multiple residuals
+                hinfo.dirdot_ = strawhit->closestApproach().dirDot();
+               // straw hits can have multiple residuals
                 if(strawhit->activeRes(STRAWHIT::tresid)){
                   auto resid = strawhit->unbiasedResidual(STRAWHIT::tresid);
                   hinfo.tresid_ = resid.value();
@@ -889,6 +893,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 hinfo.deltat_ = scinthit->closestApproach().deltaT();
                 hinfo.docavar_ = scinthit->closestApproach().docaVar();
                 hinfo.tocavar_ = scinthit->closestApproach().tocaVar();
+                hinfo.dirdot_ = scinthit->closestApproach().dirDot();
                 hinfovec.push_back(hinfo);
               } else if(parhit != 0){
                 hinfo.type_ = HitInfo::parcon;
@@ -910,6 +915,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               minfo.dmomf_ = dmom[MomBasis::momdir_];
               minfo.momvar_ = momvar[MomBasis::momdir_];
               minfo.perpvar_ = momvar[MomBasis::perpdir_];
+              STRAWXING* sxing = dynamic_cast<STRAWXING*>(kkmat->elementXingPtr().get());
+              if(sxing != 0){
+                minfo.doca_ = sxing->closestApproach().doca();
+                minfo.docavar_ = sxing->closestApproach().docaVar();
+                minfo.dirdot_ = sxing->closestApproach().dirDot();
+              }
               minfovec.push_back(minfo);
             }
             if(kkbf != 0){

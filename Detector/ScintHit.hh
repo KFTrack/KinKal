@@ -11,7 +11,7 @@ namespace KinKal {
 
   template <class KTRAJ> class ScintHit : public ResidualHit<KTRAJ> {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using CA = ClosestApproach<KTRAJ,Line>;
       using RESIDHIT = ResidualHit<KTRAJ>;

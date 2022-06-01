@@ -12,7 +12,7 @@ namespace KinKal {
     public:
       // override of some Hit interface.  Subclasses must still implement update and material methods
       using HIT = Hit<KTRAJ>;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       bool active() const override { return nDOF() > 0; }
       Chisq chisq(Parameters const& params) const override;
       void updateWeight(MetaIterConfig const& config) override;

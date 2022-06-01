@@ -14,7 +14,7 @@ namespace KinKal {
     public:
       using PMASK = std::array<bool,NParams()>; // parameter mask
       using HIT = Hit<KTRAJ>;
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
       // Hit interface overrrides
@@ -30,7 +30,7 @@ namespace KinKal {
       KTRAJPTR const& refTrajPtr() const override { return reftraj_; }
      // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
-      ParameterHit(double time, PKTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);
+      ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
       unsigned nDOF() const { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
@@ -46,7 +46,7 @@ namespace KinKal {
       unsigned ncons_; // number of parameters constrained
   };
 
-  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, PKTRAJ const& ptraj, Parameters const& params, PMASK const& pmask) :
+  template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask) :
     time_(time), reftraj_(ptraj.nearestTraj(time)), params_(params), pmask_(pmask), ncons_(0) {
       // create the mask matrix; Use a temporary, not the data member, as root has caching problems with that (??)
       mask_ = ROOT::Math::SMatrixIdentity();

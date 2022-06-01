@@ -14,7 +14,7 @@
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public ElementXing<KTRAJ> {
     public:
-      using PKTRAJ = ParticleTrajectory<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
@@ -24,7 +24,7 @@ namespace KinKal {
       virtual ~StrawXing() {}
       // ElementXing interface
       void updateReference(KTRAJPTR const& ktrajptr) override;
-      void updateState(MetaIterConfig const& config) override;
+      void updateState(MetaIterConfig const& config,bool first) override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
       double transitTime() const override; // time to cross this element
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
@@ -47,27 +47,24 @@ namespace KinKal {
     axis_(pca.sensorTraj()),
     smat_(smat),
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
-    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire
-    sxconfig_(0.05*smat.strawRadius(),1.0) // hardcoded values, should come from outside, FIXME
-  {
-    //    this->updateReference(tpca_.particleTrajPtr());
-  }
+    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())) // locate the effect to 1 side of the wire to avoid overlap with hits
+  {}
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.range().mid(),axis_.range().mid());
     tpca_ = CA(ktrajptr,axis_,tphint,precision());
-    if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
-    // update the material effects
-    smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
-  }
+    if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
+ }
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::updateState(MetaIterConfig const& miconfig) {
-    // search for an update to the xing configuration among this meta-iteration payload
-    auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
-    if(sxconfig != 0){
-      sxconfig_ = *sxconfig;
-      smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
+  template <class KTRAJ> void StrawXing<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
+    if(first) {
+      // search for an update to the xing configuration among this meta-iteration payload
+      auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
+      if(sxconfig != 0){
+        sxconfig_ = *sxconfig;
+      }
     }
+    smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
   }
 
   template <class KTRAJ> double StrawXing<KTRAJ>::transitTime() const {

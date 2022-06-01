@@ -47,7 +47,7 @@ int ClosestApproachTest(int argc, char **argv) {
   using TCA = ClosestApproach<KTRAJ,Line>;
   using TCAP = PointClosestApproach<KTRAJ>;
   using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   int icharge(-1);
@@ -152,8 +152,8 @@ int ClosestApproachTest(int argc, char **argv) {
     if(fabs(fabs(tpp.doca()) - gap) > 1e-8) cout << "Point DOCA not correct " << endl;
 
     // test against a piece-traj
-    PKTRAJ pktraj(ktraj);
-    PCA pca(pktraj,tline,tphint,1e-8);
+    PTRAJ ptraj(ktraj);
+    PCA pca(ptraj,tline,tphint,1e-8);
     if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
     if(tpp.status() != ClosestApproachData::converged)cout << "PointClosestApproach status " << tpp.statusName() << " doca " << tpp.doca() << " dt " << tpp.deltaT() << endl;
     if(pca.status() != ClosestApproachData::converged)cout << "PiecewiseClosestApproach status " << pca.statusName() << " doca " << pca.doca() << " dt " << pca.deltaT() << endl;

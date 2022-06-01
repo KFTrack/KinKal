@@ -51,7 +51,7 @@ void print_usage() {
 
 template <class KTRAJ>
 int HitTest(int argc, char **argv, const vector<double>& delpars) {
-  using PKTRAJ = ParticleTrajectory<KTRAJ>;
+  using PTRAJ = ParticleTrajectory<KTRAJ>;
   using HIT = Hit<KTRAJ>;
   using HITPTR = std::shared_ptr<HIT>;
   using HITCOL = vector<HITPTR>;
@@ -143,7 +143,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   }
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat_, scinthit_,ambigdoca, pmass );
   toy.setInefficiency(0.0);
-  PKTRAJ tptraj;
+  PTRAJ tptraj;
   //  cout << "True " << tptraj << endl;
   StrawMaterial const& smat = toy.strawMaterial();
   TGraph* ggplen = new TGraph(nhits); ggplen->SetTitle("Gas Pathlength;Doca (mm);Pathlength (mm)"); ggplen->SetMinimum(0.0);
@@ -171,7 +171,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   hel->SetLineColor(kBlue);
   hel->Draw();
   unsigned ihit(0);
-  StrawXingConfig sxconfig(toy.strawMaterial().strawRadius()*0.05,1.0);
+  StrawXingConfig sxconfig(0.3,5.0,10.0);
   for(auto& thit : thits) {
     Residual res;
     ClosestApproachData tpdata;
@@ -268,7 +268,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           // modify the helix
           KTRAJ modktraj = tptraj.nearestPiece(thit->time());
           modktraj.params().parameters()[ipar] += dpar;
-          PKTRAJ modtptraj(modktraj);
+          PTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
           thit->updateReference(modtptraj.backPtr());// refer to moded helix
