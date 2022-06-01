@@ -448,7 +448,11 @@ namespace KinKal {
 
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
-    // find bounds between first and last measurement
+//        fwdbnds[0] = effects_.begin();
+//        fwdbnds[1] = effects_.end();
+//        revbnds[0] = effects_.rbegin();
+//        revbnds[1] = effects_.rend();
+// find bounds between first and last measurement
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){

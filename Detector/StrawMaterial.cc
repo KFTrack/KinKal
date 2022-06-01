@@ -7,21 +7,20 @@ namespace KinKal {
   void StrawMaterial::pathLengths(ClosestApproachData const& cadata,StrawXingConfig const& caconfig,
       double& wallpath, double& gaspath, double& wirepath) const {
     wallpath = gaspath = wirepath = 0.0;
-    // ensure DOCA is inside the straw gas
-    double doca = fabs(cadata.doca());
+    double adoca = fabs(cadata.doca());
     double sigdoca = sqrt(cadata.docaVar());
-    if(doca < caconfig.maxdoca_){
-      if ((!caconfig.average_) && sigdoca < caconfig.minsigdoca_ && doca < caconfig.maxddoca_) {  // use exact calculation based on DOCA
-        doca = std::min(doca, grad_); // truncate
+    if(adoca < caconfig.maxdoca_){
+      if ((!caconfig.average_) && sigdoca < caconfig.minsigdoca_ && adoca < caconfig.maxddoca_) {  // use exact calculation based on DOCA
+        double doca = std::min(adoca, grad_); // truncate
         double ddoca = doca*doca;
         gaspath = 2.0*sqrt(grad2_- ddoca);
-        wallpath = 2.0*sqrt(srad2_- ddoca) - gaspath;
+        wallpath = 2.0*thick_*srad_/sqrt(srad2_-ddoca);
       } else {
         // errors are large WRT the size of the straw, or DOCA is very far from the wire: just take the average over all impact parameters
-        wallpath = M_PI_2*thick_;
         gaspath = M_PI_2*srad_;
+        wallpath = M_PI*thick_;
       }
-      if(isnan(wallpath) || isnan(gaspath))throw std::runtime_error("Invalid pathlength");
+      if(isnan(wallpath) || isnan(gaspath))throw std::runtime_error("Invalid StrawMaterial pathlength");
       // Model the wire as a diffuse gas, density constrained by DOCA TODO
       // correct for the angle WRT the axis
       double afac = angleFactor(cadata.dirDot());
