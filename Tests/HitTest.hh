@@ -171,7 +171,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   hel->SetLineColor(kBlue);
   hel->Draw();
   unsigned ihit(0);
-  StrawXingConfig sxconfig(toy.strawMaterial().strawRadius()*0.05,1.0);
+  StrawXingConfig sxconfig(0.3,5.0,10.0);
   for(auto& thit : thits) {
     Residual res;
     ClosestApproachData tpdata;

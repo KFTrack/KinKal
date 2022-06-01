@@ -14,15 +14,17 @@ namespace KinKal {
   class StrawMaterial {
     public:
       // explicit constructor from geometry and materials
-      StrawMaterial(double srad, double thick, double wrad,
+      StrawMaterial(double srad, double thick, double sradsig, double wrad,
           const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
-        srad_(srad), thick_(thick), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) {
+        srad_(srad), thick_(thick), sradsig_(sradsig), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) {
           srad2_ = srad_*srad_;
+          grad_ = srad_-sradsig_; // count the gas volume inside 1 sigma.  This smooths discontinuities at the edge
+          grad2_ = grad_*grad_;
         }
       // construct using default materials
-      StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double wrad,
+      StrawMaterial(MatEnv::MatDBInfo const& matdbinfo,double srad, double thick, double sradsig, double wrad,
       const char* wallmat="straw-wall", const char* gasmat="straw-gas", const char* wiremat="straw-wire") :
-        StrawMaterial(srad,thick,wrad, matdbinfo.findDetMaterial(wallmat),
+        StrawMaterial(srad,thick,sradsig, wrad,matdbinfo.findDetMaterial(wallmat),
             matdbinfo.findDetMaterial(gasmat),
             matdbinfo.findDetMaterial(wiremat)) {}
       // pathlength through straw components, given closest approach
@@ -38,15 +40,19 @@ namespace KinKal {
       MatEnv::DetMaterial const& gasMaterial() const { return *gasmat_; }
       MatEnv::DetMaterial const& wireMaterial() const { return *wiremat_; }
     private:
-      double srad_; // outer transverse radius of the straw
-      double srad2_; // outer transverse radius of the straw squared
+      double srad_; // average outer transverse radius of the straw
+      double srad2_; // average outer transverse radius of the straw squared
       double thick_; // straw wall thickness
+      double sradsig_; // sqrt(variance) of straw radius
+      double grad_; // effective gas volume radius
+      double grad2_; // effective gas volume radius squared
       double wrad_; // transverse radius of the wire
       const MatEnv::DetMaterial* wallmat_; // material of the straw wall
       const MatEnv::DetMaterial* gasmat_; // material of the straw gas
       const MatEnv::DetMaterial* wiremat_; // material of the wire
       // utility to calculate material factor given the cosine of the angle of the particle WRT the straw
       double angleFactor(double dirdot) const;
+      // maximum DOCA given straw irregularities
   };
 }
 #endif

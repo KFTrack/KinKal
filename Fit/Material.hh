@@ -33,10 +33,11 @@ namespace KinKal {
       // create from the material and a trajectory
       Material(EXINGPTR const& dxing, PTRAJ const& ptraj);
       // accessors
-      Parameters const& effect() const { return mateff_; }
-      Weights const& cache() const { return cache_; }
-      EXING const& elementXing() const { return *exing_; }
-      KTRAJ const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
+      auto const& effect() const { return mateff_; }
+      auto const& cache() const { return cache_; }
+      auto const& elementXing() const { return *exing_; }
+      auto const& elementXingPtr() const { return exing_; }
+      auto const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
     private:
       // update the local cache representing the effect of this material on the reference parameters
       void updateCache();

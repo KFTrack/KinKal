@@ -45,7 +45,9 @@ namespace KKTest {
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
-        smat_(matdb_,rstraw_, wthick_,rwire_) {}
+        smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
+          miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6))); // updater to force exact straw xing material calculation
+        }
 
       // generate a straw at the given time.  direction and drift distance are random
       Line generateStraw(PTRAJ const& traj, double htime);
@@ -90,6 +92,7 @@ namespace KKTest {
       double tprec_; // time precision on TCA
       double t0off_; // t0 offset
       StrawMaterial smat_; // straw material
+      MetaIterConfig miconfig_; // configuration used when calculating initial effects
 
   };
 
@@ -162,8 +165,7 @@ namespace KKTest {
     auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
     sxing->updateReference(endtraj);
-    MetaIterConfig miconfig(0.0);
-    sxing->updateState(miconfig,true);
+    sxing->updateState(miconfig_,true);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);

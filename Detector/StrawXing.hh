@@ -47,8 +47,7 @@ namespace KinKal {
     axis_(pca.sensorTraj()),
     smat_(smat),
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
-    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire
-    sxconfig_(0.05*smat.strawRadius(),1.0) // hardcoded values, should come from outside, FIXME
+    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())) // locate the effect to 1 side of the wire to avoid overlap with hits
   {}
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
@@ -61,7 +60,9 @@ namespace KinKal {
     if(first) {
       // search for an update to the xing configuration among this meta-iteration payload
       auto sxconfig = miconfig.findUpdater<StrawXingConfig>();
-      if(sxconfig != 0) sxconfig_ = *sxconfig;
+      if(sxconfig != 0){
+        sxconfig_ = *sxconfig;
+      }
     }
     smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
   }
