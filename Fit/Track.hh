@@ -348,52 +348,63 @@ namespace KinKal {
     KKEFFFWDBND fwdbnds;
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds );
-    // initialize the fit state to be used in this iteration, deweighting as specified.  Not sure if using variance scale is right TODO
-    // To be consistent with hit errors I should scale by the ratio of current to previous temperature FIXME
-    FitStateArray states;
-    initFitState(states, config().dwt_/miconfig.varianceScale());
-    // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
+    int ndof(0); ndof -= NParams();
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
-      auto effptr = feff->get();
-      // update chisquared increment WRT the current state: only needed once
-      Chisq dchisq = effptr->chisq(states[0].pData());
-      status().chisq_ += dchisq;
-      // process
-      effptr->process(states[0],TimeDir::forwards);
-      if(config().plevel_ >= Config::detailed){
-        std::cout << "Chisq total " << status().chisq_ << " increment " << dchisq << " ";
-        effptr->print(std::cout,config().plevel_);
+      auto const* kkmeas = dynamic_cast<const KKMEAS*>(feff->get());
+//      if(kkmeas && kkmeas->active())ndof += kkmeas->hit()->nDOF();
+      if(kkmeas && kkmeas->active())ndof++; // this is more conservative than the above
+    }
+    if(ndof > (int)config().minndof_) {
+      // initialize the fit state to be used in this iteration, deweighting as specified.  Not sure if using variance scale is right TODO
+      // To be consistent with hit errors I should scale by the ratio of current to previous temperature FIXME
+      FitStateArray states;
+      initFitState(states, config().dwt_/miconfig.varianceScale());
+      // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
+      for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
+        auto effptr = feff->get();
+        // update chisquared increment WRT the current state: only needed once
+        Chisq dchisq = effptr->chisq(states[0].pData());
+        status().chisq_ += dchisq;
+        // process
+        effptr->process(states[0],TimeDir::forwards);
+        if(config().plevel_ >= Config::detailed){
+          std::cout << "Chisq total " << status().chisq_ << " increment " << dchisq << " ";
+          effptr->print(std::cout,config().plevel_);
+        }
       }
+      for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
+        auto effptr = beff->get();
+        effptr->process(states[1],TimeDir::backwards);
+      }
+      // convert the fit result into a new trajectory
+      // initialize the parameters to the backward processing end
+      auto front = fittraj_->front();
+      front.params() = states[1].pData();
+      // extend range if needed
+      TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds[0]->get()->time()),
+          std::max(fittraj_->range().end(),revbnds[0]->get()->time()));
+      front.setRange(maxrange);
+      auto ptraj = std::make_unique<PTRAJ>(front);
+      // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
+      for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
+        ieff->get()->append(*ptraj,TimeDir::forwards);
+      }
+      setStatus(ptraj); // set the status for this iteration
+      // prepare for the next iteration: first, update the references for effects outside the fit range
+      // (the ones inside the range were updated above in 'append')
+      if(status().usable()){
+        // first, set the effects to reference the current traj
+        for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
+          feff->get()->updateReference(ptraj->nearestTraj(feff->get()->time()));
+        for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff)
+          beff->get()->updateReference(ptraj->nearestTraj(beff->get()->time()));
+      }
+      // now all effects reference the new traj: we can swap it with the old
+      fittraj_.swap(ptraj);
+    } else {
+      status().chisq_ = Chisq(-1.0,ndof);
+      status().status_ = Status::lowNDOF;
     }
-    for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
-      auto effptr = beff->get();
-      effptr->process(states[1],TimeDir::backwards);
-    }
-    // convert the fit result into a new trajectory
-    // initialize the parameters to the backward processing end
-    auto front = fittraj_->front();
-    front.params() = states[1].pData();
-    // extend range if needed
-    TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds[0]->get()->time()),
-        std::max(fittraj_->range().end(),revbnds[0]->get()->time()));
-    front.setRange(maxrange);
-    auto ptraj = std::make_unique<PTRAJ>(front);
-    // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
-    for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
-      ieff->get()->append(*ptraj,TimeDir::forwards);
-    }
-    setStatus(ptraj); // set the status for this iteration
-    // prepare for the next iteration: first, update the references for effects outside the fit range
-    // (the ones inside the range were updated above in 'append')
-    if(status().usable()){
-      // first, set the effects to reference the current traj
-      for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
-        feff->get()->updateReference(ptraj->nearestTraj(feff->get()->time()));
-      for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff)
-        beff->get()->updateReference(ptraj->nearestTraj(beff->get()->time()));
-    }
-    // now all effects reference the new traj: we can swap it with the old
-    fittraj_.swap(ptraj);
   }
 
   // initialize statess used before iteration
@@ -448,10 +459,6 @@ namespace KinKal {
 
   // update between iterations
   template <class KTRAJ> void Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
-//        fwdbnds[0] = effects_.begin();
-//        fwdbnds[1] = effects_.end();
-//        revbnds[0] = effects_.rbegin();
-//        revbnds[1] = effects_.rend();
 // find bounds between first and last measurement
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());

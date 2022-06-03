@@ -32,7 +32,7 @@ namespace KinKal {
       // construct from constraint values, time, and mask of which parameters to constrain
       ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
-      unsigned nDOF() const { return ncons_; }
+      unsigned nDOF() const override { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
     private:
