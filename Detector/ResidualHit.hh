@@ -18,7 +18,7 @@ namespace KinKal {
       void updateWeight(MetaIterConfig const& config) override;
       Weights const& weight() const override { return weight_; }
       // ResidualHit specific interface.
-      unsigned nDOF() const;
+      unsigned nDOF() const override;
       // describe residuals associated with this hit
       virtual unsigned nResid() const = 0;
       // individual residuals may be active or inactive

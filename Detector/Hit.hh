@@ -23,6 +23,7 @@ namespace KinKal {
       Hit& operator =(Hit const& ) = delete;
      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
+      virtual unsigned nDOF() const=0;
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
