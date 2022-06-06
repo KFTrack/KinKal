@@ -26,7 +26,7 @@ namespace KinKal {
       // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
       bool activeRes(unsigned ires) const override;
-      Residual const& residual(unsigned ires=tresid) const override;
+      Residual const& refResidual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
       void updateReference(KTRAJPTR const& ktrajptr) override;
       KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
@@ -103,23 +103,23 @@ namespace KinKal {
       double dt = tpca_.deltaT()-dinfo.tdrift_*dsign;
       // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
       DVEC dRdP = tpca_.dDdP()*dsign/dinfo.vdrift_ - tpca_.dTdP();
-      rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,dRdP);
+      rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,0.0,dRdP);
     } else {
       // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
       DVEC dRdP = -tpca_.lSign()*tpca_.dDdP();
       double dd = tpca_.doca() + nullOffset(dresid,dinfo);
       double nulldvar = nullVariance(dresid,dinfo);
-      rresid_[dresid] = Residual(dd,nulldvar,dRdP);
+      rresid_[dresid] = Residual(dd,nulldvar,0.0,dRdP);
       //  interpret TOCA as a residual
       double dt = tpca_.deltaT() + nullOffset(tresid,dinfo);
       // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
       double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
-      rresid_[tresid] = Residual(dt,nulltvar,-tpca_.dTdP());
+      rresid_[tresid] = Residual(dt,nulltvar,0.0,-tpca_.dTdP());
       // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
     }
   }
 
-  template <class KTRAJ> Residual const& WireHit<KTRAJ>::residual(unsigned ires) const {
+  template <class KTRAJ> Residual const& WireHit<KTRAJ>::refResidual(unsigned ires) const {
     if(ires >=2)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
   }

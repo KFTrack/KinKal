@@ -25,11 +25,11 @@ namespace KinKal {
       virtual bool activeRes(unsigned ires) const = 0;
       // reference residuals for this hit.  iDOF indexs the measurement and is hit-specific, outside the range will throw
       // this is generally biased as the refefence includes the effect of this hit
-      virtual Residual const& residual(unsigned ires) const = 0;
+      virtual Residual const& refResidual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
       // unbiased residuals WRT the reference parameters
-      Residual unbiasedResidual(unsigned ires) const;
+      Residual residual(unsigned ires) const;
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
       ResidualHit() {}
@@ -37,26 +37,25 @@ namespace KinKal {
       Weights weight_; // weight of this hit computed from the residuals
   };
 
-  template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& pdata,unsigned ires) const {
-    auto const& resid = residual(ires);
+  template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(Parameters const& params,unsigned ires) const {
+    auto const& resid = refResidual(ires);
     // compute the difference between these parameters and the reference parameters
-    DVEC dpvec = pdata.parameters() - HIT::referenceParameters().parameters();
+    DVEC dpvec = params.parameters() - HIT::referenceParameters().parameters();
     // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
-    return Residual(uresid,resid.variance(),resid.dRdP());
+    double pvar = ROOT::Math::Similarity(resid.dRdP(),params.covariance());
+    if(pvar<0) throw std::runtime_error("Covariance projection inconsistency");
+    return Residual(uresid,resid.variance(),pvar,resid.dRdP());
+
   }
 
-  template <class KTRAJ> Residual ResidualHit<KTRAJ>::unbiasedResidual(unsigned ires) const {
+  template <class KTRAJ> Residual ResidualHit<KTRAJ>::residual(unsigned ires) const {
     return residual(HIT::unbiasedParameters(),ires);
   }
 
   template <class KTRAJ> double ResidualHit<KTRAJ>::pull(unsigned ires) const {
-    auto uparams = HIT::unbiasedParameters();
-    auto ures = residual(uparams,ires);
-    // project the parameter covariance into residual space
-    double pvar = ROOT::Math::Similarity(ures.dRdP(),uparams.covariance());
-    double pval = ures.value()/sqrt(ures.variance() + pvar);
-    return pval;
+    auto ures = residual(ires);
+    return ures.pull();
   }
 
   template <class KTRAJ> Chisq ResidualHit<KTRAJ>::chisq(Parameters const& params) const {
@@ -65,22 +64,8 @@ namespace KinKal {
     for(unsigned ires=0; ires< nResid(); ires++) {
       if(activeRes(ires)) {
         ndof++;
-        // compute the residual WRT the given parameters
-        auto res = residual(params,ires);
-        // project the parameter covariance into a residual space variance
-        double rvar = ROOT::Math::Similarity(res.dRdP(),params.covariance());
-        // check for unphysical values
-        if(rvar<0){
-//          std::cout << "neg resid var " << rvar << std::endl;
-//          rvar = 0.0;
-//          chisq = -1.0;
-//          break;
-          throw std::runtime_error("Covariance projection inconsistency");
-        }
-        // add the measurement variance
-        rvar +=  res.variance();
-        // add chisq for this DOF
-        chisq += (res.value()*res.value())/rvar;
+        auto resid = residual(params,ires);
+        chisq += resid.chisq();
       }
     }
     return Chisq(chisq,ndof);
@@ -100,20 +85,20 @@ namespace KinKal {
     weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
       if(activeRes(ires)) {
-        auto const& res = residual(ires);
+        auto const& resid = refResidual(ires);
         // convert derivatives vector to a Nx1 matrix
         ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
-        dRdPM.Place_in_col(res.dRdP(),0,0);
+        dRdPM.Place_in_col(resid.dRdP(),0,0);
         // convert the variance into a 1X1 matrix
         ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
         // weight by inverse variance
-        double tvar = res.variance();
-        RVarM(0,0) = 1.0/tvar;
+        double mvar = resid.measurementVariance();
+        RVarM(0,0) = 1.0/mvar;
         // expand these into the weight matrix
         DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
         // translate residual value into weight vector WRT the reference parameters
         // sign convention reflects resid = measurement - prediction
-        DVEC wvec = wmat*HIT::referenceParameters().parameters() + res.dRdP()*res.value()/tvar;
+        DVEC wvec = wmat*HIT::referenceParameters().parameters() + resid.dRdP()*resid.value()/mvar;
         // weights are linearly additive
         weight_ += Weights(wvec,wmat);
       }
