@@ -178,10 +178,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
-      res = strawhit->residual(0);
+      res = strawhit->refResidual(0);
       tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
-      res = scinthit->residual(0);
+      res = scinthit->refResidual(0);
       tpdata = scinthit->closestApproach().tpData();
     } else
       continue;
@@ -251,10 +251,10 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
-      ores = strawhit->residual(0);
+      ores = strawhit->refResidual(0);
       tpdata = strawhit->closestApproach().tpData();
     } else if(scinthit && scinthit_){
-      ores = scinthit->residual(0);
+      ores = scinthit->refResidual(0);
       tpdata = scinthit->closestApproach().tpData();
     } else
       continue;
@@ -275,9 +275,9 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){
-            mres = strawhit->residual(0);
+            mres = strawhit->refResidual(0);
           } else if(scinthit) {
-            mres = scinthit->residual(0);
+            mres = scinthit->refResidual(0);
           }
           double dr = ores.value()-mres.value(); // this sign is confusing.  I think
           // it means the fit needs to know how much to change the ref parameters, which is
