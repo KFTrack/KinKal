@@ -25,7 +25,6 @@ namespace KinKal {
       enum Dimension { tresid=0, dresid=1};  // residual dimensions
       // Hit interface overrrides; subclass still needs to implement state change update
       unsigned nResid() const override { return 2; } // potentially 2 residuals
-      bool activeRes(unsigned ires) const override;
       Residual const& refResidual(unsigned ires=tresid) const override;
       double time() const override { return tpca_.particleToca(); }
       void updateReference(KTRAJPTR const& ktrajptr) override;
@@ -40,19 +39,14 @@ namespace KinKal {
       // WireHit specific functions
       auto const& closestApproach() const { return tpca_; }
       auto const& hitState() const { return whstate_; }
-      auto const& timeResidual() const { return rresid_[tresid]; }
-      auto const& distResidual() const { return rresid_[dresid]; }
       auto const& wire() const { return wire_; }
       auto const& bfield() const { return bfield_; }
-      bool hasTimeResidual() const { return whstate_ != WireHitState::inactive; }
-      bool hasDistResidual() const { return whstate_ == WireHitState::null; }
       auto precision() const { return tpca_.precision(); }
       // constructor
       WireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whs);
       virtual ~WireHit(){}
     protected:
       // allow subclasses to update the internal state or residuals
-      void setWireHitState(WireHitState::State state) { whstate_.state_ = state; }
       void updateResiduals(WireHitState const& whstate);
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
@@ -62,7 +56,7 @@ namespace KinKal {
       // the physical source of the signal (particle) to the measurement recording location (electronics), the direction magnitude
       // is the effective signal propagation velocity along the wire, and the time range describes the active wire length
       // (when multiplied by the propagation velocity).
-      CA tpca_; // reference time and position of closest approach to the wire
+      CA tpca_; // reference time and position of closest approach to the wire; this is generally biased by the hit
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
   };
 
@@ -72,11 +66,6 @@ namespace KinKal {
     tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
     }
 
-  template <class KTRAJ> bool WireHit<KTRAJ>::activeRes(unsigned ires) const {
-    if(ires == tresid) return hasTimeResidual();
-    if(ires == dresid) return hasDistResidual();
-    return false;
-  }
 
   template <class KTRAJ> void WireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
@@ -89,33 +78,38 @@ namespace KinKal {
   template <class KTRAJ> void WireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {
     // update the state
     whstate_ = whstate;
-    // compute drift parameters.  These are used even for null-ambiguity hits
-    VEC3 bvec = bfield_.fieldVect(tpca_.particlePoca().Vect());
-    auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
-    VEC3 dvec = tpca_.delta().Vect();
-    double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
-    POL2 drift(fabs(tpca_.doca()), phi);
-    DriftInfo dinfo;
-    distanceToTime(drift, dinfo);
-    if(whstate_.useDrift()){
-      // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
-      double dsign = whstate_.lrSign()*tpca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
-      double dt = tpca_.deltaT()-dinfo.tdrift_*dsign;
-      // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-      DVEC dRdP = tpca_.dDdP()*dsign/dinfo.vdrift_ - tpca_.dTdP();
-      rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,0.0,dRdP);
+    if(whstate_.active()){
+      // compute drift parameters.  These are used even for null-ambiguity hits
+      VEC3 bvec = bfield_.fieldVect(tpca_.particlePoca().Vect());
+      auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
+      VEC3 dvec = tpca_.delta().Vect();
+      double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
+      POL2 drift(fabs(tpca_.doca()), phi);
+      DriftInfo dinfo;
+      distanceToTime(drift, dinfo);
+      if(whstate_.useDrift()){
+        // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
+        double dsign = whstate_.lrSign()*tpca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
+        double dt = tpca_.deltaT()-dinfo.tdrift_*dsign;
+        // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
+        DVEC dRdP = tpca_.dDdP()*dsign/dinfo.vdrift_ - tpca_.dTdP();
+        rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,0.0,true,dRdP);
+        rresid_[dresid] = Residual();
+      } else {
+        // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
+        DVEC dRdP = -tpca_.lSign()*tpca_.dDdP();
+        double dd = tpca_.doca() + nullOffset(dresid,dinfo);
+        double nulldvar = nullVariance(dresid,dinfo);
+        rresid_[dresid] = Residual(dd,nulldvar,0.0,true,dRdP);
+        //  interpret TOCA as a residual
+        double dt = tpca_.deltaT() + nullOffset(tresid,dinfo);
+        // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
+        double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
+        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,-tpca_.dTdP());
+        // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
+      }
     } else {
-      // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
-      DVEC dRdP = -tpca_.lSign()*tpca_.dDdP();
-      double dd = tpca_.doca() + nullOffset(dresid,dinfo);
-      double nulldvar = nullVariance(dresid,dinfo);
-      rresid_[dresid] = Residual(dd,nulldvar,0.0,dRdP);
-      //  interpret TOCA as a residual
-      double dt = tpca_.deltaT() + nullOffset(tresid,dinfo);
-      // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
-      double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
-      rresid_[tresid] = Residual(dt,nulltvar,0.0,-tpca_.dTdP());
-      // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
+      rresid_[tresid] = rresid_[dresid] = Residual();
     }
   }
 
@@ -141,10 +135,10 @@ namespace KinKal {
         break;
     }
     if(detail > 0){
-      if(activeRes(tresid))
-        ost << " Time Residual " << rresid_[tresid];
-      if(activeRes(dresid))
-        ost << " Distance Residual " << rresid_[dresid];
+      if(rresid_[tresid].active())
+        ost << " Active Time Residual " << rresid_[tresid];
+      if(rresid_[dresid].active())
+        ost << " Active Distance Residual " << rresid_[dresid];
       ost << std::endl;
     }
     if(detail > 1) {
