@@ -867,14 +867,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
                 hinfo.dirdot_ = strawhit->closestApproach().dirDot();
                // straw hits can have multiple residuals
-                if(strawhit->activeRes(STRAWHIT::tresid)){
+                if(strawhit->refResidual(STRAWHIT::tresid).active()){
                   auto resid = strawhit->residual(STRAWHIT::tresid);
                   hinfo.tresid_ = resid.value();
                   hinfo.tresidvar_ = resid.variance();
                   hinfo.tresidpull_ = resid.pull();
                 }
                 //
-                if(strawhit->activeRes(STRAWHIT::dresid)){
+                if(strawhit->refResidual(STRAWHIT::dresid).active()){
                   auto resid = strawhit->residual(STRAWHIT::dresid);
                   hinfo.dresid_ = resid.value();
                   hinfo.dresidvar_ = resid.variance();

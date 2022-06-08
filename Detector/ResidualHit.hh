@@ -21,14 +21,12 @@ namespace KinKal {
       unsigned nDOF() const override;
       // describe residuals associated with this hit
       virtual unsigned nResid() const = 0;
-      // individual residuals may be active or inactive
-      virtual bool activeRes(unsigned ires) const = 0;
-      // reference residuals for this hit.  iDOF indexs the measurement and is hit-specific, outside the range will throw
+      // reference residuals for this hit.  ires indexs the measurement and is hit-specific, outside the range will throw
       // this is generally biased as the refefence includes the effect of this hit
       virtual Residual const& refResidual(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
-      // unbiased residuals WRT the reference parameters
+      // unbiased residuals WRT the reference parameters; computed from the reference
       Residual residual(unsigned ires) const;
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
@@ -45,7 +43,7 @@ namespace KinKal {
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     double pvar = ROOT::Math::Similarity(resid.dRdP(),params.covariance());
     if(pvar<0) throw std::runtime_error("Covariance projection inconsistency");
-    return Residual(uresid,resid.variance(),pvar,resid.dRdP());
+    return Residual(uresid,resid.variance(),pvar,resid.active(),resid.dRdP());
 
   }
 
@@ -62,11 +60,9 @@ namespace KinKal {
     double chisq(0.0);
     unsigned ndof(0);
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(activeRes(ires)) {
-        ndof++;
-        auto resid = residual(params,ires);
-        chisq += resid.chisq();
-      }
+      auto resid = residual(params,ires);
+      chisq += resid.chisq();
+      ndof += resid.nDOF();
     }
     return Chisq(chisq,ndof);
   }
@@ -76,7 +72,7 @@ namespace KinKal {
     // into a single residual
     unsigned retval(0);
     for(unsigned ires=0; ires< nResid(); ires++)
-      if(activeRes(ires)) retval++;
+      retval += refResidual(ires).nDOF();
     return retval;
   }
 
@@ -84,8 +80,8 @@ namespace KinKal {
     // start with a null weight
     weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(activeRes(ires)) {
-        auto const& resid = refResidual(ires);
+      auto const& resid = refResidual(ires);
+      if(resid.active()){
         // convert derivatives vector to a Nx1 matrix
         ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
         dRdPM.Place_in_col(resid.dRdP(),0,0);

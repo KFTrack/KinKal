@@ -17,15 +17,18 @@ namespace KinKal {
       double parameterVariance() const  { return pvar_; }
       double variance() const { return mvar_ + pvar_; }
       DVEC const& dRdP() const { return dRdP_; } // derivative of this residual WRT parameters
-      double chisq() const { return (value_*value_)/variance(); }
-      double chi() const { return value_/sqrt(variance()); }
+      double chisq() const { return active_ ? (value_*value_)/variance() : 0.0; }
+      double chi() const { return active_ ? value_/sqrt(variance()): 0.0; }
       double pull() const { return chi(); }
-      Residual(double value, double mvar, double pvar, DVEC const& dRdP) : value_(value), mvar_(mvar), pvar_(pvar), dRdP_(dRdP){}
-      Residual() : value_(0.0), mvar_(-1.0), pvar_(-1.0) {}
+      unsigned nDOF() const { return active_ ? 1 : 0; }
+      bool active() const { return active_; }
+      Residual(double value, double mvar, double pvar, bool active, DVEC const& dRdP) : value_(value), mvar_(mvar), pvar_(pvar), active_(active), dRdP_(dRdP){}
+      Residual() : value_(0.0), mvar_(-1.0), pvar_(-1.0), active_(false) {}
     private:
       double value_;  // value for this residual
       double mvar_; // estimated variance due to measurement uncertainty
       double pvar_; // estimated variance due to parameter uncertainty
+      bool active_; // whether this residual is active or not
       DVEC dRdP_; // derivative of this residual WRT the trajectory parameters, evaluated at the reference parameters
   };
   std::ostream& operator <<(std::ostream& ost, Residual const& res);
