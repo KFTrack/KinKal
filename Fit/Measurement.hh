@@ -34,8 +34,6 @@ namespace KinKal {
       Measurement(HITPTR const& hit);
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
-      KTRAJ const& referenceTrajectory() const { return hit_->referenceTrajectory(); }
-      Weights const& weight() const { return hit_->weight(); }
     private:
       HITPTR hit_ ; // hit used for this constraint
   };
@@ -44,7 +42,7 @@ namespace KinKal {
 
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // add this effect's information. direction is irrelevant for processing hits
-    if(this->active())kkdata.append(weight());
+    if(this->active())kkdata.append(hit_->weight());
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
