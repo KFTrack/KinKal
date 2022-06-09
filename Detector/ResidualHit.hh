@@ -80,7 +80,7 @@ namespace KinKal {
     // start with a null weight
     weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
-      auto const& resid = refResidual(ires);
+      auto const& resid = refResidual(ires); // must use residuals WRT Reference params for the KF math to work
       if(resid.active()){
         // convert derivatives vector to a Nx1 matrix
         ROOT::Math::SMatrix<double,NParams(),1> dRdPM;

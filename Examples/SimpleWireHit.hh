@@ -44,6 +44,7 @@ namespace KinKal {
       double timeVariance() const { return tvar_; }
       double minDOCA() const { return mindoca_; }
       int id() const { return id_; }
+      CA unbiasedClosestApproach() const;
       auto const& closestApproach() const { return ca_; }
       auto const& hitState() const { return whstate_; }
       auto const& wire() const { return wire_; }
@@ -64,7 +65,7 @@ namespace KinKal {
       double tvar_; // constant time variance
       double rcell_; // straw radius
       int id_; // id
-      void updateResiduals(WireHitState const& whstate);
+      void updateResiduals();
  };
 
   //trivial 'updater' that sets the wire hit state to null
@@ -115,7 +116,6 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(MetaIterConfig const& miconfig, bool first) {
-    WireHitState whstate = this->hitState();
     if(first){
       // look for an updater; if found, use it to update the state
       auto nwhu = miconfig.findUpdater<NullWireHitUpdater>();
@@ -123,28 +123,22 @@ namespace KinKal {
       if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
       if(nwhu != 0){
         mindoca_ = cellRadius();
-        whstate = nwhu->wireHitState();
+        whstate_ = nwhu->wireHitState();
         // set the residuals based on this state
       } else if(dwhu != 0){
         // update minDoca (for null ambiguity error estimate)
         mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
         // compute the unbiased closest approach.  This is brute-force
         // a more clever solution is to linearly correct the residuals for the change in parameters
-        auto const& ca = this->closestApproach();
-        auto uparams = HIT::unbiasedParameters();
-        KTRAJ utraj(uparams,ca.particleTraj());
-        CA uca(utraj,this->wire(),ca.hint(),ca.precision());
-        //
-        whstate = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
+        auto uca = this->unbiasedClosestApproach();
+        whstate_ = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }
     // update residuals
-    this->updateResiduals(whstate);
+    this->updateResiduals();
   }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateResiduals(WireHitState const& whstate) {
-    // update the state
-    whstate_ = whstate;
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateResiduals() {
     if(whstate_.active()){
       // compute drift parameters.  These are used even for null-ambiguity hits
       VEC3 bvec = bfield_.fieldVect(ca_.particlePoca().Vect());
@@ -183,6 +177,14 @@ namespace KinKal {
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
     if(ires >=2)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
+  }
+
+ template <class KTRAJ> ClosestApproach<KTRAJ,Line> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
+    // compute the unbiased closest approach; this is brute force, but works
+    auto const& ca = this->closestApproach();
+    auto uparams = HIT::unbiasedParameters();
+    KTRAJ utraj(uparams,ca.particleTraj());
+    return CA(utraj,this->wire(),ca.hint(),ca.precision());
   }
 
   template<class KTRAJ> void SimpleWireHit<KTRAJ>::print(std::ostream& ost, int detail) const {
