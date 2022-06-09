@@ -95,11 +95,7 @@ namespace KinKal {
         mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
         // compute the unbiased closest approach.  This is brute-force
         // a more clever solution is to linearly correct the residuals for the change in parameters
-        auto const& ca = this->closestApproach();
-        auto uparams = HIT::unbiasedParameters();
-        KTRAJ utraj(uparams,ca.particleTraj());
-        CA uca(utraj,this->wire(),ca.hint(),ca.precision());
-        //
+        auto uca = this->unbiasedClosestApproach();
         whstate = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }

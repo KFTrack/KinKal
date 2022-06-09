@@ -38,6 +38,7 @@ namespace KinKal {
       virtual double nullOffset(Dimension dim,DriftInfo const& dinfo) const = 0;
       // WireHit specific functions
       auto const& closestApproach() const { return tpca_; }
+      CA unbiasedClosestApproach() const;
       auto const& hitState() const { return whstate_; }
       auto const& wire() const { return wire_; }
       auto const& bfield() const { return bfield_; }
@@ -66,6 +67,13 @@ namespace KinKal {
     tpca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()) {
     }
 
+  template <class KTRAJ> ClosestApproach<KTRAJ,Line> WireHit<KTRAJ>::unbiasedClosestApproach() const {
+    // compute the unbiased closest approach; this is brute force, but works
+    auto const& ca = this->closestApproach();
+    auto uparams = HIT::unbiasedParameters();
+    KTRAJ utraj(uparams,ca.particleTraj());
+    return CA(utraj,this->wire(),ca.hint(),ca.precision());
+  }
 
   template <class KTRAJ> void WireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
@@ -84,6 +92,7 @@ namespace KinKal {
       auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
       VEC3 dvec = tpca_.delta().Vect();
       double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
+      //use reference DOCA to set drift info, as that's what the residual expects (relative to reference parameters)
       POL2 drift(fabs(tpca_.doca()), phi);
       DriftInfo dinfo;
       distanceToTime(drift, dinfo);
@@ -109,6 +118,7 @@ namespace KinKal {
         // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {
+      // inactive residuals
       rresid_[tresid] = rresid_[dresid] = Residual();
     }
   }
