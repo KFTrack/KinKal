@@ -58,7 +58,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using EXING = ElementXing<KTRAJ>;
   using EXINGPTR = std::shared_ptr<EXING>;
   using EXINGCOL = std::vector<EXINGPTR>;
-  using STRAWHIT = WireHit<KTRAJ>;
+  using STRAWHIT = SimpleWireHit<KTRAJ>;
   using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;

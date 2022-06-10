@@ -7,7 +7,6 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/StrawXingConfig.hh"
-#include "KinKal/Detector/WireHit.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
