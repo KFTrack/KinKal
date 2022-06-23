@@ -69,7 +69,8 @@ namespace KinKal {
 
   template <class KTRAJ> void ParameterHit<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     weight_ = pweight_; // do this in 2 steps to avoid SMatrix caching issue
-    weight_ *= 1.0/miconfig.varianceScale();
+    double varscale = (1.0+miconfig.temperature())*(1.0+miconfig.temperature());
+    weight_ *= 1.0/varscale; // weight is inverse of variance
   }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {

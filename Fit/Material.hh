@@ -39,17 +39,12 @@ namespace KinKal {
       auto const& elementXingPtr() const { return exing_; }
       auto const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
     private:
-      // update the local cache representing the effect of this material on the reference parameters
-      void updateCache();
       EXINGPTR exing_; // element crossing for this effect
       Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
-      double vscale_; // variance factor due to annealing 'temperature'
   };
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PTRAJ const& ptraj) : exing_(dxing),
-  vscale_(1.0) {
-  }
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PTRAJ const& ptraj) : exing_(dxing) {}
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(exing_->active()){
@@ -66,17 +61,13 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
-    if(first)vscale_ = miconfig.varianceScale();
     exing_->updateState(miconfig,first);
-    updateCache();
-  }
-
-  template<class KTRAJ> void Material<KTRAJ>::updateCache() {
     // reset the weight
     cache_ = Weights();
     // reset parameters before rebuilding from scratch
     mateff_ = Parameters();
     if(exing_->active()){
+      double varscale = (1.0+miconfig.temperature())*(1.0+miconfig.temperature()); // should be linear FIXME!
       // loop over the momentum change basis directions, adding up the effects on parameters from each
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
       exing_->materialEffects(TimeDir::forwards, dmom, momvar);
@@ -95,7 +86,7 @@ namespace KinKal {
         mateff_.parameters() += pder*dmom[idir];
         // now the variance: this doesn't depend on time direction
         ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-        MVar(0,0) = momvar[idir]*vscale_;
+        MVar(0,0) = momvar[idir]*varscale;
         mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
       }
     }

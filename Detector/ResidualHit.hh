@@ -22,6 +22,8 @@ namespace KinKal {
       // reference residuals for this hit.  ires indexs the measurement and is hit-specific, outside the range will throw
       // this is generally biased as the refefence includes the effect of this hit
       virtual Residual const& refResidual(unsigned ires) const = 0;
+      // nominal variance scale for each residual
+      virtual double varianceScale(unsigned ires) const = 0;
       // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
       // unbiased residuals WRT the reference parameters; computed from the reference
@@ -90,6 +92,8 @@ namespace KinKal {
         ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
         // weight by inverse variance
         double mvar = resid.measurementVariance();
+        // include annealing temp
+        mvar += varianceScale(ires)*miconfig.temperature();
         RVarM(0,0) = 1.0/mvar;
         // expand these into the weight matrix
         DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
@@ -100,8 +104,6 @@ namespace KinKal {
         weight_ += Weights(wvec,wmat);
       }
     }
-    // now scale by the temp; need to test if this should be additive TODO
-    weight_ *= 1.0/miconfig.varianceScale();
   }
 }
 
