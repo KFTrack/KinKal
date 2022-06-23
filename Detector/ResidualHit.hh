@@ -14,11 +14,9 @@ namespace KinKal {
       using HIT = Hit<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       bool active() const override { return nDOF() > 0; }
-      Chisq chisq(Parameters const& params) const override;
-      void updateWeight(MetaIterConfig const& config) override;
-      Weights const& weight() const override { return weight_; }
-      // ResidualHit specific interface.
       unsigned nDOF() const override;
+      Chisq chisq(Parameters const& params) const override;
+      Weights const& weight() const override { return weight_; }
       // describe residuals associated with this hit
       virtual unsigned nResid() const = 0;
       // reference residuals for this hit.  ires indexs the measurement and is hit-specific, outside the range will throw
@@ -30,7 +28,10 @@ namespace KinKal {
       Residual residual(unsigned ires) const;
       // unbiased pull of this residual (including the uncertainty on the reference parameters)
       double pull(unsigned ires) const;
+    protected:
       ResidualHit() {}
+      // ResidualHit specific interface
+      void updateWeight(MetaIterConfig const& config);
     private:
       Weights weight_; // weight of this hit computed from the residuals
   };

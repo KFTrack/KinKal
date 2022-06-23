@@ -32,8 +32,7 @@ namespace KinKal {
       virtual KTRAJPTR const& refTrajPtr() const = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void updateState(MetaIterConfig const& config,bool first) = 0;
-       // update the weight
-      virtual void updateWeight(MetaIterConfig const& config) = 0;
+      // The following provides the constraint/information content of this hit in the trajectory weight space
       virtual Weights const& weight() const = 0;
       KTRAJ const& referenceTrajectory() const { return *refTrajPtr(); }  // trajectory WRT which the weight etc is defined
       // parameters WRT which this hit's residual and weights are set.  These are generally biased

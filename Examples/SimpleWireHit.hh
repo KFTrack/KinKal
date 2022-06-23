@@ -5,8 +5,7 @@
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
-#include "KinKal/Detector/ResidualHit.hh"
-#include "KinKal/Detector/WireHitStructs.hh"
+#include "KinKal/Examples/WireHitStructs.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -134,11 +133,6 @@ namespace KinKal {
         whstate_ = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }
-    // update residuals
-    this->updateResiduals();
-  }
-
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateResiduals() {
     if(whstate_.active()){
       // compute drift parameters.  These are used even for null-ambiguity hits
       VEC3 bvec = bfield_.fieldVect(ca_.particlePoca().Vect());
@@ -172,6 +166,8 @@ namespace KinKal {
     } else {
       rresid_[tresid] = rresid_[dresid] = Residual();
     }
+ // now update the weight
+    this->updateWeight(miconfig);
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
