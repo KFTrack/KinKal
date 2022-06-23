@@ -339,7 +339,7 @@ namespace KinKal {
 
   // single algebraic iteration
   template <class KTRAJ> void Track<KTRAJ>::iterate(MetaIterConfig const& miconfig) {
-    if(config().plevel_ >= Config::complete)std::cout << "Processing fit iteration " << fitStatus().iter_ << std::endl;
+    if(config().plevel_ >= Config::basic)std::cout << "Processing fit iteration " << fitStatus().iter_ << std::endl;
     // update the effects for this configuration; this will sort the effects and find the iteration bounds
     bool first = status().iter_ == 0; // 1st iteration of a meta-iteration: update the effect internals
     for(auto& ieff : effects_ ) ieff->updateState(miconfig,first);
@@ -352,9 +352,10 @@ namespace KinKal {
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(feff->get());
 //      if(kkmeas && kkmeas->active())ndof += kkmeas->hit()->nDOF();
-      if(kkmeas && kkmeas->active())ndof++; // this is more conservative than the above
+      if(kkmeas && kkmeas->active())ndof++; // this is more conservative than the above, but still not a complete test, since some measurements
+      // have redundant DOFs.FIXME
     }
-    if(ndof > (int)config().minndof_) {
+    if(ndof >= (int)config().minndof_) {
       // initialize the fit state to be used in this iteration, deweighting as specified.  Not sure if using variance scale is right TODO
       // To be consistent with hit errors I should scale by the ratio of current to previous temperature FIXME
       FitStateArray states;
@@ -367,9 +368,9 @@ namespace KinKal {
         status().chisq_ += dchisq;
         // process
         effptr->process(states[0],TimeDir::forwards);
-        if(config().plevel_ >= Config::detailed){
-          std::cout << "Chisq total " << status().chisq_ << " increment " << dchisq << " ";
-          effptr->print(std::cout,config().plevel_);
+        if(config().plevel_ >= Config::detailed && dchisq.nDOF() > 0){
+          std::cout << "Chisq increment " << dchisq << " ";
+          effptr->print(std::cout,config().plevel_-Config::detailed);
         }
       }
       for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
@@ -393,7 +394,8 @@ namespace KinKal {
       // prepare for the next iteration: first, update the references for effects outside the fit range
       // (the ones inside the range were updated above in 'append')
       if(status().usable()){
-        // first, set the effects to reference the current traj
+        // update the effects beyond the fit range to reference the current traj.  The effects in the fit
+        // range were updated in 'append
         for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
           feff->get()->updateReference(ptraj->nearestTraj(feff->get()->time()));
         for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff)
@@ -401,6 +403,7 @@ namespace KinKal {
       }
       // now all effects reference the new traj: we can swap it with the old
       fittraj_.swap(ptraj);
+      if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
     } else {
       status().chisq_ = Chisq(-1.0,ndof);
       status().status_ = Status::lowNDOF;
@@ -444,11 +447,17 @@ namespace KinKal {
       prevstat++;
       dchisq = fitStatus().chisq_.chisqPerNDOF() - prevstat->chisq_.chisqPerNDOF();
     }
-    // test chisquared and update status
-    if (dpchisqfront > config().pdchi2_ || dpchisqback > config().pdchi2_) {
+    // check gap
+    size_t igap;
+    double maxgap,avggap;
+    ptraj-> gaps(maxgap,igap,avggap);
+    // test and update status
+    if(avggap > config().divgap_ ) {
+      status().status_ = Status::gapdiverged;
+    } else if (dpchisqfront > config().pdchisq_ || dpchisqback > config().pdchisq_) {
       status().status_ = Status::paramsdiverged;
     } else if (dchisq > config().divdchisq_) {
-      status().status_ = Status::diverged;
+      status().status_ = Status::chisqdiverged;
     } else if (status().chisq_.nDOF() < (int)config().minndof_){
       status().status_ = Status::lowNDOF;
     } else if(fabs(dchisq) < config().convdchisq_) {

@@ -99,7 +99,7 @@ namespace KinKal {
         weight_ += Weights(wvec,wmat);
       }
     }
-    // now scale by the temp
+    // now scale by the temp; need to test if this should be additive TODO
     weight_ *= 1.0/miconfig.varianceScale();
   }
 }

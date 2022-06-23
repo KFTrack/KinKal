@@ -75,8 +75,8 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Measurement<KTRAJ> const& kkhit) {
-    kkhit.print(ost,0);
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Measurement<KTRAJ> const& measurement) {
+    measurement.print(ost,0);
     return ost;
   }
 

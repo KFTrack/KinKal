@@ -5,7 +5,8 @@ namespace KinKal {
       << " dweight " << kkconfig.dwt_
       << " converge dchisq/dof " << kkconfig.convdchisq_
       << " diverge dchisq/dof " << kkconfig.divdchisq_
-      << " dpar chisq " << kkconfig.pdchi2_
+      << " diverge dpar chisq " << kkconfig.pdchisq_
+      << " diverge traj gap (mm) " << kkconfig.divgap_
       << " fractional momentum tolerance " << kkconfig.tol_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
