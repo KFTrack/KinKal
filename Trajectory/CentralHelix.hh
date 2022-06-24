@@ -94,6 +94,7 @@ namespace KinKal {
 
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
+      double parameterSign() const { return copysign(1.0,omega()); }
       double pbar() const { return 1./ (omega() * cosDip() ); } // momentum in mm
       double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }

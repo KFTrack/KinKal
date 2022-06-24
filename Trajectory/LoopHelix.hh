@@ -88,6 +88,7 @@ namespace KinKal {
       ParticleStateEstimate stateEstimate(double time) const;
       // simple functions
       double sign() const { return copysign(1.0,charge()); } // charge sign
+      double parameterSign() const { return copysign(1.0,rad()); }
       // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
       double helicity() const { return copysign(1.0,lam()); }
       double pbar2() const { return  rad()*rad() + lam()*lam(); }
