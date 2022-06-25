@@ -22,9 +22,9 @@ namespace KinKal {
       // reference residuals for this hit.  ires indexs the measurement and is hit-specific, outside the range will throw
       // this is generally biased as the refefence includes the effect of this hit
       virtual Residual const& refResidual(unsigned ires) const = 0;
-      // nominal variance scale for each residual
-      virtual double varianceScale(unsigned ires) const = 0;
-      // residuals corrected to refer to the given set of parameters (1st-order)
+      // calculate the weight WRT the reference residuals
+      Weights residualWeight(KinKal::MetaIterConfig const& miconfig,unsigned ires) const;
+     // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
       // unbiased residuals WRT the reference parameters; computed from the reference
       Residual residual(unsigned ires) const;
@@ -79,30 +79,33 @@ namespace KinKal {
     return retval;
   }
 
+  template <class KTRAJ> Weights ResidualHit<KTRAJ>::residualWeight(KinKal::MetaIterConfig const& miconfig, unsigned ires) const {
+    auto const& resid = refResidual(ires); // must use residuals WRT Reference params for the KF math to work
+    if(resid.active()){
+      // convert derivatives vector to a Nx1 matrix
+      ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
+      dRdPM.Place_in_col(resid.dRdP(),0,0);
+      // convert the variance into a 1X1 matrix
+      ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
+      // weight by inverse variance, modulated by annealing temp.
+      double mvar = resid.measurementVariance()*miconfig.varianceScale();
+      RVarM(0,0) = 1.0/mvar;
+      // expand these into the weight matrix
+      DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
+      // translate residual value into weight vector WRT the reference parameters
+      // sign convention reflects resid = measurement - prediction
+      DVEC wvec = wmat*HIT::referenceParameters().parameters() + resid.dRdP()*resid.value()/mvar;
+      // weights are linearly additive
+      return Weights(wvec,wmat);
+    } else
+      return Weights();
+  }
+
   template <class KTRAJ> void ResidualHit<KTRAJ>::updateWeight(MetaIterConfig const& miconfig) {
-    // start with a null weight
+    // start by zeroing the weight, then augment with each residual's weight
     weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
-      auto const& resid = refResidual(ires); // must use residuals WRT Reference params for the KF math to work
-      if(resid.active()){
-        // convert derivatives vector to a Nx1 matrix
-        ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
-        dRdPM.Place_in_col(resid.dRdP(),0,0);
-        // convert the variance into a 1X1 matrix
-        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> RVarM;
-        // weight by inverse variance
-        double mvar = resid.measurementVariance();
-        // include annealing temp
-        mvar += varianceScale(ires)*miconfig.temperature();
-        RVarM(0,0) = 1.0/mvar;
-        // expand these into the weight matrix
-        DMAT wmat = ROOT::Math::Similarity(dRdPM,RVarM);
-        // translate residual value into weight vector WRT the reference parameters
-        // sign convention reflects resid = measurement - prediction
-        DVEC wvec = wmat*HIT::referenceParameters().parameters() + resid.dRdP()*resid.value()/mvar;
-        // weights are linearly additive
-        weight_ += Weights(wvec,wmat);
-      }
+      if(refResidual(ires).active())weight_ += residualWeight(miconfig,ires);
     }
   }
 }

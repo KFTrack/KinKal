@@ -25,7 +25,6 @@ namespace KinKal {
       KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
       void updateState(MetaIterConfig const& config,bool first) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      double varianceScale(unsigned ires) const override { return tvar_; }
      // scintHit explicit interface
       ScintHit(PCA const& pca, double tvar, double wvar);
       virtual ~ScintHit(){}

@@ -359,8 +359,7 @@ namespace KinKal {
       // initialize the fit state to be used in this iteration, deweighting as specified.  Not sure if using variance scale is right TODO
       // To be consistent with hit errors I should scale by the ratio of current to previous temperature.  Or maybe skip this?? FIXME
       FitStateArray states;
-      double varscale = (1.0+miconfig.temperature())*(1.0+miconfig.temperature());
-      initFitState(states, config().dwt_/varscale);
+      initFitState(states, config().dwt_/miconfig.varianceScale());
       // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
       for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
         auto effptr = feff->get();

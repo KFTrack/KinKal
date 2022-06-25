@@ -33,7 +33,6 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // Use dedicated updater
       void updateState(MetaIterConfig const& config,bool first) override;
-      double varianceScale(unsigned ires) const override;
       // specific to SimpleWireHit: this has a constant drift speed
       double cellRadius() const { return rcell_; }
       double nullVariance(Dimension dim) const;
@@ -160,14 +159,6 @@ namespace KinKal {
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
     if(ires >dresid)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
-  }
-
-  template <class KTRAJ> double SimpleWireHit<KTRAJ>::varianceScale(unsigned ires) const {
-    if(ires >dresid)throw std::invalid_argument("Invalid residual");
-    if(whstate_.useDrift() && ires == tresid)
-      return tvar_;
-    else
-      return nullVariance((Dimension)ires);
   }
 
  template <class KTRAJ> ClosestApproach<KTRAJ,Line> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
