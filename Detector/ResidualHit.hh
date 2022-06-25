@@ -23,7 +23,7 @@ namespace KinKal {
       // this is generally biased as the refefence includes the effect of this hit
       virtual Residual const& refResidual(unsigned ires) const = 0;
       // calculate the weight WRT the reference residuals
-      Weights residualWeight(KinKal::MetaIterConfig const& miconfig,unsigned ires) const;
+      Weights residualWeight(KinKal::MetaIterConfig const& miconfig,Residual const& resid) const;
      // residuals corrected to refer to the given set of parameters (1st-order)
       Residual residual(Parameters const& params, unsigned ires) const;
       // unbiased residuals WRT the reference parameters; computed from the reference
@@ -79,8 +79,7 @@ namespace KinKal {
     return retval;
   }
 
-  template <class KTRAJ> Weights ResidualHit<KTRAJ>::residualWeight(KinKal::MetaIterConfig const& miconfig, unsigned ires) const {
-    auto const& resid = refResidual(ires); // must use residuals WRT Reference params for the KF math to work
+  template <class KTRAJ> Weights ResidualHit<KTRAJ>::residualWeight(KinKal::MetaIterConfig const& miconfig, Residual const& resid) const {
     if(resid.active()){
       // convert derivatives vector to a Nx1 matrix
       ROOT::Math::SMatrix<double,NParams(),1> dRdPM;
@@ -105,7 +104,8 @@ namespace KinKal {
     // start by zeroing the weight, then augment with each residual's weight
     weight_ = Weights();
     for(unsigned ires=0; ires< nResid(); ires++) {
-      if(refResidual(ires).active())weight_ += residualWeight(miconfig,ires);
+      auto const& resid = refResidual(ires);
+      if(resid.active())weight_ += residualWeight(miconfig,resid);
     }
   }
 }
