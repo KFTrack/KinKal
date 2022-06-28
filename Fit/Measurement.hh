@@ -48,8 +48,6 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     // update the hit's internal state; the actual update depends on the hit
     hit_->updateState(miconfig,first);
-    // then update the weight to use in the next processing
-    hit_->updateWeight(miconfig);
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -75,8 +73,8 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Measurement<KTRAJ> const& kkhit) {
-    kkhit.print(ost,0);
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Measurement<KTRAJ> const& measurement) {
+    measurement.print(ost,0);
     return ost;
   }
 

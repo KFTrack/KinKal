@@ -5,10 +5,10 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
+#include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/ParameterHit.hh"
-#include "KinKal/Detector/ScintHit.hh"
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
@@ -121,7 +121,7 @@ int makeConfig(string const& cfile, KinKal::Config& config) {
       istringstream ss(line);
       if(plevel < 0) {
         ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
-        config.pdchi2_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
+        config.pdchisq_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
         config.ends_ >> plevel;
         config.plevel_ = Config::printLevel(plevel);
       } else {
@@ -641,7 +641,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TH1F* mmompull = new TH1F("mmompull","Mid Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     TH1F* bmompull = new TH1F("bmompull","Back Momentum Pull;#Delta P/#sigma _{p}",100,-nsig,nsig);
     double duration (0.0);
-    unsigned nfail(0), ndiv(0), npdiv(0), nlow(0), nconv(0), nuconv(0);
+    unsigned nfail(0), ndiv(0), ndgap(0), npdiv(0), nlow(0), nconv(0), nuconv(0);
 
     for(unsigned ievent=0;ievent<nevents;ievent++){
       if( (ievent % iprint) == 0) cout << "event " << ievent << endl;
@@ -700,8 +700,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       if(fstat.status_ == Status::converged)nconv++;
       if(fstat.status_ == Status::unconverged)nuconv++;
       if(fstat.status_ == Status::lowNDOF)nlow++;
-      if(fstat.status_ == Status::diverged)ndiv++;
+      if(fstat.status_ == Status::chisqdiverged)ndiv++;
       if(fstat.status_ == Status::paramsdiverged)npdiv++;
+      if(fstat.status_ == Status::gapdiverged)ndgap++;
       niter_ = 0;
       for(auto const& fstat: kktrk.history()){
         if(fstat.status_ != Status::unfit)niter_++;
@@ -979,7 +980,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       << nuconv << " Unconverged fits "
       << nfail << " Failed fits "
       << nlow << " low NDOF fits "
-      << ndiv << " Diverged fits "
+      << ndiv << " ChisqDiverged fits "
+      << ndgap << " GapDiverged fits "
       << npdiv << " ParameterDiverged fits " << endl;
     hnfail->Fill(nfail);
     hndiv->Fill(ndiv);

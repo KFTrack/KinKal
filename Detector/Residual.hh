@@ -7,6 +7,7 @@
 //
 #include <ostream>
 #include "KinKal/General/Vectors.hh"
+#include "KinKal/General/Weights.hh"
 
 namespace KinKal {
   class Residual {
@@ -22,6 +23,8 @@ namespace KinKal {
       double pull() const { return chi(); }
       unsigned nDOF() const { return active_ ? 1 : 0; }
       bool active() const { return active_; }
+      // calculate the weight WRT some parameters implied by this residual.  Optionally scale the variance
+      Weights weight(DVEC const& params, double varscale=1.0) const;
       Residual(double value, double mvar, double pvar, bool active, DVEC const& dRdP) : value_(value), mvar_(mvar), pvar_(pvar), active_(active), dRdP_(dRdP){}
       Residual() : value_(0.0), mvar_(-1.0), pvar_(-1.0), active_(false) {}
     private:

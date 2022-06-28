@@ -5,8 +5,7 @@
 //
 #include "KinKal/Detector/ResidualHit.hh"
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
-#include "KinKal/Detector/ResidualHit.hh"
-#include "KinKal/Detector/WireHitStructs.hh"
+#include "KinKal/Examples/WireHitStructs.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -35,10 +34,9 @@ namespace KinKal {
       // Use dedicated updater
       void updateState(MetaIterConfig const& config,bool first) override;
       // specific to SimpleWireHit: this has a constant drift speed
-      void distanceToTime(POL2 const& drift, DriftInfo& dinfo) const;
       double cellRadius() const { return rcell_; }
-      double nullVariance(Dimension dim,DriftInfo const& dinfo) const;
-      double nullOffset(Dimension dim,DriftInfo const& dinfo) const;
+      double nullVariance(Dimension dim) const;
+      double nullOffset(Dimension dim) const;
       virtual ~SimpleWireHit(){}
       double driftVelocity() const { return dvel_; }
       double timeVariance() const { return tvar_; }
@@ -90,28 +88,21 @@ namespace KinKal {
     if(!ca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::distanceToTime(POL2 const& drift, DriftInfo& dinfo) const {
-    // simply translate distance to time using the fixed velocity
-    dinfo.tdrift_ = drift.R()/dvel_;
-    dinfo.vdrift_ = dvel_;
-    dinfo.tdriftvar_ = tvar_;
-  }
-
-  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullVariance(Dimension dim,DriftInfo const& dinfo) const {
+  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullVariance(Dimension dim) const {
     switch (dim) {
       case dresid: default:
         return (mindoca_*mindoca_)/3.0; // doca is signed
       case tresid:
-        return (mindoca_*mindoca_)/(dinfo.vdrift_*dinfo.vdrift_*12.0); // TOCA is always larger than the crossing time
+        return (mindoca_*mindoca_)/(dvel_*dvel_*12.0); // TOCA is always larger than the crossing time
     }
   }
 
-  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullOffset(Dimension dim,DriftInfo const& dinfo) const {
+  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullOffset(Dimension dim) const {
     switch (dim) {
       case dresid: default:
-        return 0.0; // not sure if there's a better answer
+        return 0.0;
       case tresid:
-        return -0.5*mindoca_/dinfo.vdrift_;
+        return -0.5*mindoca_/dvel_;
     }
   }
 
@@ -134,48 +125,39 @@ namespace KinKal {
         whstate_ = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }
-    // update residuals
-    this->updateResiduals();
-  }
-
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateResiduals() {
     if(whstate_.active()){
-      // compute drift parameters.  These are used even for null-ambiguity hits
-      VEC3 bvec = bfield_.fieldVect(ca_.particlePoca().Vect());
-      auto pdir = bvec.Cross(wire_.direction()).Unit(); // direction perp to wire and BFieldMap
-      VEC3 dvec = ca_.delta().Vect();
-      double phi = asin(double(dvec.Unit().Dot(pdir))); // azimuth around the wire WRT the BField
-      POL2 drift(fabs(ca_.doca()), phi);
-      DriftInfo dinfo;
-      distanceToTime(drift, dinfo);
+     // simply translate distance to time using the fixed velocity
+      double tdrift = fabs(ca_.doca())/dvel_;
       if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
         double dsign = whstate_.lrSign()*ca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
-        double dt = ca_.deltaT()-dinfo.tdrift_*dsign;
+        double dt = ca_.deltaT()-tdrift*dsign;
         // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-        DVEC dRdP = ca_.dDdP()*dsign/dinfo.vdrift_ - ca_.dTdP();
-        rresid_[tresid] = Residual(dt,dinfo.tdriftvar_,0.0,true,dRdP);
+        DVEC dRdP = ca_.dDdP()*dsign/dvel_ - ca_.dTdP();
+        rresid_[tresid] = Residual(dt,tvar_,0.0,true,dRdP);
         rresid_[dresid] = Residual();
       } else {
         // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
         DVEC dRdP = -ca_.lSign()*ca_.dDdP();
-        double dd = ca_.doca() + nullOffset(dresid,dinfo);
-        double nulldvar = nullVariance(dresid,dinfo);
+        double dd = ca_.doca() + nullOffset(dresid);
+        double nulldvar = nullVariance(dresid);
         rresid_[dresid] = Residual(dd,nulldvar,0.0,true,dRdP);
         //  interpret TOCA as a residual
-        double dt = ca_.deltaT() + nullOffset(tresid,dinfo);
+        double dt = ca_.deltaT() + nullOffset(tresid);
         // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
-        double nulltvar = dinfo.tdriftvar_ + nullVariance(tresid,dinfo);
+        double nulltvar = tvar_ + nullVariance(tresid);
         rresid_[tresid] = Residual(dt,nulltvar,0.0,true,-ca_.dTdP());
         // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {
       rresid_[tresid] = rresid_[dresid] = Residual();
     }
+ // now update the weight
+    this->updateWeight(miconfig);
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
-    if(ires >=2)throw std::invalid_argument("Invalid residual");
+    if(ires >dresid)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
   }
 

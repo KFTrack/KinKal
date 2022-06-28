@@ -9,12 +9,14 @@ namespace KinKal {
         return "Unconverged ";
       case Status::converged:
         return "Converged ";
-      case Status::diverged:
-        return "Diverged ";
+      case Status::chisqdiverged:
+        return "Chi2Diverged ";
+      case Status::paramsdiverged:
+        return "ParamsDiverged ";
+      case Status::gapdiverged:
+        return "GapDiverged ";
       case Status::lowNDOF:
         return "LowNDOF ";
-      case Status::paramsdiverged:
-        return "ParametersDiverged ";
       case Status::failed:
         return "Failed ";
     }

@@ -1,7 +1,7 @@
 #ifndef KinKal_DOCAWireHitUpdater_hh
 #define KinKal_DOCAWireHitUpdater_hh
 // simple WireHit updater based on DOCA
-#include "KinKal/Detector/WireHitStructs.hh"
+#include "KinKal/Examples/WireHitStructs.hh"
 namespace KinKal {
   class DOCAWireHitUpdater {
     public:

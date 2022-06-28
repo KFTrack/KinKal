@@ -21,8 +21,7 @@ namespace KinKal {
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
       double time() const override { return time_; }
-      void updateState(MetaIterConfig const& config,bool first) override {} // nothing to do here
-      void updateWeight(MetaIterConfig const& config) override;
+      void updateState(MetaIterConfig const& config,bool first) override;
       Weights const& weight() const override { return weight_; }
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -67,9 +66,10 @@ namespace KinKal {
       DVEC wreduced = wvec*mask_;
       pweight_ = Weights(wreduced, wmat);
     }
-  template <class KTRAJ> void ParameterHit<KTRAJ>::updateWeight(MetaIterConfig const& miconfig) {
+
+  template <class KTRAJ> void ParameterHit<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     weight_ = pweight_; // do this in 2 steps to avoid SMatrix caching issue
-    weight_ *= 1.0/miconfig.varianceScale();
+    weight_ *= 1.0/miconfig.varianceScale(); // weight is inverse of variance
   }
 
   template <class KTRAJ> Chisq ParameterHit<KTRAJ>::chisq(Parameters const& pdata) const {

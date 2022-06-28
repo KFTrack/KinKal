@@ -17,9 +17,8 @@ namespace KinKal {
       // add updater
       void addUpdater(std::any const& updater) { updaters_.push_back(updater); }
       // accessors
-      double temperature() const { return temp_; }
-      // interpret temperature as a variance
-      double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scale so that temp=0 means no additional variance
+      double temperature() const { return temp_; } // dimensionless parameter interpreted Additively, scaled by the relevant parameter error
+      double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scaling factor
       size_t nUpdaters() const { return updaters_.size(); }
       // find a particular updater: note that at most 1 of a type is allowed for a given meta-iteration
       template<class UPDATER> const UPDATER* findUpdater() const;

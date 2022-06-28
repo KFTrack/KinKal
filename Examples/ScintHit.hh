@@ -25,7 +25,7 @@ namespace KinKal {
       KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
       void updateState(MetaIterConfig const& config,bool first) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      // scintHit explicit interface
+     // scintHit explicit interface
       ScintHit(PCA const& pca, double tvar, double wvar);
       virtual ~ScintHit(){}
       // the line encapsulates both the measurement value (through t0), and the light propagation model (through the velocity)
@@ -85,6 +85,7 @@ namespace KinKal {
     double dd2 = tpca_.dirDot()*tpca_.dirDot();
     double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
     rresid_ = Residual(tpca_.deltaT(),totvar,0.0,true,-tpca_.dTdP());
+    this->updateWeight(config);
   }
 
   template<class KTRAJ> void ScintHit<KTRAJ>::print(std::ostream& ost, int detail) const {
