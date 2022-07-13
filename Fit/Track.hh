@@ -399,8 +399,6 @@ namespace KinKal {
       // prepare for the next iteration: first, update the references for effects outside the fit range
       // (the ones inside the range were updated above in 'append')
       if(status().usable()){
-        // update the effects beyond the fit range to reference the current traj.  The effects in the fit
-        // range were updated in 'append
         for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
           feff->get()->updateReference(ptraj->nearestTraj(feff->get()->time()));
         for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff)
