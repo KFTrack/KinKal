@@ -24,9 +24,11 @@ namespace KinKal {
       // ElementXing interface
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config,bool first) override;
+      Parameters parameters(TimeDir tdir) const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
       double transitTime() const override; // time to cross this element
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
+      std::vector<MaterialXing>const&  matXings() const override { return mxings_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // accessors
       auto const& closestApproach() const { return tpca_; }
@@ -39,21 +41,24 @@ namespace KinKal {
       CA tpca_; // result of most recent TPOCA
       double toff_; // small time offset
       StrawXingConfig sxconfig_;
-      // should add state for displaced wire/straw TODO
+      double varscale_; // variance scale
+      std::vector<MaterialXing> mxings_;
+      Parameters fparams_; // parameter change for forwards time
   };
 
   template <class KTRAJ> StrawXing<KTRAJ>::StrawXing(PCA const& pca, StrawMaterial const& smat) :
     axis_(pca.sensorTraj()),
     smat_(smat),
     tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
-    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())) // locate the effect to 1 side of the wire to avoid overlap with hits
+    toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire to avoid overlap with hits
+    varscale_(1.0)
   {}
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.range().mid(),axis_.range().mid());
     tpca_ = CA(ktrajptr,axis_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
- }
+  }
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     if(first) {
@@ -62,8 +67,45 @@ namespace KinKal {
       if(sxconfig != 0){
         sxconfig_ = *sxconfig;
       }
+      if(sxconfig_.scalevar_)
+        varscale_ = miconfig.varianceScale();
+      else
+        varscale_ = 1.0;
     }
-    smat_.findXings(tpca_.tpData(),sxconfig_,EXING::matXings());
+    smat_.findXings(tpca_.tpData(),sxconfig_,mxings_);
+    // reset
+    fparams_ = Parameters();
+    if(mxings_.size() > 0){
+      // compute the parameter effect for forwards time
+      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
+      this->materialEffects(TimeDir::forwards, dmom, momvar);
+      // get the parameter derivative WRT momentum
+      DPDV dPdM = referenceTrajectory().dPardM(time());
+      double mommag = referenceTrajectory().momentum(time());
+      // loop over the momentum change basis directions, adding up the effects on parameters from each
+      for(int idir=0;idir<MomBasis::ndir; idir++) {
+        auto mdir = static_cast<MomBasis::Direction>(idir);
+        auto dir = referenceTrajectory().direction(time(),mdir);
+        // project the momentum derivatives onto this direction
+        DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
+        // convert derivative vector to a Nx1 matrix
+        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
+        dPdm.Place_in_col(pder,0,0);
+        // update the transport for this effect; Forward time propagation corresponds to energy loss
+        fparams_.parameters() += pder*dmom[idir];
+        // now the variance: this doesn't depend on time direction
+        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
+        MVar(0,0) = momvar[idir]*varscale_;
+        fparams_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
+      }
+    }
+  }
+
+  template <class KTRAJ> Parameters StrawXing<KTRAJ>::parameters(TimeDir tdir) const {
+    if(tdir == TimeDir::forwards)
+      return fparams_;
+    else
+      return Parameters(-fparams_.parameters(),fparams_.covariance());
   }
 
   template <class KTRAJ> double StrawXing<KTRAJ>::transitTime() const {
@@ -73,7 +115,7 @@ namespace KinKal {
   template <class KTRAJ> void StrawXing<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost <<"Straw Xing time " << this->time();
     if(detail > 0){
-      for(auto const& mxing : this->matXings()){
+      for(auto const& mxing : mxings_){
         ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;
       }
     }
