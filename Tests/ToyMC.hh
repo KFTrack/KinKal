@@ -46,7 +46,7 @@ namespace KKTest {
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
-          miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6))); // updater to force exact straw xing material calculation
+          miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6,false))); // updater to force exact straw xing material calculation
         }
 
       // generate a straw at the given time.  direction and drift distance are random

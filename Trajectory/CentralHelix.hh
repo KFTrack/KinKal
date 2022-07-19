@@ -80,6 +80,7 @@ namespace KinKal {
 
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
+      double paramVar(size_t index) const { return pars_.covariance()(index,index); }
       Parameters const &params() const { return pars_; }
       Parameters &params() { return pars_; }
       double d0() const { return paramVal(d0_); }
@@ -95,6 +96,8 @@ namespace KinKal {
       // simple functions
       double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
       double parameterSign() const { return copysign(1.0,omega()); }
+      // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
+      double helicity() const { return copysign(1.0,tanDip()); } // needs to be checked TODO
       double pbar() const { return 1./ (omega() * cosDip() ); } // momentum in mm
       double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }

@@ -33,14 +33,12 @@ namespace KinKal {
       // create from the material and a trajectory
       Material(EXINGPTR const& dxing, PTRAJ const& ptraj);
       // accessors
-      auto const& effect() const { return mateff_; }
       auto const& cache() const { return cache_; }
       auto const& elementXing() const { return *exing_; }
       auto const& elementXingPtr() const { return exing_; }
       auto const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
     private:
       EXINGPTR exing_; // element crossing for this effect
-      Parameters mateff_; // parameter space description of this effect
       Weights cache_; // cache of weight processing in opposite directions, used to build the fit trajectory
   };
 
@@ -50,46 +48,21 @@ namespace KinKal {
     if(exing_->active()){
       // forwards, set the cache AFTER processing this effect
       if(tdir == TimeDir::forwards) {
-        kkdata.append(mateff_,tdir);
+        kkdata.append(exing_->parameters(tdir));
         cache_ += kkdata.wData();
       } else {
         // backwards, set the cache BEFORE processing this effect, to avoid double-counting it
         cache_ += kkdata.wData();
-        kkdata.append(mateff_,tdir);
+        kkdata.append(exing_->parameters(tdir));
       }
     }
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
+    // update the ElementXing
     exing_->updateState(miconfig,first);
-    // reset the weight
+    // reset the cached weights
     cache_ = Weights();
-    // reset parameters before rebuilding from scratch
-    mateff_ = Parameters();
-    if(exing_->active()){
-      double varscale = (1.0+miconfig.temperature())*(1.0+miconfig.temperature()); // should be linear FIXME!
-      // loop over the momentum change basis directions, adding up the effects on parameters from each
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      exing_->materialEffects(TimeDir::forwards, dmom, momvar);
-      // get the parameter derivative WRT momentum
-      DPDV dPdM = referenceTrajectory().dPardM(time());
-      double mommag = referenceTrajectory().momentum(time());
-      for(int idir=0;idir<MomBasis::ndir; idir++) {
-        auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = referenceTrajectory().direction(time(),mdir);
-        // project the momentum derivatives onto this direction
-        DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
-        // convert derivative vector to a Nx1 matrix
-        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-        dPdm.Place_in_col(pder,0,0);
-        // update the transport for this effect; first the parameters.  Note these are for forwards time propagation (ie energy loss)
-        mateff_.parameters() += pder*dmom[idir];
-        // now the variance: this doesn't depend on time direction
-        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-        MVar(0,0) = momvar[idir]*varscale;
-        mateff_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
-      }
-    }
   }
 
   template<class KTRAJ> void Material<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -123,8 +96,6 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "Material " << static_cast<Effect<KTRAJ>const&>(*this);
-    ost << " effect ";
-    effect().print(ost,detail-2);
     ost << " ElementXing ";
     exing_->print(ost,detail);
     if(detail >3){
