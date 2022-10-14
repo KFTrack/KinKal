@@ -22,7 +22,7 @@ class KinematicLine {
       d0_ = 0,
       phi0_ = 1,
       z0_ = 2,
-      cost_ = 3,
+      theta_ = 3,
       t0_ = 4,
       mom_ = 5,
       npars_ = 6
@@ -79,7 +79,7 @@ class KinematicLine {
     double d0() const { return paramVal(d0_); }
     double phi0() const { return paramVal(phi0_); }
     double z0() const { return paramVal(z0_); }
-    double cost() const { return paramVal(cost_); }
+    double theta() const { return paramVal(theta_); }
     double t0() const { return paramVal(t0_); }
     double mom() const { return paramVal(mom_); }
 
@@ -89,11 +89,12 @@ class KinematicLine {
 
     double translen(const double &f) const { return sinTheta() * f; }
     // simple functions
+    double cost() const { return cos(paramVal(theta_)); }
     double cosTheta() const { return cost(); }
     double sinTheta() const { return sqrt(1.0 - cost() * cost()); }
     double cosPhi0() const { return cos(phi0()); }
     double sinPhi0() const { return sin(phi0()); }
-    double theta() const { return acos(cost()); }
+
     double tanTheta() const { return sqrt(1.0 - cost() * cost()) / cost(); }
     VEC3 pos0() const { return VEC3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
     double flightLength(double t)const { return (t-t0())*speed(); }
