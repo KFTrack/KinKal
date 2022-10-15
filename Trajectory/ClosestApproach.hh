@@ -170,8 +170,10 @@ namespace KinKal {
       // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktrajptr_->dXdPar(particleToca());
       SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
-      dDdP_ = -dv*dxdp;
-      dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.
+      // note dDdP isn't signed by angular momentum: this is a convention missmatch FIXME
+      dDdP_ = -dv*dxdp;  // negative sign here is because delta is defined sensor-particle, while 'normal' doca is positive FIXME
+      dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.  This convention is unintuitive and
+      // argueably mathematically wrong, it should be 1.0 (100% correlated).  FIXME
       // project the parameter covariance onto DOCA and TOCA
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
       tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());
