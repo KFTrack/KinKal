@@ -173,7 +173,6 @@ namespace KinKal {
   DVDP KinematicLine::dXdPar(double time) const {
     double deltat = time-t0();
     double sinT = sinTheta();
-    //double cotT = 1.0/tanTheta();
     double cosT = cosTheta();
     double sinF = sin(phi0());
     double cosF = cos(phi0());
@@ -197,7 +196,6 @@ namespace KinKal {
   }
   DVDP KinematicLine::dMdPar(double time) const {
     double sinT = sinTheta();
-    //double cotT = 1.0/tanTheta();
     double cosT = cosTheta();
     double sinF = sin(phi0());
     double cosF = cos(phi0());
@@ -248,7 +246,6 @@ namespace KinKal {
     double xmt = pos.Dot(momt);
     double E = energy();
     SVEC3 dmom_dM(sinT*cosF, sinT*sinF, cosT);
-//    SVEC3 dtheta_dM = (1.0/mom())*(SVEC3(0.0,0.0,cosT) - cosT*dmom_dM);
     SVEC3 dtheta_dM = -1.0/sqrt(1-cosT*cosT)*((1.0/mom())*(SVEC3(0.0,0.0,1.0) - cosT*dmom_dM));
     SVEC3 dphi0_dM = (1.0/(mom()*sinT))*SVEC3(-sinF,cosF,0.0);
     SVEC3 dt0_dM = (1.0/(momt2*CLHEP::c_light))*(
