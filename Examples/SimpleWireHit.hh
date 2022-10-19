@@ -133,7 +133,7 @@ namespace KinKal {
         double dsign = whstate_.lrSign()*ca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
         double dt = ca_.deltaT()-tdrift*dsign;
         // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-        DVEC dRdP = ca_.dDdP()*dsign/dvel_ - ca_.dTdP();
+        DVEC dRdP = ca_.dDdP()*dsign/dvel_  + ca_.dTdP();
         rresid_[tresid] = Residual(dt,tvar_,0.0,true,dRdP);
         rresid_[dresid] = Residual();
       } else {
@@ -146,7 +146,7 @@ namespace KinKal {
         double dt = ca_.deltaT() + nullOffset(tresid);
         // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
         double nulltvar = tvar_ + nullVariance(tresid);
-        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,-ca_.dTdP());
+        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,ca_.dTdP());
         // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {
