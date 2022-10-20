@@ -131,8 +131,7 @@ namespace KinKal {
       if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
         double dt = ca_.deltaT()-tdrift*whstate_.lrSign()*ca_.lSign();
-        // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-        DVEC dRdP = -ca_.dDdP()*whstate_.lrSign()/dvel_  + ca_.dTdP();
+        DVEC dRdP = -ca_.dDdP()*whstate_.lrSign()/dvel_; // divide out the drift velocity to interpret residual as time
         rresid_[tresid] = Residual(dt,tvar_,0.0,true,dRdP);
         rresid_[dresid] = Residual();
       } else {
