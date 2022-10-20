@@ -116,7 +116,7 @@ namespace KinKal {
     // initialize TOCA using hints
     tpdata_.partCA_.SetE(hint.particleToca_);
     tpdata_.sensCA_.SetE(hint.sensorToca_);
-    static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter FIXME!
+    static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter TODO
     unsigned niter(0);
     // speed doesn't change
     double pspeed = ktrajptr_->speed(particleToca());
@@ -152,7 +152,7 @@ namespace KinKal {
         tpdata_.status_ = ClosestApproachData::converged;
       else
         tpdata_.status_ = ClosestApproachData::unconverged;
-      // need to add divergence and oscillation tests FIXME!
+      // need to add divergence and oscillation tests TODO
     }
     // final update
     tpdata_.partCA_ = ktrajptr_->position4(tpdata_.particleToca());
@@ -161,7 +161,7 @@ namespace KinKal {
     tpdata_.sdir_ = straj_.direction(sensorToca());
     // fill the rest of the state
     if(usable()){
-      // sign doca by angular momentum projected onto difference vector
+      // sign doca by angular momentum projected onto difference vector.  This is just a convention
       VEC3 dvec = delta().Vect();
       tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(particleDirection()).Dot(dvec));
       tpdata_.doca_ = dvec.R()*tpdata_.lsign_;
@@ -170,8 +170,7 @@ namespace KinKal {
       // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktrajptr_->dXdPar(particleToca());
       SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
-      // note dDdP isn't signed by angular momentum: this is a convention missmatch FIXME
-      dDdP_ = -dv*dxdp;  // negative sign here is because delta is defined sensor-particle, while 'normal' doca is positive FIXME
+      dDdP_ = tpdata_.lsign_*dv*dxdp;
       dTdP_[KTRAJ::t0Index()] = 1.0;  // TOCA is 100% correlated with t0
       // project the parameter covariance onto DOCA and TOCA
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
