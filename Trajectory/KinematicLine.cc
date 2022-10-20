@@ -17,12 +17,12 @@ namespace KinKal {
   typedef ROOT::Math::SVector<double,3> SVEC3;
   const vector<string> KinematicLine::paramTitles_ = {
     "Transverse DOCA to Z Axis (d_{0})", "Azimuth of POCA (#phi_{0})",
-    "Z at POCA (z_{0})", "Cos #theta", "Time at POCA (t_{0})", "Momentum"};
+    "Z at POCA (z_{0})", "#theta", "Time at POCA (t_{0})", "Momentum"};
 
   const vector<string> KinematicLine::paramNames_ = {"d_{0}", "#phi_{0}", "z_{0}",
-    "cos(#theta)", "t_{0}", "mom"};
+    "#theta", "t_{0}", "mom"};
 
-  const vector<string> KinematicLine::paramUnits_ = {"mm", "radians", "mm", "", "ns","MeV/c"};
+  const vector<string> KinematicLine::paramUnits_ = {"mm", "radians", "mm", "radians", "ns","MeV/c"};
 
   std::vector<std::string> const &KinematicLine::paramUnits() { return paramUnits_; }
   std::vector<std::string> const &KinematicLine::paramNames() { return paramNames_; }
@@ -62,7 +62,7 @@ namespace KinKal {
     param(d0_) = amsign*poca.dca(); // dca2d and dca are the same for POCA to the Z axis
     param(phi0_) = dir.Phi(); // same as at POCA
     param(z0_) = poca.point1().Z();
-    param(cost_) = dir.Z();
+    param(theta_) = acos(dir.Z());
     param(t0_) = pos0.T() - flen/speed;
     param(mom_) = mommag;
   }
@@ -173,7 +173,6 @@ namespace KinKal {
   DVDP KinematicLine::dXdPar(double time) const {
     double deltat = time-t0();
     double sinT = sinTheta();
-    double cotT = 1.0/tanTheta();
     double cosT = cosTheta();
     double sinF = sin(phi0());
     double cosF = cos(phi0());
@@ -182,7 +181,7 @@ namespace KinKal {
     SVEC3 dX_dd0(-sinF, cosF, 0.0);
     SVEC3 dX_dphi0 = (sinT*spd*deltat)*dX_dd0 - d0()*SVEC3(cosF,sinF,0.0);
     SVEC3 dX_dz0 (0.0,0.0,1.0);
-    SVEC3 dX_dcost = (spd*deltat)*SVEC3(-cotT*cosF,-cotT*sinF,1.0);
+    SVEC3 dX_dtheta = (spd*deltat)*SVEC3(cosT*cosF,cosT*sinF,-sinT);
     SVEC3 dX_dt0 = -spd*SVEC3(sinT*cosF,sinT*sinF,cosT);
     SVEC3 dX_dmom = -(deltat/(gam*gam*mom()))*dX_dt0;
 
@@ -190,26 +189,25 @@ namespace KinKal {
     dXdP.Place_in_col(dX_dd0,0,d0_);
     dXdP.Place_in_col(dX_dphi0,0,phi0_);
     dXdP.Place_in_col(dX_dz0,0,z0_);
-    dXdP.Place_in_col(dX_dcost,0,cost_);
+    dXdP.Place_in_col(dX_dtheta,0,theta_);
     dXdP.Place_in_col(dX_dt0,0,t0_);
     dXdP.Place_in_col(dX_dmom,0,mom_);
     return dXdP;
   }
   DVDP KinematicLine::dMdPar(double time) const {
     double sinT = sinTheta();
-    double cotT = 1.0/tanTheta();
     double cosT = cosTheta();
     double sinF = sin(phi0());
     double cosF = cos(phi0());
 
     // note: dMdd0 = dMdz0 = dMdt0 = 0
     SVEC3 dM_dphi0 = (mom()*sinT)*SVEC3(-sinF,cosF,0);
-    SVEC3 dM_dcost = mom()*SVEC3(-cotT*cosF,-cotT*sinF,1.0);
+    SVEC3 dM_dtheta = mom()*SVEC3(cosT*cosF,cosT*sinF,-sinT);
     SVEC3 dM_dmom = SVEC3(sinT*cosF,sinT*sinF,cosT);
 
     DVDP dMdP;
     dMdP.Place_in_col(dM_dphi0,0,phi0_);
-    dMdP.Place_in_col(dM_dcost,0,cost_);
+    dMdP.Place_in_col(dM_dtheta,0,theta_);
     dMdP.Place_in_col(dM_dmom,0,mom_);
     return dMdP;
   }
@@ -248,7 +246,7 @@ namespace KinKal {
     double xmt = pos.Dot(momt);
     double E = energy();
     SVEC3 dmom_dM(sinT*cosF, sinT*sinF, cosT);
-    SVEC3 dcost_dM = (1.0/mom())*(SVEC3(0.0,0.0,1.0) - cosT*dmom_dM);
+    SVEC3 dtheta_dM = -1.0/sqrt(1-cosT*cosT)*((1.0/mom())*(SVEC3(0.0,0.0,1.0) - cosT*dmom_dM));
     SVEC3 dphi0_dM = (1.0/(mom()*sinT))*SVEC3(-sinF,cosF,0.0);
     SVEC3 dt0_dM = (1.0/(momt2*CLHEP::c_light))*(
         xmt*( (2.0*E/momt2)*SVEC3(momv.X(),momv.Y(),0.0)
@@ -258,7 +256,7 @@ namespace KinKal {
     SVEC3 dd0_dM  = ( xmt/momt2 )* SVEC3(sinF, -cosF, 0.0);
     DPDV dPdM;
     dPdM.Place_in_row(dmom_dM,mom_,0);
-    dPdM.Place_in_row(dcost_dM,cost_,0);
+    dPdM.Place_in_row(dtheta_dM,theta_,0);
     dPdM.Place_in_row(dphi0_dM,phi0_,0);
     dPdM.Place_in_row(dz0_dM,z0_,0);
     dPdM.Place_in_row(dt0_dM,t0_,0);
