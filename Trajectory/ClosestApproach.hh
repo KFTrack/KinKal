@@ -138,11 +138,11 @@ namespace KinKal {
         tpdata_.status_ = ClosestApproachData::pocafailed;
         break;
       }
-      double hdd = dpos.Dot(particleDirection());
-      double ldd = dpos.Dot(sensorDirection());
+      double pdd = dpos.Dot(particleDirection());
+      double sdd = dpos.Dot(sensorDirection());
       // compute the change in times
-      dptoca = (hdd - ldd*ddot)/(denom*pspeed);
-      dstoca = (hdd*ddot - ldd)/(denom*sspeed);
+      dptoca = (pdd - sdd*ddot)/(denom*pspeed);
+      dstoca = (pdd*ddot - sdd)/(denom*sspeed);
       // update the TOCA estimates
       tpdata_.partCA_.SetE(particleToca()+dptoca);
       tpdata_.sensCA_.SetE(sensorToca()+dstoca);
@@ -168,10 +168,18 @@ namespace KinKal {
       VEC3 dvechat = dvec.Unit();
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
-      DVDP dxdp = ktrajptr_->dXdPar(particleToca());
-      SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
-      dDdP_ = tpdata_.lsign_*dv*dxdp;
-      dTdP_[KTRAJ::t0Index()] = 1.0;  // TOCA is 100% correlated with t0
+      DVDP dxdp = ktrajptr_->dXdPar(particleToca()); // position change WRT parameters
+      DVDP dmdp = ktrajptr_->dMdPar(particleToca())/ktrajptr_->momentum(particleToca());// momentum direction change WRT parameters
+      // change in particle DOCA WRT parametes
+      SVEC3 dvh(dvechat.X(),dvechat.Y(),dvechat.Z());
+      dDdP_ = tpdata_.lsign_*dvh*dxdp; // this has additional terms from dMdPar TODO
+      // change in particle TOCA WRT parameters
+      SVEC3 dv(dvec.X(),dvec.Y(),dvec.Z());
+      double dd = dirDot();
+      VEC3 perpdir = dd*sensorDirection() - particleDirection();
+      SVEC3 pd(perpdir.X(),perpdir.Y(),perpdir.Z());
+      double denom = std::max(1e-5,1.0-dd*dd); // protect against tracks parallel to sensors
+      dTdP_ =  (1.0/(pspeed*denom)) * (pd*dxdp + dv*dmdp);
       // project the parameter covariance onto DOCA and TOCA
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
       tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());

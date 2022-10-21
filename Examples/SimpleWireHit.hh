@@ -126,14 +126,13 @@ namespace KinKal {
       }
     }
     if(whstate_.active()){
-     // simply translate distance to time using the fixed velocity
-      double tdrift = fabs(ca_.doca())/dvel_;
       if(whstate_.useDrift()){
-        // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
-        double dt = ca_.deltaT()-tdrift*whstate_.lrSign()*ca_.lSign();
-        DVEC dRdP = -ca_.dDdP()*whstate_.lrSign()/dvel_; // divide out the drift velocity to interpret residual as time
-        rresid_[tresid] = Residual(dt,tvar_,0.0,true,dRdP);
-        rresid_[dresid] = Residual();
+        // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
+        double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
+        DVEC dRdP = -dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
+//        DVEC dRdP = -ca_.dDdP();
+        rresid_[dresid] = Residual(dr,tvar_*dvel_,0.0,true,dRdP);
+        rresid_[tresid] = Residual();
       } else {
         // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
         double dd = ca_.doca() + nullOffset(dresid);
