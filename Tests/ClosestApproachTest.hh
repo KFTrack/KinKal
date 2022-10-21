@@ -181,8 +181,8 @@ int ClosestApproachTest(int argc, char **argv) {
         double xd = dtp.doca();
         double xt = dtp.deltaT();
         // now derivatives
-        double dd = tp.dDdP()[ipar]*dpar;
-        double dt = tp.dTdP()[ipar]*dpar;
+        double dd = -tp.dDdP()[ipar]*dpar;
+        double dt = -tp.dTdP()[ipar]*dpar;
         dtpoca[ipar]->SetPoint(istep,xd-refd,dd);
         ttpoca[ipar]->SetPoint(istep,xt-reft,dt);
       }
