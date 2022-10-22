@@ -1,5 +1,6 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "KinKal/Tests/ClosestApproachTest.hh"
 int main(int argc, char **argv) {
-  return ClosestApproachTest<CentralHelix>(argc,argv);
+  KinKal::DVEC pchange(0.5, 0.001, 0.0001, 0.5, 0.001, 0.5); // range for parameter variation
+  return ClosestApproachTest<CentralHelix>(argc,argv,pchange);
 }
