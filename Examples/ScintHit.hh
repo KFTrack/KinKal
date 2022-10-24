@@ -84,7 +84,7 @@ namespace KinKal {
     // Might want to do more updating (set activity) based on DOCA in future: TODO
     double dd2 = tpca_.dirDot()*tpca_.dirDot();
     double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
-    rresid_ = Residual(tpca_.deltaT(),totvar,0.0,true,-tpca_.dTdP());
+    rresid_ = Residual(tpca_.deltaT(),totvar,0.0,true,tpca_.dTdP());
     this->updateWeight(config);
   }
 

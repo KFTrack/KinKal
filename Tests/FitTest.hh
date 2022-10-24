@@ -198,7 +198,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double simmass, fitmass;
   unsigned nevents(1000);
   bool ttree(false), printbad(false);
-  string tfname(""), sfile("Schedule.txt");
+  string tfname(""), sfile("driftfit.txt");
   int detail(Config::none), invert(0);
   double ambigdoca(0.25);// minimum doca to set ambiguity, default sets for all hits
   bool fitmat(true);

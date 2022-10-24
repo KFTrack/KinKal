@@ -77,6 +77,8 @@ namespace KinKal {
       ClosestApproachData tpdata_; // data payload of CA calculation
       DVEC dDdP_; // derivative of DOCA WRT Parameters
       DVEC dTdP_; // derivative of TOCA WRT Parameters
+      void setParticleTOCA( double ptoca);
+      void setSensorTOCA( double stoca);
   };
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
@@ -113,10 +115,10 @@ namespace KinKal {
   template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::findTCA(CAHint const& hint) {
     // reset status
     tpdata_.reset();
-    // initialize TOCA using hints
-    tpdata_.partCA_.SetE(hint.particleToca_);
-    tpdata_.sensCA_.SetE(hint.sensorToca_);
-    static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter FIXME!
+    // initialize using hints
+    setParticleTOCA(hint.particleToca_);
+    setSensorTOCA(hint.sensorToca_);
+    static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter TODO
     unsigned niter(0);
     // speed doesn't change
     double pspeed = ktrajptr_->speed(particleToca());
@@ -125,12 +127,7 @@ namespace KinKal {
     double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
     while(tpdata_.usable() && (fabs(dptoca) > precision() || fabs(dstoca) > precision()) && niter++ < maxiter) {
       // find positions and directions at the current TOCA estimate
-      tpdata_.partCA_ = ktrajptr_->position4(tpdata_.particleToca());
-      tpdata_.sensCA_ = straj_.position4(tpdata_.sensorToca());
-      tpdata_.pdir_ = ktrajptr_->direction(particleToca());
-      tpdata_.sdir_ = straj_.direction(sensorToca());
-      VEC3 dpos = sensorPoca().Vect()-particlePoca().Vect();
-      // dot products
+      VEC3 delta = sensorPoca().Vect()-particlePoca().Vect();
       double ddot = sensorDirection().Dot(particleDirection());
       double denom = 1.0 - ddot*ddot;
       // check for parallel)
@@ -138,45 +135,63 @@ namespace KinKal {
         tpdata_.status_ = ClosestApproachData::pocafailed;
         break;
       }
-      double hdd = dpos.Dot(particleDirection());
-      double ldd = dpos.Dot(sensorDirection());
-      // compute the change in times
-      dptoca = (hdd - ldd*ddot)/(denom*pspeed);
-      dstoca = (hdd*ddot - ldd)/(denom*sspeed);
+      double pdd = delta.Dot(particleDirection());
+      double sdd = delta.Dot(sensorDirection());
+      // compute the change in TOCA
+      dptoca = (pdd - sdd*ddot)/(denom*pspeed);
+      dstoca = (pdd*ddot - sdd)/(denom*sspeed);
       // update the TOCA estimates
-      tpdata_.partCA_.SetE(particleToca()+dptoca);
-      tpdata_.sensCA_.SetE(sensorToca()+dstoca);
+      setParticleTOCA(particleToca()+dptoca);
+      setSensorTOCA(sensorToca()+dstoca);
     }
     if(tpdata_.status_ != ClosestApproachData::pocafailed){
       if(niter < maxiter)
         tpdata_.status_ = ClosestApproachData::converged;
       else
         tpdata_.status_ = ClosestApproachData::unconverged;
-      // need to add divergence and oscillation tests FIXME!
+      // need to add divergence and oscillation tests TODO
     }
-    // final update
-    tpdata_.partCA_ = ktrajptr_->position4(tpdata_.particleToca());
-    tpdata_.sensCA_ = straj_.position4(tpdata_.sensorToca());
-    tpdata_.pdir_ = ktrajptr_->direction(particleToca());
-    tpdata_.sdir_ = straj_.direction(sensorToca());
     // fill the rest of the state
     if(usable()){
-      // sign doca by angular momentum projected onto difference vector
+      // sign doca by angular momentum projected onto difference vector.  This is just a convention
       VEC3 dvec = delta().Vect();
-      tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(particleDirection()).Dot(dvec));
+      VEC3 pdir = particleDirection();
+      tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(pdir).Dot(dvec));
       tpdata_.doca_ = dvec.R()*tpdata_.lsign_;
-      VEC3 dvechat = dvec.Unit();
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
-      DVDP dxdp = ktrajptr_->dXdPar(particleToca());
-      SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
-      dDdP_ = -dv*dxdp;
-      dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.
-      // project the parameter covariance onto DOCA and TOCA
+      DVDP dxdp = ktrajptr_->dXdPar(particleToca()); // position change WRT parameters
+      // change in DOCA WRT parameters
+      VEC3 dvechat = dvec.Unit();
+      SVEC3 dvh(dvechat.X(),dvechat.Y(),dvechat.Z());
+      dDdP_ = tpdata_.lsign_*dvh*dxdp;
+      // change in particle DeltaT WRT parameters; both PTOCA and STOCA terms are important.
+      // The dependendence on the momentum direction change is an order of magnitude smaller but
+      // might be included someday TODO
+      double dd = sensorDirection().Dot(particleDirection());
+      double denom = (1.0-dd*dd);
+      double pfactor = 1.0/(pspeed*denom);
+      VEC3 beta = pfactor*(sensorDirection()*dd - particleDirection());
+      SVEC3 sbeta(beta.X(),beta.Y(),beta.Z());
+      double sfactor = 1.0/(sspeed*denom);
+      VEC3 gamma = sfactor*(sensorDirection() - dd*particleDirection());
+      SVEC3 sgamma(gamma.X(),gamma.Y(),gamma.Z());
+      dTdP_ = sbeta*dxdp - sgamma*dxdp;
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
       tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());
     }
   }
+
+  template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::setParticleTOCA(double ptoca) {
+    tpdata_.partCA_ = ktrajptr_->position4(ptoca);
+    tpdata_.pdir_ = ktrajptr_->direction(ptoca);
+  }
+
+  template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::setSensorTOCA(double stoca) {
+    tpdata_.sensCA_ = straj_.position4(stoca);
+    tpdata_.sdir_ = straj_.direction(stoca);
+  }
+
 
   template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::print(std::ostream& ost,int detail) const {
     ost << "ClosestApproach status " << statusName() << " Doca " << doca() << " +- " << sqrt(docaVar())

@@ -17,8 +17,9 @@ namespace KinKal {
       // accessors
       double t0() const { return t0_; }
       double& t0() { return t0_; } // detector updates need to refine t0
-      VEC3 const& startPosition() const { return pos0_; }
-      VEC3 endPosition() const { return pos0_ + length_*dir_; }
+      // signal ends at pos0
+      VEC3 startPosition() const { return pos0_ - length_*dir_; }
+      VEC3 const& endPosition() const { return pos0_ ; }
       double speed() const { return speed_; }
       double speed(double time) const { return speed_; }
       double length() const { return length_; }
@@ -31,7 +32,7 @@ namespace KinKal {
       VEC3 velocity(double time) const;
       VEC3 const& direction(double time) const { return dir_; }
       void print(std::ostream& ost, int detail) const;
-      TimeRange range() const { return TimeRange(t0_,t0_ +length_/speed_); }
+      TimeRange range() const { return TimeRange(t0_ - length_/speed_,t0_); }
 
     private:
       VEC3 pos0_, dir_; // position and direction

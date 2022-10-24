@@ -126,27 +126,22 @@ namespace KinKal {
       }
     }
     if(whstate_.active()){
-     // simply translate distance to time using the fixed velocity
-      double tdrift = fabs(ca_.doca())/dvel_;
       if(whstate_.useDrift()){
-        // translate PCA to residual. Use ambiguity to convert drift time to a time difference.
-        double dsign = whstate_.lrSign()*ca_.lSign(); // overall sign is the product of assigned ambiguity and doca (angular momentum) sign
-        double dt = ca_.deltaT()-tdrift*dsign;
-        // time differnce affects the residual both through the drift distance (DOCA) and the particle arrival time at the wire (TOCA)
-        DVEC dRdP = ca_.dDdP()*dsign/dvel_ - ca_.dTdP();
-        rresid_[tresid] = Residual(dt,tvar_,0.0,true,dRdP);
-        rresid_[dresid] = Residual();
+        // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
+        double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
+        DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
+        rresid_[dresid] = Residual(dr,tvar_*dvel_,0.0,true,dRdP);
+        rresid_[tresid] = Residual();
       } else {
         // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
-        DVEC dRdP = -ca_.lSign()*ca_.dDdP();
         double dd = ca_.doca() + nullOffset(dresid);
         double nulldvar = nullVariance(dresid);
-        rresid_[dresid] = Residual(dd,nulldvar,0.0,true,dRdP);
+        rresid_[dresid] = Residual(dd,nulldvar,0.0,true,ca_.dDdP());
         //  interpret TOCA as a residual
         double dt = ca_.deltaT() + nullOffset(tresid);
         // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
         double nulltvar = tvar_ + nullVariance(tresid);
-        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,-ca_.dTdP());
+        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,ca_.dTdP());
         // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {

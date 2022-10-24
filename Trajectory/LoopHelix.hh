@@ -83,6 +83,10 @@ namespace KinKal {
       double cy() const { return paramVal(cy_); }
       double phi0() const { return paramVal(phi0_); }
       double t0() const { return paramVal(t0_); }
+      // convenience accessors
+      double tanDip() const { return rad()/lam(); }
+      double impactParam() const { return rad() - sqrt(pow(cx(),2) + pow(cy(),2)); }
+      double maxRadius() const { return rad() + sqrt(pow(cx(),2) + pow(cy(),2)); }
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time),charge()); }
       ParticleStateEstimate stateEstimate(double time) const;

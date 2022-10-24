@@ -19,7 +19,7 @@ namespace KinKal {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     using Schedule =  std::vector<MetaIterConfig>;
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
-    Config() : maxniter_(10), dwt_(1.0e6), convdchisq_(0.01), divdchisq_(10.0), pdchisq_(1.0e6), divgap_(10.0),
+    Config() : maxniter_(10), dwt_(1.0e6), convdchisq_(0.01), divdchisq_(10.0), pdchisq_(1.0e6), divgap_(100.0),
     tol_(1.0e-4), minndof_(5), bfcorr_(true), ends_(true), plevel_(none) {}
     Schedule& schedule() { return schedule_; }
     Schedule const& schedule() const { return schedule_; }

@@ -7,7 +7,6 @@ set( TEST_SOURCE_FILES
     CentralHelixFit_unit.cc
     CentralHelixHit_unit.cc
     CentralHelixPKTraj_unit.cc
-    CentralHelixTPoca_unit.cc
     CentralHelix_unit.cc
     KinematicLineClosestApproach_unit.cc
     KinematicLineBField_unit.cc
@@ -15,7 +14,6 @@ set( TEST_SOURCE_FILES
     KinematicLineFit_unit.cc
     KinematicLineHit_unit.cc
     KinematicLinePKTraj_unit.cc
-    KinematicLineTPoca_unit.cc
     KinematicLine_unit.cc
     LoopHelixClosestApproach_unit.cc
     LoopHelixBField_unit.cc
@@ -23,7 +21,6 @@ set( TEST_SOURCE_FILES
     LoopHelixFit_unit.cc
     LoopHelixHit_unit.cc
     LoopHelixPKTraj_unit.cc
-    LoopHelixTPoca_unit.cc
     LoopHelix_unit.cc
     MatEnv_unit.cc
 )
