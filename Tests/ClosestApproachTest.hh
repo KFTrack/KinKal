@@ -13,6 +13,7 @@
 #include <stdio.h>
 #include <iostream>
 #include <getopt.h>
+#include <limits.h>
 
 #include "TH1F.h"
 #include "TSystem.h"
@@ -64,7 +65,7 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
   double wlen(1000.0); //length of the wire
   double maxgap(2.5); // distance between Line and KTRAJ
   double vprop(0.7);
-  double delta(1e-2);
+  double delta(5e-2);
   unsigned nstep(50),ntstep(100), ntrks(10);
   TRandom3 tr_; // random number generator
 
@@ -209,12 +210,19 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
   }
   TF1* pline = new TF1("pline","[0]+[1]*x");
   for(size_t ipar=0;ipar<NParams();ipar++){
-    dtpoca[ipar]->SetStats(1);
+//    dtpoca[ipar]->SetStats(1);
     dtpcan->cd(ipar+1);
   // test linearity
     pline->SetParameters(0.0,1.0);
     // ignore parameters that don't have appreciable range
-    if(dtpoca[ipar]->GetMaximum() - dtpoca[ipar]->GetMinimum() > 1e-6) {
+    double xmax = -std::numeric_limits<float>::max();
+    double xmin = std::numeric_limits<float>::max();
+    unsigned npt = (unsigned)dtpoca[ipar]->GetN();
+    for(unsigned ipt=0; ipt < npt;++ipt){
+      xmax = std::max(dtpoca[ipar]->GetPointX(ipt),xmax);
+      xmin = std::min(dtpoca[ipar]->GetPointX(ipt),xmin);
+    }
+    if(xmax-xmin > 1e-6) {
       TFitResultPtr pfitr = dtpoca[ipar]->Fit(pline,"SQ","AC*");
       if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
         cout << "DOCA derivative for parameter "
@@ -227,8 +235,15 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
   }
   for(size_t ipar=0;ipar<NParams();ipar++){
     ttpcan->cd(ipar+1);
-    if(dtpoca[ipar]->GetMaximum() - dtpoca[ipar]->GetMinimum() > 1e-6) {
-      TFitResultPtr pfitr = dtpoca[ipar]->Fit(pline,"SQ","AC*");
+    double xmax = -std::numeric_limits<float>::max();
+    double xmin = std::numeric_limits<float>::max();
+    unsigned npt = (unsigned)dtpoca[ipar]->GetN();
+    for(unsigned ipt=0; ipt < npt;++ipt){
+      xmax = std::max(ttpoca[ipar]->GetPointX(ipt),xmax);
+      xmin = std::min(ttpoca[ipar]->GetPointX(ipt),xmin);
+    }
+    if(xmax-xmin > 1e-6) {
+      TFitResultPtr pfitr = ttpoca[ipar]->Fit(pline,"SQ","AC*");
       if(fabs(pfitr->Parameter(0))> 10*delta || fabs(pfitr->Parameter(1)-1.0) > delta){
         cout << "DeltaT derivative for parameter "
           << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
