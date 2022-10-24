@@ -129,7 +129,7 @@ namespace KinKal {
       if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
         double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
-        DVEC dRdP = -dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
+        DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
 //        DVEC dRdP = -ca_.dDdP();
         rresid_[dresid] = Residual(dr,tvar_*dvel_,0.0,true,dRdP);
         rresid_[tresid] = Residual();
