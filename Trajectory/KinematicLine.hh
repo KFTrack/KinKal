@@ -87,18 +87,11 @@ class KinematicLine {
     ParticleState state(double time) const;
     ParticleStateEstimate stateEstimate(double time) const;
 
-    double translen(const double &f) const { return sinTheta() * f; }
-    // simple functions
-    double cost() const { return cos(paramVal(theta_)); }
-    double cosTheta() const { return cost(); }
-    double sinTheta() const { return sqrt(1.0 - cost() * cost()); }
-    double cosPhi0() const { return cos(phi0()); }
-    double sinPhi0() const { return sin(phi0()); }
+    double translen(const double &f) const { return sin(theta()) * f; }
 
-    double tanTheta() const { return sqrt(1.0 - cost() * cost()) / cost(); }
-    VEC3 pos0() const { return VEC3(-d0()*sinPhi0(),d0()*cosPhi0(),z0()); }
+    VEC3 pos0() const { return VEC3(-d0()*sin(phi0()),d0()*cos(phi0()),z0()); }
     double flightLength(double t)const { return (t-t0())*speed(); }
-    VEC3 direction() const { double st = sinTheta(); return VEC3(st*cosPhi0(),st*sinPhi0(),cosTheta()); }
+    VEC3 direction() const { double st = sin(theta()); return VEC3(st*cos(phi0()),st*sin(phi0()),cos(theta())); }
 
     TimeRange const &range() const { return trange_; }
     TimeRange &range() {return trange_; }

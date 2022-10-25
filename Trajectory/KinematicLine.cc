@@ -137,10 +137,10 @@ namespace KinKal {
 
     switch (mdir) {
       case MomBasis::perpdir_: // purely polar change theta 1 = theta
-        return VEC3(cosTheta() * cosPhi0(), cosTheta() * sinPhi0(), -1 * sinTheta());
+        return VEC3(cos(theta()) * cos(phi0()), cos(theta()) * sin(phi0()), -1 * sin(theta()));
         break;
       case MomBasis::phidir_: // purely transverse theta2 = -phi()*sin(theta)
-        return VEC3(-sinPhi0(), cosPhi0(), 0.0);
+        return VEC3(-sin(phi0()), cos(phi0()), 0.0);
         break;
       case MomBasis::momdir_: // along momentum
         return direction();
@@ -172,8 +172,8 @@ namespace KinKal {
 
   DVDP KinematicLine::dXdPar(double time) const {
     double deltat = time-t0();
-    double sinT = sinTheta();
-    double cosT = cosTheta();
+    double sinT = sin(theta());
+    double cosT = cos(theta());
     double sinF = sin(phi0());
     double cosF = cos(phi0());
     double spd = speed();
@@ -195,8 +195,8 @@ namespace KinKal {
     return dXdP;
   }
   DVDP KinematicLine::dMdPar(double time) const {
-    double sinT = sinTheta();
-    double cosT = cosTheta();
+    double sinT = sin(theta());
+    double cosT = cos(theta());
     double sinF = sin(phi0());
     double cosF = cos(phi0());
 
@@ -213,8 +213,8 @@ namespace KinKal {
   }
 
   DPDV KinematicLine::dPardX(double time) const {
-    double sinT = sinTheta();
-    double cotT = 1.0/tanTheta();
+    double sinT = sin(theta());
+    double cotT = 1/tan(theta());
     double sinF = sin(phi0());
     double cosF = cos(phi0());
     double E = energy();
@@ -231,9 +231,9 @@ namespace KinKal {
   }
 
   DPDV KinematicLine::dPardM(double time) const {
-    double sinT = sinTheta();
-    double cosT = cosTheta();
-    double cotT = 1.0/tanTheta();
+    double sinT = sin(theta());
+    double cosT = cos(theta());
+    double cotT = 1/tan(theta());
     double sinF = sin(phi0());
     double cosF = cos(phi0());
     double cos2F = cosF*cosF-sinF*sinF;
