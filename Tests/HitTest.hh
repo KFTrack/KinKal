@@ -58,8 +58,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   using EXING = ElementXing<KTRAJ>;
   using EXINGPTR = std::shared_ptr<EXING>;
   using EXINGCOL = std::vector<EXINGPTR>;
-  using STRAWHIT = SimpleWireHit<KTRAJ>;
-  using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+  using WIREHIT = SimpleWireHit<KTRAJ>;
+  using WIREHITPTR = std::shared_ptr<WIREHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
   using STRAWXING = StrawXing<KTRAJ>;
@@ -175,7 +175,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   for(auto& thit : thits) {
     Residual res;
     ClosestApproachData tpdata;
-    STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
+    WIREHIT* strawhit = dynamic_cast<WIREHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       res = strawhit->refResidual(0);
@@ -187,7 +187,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       continue;
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit);
+    WIREHITPTR shptr = std::dynamic_pointer_cast<WIREHIT> (thit);
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
       auto const& tline = shptr->wire();
@@ -249,7 +249,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     thit->updateState(miconfig,false);
     Residual ores;
     ClosestApproachData tpdata;
-    STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
+    WIREHIT* strawhit = dynamic_cast<WIREHIT*>(thit.get());
     SCINTHIT* scinthit = dynamic_cast<SCINTHIT*>(thit.get());
     if(strawhit && strawhit_){
       ores = strawhit->refResidual(0);
@@ -276,7 +276,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){
-            mres = strawhit->refResidual(STRAWHIT::dresid);
+            mres = strawhit->refResidual(WIREHIT::dresid);
           } else if(scinthit) {
             mres = scinthit->refResidual(0);
           }
@@ -301,11 +301,9 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   TCanvas* hderivgc = new TCanvas("hderiv","hderiv",800,600);
   hderivgc->Divide(3,2);
   for(size_t ipar=0;ipar<6;++ipar){
-    if(fabs(hderivg[ipar]->GetRMS(1)) > 1e-10 && fabs(hderivg[ipar]->GetRMS(2)) > 1e-10){
+    if(fabs(hderivg[ipar]->GetRMS(1)) > 1e-5 && fabs(hderivg[ipar]->GetRMS(2)) > 1e-5){
       pline->SetParameters(0.0,1.0);
-      hderivgc->cd(ipar+1);
       TFitResultPtr pfitr = hderivg[ipar]->Fit(pline,"SQ","AC*");
-      hderivg[ipar]->Draw("AC*");
       if(fabs(pfitr->Parameter(0))> 100*delpars[ipar] || fabs(pfitr->Parameter(1)-1.0) > 1e-2){
         cout << "Parameter "
           << KTRAJ::paramName(typename KTRAJ::ParamIndex(ipar))
@@ -315,6 +313,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     } else {
       cout << "Zero derivatives for parameter " << ipar << endl;
     }
+    hderivgc->cd(ipar+1);
+    hderivg[ipar]->Draw("AC*");
   }
   hderivgc->Write();
 

@@ -179,8 +179,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using STRAWXING = StrawXing<KTRAJ>;
   using KKTRK = KinKal::Track<KTRAJ>;
   using KKCONFIGPTR = std::shared_ptr<Config>;
-  using STRAWHIT = SimpleWireHit<KTRAJ>;
-  using STRAWHITPTR = std::shared_ptr<STRAWHIT>;
+  using WIREHIT = SimpleWireHit<KTRAJ>;
+  using WIREHITPTR = std::shared_ptr<WIREHIT>;
   using SCINTHIT = ScintHit<KTRAJ>;
   using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
   using PARHIT = ParameterHit<KTRAJ>;
@@ -378,7 +378,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.createSeed(straj,sigmas,seedsmear);
   if(nevents == 0)cout << "Seed Traj " << straj << endl;
   // Create the Track from these hits
-   PTRAJ seedtraj(straj);
+  PTRAJ seedtraj(straj);
    //
   // if requested, constrain a parameter
   PMASK mask = {false};
@@ -484,7 +484,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       TPolyMarker3D* hpos = new TPolyMarker3D(1,21);
       TPolyMarker3D* tpos = new TPolyMarker3D(1,22);
       VEC3 plow, phigh;
-      STRAWHITPTR shptr = std::dynamic_pointer_cast<STRAWHIT> (thit);
+      WIREHITPTR shptr = std::dynamic_pointer_cast<WIREHIT> (thit);
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
         auto const& tline = shptr->wire();
@@ -836,7 +836,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
-              const STRAWHIT* strawhit = dynamic_cast<const STRAWHIT*>(kkhit->hit().get());
+              const WIREHIT* strawhit = dynamic_cast<const WIREHIT*>(kkhit->hit().get());
               const SCINTHIT* scinthit = dynamic_cast<const SCINTHIT*>(kkhit->hit().get());
               const PARHIT* parhit = dynamic_cast<const PARHIT*>(kkhit->hit().get());
               if(kkhit->active())nactivehit_++;
@@ -871,15 +871,15 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                 hinfo.tocavar_ = strawhit->closestApproach().tocaVar();
                 hinfo.dirdot_ = strawhit->closestApproach().dirDot();
                // straw hits can have multiple residuals
-                if(strawhit->refResidual(STRAWHIT::tresid).active()){
-                  auto resid = strawhit->residual(STRAWHIT::tresid);
+                if(strawhit->refResidual(WIREHIT::tresid).active()){
+                  auto resid = strawhit->residual(WIREHIT::tresid);
                   hinfo.tresid_ = resid.value();
                   hinfo.tresidvar_ = resid.variance();
                   hinfo.tresidpull_ = resid.pull();
                 }
                 //
-                if(strawhit->refResidual(STRAWHIT::dresid).active()){
-                  auto resid = strawhit->residual(STRAWHIT::dresid);
+                if(strawhit->refResidual(WIREHIT::dresid).active()){
+                  auto resid = strawhit->residual(WIREHIT::dresid);
                   hinfo.dresid_ = resid.value();
                   hinfo.dresidvar_ = resid.variance();
                   hinfo.dresidpull_ = resid.pull();
@@ -993,7 +993,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
     cout <<"Time/fit = " << duration/double(nevents) << " Nanoseconds " << endl;
     // fill canvases
-    TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",800,600);
+    TCanvas* fdpcan = new TCanvas("fdpcan","fdpcan",1200,800);
     fdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       fdpcan->cd(ipar+1);
@@ -1014,7 +1014,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
 
     fdpcan->Write();
-    TCanvas* mdpcan = new TCanvas("mdpcan","mdpcan",800,600);
+    TCanvas* mdpcan = new TCanvas("mdpcan","mdpcan",1200,800);
     mdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       mdpcan->cd(ipar+1);
@@ -1034,7 +1034,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       retval = -5;
     }
     mdpcan->Write();
-    TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",800,600);
+    TCanvas* bdpcan = new TCanvas("bdpcan","bdpcan",1200,800);
     bdpcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       bdpcan->cd(ipar+1);
@@ -1053,7 +1053,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       retval = -5;
     }
     bdpcan->Write();
-    TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",800,600);
+    TCanvas* fpullcan = new TCanvas("fpullcan","fpullcan",1200,800);
     fpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       fpullcan->cd(ipar+1);
@@ -1072,7 +1072,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     fpullcan->cd(NParams()+1);
     fmompull->Fit("gaus","q");
     fpullcan->Write();
-    TCanvas* mpullcan = new TCanvas("mpullcan","mpullcan",800,600);
+    TCanvas* mpullcan = new TCanvas("mpullcan","mpullcan",1200,800);
     mpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       mpullcan->cd(ipar+1);
@@ -1081,7 +1081,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     mpullcan->cd(NParams()+1);
     mmompull->Fit("gaus","q");
     mpullcan->Write();
-    TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",800,600);
+    TCanvas* bpullcan = new TCanvas("bpullcan","bpullcan",1200,800);
     bpullcan->Divide(3,3);
     for(size_t ipar=0;ipar<NParams();++ipar){
       bpullcan->cd(ipar+1);
@@ -1090,7 +1090,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     bpullcan->cd(NParams()+1);
     bmompull->Fit("gaus","q");
     bpullcan->Write();
-    TCanvas* perrcan = new TCanvas("perrcan","perrcan",800,600);
+    TCanvas* perrcan = new TCanvas("perrcan","perrcan",1200,800);
     perrcan->Divide(3,2);
     for(size_t ipar=0;ipar<NParams();++ipar){
       perrcan->cd(ipar+1);
@@ -1106,7 +1106,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     corravg->Draw("colorztext0");
     corrcan->Write();
 
-    TCanvas* statuscan = new TCanvas("statuscan","statuscan",800,600);
+    TCanvas* statuscan = new TCanvas("statuscan","statuscan",1200,800);
     statuscan->Divide(3,2);
     statuscan->cd(1);
     statush->Draw();

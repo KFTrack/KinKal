@@ -24,8 +24,8 @@ namespace KinKal {
       enum Dimension { dresid=0, tresid=1};  // residual dimensions
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
-          double driftspeed, double tvar, double rcell,int id);
-      unsigned nResid() const override { return 1; } // potentially 2 residuals
+          double driftspeed, double tvar, double tot, double totvar, double rcell,int id);
+      unsigned nResid() const override { return 2; } // 2 residuals
       double time() const override { return ca_.particleToca(); }
       Residual const& refResidual(unsigned ires=dresid) const override;
       void updateReference(KTRAJPTR const& ktrajptr) override;
@@ -61,6 +61,7 @@ namespace KinKal {
       double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
+      double tot_, totvar_; // TimeOverThreshold and variance
       double rcell_; // straw radius
       int id_; // id
       void updateResiduals();
@@ -73,11 +74,11 @@ namespace KinKal {
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
-      double mindoca, double driftspeed, double tvar, double rcell, int id) :
+      double mindoca, double driftspeed, double tvar, double tot, double totvar, double rcell, int id) :
     bfield_(bfield),
     whstate_(whstate), wire_(pca.sensorTraj()),
     ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
-    mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), rcell_(rcell), id_(id) {
+    mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
     }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
@@ -125,28 +126,21 @@ namespace KinKal {
         whstate_ = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
       }
     }
-    if(whstate_.active()){
-      if(whstate_.useDrift()){
+    rresid_[tresid] = rresid_[dresid] = Residual();
+   if(whstate_.active()){
+     rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
+     if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
         double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
         DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
         rresid_[dresid] = Residual(dr,tvar_*dvel_,0.0,true,dRdP);
-        rresid_[tresid] = Residual();
       } else {
         // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
         double dd = ca_.doca() + nullOffset(dresid);
         double nulldvar = nullVariance(dresid);
         rresid_[dresid] = Residual(dd,nulldvar,0.0,true,ca_.dDdP());
-         rresid_[tresid] = Residual();
-       //  interpret TOCA as a residual
-//        double dt = ca_.deltaT() + nullOffset(tresid);
-        // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
-//        double nulltvar = tvar_ + nullVariance(tresid);
-//        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,ca_.dTdP());
-        // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {
-      rresid_[tresid] = rresid_[dresid] = Residual();
     }
  // now update the weight
     this->updateWeight(miconfig);

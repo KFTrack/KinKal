@@ -14,8 +14,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: ["macos-latest"]
-        #        os: ["ubuntu-latest"]
+        os: ["macos-latest,ubuntu-latest"]
         python-version: ["3.9"]
         root-version: ["6.26.10"]
         build-type: ["Debug", "Release"]
