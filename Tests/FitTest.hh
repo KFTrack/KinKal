@@ -69,7 +69,7 @@ using namespace std;
 // avoid confusion with root
 using KinKal::Line;
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --lighthit i --TimeBuffer f --matvarscale i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -121,7 +121,7 @@ int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) 
       istringstream ss(line);
       if(plevel < 0) {
         ss >> config.maxniter_ >> config.dwt_ >> config.convdchisq_ >> config.divdchisq_ >>
-        config.pdchisq_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
+        config.pdchisq_ >> config.divgap_ >> config.tol_ >> config.minndof_ >> config.bfcorr_ >>
         config.ends_ >> plevel;
         config.plevel_ = Config::printLevel(plevel);
       } else {
@@ -216,7 +216,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   double seedsmear(10.0);
   double momsigma(0.2);
   double ineff(0.05);
-  bool simmat(true), lighthit(true);
+  bool simmat(true), scinthit(true);
   int retval(EXIT_SUCCESS);
   TRandom3 tr_; // random number generator
 
@@ -249,7 +249,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"inefficiency",     required_argument, 0, 'E' },
     {"iprint",     required_argument, 0, 'p' },
     {"extend",     required_argument, 0, 'X'  },
-    {"lighthit",     required_argument, 0, 'L'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {"MatVarScale",     required_argument, 0, 'v'  },
     {NULL, 0,0,0}
@@ -277,7 +276,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'f' : fitmat = atoi(optarg);
                  break;
-      case 'L' : lighthit = atoi(optarg);
+      case 'L' : scinthit = atoi(optarg);
                  break;
       case 'r' : ttree = atoi(optarg);
                  break;
@@ -337,7 +336,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   // create ToyMC
   simmass = masses[isimmass];
   fitmass = masses[ifitmass];
-  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, lighthit, ambigdoca, simmass );
+  KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, nhits, simmat, scinthit, ambigdoca, simmass );
   toy.setInefficiency(ineff);
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
@@ -373,7 +372,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   auto bmid = BF->fieldVect(seedpos.Vect());
   seedmom.SetM(fitmass);
   // buffer the seed range
-  TimeRange seedrange(tptraj.range().begin(),tptraj.range().end());
+  TimeRange seedrange(thits.front()->time(),thits.back()->time());
   KTRAJ straj(seedpos,seedmom,midhel.charge(),bmid,seedrange);
   if(invert) straj.invertCT(); // for testing wrong propagation direction
   toy.createSeed(straj,sigmas,seedsmear);

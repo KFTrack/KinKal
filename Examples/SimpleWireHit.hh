@@ -21,13 +21,13 @@ namespace KinKal {
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       using CA = ClosestApproach<KTRAJ,Line>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      enum Dimension { tresid=0, dresid=1};  // residual dimensions
+      enum Dimension { dresid=0, tresid=1};  // residual dimensions
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
           double driftspeed, double tvar, double rcell,int id);
-      unsigned nResid() const override { return 2; } // potentially 2 residuals
+      unsigned nResid() const override { return 1; } // potentially 2 residuals
       double time() const override { return ca_.particleToca(); }
-      Residual const& refResidual(unsigned ires=tresid) const override;
+      Residual const& refResidual(unsigned ires=dresid) const override;
       void updateReference(KTRAJPTR const& ktrajptr) override;
       KTRAJPTR const& refTrajPtr() const override { return ca_.particleTrajPtr(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -137,11 +137,12 @@ namespace KinKal {
         double dd = ca_.doca() + nullOffset(dresid);
         double nulldvar = nullVariance(dresid);
         rresid_[dresid] = Residual(dd,nulldvar,0.0,true,ca_.dDdP());
-        //  interpret TOCA as a residual
-        double dt = ca_.deltaT() + nullOffset(tresid);
+         rresid_[tresid] = Residual();
+       //  interpret TOCA as a residual
+//        double dt = ca_.deltaT() + nullOffset(tresid);
         // the time constraint variance is the sum of the variance from maxdoca and from the intrinsic measurement variance
-        double nulltvar = tvar_ + nullVariance(tresid);
-        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,ca_.dTdP());
+//        double nulltvar = tvar_ + nullVariance(tresid);
+//        rresid_[tresid] = Residual(dt,nulltvar,0.0,true,ca_.dTdP());
         // Note there is no correlation between distance and time residuals; the former is just from the wire position, the latter from the time measurement
       }
     } else {
@@ -152,7 +153,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
-    if(ires >dresid)throw std::invalid_argument("Invalid residual");
+    if(ires >tresid)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
   }
 

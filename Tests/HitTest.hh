@@ -246,6 +246,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   //  cout << tptraj << endl;
   MetaIterConfig miconfig;
   for(auto& thit : thits) {
+    thit->updateState(miconfig,false);
     Residual ores;
     ClosestApproachData tpdata;
     STRAWHIT* strawhit = dynamic_cast<STRAWHIT*>(thit.get());
@@ -275,7 +276,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){
-            mres = strawhit->refResidual(0);
+            mres = strawhit->refResidual(STRAWHIT::dresid);
           } else if(scinthit) {
             mres = scinthit->refResidual(0);
           }
@@ -311,6 +312,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           << " Residual derivative Out of tolerance : Offset " << pfitr->Parameter(0) << " Slope " << pfitr->Parameter(1) << endl;
         status = 1;
       }
+    } else {
+      cout << "Zero derivatives for parameter " << ipar << endl;
     }
   }
   hderivgc->Write();
