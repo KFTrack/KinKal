@@ -35,8 +35,6 @@ namespace KinKal {
       void updateState(MetaIterConfig const& config,bool first) override;
       // specific to SimpleWireHit: this has a constant drift speed
       double cellRadius() const { return rcell_; }
-      double nullVariance(Dimension dim) const;
-      double nullOffset(Dimension dim) const;
       virtual ~SimpleWireHit(){}
       double driftVelocity() const { return dvel_; }
       double timeVariance() const { return tvar_; }
@@ -65,7 +63,7 @@ namespace KinKal {
       double rcell_; // straw radius
       int id_; // id
       void updateResiduals();
- };
+  };
 
   //trivial 'updater' that sets the wire hit state to null
   class NullWireHitUpdater {
@@ -89,24 +87,6 @@ namespace KinKal {
     if(!ca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
 
-  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullVariance(Dimension dim) const {
-    switch (dim) {
-      case dresid: default:
-        return (mindoca_*mindoca_)/3.0; // doca is signed
-      case tresid:
-        return (mindoca_*mindoca_)/(dvel_*dvel_*12.0); // TOCA is always larger than the crossing time
-    }
-  }
-
-  template <class KTRAJ> double SimpleWireHit<KTRAJ>::nullOffset(Dimension dim) const {
-    switch (dim) {
-      case dresid: default:
-        return 0.0;
-      case tresid:
-        return -0.5*mindoca_/dvel_;
-    }
-  }
-
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateState(MetaIterConfig const& miconfig, bool first) {
     if(first){
       // look for an updater; if found, use it to update the state
@@ -127,22 +107,20 @@ namespace KinKal {
       }
     }
     rresid_[tresid] = rresid_[dresid] = Residual();
-   if(whstate_.active()){
-     rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
-     if(whstate_.useDrift()){
+    if(whstate_.active()){
+      rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
+      if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
         double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
         DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
-        rresid_[dresid] = Residual(dr,tvar_*dvel_,0.0,true,dRdP);
+        rresid_[dresid] = Residual(dr,tvar_*dvel_*dvel_,0.0,true,dRdP);
       } else {
-        // interpret DOCA against the wire directly as a residuals.  We have to take the DOCA sign out of the derivatives
-        double dd = ca_.doca() + nullOffset(dresid);
-        double nulldvar = nullVariance(dresid);
-        rresid_[dresid] = Residual(dd,nulldvar,0.0,true,ca_.dDdP());
+        // interpret DOCA against the wire directly as a residuals
+        double nulldvar = dvel_*dvel_*(ca_.deltaT()*ca_.deltaT()+0.8);
+        rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,true,ca_.dDdP());
       }
-    } else {
     }
- // now update the weight
+    // now update the weight
     this->updateWeight(miconfig);
   }
 
@@ -151,7 +129,7 @@ namespace KinKal {
     return rresid_[ires];
   }
 
- template <class KTRAJ> ClosestApproach<KTRAJ,Line> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
+  template <class KTRAJ> ClosestApproach<KTRAJ,Line> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
     // compute the unbiased closest approach; this is brute force, but works
     auto const& ca = this->closestApproach();
     auto uparams = HIT::unbiasedParameters();
