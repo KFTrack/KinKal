@@ -17,36 +17,25 @@ jobs:
         #        os: ["ubuntu-latest", "macos-latest"]
         os: ["ubuntu-latest"]
         python-version: ["3.9"]
-        root-version: ["6.26.02"]
+        root-version: ["6.26.10"]
         build-type: ["Debug", "Release"]
 
     steps:
-      - name: Cache conda
-        uses: actions/cache@v1
-        env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
-          # This will be necessary to update e.g. the version of cmake, cxx-compiler, or clang-tools that is used
-          CACHE_NUMBER: 0
-        with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ matrix.root-version }}-${{ matrix.python-version }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
-          channels: conda-forge,defaults
-          channel-priority: strict
-          use-only-tar-bz2: true
-      - name: Conda info
-        run: conda info
-
-      - name: Conda/Mamba Install
-        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake # clang-tools
-
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
         with:
           fetch-depth: 0
+      - name: Install conda environment with micromamba 
+        uses: mamba-org/provision-with-micromamba@main
+        with:
+          environment-file: false
+          environment-name: "kinkal-test-env"
+          channels: conda-forge,defaults
+          channel-priority: strict
+          extra-specs: |
+            python=${{ matrix.python-version }}
+            root=${{ matrix.root-version }}
+            cxx-compiler
+            cmake
       - name: CMake (${{ matrix.build-type }})
         run: |
           cd ..
