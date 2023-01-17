@@ -21,29 +21,17 @@ jobs:
         build-type: ["Debug", "Release"]
 
     steps:
-      - name: Cache conda
-        uses: actions/cache@v1
-        env:
-          # Increase this value to reset cache if etc/example-environment.yml has not changed
-          # This will be necessary to update e.g. the version of cmake, cxx-compiler, or clang-tools that is used
-          CACHE_NUMBER: 0
+      - name: Install conda environment with micromamba 
+        uses: mamba-org/provision-with-micromamba@main
         with:
-          path: ~/conda_pkgs_dir
-          key:
-            ${{ runner.os }}-conda-${{ env.CACHE_NUMBER }}-${{ matrix.root-version }}-${{ matrix.python-version }}
-      - uses: conda-incubator/setup-miniconda@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          mamba-version: "*"
+          environment-file: ""
           channels: conda-forge,defaults
           channel-priority: strict
-          use-only-tar-bz2: true
-      - name: Conda info
-        run: conda info
-
-      - name: Conda/Mamba Install
-        run: mamba install -c conda-forge cxx-compiler root=${{ matrix.root-version }} cmake # clang-tools
-
+          extra-specs: |
+            python=${{ matrix.python-version }}
+            root=${{ matrix.root-version }}
+            cxx-compiler
+            cmake
       - uses: actions/checkout@v2
         with:
           fetch-depth: 0
