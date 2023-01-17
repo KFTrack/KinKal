@@ -28,6 +28,7 @@ jobs:
         uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: false
+          environment-name: "kinkal-test-env"
           channels: conda-forge,defaults
           channel-priority: strict
           extra-specs: |
