@@ -161,13 +161,14 @@ namespace KinKal {
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
       DVDP dxdp = ktrajptr_->dXdPar(particleToca()); // position change WRT parameters
-      // change in DOCA WRT parameters
+      // change in DOCA WRT parameters; this is straight forwards
       VEC3 dvechat = dvec.Unit();
       SVEC3 dvh(dvechat.X(),dvechat.Y(),dvechat.Z());
       dDdP_ = tpdata_.lsign_*dvh*dxdp;
       // change in particle DeltaT WRT parameters; both PTOCA and STOCA terms are important.
       // The dependendence on the momentum direction change is an order of magnitude smaller but
       // might be included someday TODO
+
       double dd = sensorDirection().Dot(particleDirection());
       double denom = (1.0-dd*dd);
       double pfactor = 1.0/(pspeed*denom);
@@ -176,7 +177,7 @@ namespace KinKal {
       double sfactor = 1.0/(sspeed*denom);
       VEC3 gamma = sfactor*(sensorDirection() - dd*particleDirection());
       SVEC3 sgamma(gamma.X(),gamma.Y(),gamma.Z());
-      dTdP_ = sbeta*dxdp - sgamma*dxdp;
+      dTdP_ = (sbeta - sgamma)*dxdp;
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
       tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());
     }

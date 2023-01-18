@@ -37,12 +37,12 @@ namespace KKTest {
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
       // create from aseed
-      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool lighthit, double ambigdoca ,double simmass) :
+      ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool scinthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
         mom_(mom), icharge_(icharge),
-        tr_(iseed), nhits_(nhits), simmat_(simmat), lighthit_(lighthit), ambigdoca_(ambigdoca), simmass_(simmass),
+        tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
-        zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), ineff_(0.05),
+        zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
         scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
@@ -77,13 +77,14 @@ namespace KKTest {
       int icharge_;
       TRandom3 tr_; // random number generator
       unsigned nhits_; // number of hits to simulate
-      bool simmat_, lighthit_;
+      bool simmat_, scinthit_;
       double ambigdoca_, simmass_;
       double sprop_; // propagation speed along straw
       double sdrift_; // drift speed inside straw
       double zrange_, rstraw_; // tracker dimension
       double rwire_, wthick_, wlen_; // wire radius, thickness, length
       double sigt_; // drift time resolution in ns
+      double sigtot_; // TOT drift time resolution (ns)
       double ineff_; // hit inefficiency
       // time hit parameters
       double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
@@ -141,7 +142,9 @@ namespace KKTest {
         if(fabs(tp.doca())> ambigdoca_) ambig = tp.doca() < 0 ? WireHitState::left : WireHitState::right;
         WireHitState whstate(ambig);
         double mindoca = std::min(ambigdoca_,rstraw_);
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, rstraw_, ihit));
+        // true TOT is the drift time
+        double tot = tr_.Gaus(tp.deltaT(),sigtot_);
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, tot, sigtot_*sigtot_,  rstraw_, ihit));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
@@ -152,7 +155,7 @@ namespace KKTest {
         if(fabs(defrac) > 0.1)break;
       }
     }
-    if(lighthit_ && tr_.Uniform(0.0,1.0) > ineff_){
+    if(scinthit_ && tr_.Uniform(0.0,1.0) > ineff_){
       createScintHit(ptraj,thits);
     }
     // extend if there are no hits
