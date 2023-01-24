@@ -333,7 +333,16 @@ namespace KinKal {
       if(!status().usable())break;
     }
     // if the fit is usable, process the passive effects on either end
-    if(config().ends_ && status().usable()) processEnds();
+    if(config().ends_ && status().usable()){
+      history_.push_back(fitStatus());
+      status().comment_ = "EndProcessing";
+      try {
+        processEnds();
+      } catch (std::exception const& error) {
+        status().status_ = Status::failed;
+        status().comment_ = status().comment_ + error.what();
+      }
+   }
     if(config().plevel_ > Config::none)print(std::cout, config().plevel_);
   }
 
