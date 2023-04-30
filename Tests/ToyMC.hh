@@ -43,7 +43,7 @@ namespace KKTest {
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
-        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), caloz_(zrange_[1]+50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
           miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6,false))); // updater to force exact straw xing material calculation
@@ -87,7 +87,7 @@ namespace KKTest {
       double sigtot_; // TOT drift time resolution (ns)
       double ineff_; // hit inefficiency
       // time hit parameters
-      double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
+      double scitsig_, shPosSig_, shmax_, caloz_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tol_; // tolerance on momentum accuracy due to BField effects
       double tprec_; // time precision on TCA
@@ -209,7 +209,8 @@ namespace KKTest {
     double tend = thits.back()->time();
     // extend to the calorimeter z
     VEC3 pvel = ptraj.velocity(tend);
-    double shstart = tend + coff_/pvel.Z();
+    auto ppos = ptraj.position3(tend);
+    double shstart = tend + (caloz_-ppos.Z())/pvel.Z();
 // extend the trajectory to here
     extendTraj(ptraj,shstart);
     pvel = ptraj.velocity(shstart);
@@ -273,7 +274,8 @@ namespace KKTest {
     double tsint = sqrt(1.0-tcost*tcost);
     MOM4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
     double tmax = fabs(zrange_/(CLHEP::c_light*tcost));
-    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
+    double t0sig = osig_/CLHEP::c_light;
+    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Gaus(t0off_,t0sig));
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
     ptraj = PTRAJ(ktraj);
