@@ -43,7 +43,7 @@ namespace KKTest {
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
-        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), caloz_(zrange_[1]+50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), caloz_(0.5*zrange_+50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
           miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6,false))); // updater to force exact straw xing material calculation
