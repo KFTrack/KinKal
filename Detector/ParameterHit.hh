@@ -5,8 +5,6 @@
 //  external information to be added to the fit.
 //
 #include "KinKal/Detector/Hit.hh"
-#include "KinKal/General/Vectors.hh"
-//#include "KinKal/General/Parameters.hh"
 #include <stdexcept>
 namespace KinKal {
 
@@ -27,7 +25,7 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void updateReference(KTRAJPTR const& ktrajptr) override { reftraj_ = ktrajptr; }
       KTRAJPTR const& refTrajPtr() const override { return reftraj_; }
-     // ParameterHit-specfic interface
+      // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
       ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);
       virtual ~ParameterHit(){}
@@ -46,25 +44,20 @@ namespace KinKal {
   };
 
   template<class KTRAJ> ParameterHit<KTRAJ>::ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask) :
-    time_(time), reftraj_(ptraj.nearestTraj(time)), params_(params), pmask_(pmask), ncons_(0) {
+    time_(time), reftraj_(ptraj.nearestTraj(time)), params_(params), pweight_(params), pmask_(pmask), ncons_(0) {
       // create the mask matrix; Use a temporary, not the data member, as root has caching problems with that (??)
       mask_ = ROOT::Math::SMatrixIdentity();
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
-        if(pmask_[ipar]){
-          ncons_++;
-        } else {
-          mask_(ipar,ipar) = 0.0;
-        }
+	if(pmask_[ipar]){
+	  ncons_++;
+	} else {
+	  mask_(ipar,ipar) = 0.0;
+	}
       }
       // Mask Off unused parameters
-      // 2 steps needed here, as otherwise root caching results in incomplete objects
-      Weights weight(params);
-      DMAT wmat = weight.weightMat();
-      wmat = ROOT::Math::Similarity(mask_,wmat);
-      DVEC wvec = weight.weightVec();
-      DVEC wreduced = wvec*mask_;
-      pweight_ = Weights(wreduced, wmat);
+      pweight_.weightMat() = ROOT::Math::Similarity(mask_,pweight_.weightMat());
+      pweight_.weightVec() = mask_*pweight_.weightVec();
     }
 
   template <class KTRAJ> void ParameterHit<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
@@ -97,10 +90,10 @@ namespace KinKal {
     ost << " ParameterHit Hit" << std::endl;
     if(detail > 0){
       for(size_t ipar=0;ipar < NParams(); ipar++){
-        auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-        if (pmask_[ipar]) {
-          ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
-        }
+	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
+	if (pmask_[ipar]) {
+	  ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
+	}
       }
     }
   }
