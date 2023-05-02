@@ -1004,7 +1004,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TFitResultPtr ffitr = fmomres->Fit("gaus","qS");
     TF1* gfit = fmomres->GetFunction("gaus");
     if(gfit != 0){
-      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+      if(fabs(gfit->GetParameter(1)) > momsigma || gfit->GetParError(1) > momsigma || gfit->GetParameter(2) > momsigma ){
         cout << "Front momentum resolution out of tolerance "
           << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
         retval=-3;
@@ -1025,7 +1025,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TFitResultPtr mfitr = mmomres->Fit("gaus","qS");
     gfit = mmomres->GetFunction("gaus");
     if(gfit != 0){
-      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+      if(fabs(gfit->GetParameter(1)) > momsigma || gfit->GetParError(1) > momsigma || gfit->GetParameter(2) > momsigma ){
         cout << "Middle momentum resolution out of tolerance "
           << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
         retval=-3;
@@ -1044,7 +1044,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     TFitResultPtr bfitr = bmomres->Fit("gaus","qS");
     gfit = bmomres->GetFunction("gaus");
     if(gfit != 0){
-      if(fabs(gfit->GetParameter(1))/gfit->GetParError(1) > 10.0 || gfit->GetParameter(2) > 2.0*momsigma ){
+      if(fabs(gfit->GetParameter(1)) > momsigma || gfit->GetParError(1) > momsigma || gfit->GetParameter(2) > momsigma ){
         cout << "Back momentum resolution out of tolerance "
           << gfit->GetParameter(1) << " +- " << gfit->GetParError(1) << " sigma " << gfit->GetParameter(2) << endl;
         retval=-3;

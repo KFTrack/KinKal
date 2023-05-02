@@ -43,7 +43,7 @@ namespace KKTest {
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
-        scitsig_(0.1), shPosSig_(10.0), shmax_(80.0), coff_(50.0), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+        scitsig_(0.5), shPosSig_(10.0), shmax_(40.0), cz_(0.5*zrange_+50), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
           miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6,false))); // updater to force exact straw xing material calculation
@@ -87,7 +87,7 @@ namespace KKTest {
       double sigtot_; // TOT drift time resolution (ns)
       double ineff_; // hit inefficiency
       // time hit parameters
-      double scitsig_, shPosSig_, shmax_, coff_, clen_, cprop_;
+      double scitsig_, shPosSig_, shmax_, cz_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tol_; // tolerance on momentum accuracy due to BField effects
       double tprec_; // time precision on TCA
@@ -209,7 +209,8 @@ namespace KKTest {
     double tend = thits.back()->time();
     // extend to the calorimeter z
     VEC3 pvel = ptraj.velocity(tend);
-    double shstart = tend + coff_/pvel.Z();
+    VEC3 ppos = ptraj.position3(tend);
+    double shstart = tend + (cz_-ppos.Z())/pvel.Z();
 // extend the trajectory to here
     extendTraj(ptraj,shstart);
     pvel = ptraj.velocity(shstart);
@@ -244,24 +245,26 @@ namespace KKTest {
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& ptraj,double htime) {
-    ROOT::Math::SMatrix<double,3> bgrad;
-    VEC3 pos,vel, dBdt;
-    pos = ptraj.position3(htime);
-    vel = ptraj.velocity(htime);
-    dBdt = bfield_.fieldDeriv(pos,vel);
-    //    std::cout << "end time " << ptraj.back().range().begin() << " hit time " << htime << std::endl;
-    if(dBdt.R() != 0.0){
-      double tbeg = bfield_.rangeInTolerance(ptraj.back(),ptraj.back().range().begin(),tol_);
-      double tend = ptraj.back().range().end();
-      while(tbeg < htime) {
-        auto pos = ptraj.position4(tbeg);
-        auto mom =  ptraj.momentum4(tbeg);
-        double tnew = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
-        VEC3 bf = bfield_.fieldVect(ptraj.position3(0.5*(tbeg+tnew)));
-        TimeRange prange(tbeg,tend);
-        KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
-        ptraj.append(newend);
-        tbeg = tnew;
+    if(htime > ptraj.range().end()){
+      ROOT::Math::SMatrix<double,3> bgrad;
+      VEC3 pos,vel, dBdt;
+      pos = ptraj.position3(htime);
+      vel = ptraj.velocity(htime);
+      dBdt = bfield_.fieldDeriv(pos,vel);
+      //    std::cout << "end time " << ptraj.back().range().begin() << " hit time " << htime << std::endl;
+      if(dBdt.R() != 0.0){
+	double tbeg = ptraj.range().end();
+	while(tbeg < htime) {
+	  double tend = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+	  double tmid = 0.5*(tbeg+tend);
+	  auto bf = bfield_.fieldVect(ptraj.position3(tmid));
+	  auto pos = ptraj.position4(tmid);
+	  auto mom =  ptraj.momentum4(tmid);
+	  TimeRange prange(tbeg,tend);
+	  KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
+	  ptraj.append(newend);
+	  tbeg = tend;
+	}
       }
     }
   }
