@@ -8,10 +8,13 @@
 add_library(Trajectory SHARED
     CentralHelix.cc
     ClosestApproachData.cc
+    GeometricLine.cc
     KinematicLine.cc
     Line.cc
     LoopHelix.cc
     POCAUtil.cc
+    CaloDistanceToTime.cc
+    ConstantDistanceToTime.cc
     )
 # make the library names unique
 set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")
