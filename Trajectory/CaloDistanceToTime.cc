@@ -4,7 +4,7 @@
 #include <cstdlib>
 
 CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
-  DistanceToTime(), asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset) {}
+  asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset) {}
 
 double CaloDistanceToTime::distance(double deltaT) {
     if (deltaT > 0) {

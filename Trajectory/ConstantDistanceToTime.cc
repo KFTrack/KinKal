@@ -2,7 +2,7 @@
 #include <cstdlib>
 
 ConstantDistanceToTime::ConstantDistanceToTime(double constantSpeed) :
-  DistanceToTime(), constantSpeed_(constantSpeed) {}
+  constantSpeed_(constantSpeed) {}
 
 double ConstantDistanceToTime::distance(double deltaT) {
     return deltaT * constantSpeed_;
