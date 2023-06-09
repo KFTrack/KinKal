@@ -13,12 +13,12 @@ using namespace ROOT::Math;
 namespace KinKal {
   Line::Line(VEC4 const& pos0, VEC3 const& svel, double length ) : Line(pos0.Vect(), pos0.T(), svel, length) {}
   Line::Line(VEC3 const& pos0, double tmeas , VEC3 const& svel, double length )  : 
-    d_(new ConstantDistanceToTime(sqrt(svel.Mag2()), tmeas)), gline_(pos0, svel, length) {}
-  Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : d_(new ConstantDistanceToTime(speed, t0)), gline_(p0, p1) {}
-  Line::Line(VEC3 const& p0, double length, VEC3 const& svel, std::shared_ptr<DistanceToTime> d) : d_(d), gline_(p0, svel, length) {}
+    t0_(tmeas), d_(new ConstantDistanceToTime(sqrt(svel.Mag2()))), gline_(pos0, svel, length) {}
+  Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : t0_(t0), d_(new ConstantDistanceToTime(speed)), gline_(p0, p1) {}
+  Line::Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d) : t0_(t0), d_(d), gline_(p0, svel, length) {}
 
   VEC3 Line::position3(double time) const {
-    return gline_.position3(d_->distance(time));
+    return gline_.position3(d_->distance(time - t0_));
   }
 
   VEC4 Line::position4(double time) const {
@@ -27,19 +27,19 @@ namespace KinKal {
   }
 
   VEC3 Line::velocity(double time) const {
-    return direction(time)*speed();
+    return direction(time)*speed(time);
   }
 
   double Line::TOCA(VEC3 const& point) const {
     double s = gline_.DOCA(point);
-    return s/speed() - t0();
+    return s/speed(s) - t0();
   }
 
   void Line::print(std::ostream& ost, int detail) const {
     ost << " Line, intial position " << endPosition()
     << " t0 " << t0()
-    << " direction " << direction()
-    << " speed " << speed() << endl;
+    << " direction " << direction() << endl;
+    //<< " speed " << speed() << endl;
   }
 
   std::ostream& operator <<(std::ostream& ost, Line const& tline) {

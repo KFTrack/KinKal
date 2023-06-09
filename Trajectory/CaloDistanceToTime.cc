@@ -3,24 +3,24 @@
 #include <stdexcept>
 #include <cstdlib>
 
-CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double timeOffset, double distanceOffset) : 
-  DistanceToTime(timeOffset), asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset) {}
+CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
+  DistanceToTime(), asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset) {}
 
 double CaloDistanceToTime::distance(double deltaT) {
-    if (deltaT > timeOffset_) {
+    if (deltaT > 0) {
         throw std::invalid_argument("deltaT out of range with value: " + std::to_string(deltaT));
     }
-    return distanceOffset_ + asymptoticSpeed_ * sqrt(pow(deltaT - timeOffset_ - 1, 2) - 1);
+    return distanceOffset_ + asymptoticSpeed_ * sqrt(pow(deltaT - 1, 2) - 1);
 }
 
 double CaloDistanceToTime::time(double distance) {
     double static const calorimeterLength = 200;
     if (distance <= distanceOffset_) {
-        return timeOffset_;
+        return 0;
     } else if (distance >= calorimeterLength) {
-        return timeOffset_+1 - evaluate_root(calorimeterLength);
+        return 1 - evaluate_root(calorimeterLength);
     }
-    return timeOffset_+1-evaluate_root(distance);
+    return 1-evaluate_root(distance);
 }
 
 double CaloDistanceToTime::speed(double distance) {

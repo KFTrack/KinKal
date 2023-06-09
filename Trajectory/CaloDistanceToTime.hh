@@ -3,7 +3,7 @@
 
 class CaloDistanceToTime : public DistanceToTime {
     public:
-        CaloDistanceToTime(double asymptoticSpeed, double timeOffset, double distanceOffset);
+        CaloDistanceToTime(double asymptoticSpeed, double distanceOffset);
         double distance(double deltaT) override;
         double time(double distance) override;
         double speed(double distance) override;

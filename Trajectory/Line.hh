@@ -19,15 +19,14 @@ namespace KinKal {
       Line(VEC3 const& p0, double t0, VEC3 const& svel, double length);
       // construct from 2 points plus timing information.  P0 is the measurement (near) end, p1 the far end.  Signals propagate from far to near
       Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed );
-      Line(VEC3 const& p0, double length, VEC3 const& svel, std::shared_ptr<DistanceToTime> d);
+      Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d);
       // accessors
-      double t0() const { return d_->timeOffset_; }
-      double& t0() { return d_->timeOffset_; } // detector updates need to refine t0
+      double t0() const { return t0_; }
+      double& t0() { return t0_; } // detector updates need to refine t0
       // signal ends at pos0
       VEC3 startPosition() const { return gline_.startPosition(); }
       VEC3 const& endPosition() const { return gline_.endPosition() ; }
-      double speed() const { return d_->speed(0); }
-      double speed(double time) const { return d_->speed(d_->distance(time)); }
+      double speed(double time) const { return d_->speed(d_->distance(time-t0_)); }
       double length() const { return gline_.length(); }
       VEC3 const& direction() const { return gline_.direction(); }
       // TOCA to a point
@@ -36,16 +35,19 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC4 position4(double time) const;
       VEC3 velocity(double time) const;
-      VEC3 const& direction(double time) const { return gline_.direction(time); }
+      VEC3 const& direction(double time) const { 
+        // TODO: change?
+        return gline_.direction(time); 
+        }
       void print(std::ostream& ost, int detail) const;
-      TimeRange range() const { return TimeRange(t0() - length()/speed(),t0()); }
+      // TimeRange range() const { return TimeRange(t0() - length()/speed(),t0()); }
 
     private:
       //VEC3 pos0_, dir_; // position and direction
-       //double t0_; // intial time (at pos0)
+       double t0_; // intial time (at pos0)
        //double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       //double length_; // line length
-      std::shared_ptr<DistanceToTime> d_; // change to shared_ptr later
+      std::shared_ptr<DistanceToTime> d_;
       GeometricLine gline_; // geometic representation of the line
   };
   std::ostream& operator <<(std::ostream& ost, Line const& tline);

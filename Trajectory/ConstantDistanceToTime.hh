@@ -3,7 +3,7 @@
 
 class ConstantDistanceToTime : public DistanceToTime {
     public:
-        ConstantDistanceToTime(double constantSpeed, double timeOffset);
+        ConstantDistanceToTime(double constantSpeed);
         double distance(double deltaT) override;
         double time(double distance) override;
         double speed(double distance) override;

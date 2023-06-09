@@ -1,15 +1,15 @@
 #include "KinKal/Trajectory/ConstantDistanceToTime.hh"
 #include <cstdlib>
 
-ConstantDistanceToTime::ConstantDistanceToTime(double constantSpeed, double timeOffset) :
-  DistanceToTime(timeOffset), constantSpeed_(constantSpeed) {}
+ConstantDistanceToTime::ConstantDistanceToTime(double constantSpeed) :
+  DistanceToTime(), constantSpeed_(constantSpeed) {}
 
 double ConstantDistanceToTime::distance(double deltaT) {
-    return (deltaT - timeOffset_) * constantSpeed_;
+    return deltaT * constantSpeed_;
 }
 
 double ConstantDistanceToTime::time(double distance) {
-    return distance * inverseSpeed(distance) + timeOffset_;
+    return distance * inverseSpeed(distance);
 }
 
 double ConstantDistanceToTime::speed(double distance) {
