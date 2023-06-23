@@ -489,8 +489,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
         auto const& tline = shptr->wire();
-        plow = tline.position3(tline.range().begin());
-        phigh = tline.position3(tline.range().end());
+        plow = tline.startPosition();
+        phigh = tline.endPosition();
         line->SetLineColor(kRed);
         auto hitpos = tline.position3(shptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(shptr->closestApproach().particleToca());
@@ -500,8 +500,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         tpos->SetMarkerColor(kGreen);
       } else if (lhptr.use_count() > 0){
         auto const& tline = lhptr->sensorAxis();
-        plow = tline.position3(tline.range().begin());
-        phigh = tline.position3(tline.range().end());
+        plow = tline.startPosition();
+        phigh = tline.endPosition();
         line->SetLineColor(kCyan);
         auto hitpos = tline.position3(lhptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(lhptr->closestApproach().particleToca());

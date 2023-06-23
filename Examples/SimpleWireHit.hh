@@ -83,7 +83,7 @@ namespace KinKal {
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     // otherwise use the time at the center of the wire
-    CAHint tphint = ca_.usable() ?  ca_.hint() : CAHint(wire_.range().mid(),wire_.range().mid());
+    CAHint tphint = ca_.usable() ?  ca_.hint() : CAHint(wire_.timeHint(),wire_.timeHint());
     ca_ = CA(ktrajptr,wire_,tphint,precision());
     if(!ca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
@@ -188,7 +188,7 @@ namespace KinKal {
       ost << std::endl;
     }
     if(detail > 1) {
-      ost << "Propagation speed " << wire_.speed() << " TPOCA " << ca_.tpData() << std::endl;
+      ost << "Approximate Propagation speed " << wire_.speed(100) << " TPOCA " << ca_.tpData() << std::endl;
     }
   }
 

@@ -41,6 +41,7 @@ namespace KinKal {
         }
       void print(std::ostream& ost, int detail) const;
       // TimeRange range() const { return TimeRange(t0() - length()/speed(),t0()); }
+      double timeHint() const { return length()/(2*d_->speed(100)); }
 
     private:
       //VEC3 pos0_, dir_; // position and direction

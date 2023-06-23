@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
     g2->SetTitle("Inverse Speed (mm/ns);Distance (mm);deltaT (ns)");
     TGraph* g3 = graph(200, 0, 1, d, &speedWrapper);
     g3->SetTitle("Speed (ns/mm); Distance (mm); deltaT (ns)");
-    TGraph* g4 = graph(200, 0, 0.0099, d, &distanceWrapper);
+    TGraph* g4 = graph(200, 0, -0.0099, d, &distanceWrapper);
     g4->SetTitle("DeltaT->Distance; deltaT (ns); Distance (mm)");
 
     TFile mefile("CaloDistanceToTime.root","RECREATE");
