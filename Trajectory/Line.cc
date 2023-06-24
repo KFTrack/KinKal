@@ -13,12 +13,12 @@ using namespace ROOT::Math;
 namespace KinKal {
   Line::Line(VEC4 const& pos0, VEC3 const& svel, double length ) : Line(pos0.Vect(), pos0.T(), svel, length) {}
   Line::Line(VEC3 const& pos0, double tmeas , VEC3 const& svel, double length )  : 
-    t0_(tmeas), d_(new ConstantDistanceToTime(sqrt(svel.Mag2()))), gline_(pos0, svel, length) {}
-  Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : t0_(t0), d_(new ConstantDistanceToTime(speed)), gline_(p0, p1) {}
-  Line::Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d) : t0_(t0), d_(d), gline_(p0, svel, length) {}
+    t0_(tmeas), d2t_(new ConstantDistanceToTime(sqrt(svel.Mag2()))), gline_(pos0, svel, length) {}
+  Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : t0_(t0), d2t_(new ConstantDistanceToTime(speed)), gline_(p0, p1) {}
+  Line::Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d) : t0_(t0), d2t_(d), gline_(p0, svel, length) {}
 
   VEC3 Line::position3(double time) const {
-    return gline_.position3(d_->distance(time - t0_));
+    return gline_.position3(d2t_->distance(time - t0_));
   }
 
   VEC4 Line::position4(double time) const {
