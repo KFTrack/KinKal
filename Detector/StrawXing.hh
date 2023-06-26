@@ -55,7 +55,7 @@ namespace KinKal {
   {}
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
-    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.timeHint(),axis_.timeHint());
+    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.timeAtMidpoint(),axis_.timeAtMidpoint());
     tpca_ = CA(ktrajptr,axis_,tphint,precision());
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
   }

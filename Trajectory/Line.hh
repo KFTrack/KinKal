@@ -35,20 +35,16 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC4 position4(double time) const;
       VEC3 velocity(double time) const;
-      VEC3 const& direction(double time) const { 
-        // TODO: change?
-        return gline_.direction(time); 
-        }
+      VEC3 const& direction(double time) const { return gline_.direction(); }
       void print(std::ostream& ost, int detail) const;
-      // TimeRange range() const { return TimeRange(t0() - length()/speed(),t0()); }
-      double timeHint() const { return t0_ + d2t_->time(0.5*length()); }
+      double timeAtMidpoint() const { return t0_ + d2t_->time(0.5*length()); }
 
     private:
       //VEC3 pos0_, dir_; // position and direction
        double t0_; // intial time (at pos0)
        //double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       //double length_; // line length
-      std::shared_ptr<DistanceToTime> d2t_;
+      std::shared_ptr<DistanceToTime> d2t_; // represents the possibly nonlinear distance to time relationship of the line
       GeometricLine gline_; // geometic representation of the line
   };
   std::ostream& operator <<(std::ostream& ost, Line const& tline);

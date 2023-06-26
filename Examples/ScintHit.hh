@@ -69,7 +69,7 @@ namespace KinKal {
     double slen = (send-sstart).R();
     // tolerance should come from the config.  Should also test relative to the error. FIXME
     double tol = slen*1.0;
-    double sdist = (ppos - saxis_.position3(saxis_.timeHint())).Dot(saxis_.direction());
+    double sdist = (ppos - saxis_.position3(saxis_.timeAtMidpoint())).Dot(saxis_.direction());
     if( (ppos-sstart).Dot(saxis_.direction()) < -tol ||
         (ppos-send).Dot(saxis_.direction()) > tol) {
       // adjust hint to the middle and try agian

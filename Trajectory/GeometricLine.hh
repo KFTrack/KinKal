@@ -23,7 +23,6 @@ namespace KinKal {
       double DOCA(VEC3 const& point) const;
       // geometric accessors
       VEC3 position3(double distance) const;
-      VEC3 const& direction(double distance) const { return dir_; }
       void print(std::ostream& ost, int detail) const;
 
     private:
