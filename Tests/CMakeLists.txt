@@ -1,6 +1,7 @@
 # List of unit test sources
 
 set( TEST_SOURCE_FILES
+    CaloDistanceToTime_unit.cc
     CentralHelixClosestApproach_unit.cc
     CentralHelixBField_unit.cc
     CentralHelixDerivs_unit.cc
@@ -8,6 +9,7 @@ set( TEST_SOURCE_FILES
     CentralHelixHit_unit.cc
     CentralHelixPKTraj_unit.cc
     CentralHelix_unit.cc
+    ConstantDistanceToTime_unit.cc
     KinematicLineClosestApproach_unit.cc
     KinematicLineBField_unit.cc
     KinematicLineDerivs_unit.cc

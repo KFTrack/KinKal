@@ -69,11 +69,12 @@ namespace KinKal {
     double slen = (send-sstart).R();
     // tolerance should come from the config.  Should also test relative to the error. FIXME
     double tol = slen*1.0;
+    double sdist = (ppos - saxis_.position3(saxis_.timeAtMidpoint())).Dot(saxis_.direction());
     if( (ppos-sstart).Dot(saxis_.direction()) < -tol ||
         (ppos-send).Dot(saxis_.direction()) > tol) {
       // adjust hint to the middle and try agian
       double sspeed = tpca_.particleTraj().velocity(tpca_.particleToca()).Dot(saxis_.direction());
-      double sdist = (ppos - saxis_.position3(saxis_.range().mid())).Dot(saxis_.direction());
+      
       auto tphint = tpca_.hint();
       tphint.particleToca_ -= sdist/sspeed;
       tpca_ = CA(tpca_.particleTrajPtr(),saxis_,tphint,precision());
@@ -83,7 +84,7 @@ namespace KinKal {
     // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
     // Might want to do more updating (set activity) based on DOCA in future: TODO
     double dd2 = tpca_.dirDot()*tpca_.dirDot();
-    double totvar = tvar_ + wvar_*dd2/(saxis_.speed()*saxis_.speed()*(1.0-dd2));
+    double totvar = tvar_ + wvar_*dd2/(saxis_.speed(sdist)*saxis_.speed(sdist)*(1.0-dd2));
     rresid_ = Residual(tpca_.deltaT(),totvar,0.0,true,tpca_.dTdP());
     this->updateWeight(config);
   }

@@ -276,8 +276,8 @@ int test(int argc, char **argv) {
   if(tp.status() == ClosestApproachData::converged) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
-    auto plow = tline.position3(tline.range().begin());
-    auto phigh = tline.position3(tline.range().end());
+    auto plow = tline.startPosition();
+    auto phigh = tline.endPosition();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);

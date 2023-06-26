@@ -237,8 +237,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    plow = tline.position3(tline.range().begin());
-    phigh = tline.position3(tline.range().end());
+    plow = tline.startPosition();
+    phigh = tline.endPosition();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);
