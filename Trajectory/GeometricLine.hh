@@ -15,8 +15,11 @@ namespace KinKal {
       GeometricLine(VEC3 const& p0, VEC3 const& p1);
       // accessors
       // signal ends at pos0
-      VEC3 startPosition() const { return pos0_ - length_*dir_; }
-      VEC3 const& endPosition() const { return pos0_ ; }
+      // flipped
+      // VEC3 startPosition() const { return pos0_ - length_*dir_; }
+      // VEC3 const& endPosition() const { return pos0_; }
+      VEC3 const& startPosition() const { return pos0_; }
+      VEC3 endPosition() const { return pos0_ + length_*dir_; }
       double length() const { return length_; }
       VEC3 const& direction() const { return dir_; }
       // Distance of Closest Approach to a point
