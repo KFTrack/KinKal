@@ -36,11 +36,9 @@ namespace KinKal {
   }
 
   void Line::print(std::ostream& ost, int detail) const {
-    // switched from endPosition() to startPosition()
-    ost << " Line, intial position " << startPosition()
+    ost << " Line, initial position " << startPosition()
     << " t0 " << t0()
     << " direction " << direction() << endl;
-    //<< " speed " << speed() << endl;
   }
 
   std::ostream& operator <<(std::ostream& ost, Line const& tline) {

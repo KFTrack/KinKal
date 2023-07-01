@@ -11,9 +11,6 @@ namespace KinKal {
   GeometricLine::GeometricLine(VEC4 const& p0, VEC3 const& svel, double length) : GeometricLine(p0.Vect(), svel, length) {}
   GeometricLine::GeometricLine(VEC3 const& p0, VEC3 const& svel, double length)  : 
     pos0_(p0), dir_(svel.Unit()), length_(length) {}
-  
-  // flipped
-  // GeometricLine::GeometricLine(VEC3 const& p0, VEC3 const& p1) : pos0_(p0), dir_((p0-p1).Unit()), length_((p1-p0).R()) {}
   GeometricLine::GeometricLine(VEC3 const& p0, VEC3 const& p1) : pos0_(p0), dir_((p1-p0).Unit()), length_((p1-p0).R()) {}
 
   VEC3 GeometricLine::position3(double distance) const {
@@ -21,8 +18,6 @@ namespace KinKal {
   }
 
   double GeometricLine::DOCA(VEC3 const& point) const {
-    // flipped
-    // return (point - pos0_).Dot(dir_);
     return (pos0_ - point).Dot(dir_);
   }
 

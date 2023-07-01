@@ -24,7 +24,6 @@ namespace KinKal {
       double t0() const { return t0_; }
       double& t0() { return t0_; } // detector updates need to refine t0
       // signal ends at pos0
-      // flipped: signal starts at pos0  (interchanged the const&)
       VEC3 const& startPosition() const { return gline_.startPosition(); }
       VEC3 endPosition() const { return gline_.endPosition() ; }
       double speed(double time) const { return d2t_->speed(d2t_->distance(time-t0_)); }
