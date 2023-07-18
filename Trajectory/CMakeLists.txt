@@ -1,4 +1,3 @@
-
 # Explicitly list source files in this shared library
 # When a new source file is added, it must be added to this list.
 
@@ -13,7 +12,6 @@ add_library(Trajectory SHARED
     Line.cc
     LoopHelix.cc
     POCAUtil.cc
-    CaloDistanceToTime.cc
     ConstantDistanceToTime.cc
     )
 # make the library names unique
