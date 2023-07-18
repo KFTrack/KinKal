@@ -24,6 +24,8 @@ set( TEST_SOURCE_FILES
     LoopHelixHit_unit.cc
     LoopHelixPKTraj_unit.cc
     LoopHelix_unit.cc
+    Geometry_unit.cc
+    Intersection_unit.cc
     MatEnv_unit.cc
 )
 
@@ -41,7 +43,7 @@ foreach( testsourcefile ${TEST_SOURCE_FILES} )
     # add the project root as an include directory
     # link all unit tests to KinKal, MatEnv, and ROOT libraries.
     target_include_directories(Test_${testname} PRIVATE ${PROJECT_SOURCE_DIR}/..)
-    target_link_libraries( Test_${testname} General Trajectory Detector Fit MatEnv Examples ${ROOT_LIBRARIES} )
+    target_link_libraries( Test_${testname} General Trajectory Geometry Detector Fit MatEnv Examples ${ROOT_LIBRARIES} )
 
     # ensure the unit test executable filename is just its test name
     set_target_properties( Test_${testname} PROPERTIES OUTPUT_NAME ${testname})

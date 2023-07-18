@@ -186,6 +186,7 @@ endif()
 # add shared library targets
 add_subdirectory(MatEnv)
 add_subdirectory(General)
+add_subdirectory(Geometry)
 add_subdirectory(Detector)
 add_subdirectory(Trajectory)
 add_subdirectory(Fit)
@@ -193,7 +194,7 @@ add_subdirectory(Examples)
 add_subdirectory(Tests)
 
 
-install(TARGETS General Trajectory Detector Fit MatEnv Examples
+install(TARGETS General Trajectory Geometry Detector Fit MatEnv Examples
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
   PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
