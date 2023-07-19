@@ -1,4 +1,4 @@
-#include "KinKal/Trajectory/CaloDistanceToTime.cc"
+#include "KinKal/Examples/CaloDistanceToTime.cc"
 #include "KinKal/Trajectory/DistanceToTime.hh"
 #include <iostream>
 #include <functional>
@@ -59,7 +59,7 @@ double speedWrapper(double x, DistanceToTime* d) {
 int main(int argc, char **argv) {
     // cout << "Hello World" << endl;
     CaloDistanceToTime* d = new CaloDistanceToTime(85.76, 27.47);
-    
+
     TGraph* g1 = graph(200, 0, 1, d, &timeWrapper);
     g1->SetTitle("Distance->deltaT;Distance (mm);deltaT (ns)");
     TGraph* g2 = graph(200, 0, 1, d, &inverseSpeedWrapper);
