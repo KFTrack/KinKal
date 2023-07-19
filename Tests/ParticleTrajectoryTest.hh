@@ -8,7 +8,7 @@
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <getopt.h>
 

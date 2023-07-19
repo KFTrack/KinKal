@@ -114,6 +114,15 @@ namespace KinKal {
     return MOM4(mom3.X(),mom3.Y(),mom3.Z(),mass_);
   }
 
+  double KinematicLine::positionVariance(double time, MomBasis::Direction mdir) const {
+    auto dxdpvec = dXdPar(time);
+    auto momdir = direction(time);
+    auto posdir = MomBasis::direction(mdir, momdir);
+    SVEC3 sdir(posdir.X(),posdir.Y(),posdir.Z());
+    DVEC dxdp = sdir*dxdpvec;
+    return ROOT::Math::Similarity(dxdp,params().covariance());
+  }
+
   ParticleState KinematicLine::state(double time) const {
     return ParticleState(position4(time),momentum4(time), charge());
   }

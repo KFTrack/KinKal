@@ -4,5 +4,6 @@
 #include "KinKal/Trajectory/KinematicLine.hh"
 #include "KinKal/Tests/Trajectory.hh"
 int main(int argc, char **argv) {
-  return test<KinematicLine>(argc,argv);
+  KinKal::DVEC sigmas(0.5, 0.004, 0.5, 0.002, 0.4, 0.05); // expected parameter sigmas
+  return TrajectoryTest<KinematicLine>(argc,argv,sigmas);
 }

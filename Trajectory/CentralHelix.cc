@@ -141,8 +141,16 @@ namespace KinKal {
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
 
-  VEC4 CentralHelix::position4(double time) const
-  {
+  double CentralHelix::positionVariance(double time, MomBasis::Direction mdir) const {
+    auto dxdpvec = dXdPar(time);
+    auto momdir = direction(time);
+    auto posdir = MomBasis::direction(mdir, momdir);
+    SVEC3 sdir(posdir.X(),posdir.Y(),posdir.Z());
+    DVEC dxdp = sdir*dxdpvec;
+    return ROOT::Math::Similarity(dxdp,params().covariance());
+  }
+
+  VEC4 CentralHelix::position4(double time) const {
     VEC3 pos3 = position3(time);
     return VEC4( pos3.X(), pos3.Y(), pos3.Z(), time);
   }
@@ -186,6 +194,12 @@ namespace KinKal {
 
   VEC3 CentralHelix::direction(double time, MomBasis::Direction mdir) const {
     return l2g_(localDirection(time,mdir));
+  }
+
+  VEC3 CentralHelix::acceleration(double time) const {
+    auto phival = phi(time);
+    auto locacc = acceleration()*VEC3(-sin(phival),cos(phival),0.0);
+    return l2g_(locacc);
   }
 
   VEC3 CentralHelix::localDirection(double time,MomBasis::Direction mdir) const
@@ -424,6 +438,19 @@ namespace KinKal {
     // convert the change in (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;
+  }
+
+  Ray CentralHelix::axis(double time) const {
+    // local transverse position is at the center.  Use the time to define the Z position
+    VEC3 cpos = center();
+    cpos.SetZ(z0()+tanDip()*dphi(time)/omega());
+    // transform to global coordinates
+    VEC3 gcpos = l2g_(cpos);
+    // direction is along Bnom, signed by pz
+    VEC3 adir = bnom_.Unit();
+    auto pzsign = sinDip();
+    if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
+    return Ray(adir,gcpos);
   }
 
   void CentralHelix::print(std::ostream& ost, int detail) const {

@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TFile.h"
 #include "TPolyLine3D.h"

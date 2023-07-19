@@ -14,6 +14,7 @@
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Geometry/Ray.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
@@ -43,7 +44,7 @@ namespace KinKal {
       // This also requires the nominal BField, which can be a vector (3d) or a scalar (B along z)
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       LoopHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange()); // do I really need this?
-      // construct from the particle state at a given time, plus mass and charge
+      // construct from the particle state at a given time, plus mass and charge. Parameter covariance matrix is undefined
       explicit LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
       explicit LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
@@ -57,6 +58,8 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time=0.0) const  {  return CLHEP::c_light*beta(); }
+      double acceleration() const { return rad()*CLHEP::c_light*CLHEP::c_light/ebar2(); }
+      VEC3 acceleration(double time) const;
       void print(std::ostream& ost, int detail) const;
       TimeRange const& range() const { return trange_; }
       TimeRange& range() { return trange_; }
@@ -68,6 +71,7 @@ namespace KinKal {
       MOM4 momentum4(double time) const;
       double momentum(double time=0) const  { return  mass_*betaGamma(); }
       double momentumVariance(double time=0) const;
+      double positionVariance(double time,MomBasis::Direction dir) const;
       double energy(double time=0) const  { return  ebar()*Q(); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass
@@ -83,10 +87,6 @@ namespace KinKal {
       double cy() const { return paramVal(cy_); }
       double phi0() const { return paramVal(phi0_); }
       double t0() const { return paramVal(t0_); }
-      // convenience accessors
-      double tanDip() const { return rad()/lam(); }
-      double impactParam() const { return rad() - sqrt(pow(cx(),2) + pow(cy(),2)); }
-      double maxRadius() const { return rad() + sqrt(pow(cx(),2) + pow(cy(),2)); }
       // express fit results as a state vector (global coordinates)
       ParticleState state(double time) const { return ParticleState(position4(time),momentum4(time),charge()); }
       ParticleStateEstimate stateEstimate(double time) const;
@@ -127,6 +127,9 @@ namespace KinKal {
       // Parameter derivatives given a change in BField
       DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
       DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector
+      // helix interface
+      Ray axis(double time) const; // helix axis in global coordinates
+      double bendRadius() const { return fabs(rad());}
     private :
       // local coordinate system functions, used internally
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;

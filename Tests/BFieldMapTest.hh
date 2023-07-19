@@ -10,13 +10,12 @@
 #include "KinKal/Tests/ToyMC.hh"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <getopt.h>
 
 #include "TFile.h"
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"

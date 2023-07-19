@@ -27,7 +27,7 @@ ROOT_GENERATE_DICTIONARY(TrajectoryDict
 target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
 # link this library with ROOT libraries
-target_link_libraries(Trajectory General ${ROOT_LIBRARIES})
+target_link_libraries(Trajectory Geometry General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
 set_target_properties(Trajectory PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

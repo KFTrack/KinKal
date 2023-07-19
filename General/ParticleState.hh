@@ -8,6 +8,7 @@
 #include "Math/SVector.h"
 #include <vector>
 #include <string>
+#include <ostream>
 
 namespace KinKal {
 
@@ -50,4 +51,5 @@ namespace KinKal {
       const static std::vector<std::string> stateUnits_;
   };
 }
+std::ostream& operator <<(std::ostream& ost, KinKal::ParticleState const& pstate);
 #endif

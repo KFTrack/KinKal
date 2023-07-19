@@ -7,12 +7,11 @@
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <getopt.h>
 
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"
@@ -59,7 +58,7 @@ void drawMom(VEC3 const& start, VEC3 const& momvec,int momcolor,MomVec& mom) {
 }
 
 template <class KTRAJ>
-int test(int argc, char **argv) {
+int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   int opt;
   double mom(105.0), cost(0.7), phi(0.5);
   double masses[5]={0.511,105.66,139.57, 493.68, 938.0};
@@ -134,34 +133,34 @@ int test(int argc, char **argv) {
   VEC4 origin(ox,oy,oz,ot);
   double sint = sqrt(1.0-cost*cost);
   MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-  KTRAJ lhel(origin,momv,icharge,bnom,TimeRange(-10,10));
-  if(invert)lhel.invertCT();
-  auto testmom = lhel.momentum4(ot);
-  //  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << lhel << endl;
-  //  cout << "origin time position = " << lhel.position3(ot) << " momentum " << lhel.momentum3(ot) << " mag " <<  lhel.momentum(ot) << endl;
+  KTRAJ ktraj(origin,momv,icharge,bnom,TimeRange(-10,10));
+  if(invert)ktraj.invertCT();
+  auto testmom = ktraj.momentum4(ot);
+  //  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << ktraj << endl;
+  //  cout << "origin time position = " << ktraj.position3(ot) << " momentum " << ktraj.momentum3(ot) << " mag " <<  ktraj.momentum(ot) << endl;
   VEC3 tvel, tdir;
   double ttime;
-  double tstp = lhel.range().range()/9;
+  double tstp = ktraj.range().range()/9;
   for(int istep=0;istep<10;istep++){
-    ttime = lhel.range().begin() + istep*tstp;
-    tvel = lhel.velocity(ttime);
-    tdir = lhel.direction(ttime);
-    testmom = lhel.momentum4(ttime);
+    ttime = ktraj.range().begin() + istep*tstp;
+    tvel = ktraj.velocity(ttime);
+    tdir = ktraj.direction(ttime);
+    testmom = ktraj.momentum4(ttime);
     //    cout << "velocity " << tvel << " direction " << tdir << " momentum " << testmom.R() << endl;
-    //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << lhel.beta() << " momentum gamma  = " << testmom.Gamma() <<
-    //      " KTRAJ gamma = " << lhel.gamma() << " scalar mom " << lhel.momentum(ot) << endl;
+    //    cout << "momentum beta =" << testmom.Beta() << " KTRAJ beta = " << ktraj.beta() << " momentum gamma  = " << testmom.Gamma() <<
+    //      " KTRAJ gamma = " << ktraj.gamma() << " scalar mom " << ktraj.momentum(ot) << endl;
   }
-  VEC3 mdir = lhel.direction(ot);
+  VEC3 mdir = ktraj.direction(ot);
   // create the helix at tmin and tmax
-  auto tmom = lhel.momentum4(tmax);
-  auto tpos = lhel.position4(tmax);
-  KTRAJ lhelmax(tpos,tmom,icharge,bnom);
-  tmom = lhel.momentum4(tmin);
-  tpos = lhel.position4(tmin);
-  KTRAJ lhelmin(tpos,tmom,icharge,bnom);
+  auto tmom = ktraj.momentum4(tmax);
+  auto tpos = ktraj.position4(tmax);
+  KTRAJ ktrajmax(tpos,tmom,icharge,bnom);
+  tmom = ktraj.momentum4(tmin);
+  tpos = ktraj.position4(tmin);
+  KTRAJ ktrajmin(tpos,tmom,icharge,bnom);
 
-  //  cout << "KTRAJ at tmax has parameters : " << lhelmax << endl;
-  //  cout << "KTRAJ at tmin has parameters : " << lhelmin << endl;
+  //  cout << "KTRAJ at tmax has parameters : " << ktrajmax << endl;
+  //  cout << "KTRAJ at tmin has parameters : " << ktrajmin << endl;
 
   // now graph this as a polyline over the specified time range.
   double tstep = 0.1; // nanoseconds
@@ -173,7 +172,7 @@ int test(int argc, char **argv) {
   TPolyLine3D* hel = new TPolyLine3D(nsteps+1);
   for(int istep=0;istep<nsteps+1;++istep){
     // compute the position from the time
-    VEC4 hpos = lhel.position4(tmin + tstep*istep);
+    VEC4 hpos = ktraj.position4(tmin + tstep*istep);
     // add these positions to the TPolyLine3D
     hel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }
@@ -185,11 +184,11 @@ int test(int argc, char **argv) {
   hel->Draw();
   // inversion test
   TPolyLine3D* ihel = new TPolyLine3D(nsteps+1);
-  auto ilhel = lhel;
-  ilhel.invertCT();
+  auto iktraj = ktraj;
+  iktraj.invertCT();
   for(int istep=0;istep<nsteps+1;++istep){
     // compute the position from the time
-    VEC4 hpos = lhel.position4(tmin + tstep*istep);
+    VEC4 hpos = ktraj.position4(tmin + tstep*istep);
     // add these positions to the TPolyLine3D
     ihel->SetPoint(istep, hpos.X(), hpos.Y(), hpos.Z());
   }
@@ -199,18 +198,18 @@ int test(int argc, char **argv) {
   ihel->Draw();
   // now draw momentum vectors at reference, start and end
   MomVec imstart,imend,imref;
-  auto imompos = ilhel.position3(ot);
-  mdir =ilhel.direction(ot);
+  auto imompos = iktraj.position3(ot);
+  mdir =iktraj.direction(ot);
   VEC3 imomvec =mom*mdir;
   drawMom(imompos,imomvec,kRed,imref);
   //
-  imompos  = lhel.position3(tmin);
-  mdir = lhel.direction(tmin);
+  imompos  = ktraj.position3(tmin);
+  mdir = ktraj.direction(tmin);
   imomvec =mom*mdir;
   drawMom(imompos,imomvec,kBlue,imstart);
   //
-  imompos = lhel.position3(tmax);
-  mdir = lhel.direction(tmax);
+  imompos = ktraj.position3(tmax);
+  mdir = ktraj.direction(tmax);
   imomvec =mom*mdir;
   drawMom(imompos,imomvec,kGreen,imend);
   //
@@ -227,18 +226,18 @@ int test(int argc, char **argv) {
 
   // now draw momentum vectors at reference, start and end
   MomVec mstart,mend,mref;
-  VEC3 mompos = lhel.position3(ot);
-  mdir = lhel.direction(ot);
+  VEC3 mompos = ktraj.position3(ot);
+  mdir = ktraj.direction(ot);
   VEC3 momvec =mom*mdir;
   drawMom(mompos,momvec,kBlack,mref);
   //
-  mompos = lhel.position3(tmin);
-  mdir = lhel.direction(tmin);
+  mompos = ktraj.position3(tmin);
+  mdir = ktraj.direction(tmin);
   momvec =mom*mdir;
   drawMom(mompos,momvec,kBlue,mstart);
   //
-  mompos = lhel.position3(tmax);
-  mdir = lhel.direction(tmax);
+  mompos = ktraj.position3(tmax);
+  mdir = ktraj.direction(tmax);
   momvec =mom*mdir;
   drawMom(mompos,momvec,kGreen,mend);
   //
@@ -257,8 +256,8 @@ int test(int argc, char **argv) {
   leg->Draw();
 
   // create a Line near this helix, and draw it and the ClosestApproach vector
-  VEC3 pos = lhel.position3(ltime);
-  VEC3 dir = lhel.direction(ltime);
+  VEC3 pos = ktraj.position3(ltime);
+  VEC3 dir = ktraj.direction(ltime);
   // rotate the direction
   double lhphi = atan2(dir.Y(),dir.X());
   double pphi = lhphi + M_PI/2.0;
@@ -271,7 +270,7 @@ int test(int argc, char **argv) {
   Line tline(ppos, ltime, pvel, wlen);
   // find ClosestApproach
   CAHint hint(ltime,ltime);
-  ClosestApproach<KTRAJ,Line> tp(lhel,tline,hint, 1e-6);
+  ClosestApproach<KTRAJ,Line> tp(ktraj,tline,hint, 1e-6);
   //  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   if(tp.status() == ClosestApproachData::converged) {
     // draw the line and ClosestApproach
@@ -292,13 +291,39 @@ int test(int argc, char **argv) {
     return -1;
   }
   // test particle state back-and-forth
-  ParticleStateEstimate pmeas = lhel.stateEstimate(ltime);
-  KTRAJ newhel(pmeas,lhel.bnom());
+  // set the covariance first
+  for(size_t ipar=0; ipar < NParams(); ipar++){
+    ktraj.params().covariance()[ipar][ipar] = sigmas[ipar]*sigmas[ipar];
+  }
+  ParticleStateEstimate pmeas = ktraj.stateEstimate(ltime);
+  KTRAJ newktraj(pmeas,ktraj.bnom());
   for(size_t ipar=0;ipar < NParams();ipar++){
-    if(fabs(lhel.paramVal(ipar)-newhel.paramVal(ipar)) > 1e-9){
+    if(fabs(ktraj.paramVal(ipar)-newktraj.paramVal(ipar)) > 1e-9){
       cout << "Parameter check failed par " << ipar << endl;
       return -2;
     }
+    if(fabs(ktraj.paramVar(ipar)-newktraj.paramVar(ipar)) > 1e-9){
+      cout << "Parameter covariance check failed par " << ipar << endl;
+      return -2;
+    }
+  }
+  // test position and momentum variance
+  double pmvar = pmeas.momentumVariance();
+  double pphivar = pmeas.positionVariance(MomBasis::phidir_);
+  double pperpvar = pmeas.positionVariance(MomBasis::perpdir_);
+
+  double tmvar = ktraj.momentumVariance(ltime);
+  double tphivar = ktraj.positionVariance(ltime,MomBasis::phidir_);
+  double tperpvar = ktraj.positionVariance(ltime,MomBasis::perpdir_);
+
+  if(fabs(pmvar-tmvar)>1e-9 ) {
+    cout << "Momentum covariance check failed " << endl;
+    return -2;
+  }
+
+  if(fabs(pphivar-tphivar) > 1e-9 || fabs(pperpvar-tperpvar) > 1e-9){
+    cout << "Position covariance check failed " << endl;
+    return -2;
   }
 
   std::string tfname = KTRAJ::trajName() + ".root";

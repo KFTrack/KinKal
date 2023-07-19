@@ -33,9 +33,8 @@ namespace KinKal {
     double tstep = 0.1*trange.range();  // trajectory range defines maximum step
     auto curv = surf.curvature(pos);
     if(curv > 0)tstep = std::min(tstep,0.1/(ktraj.speed()*curv));
-    // the following is yet to be implemented TODO
-    // auto acc = ktraj.acceleration().R();
-    // if(acc > 0) tstep = std::min(tstep,0.01*ktraj.speed()/acc);
+    auto acc = ktraj.acceleration();
+    if(acc > 0) tstep = std::min(tstep,0.01*ktraj.speed()/acc);
     // step until we cross the surface or the point is out-of-bounds
     do {
       ttest += tstep;

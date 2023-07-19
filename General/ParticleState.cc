@@ -15,3 +15,8 @@ namespace KinKal {
   string const& ParticleState::stateUnit(size_t index) { return stateUnits_[index];}
   string const& ParticleState::stateTitle(size_t index) { return stateTitles_[index];}
 }
+
+std::ostream& operator <<(std::ostream& ost, KinKal::ParticleState const& pstate){
+  ost << "ParticleState position " << pstate.position4() << " momentum " << pstate.momentum4();
+  return ost;
+}

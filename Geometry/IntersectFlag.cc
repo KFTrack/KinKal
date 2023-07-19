@@ -1,7 +1,7 @@
 #include "KinKal/Geometry/IntersectFlag.hh"
 #include <stdexcept>
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 
 std::ostream& operator <<(std::ostream& ost, KinKal::IntersectFlag const& iflag) {
   if(iflag.onsurface_){

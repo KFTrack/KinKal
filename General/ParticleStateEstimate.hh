@@ -4,6 +4,7 @@
 #ifndef KinKal_ParticleStateEstimate_hh
 #define KinKal_ParticleStateEstimate_hh
 #include "KinKal/General/ParticleState.hh"
+#include "KinKal/General/MomBasis.hh"
 
 namespace KinKal {
   class ParticleStateEstimate : public ParticleState {
@@ -15,6 +16,8 @@ namespace KinKal {
       DMAT const& stateCovariance() const { return scovar_; }
       // project the variance onto the scalar momentum
       double momentumVariance() const;
+      // project the position variance in given direction.  Note this will throw if given the momentum direction, as that variance is infinite
+      double positionVariance(MomBasis::Direction dir) const;
     private:
       DMAT scovar_; // covariance of state vector
   };
