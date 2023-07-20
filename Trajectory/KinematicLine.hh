@@ -11,6 +11,7 @@
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
+#include "KinKal/Geometry/Ray.hh"
 #include "Math/Rotation3D.h"
 #include <stdexcept>
 #include <vector>
@@ -136,6 +137,9 @@ class KinematicLine {
     // Parameter derivatives given a change in BField.  These return null for KinematicLine
     DVEC dPardB(double time) const { return DVEC(); }
     DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
+    // implement 'helix' interface.  This has a physically valid interpretion even for a line
+    Ray axis(double time) const; // helix axis in global coordinates
+    double bendRadius() const { return 0.0; }
 
     void invertCT() {
       charge_ *= -1;

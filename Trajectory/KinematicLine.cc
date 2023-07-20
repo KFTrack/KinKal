@@ -281,6 +281,13 @@ namespace KinKal {
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
   }
 
+  Ray KinematicLine::axis(double time) const {
+    VEC3 lpos = position3(time);
+    // direction is along the trajectory
+    VEC3 adir = direction();
+    return Ray(adir,lpos);
+  }
+
   void KinematicLine::print(ostream &ost, int detail) const {
     auto perr = params().covariance().Diagonal();
     ost << " KinematicLine " << range() << " parameters: ";

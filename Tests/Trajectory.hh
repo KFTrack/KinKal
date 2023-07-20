@@ -316,6 +316,24 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   double tphivar = ktraj.positionVariance(ltime,MomBasis::phidir_);
   double tperpvar = ktraj.positionVariance(ltime,MomBasis::perpdir_);
 
+  // test acceleration
+  auto acc = ktraj.acceleration(ltime);
+  auto vel = ktraj.velocity(ltime);
+  if(acc.Dot(vel) > 1e-9 || acc.Dot(ktraj.bnom()) > 1e-9){
+    cout << "Acceleration check failed " << endl;
+    return -2;
+  }
+
+  // test axis
+  auto axis = ktraj.axis(ltime);
+  auto bdir = ktraj.bnom().Unit();
+  auto rtest = (axis.start_-ktraj.position3(ltime)).R();
+  if( fabs(axis.dir_.Dot(acc)) > 1e-9 || fabs(rtest-ktraj.bendRadius()) > 1e-9 ||
+      (acc.R() != 0 && fabs(fabs(axis.dir_.Dot(bdir))-1.0)>1e-9) ){
+    cout << "Axis check failed " << endl;
+    return -2;
+  }
+
   if(fabs(pmvar-tmvar)>1e-9 ) {
     cout << "Momentum covariance check failed " << endl;
     return -2;
