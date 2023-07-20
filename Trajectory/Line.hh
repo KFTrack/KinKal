@@ -40,12 +40,9 @@ namespace KinKal {
       double timeAtMidpoint() const { return t0_ + d2t_->time(0.5*length()); }
 
     private:
-      //VEC3 pos0_, dir_; // position and direction
        double t0_; // intial time (at pos0)
-       //double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
-      //double length_; // line length
-      std::shared_ptr<DistanceToTime> d2t_; // represents the possibly nonlinear distance to time relationship of the line
-      GeometricLine gline_; // geometic representation of the line
+       std::shared_ptr<DistanceToTime> d2t_; // represents the possibly nonlinear distance to time relationship of the line
+       GeometricLine gline_; // geometic representation of the line
   };
   std::ostream& operator <<(std::ostream& ost, Line const& tline);
 }

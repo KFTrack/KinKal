@@ -5,6 +5,7 @@
 #ifndef KinKal_Cylinder_hh
 #define KinKal_Cylinder_hh
 #include "KinKal/Geometry/Surface.hh"
+#include "KinKal/Geometry/Disk.hh"
 namespace KinKal {
   class Cylinder : public Surface {
     public:
@@ -23,7 +24,9 @@ namespace KinKal {
       auto const& center() const { return center_; }
       double radius() const { return radius_; }
       double halfLength() const { return halflen_; }
-
+      // return the front and rear bounds of this cylinder as disks
+      Disk frontDisk() const { return Disk(axis_,center_-halflen_*axis_,radius_); }
+      Disk backDisk() const { return Disk(axis_,center_+halflen_*axis_,radius_); }
     private:
       VEC3 axis_; // symmetry axis of the cylinder
       VEC3 center_; // geometric center

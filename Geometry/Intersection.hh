@@ -11,52 +11,49 @@
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "KinKal/Trajectory/KinematicLine.hh"
+#include "Math/VectorUtil.h"
 
 namespace KinKal {
   // intersection product
-  template <class KTRAJ, class SURF> struct Intersection : public InterData {
-    Intersection(KTRAJ const& ktraj, SURF const& surf,double tol) : ktraj_(ktraj), surf_(surf), tol_(tol) {}
+  template <class KTRAJ> struct Intersection : public InterData {
+    Intersection(KTRAJ const& ktraj, Surface const& surf,TimeRange const& trange, double tol) : InterData(trange), ktraj_(ktraj), surf_(surf), tol_(tol) {}
     KTRAJ const& ktraj_; // trajectory of this intersection
-    SURF const& surf_; // surf of this intersection
+    Surface const& surf_; // surf of this intersection
     double tol_; // tol used in this intersection
   };
   //
   // generic intersection implementation based on stepping across the surface within a given range
   //
-  template <class KTRAJ, class SURF> Intersection<KTRAJ, SURF> stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol) {
-    Intersection<KTRAJ, SURF> retval(ktraj,surf,tol);
+  template <class KTRAJ, class SURF> Intersection<KTRAJ> stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol) {
+    Intersection<KTRAJ> retval(ktraj,surf,trange,tol);
     double ttest = trange.begin();
     auto pos = ktraj.position3(ttest);
+    double speed = ktraj.speed(ttest); // speed is constant
     bool startinside = surf.isInside(pos);
     bool stepinside;
-    // set the step according to curvature
-    double tstep = 0.1*trange.range();  // trajectory range defines maximum step
-    auto curv = surf.curvature(pos);
-    if(curv > 0)tstep = std::min(tstep,0.1/(ktraj.speed()*curv));
-    auto acc = ktraj.acceleration();
-    if(acc > 0) tstep = std::min(tstep,0.01*ktraj.speed()/acc);
-    // step until we cross the surface or the point is out-of-bounds
+    // set the step according to the range and tolerance.  The range division is arbitrary
+    double tstep = std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
+    // step until we cross the surface or the time is out of range
     do {
       ttest += tstep;
       pos = ktraj.position3(ttest);
       stepinside = surf.isInside(pos);
-    } while (startinside == stepinside && surf.inBounds(pos,tol) && trange.inRange(ttest));
+    } while (startinside == stepinside && trange.inRange(ttest));
     if(startinside != stepinside){
       // we crossed the cylinder: backup and do a linear search.
       ttest -= tstep;
-      double speed = ktraj.speed(ttest); // speed is constant
-      double dist = tstep/speed;
-      while (fabs(dist) > tol) {
-        auto pos = ktraj.position3(ttest);
-        auto dir = ktraj.direction(ttest);
-        Ray ray(dir,pos);
+      double dist;
+      do {
+        retval.pos_ = ktraj.position3(ttest);
+        retval.pdir_ = ktraj.direction(ttest);
+        auto ray = retval.ray();
         retval.flag_ = surf.intersect(ray,dist,false,tol);
         if(retval.flag_.onsurface_){
           ttest += dist/speed;
         } else {
           break;
         }
-      }
+      } while (fabs(dist) > tol);
       if(retval.flag_.onsurface_){
        // calculate the time
         retval.time_ = ttest;
@@ -68,54 +65,90 @@ namespace KinKal {
     }
     return retval;
   }
-  //  // specializations for different trajectory and surface types
-  //  // Helix and cylinder
-  //  // Implement this also for CentralHelix TODO
-  //  //
-  //  Intersection<KinKal::LoopHelix,KinKal::Cylinder> intersect( KinKal::LoopHelix const& lhelix, KinKal::Cylinder const& cyl, double tstart ,double tol) {
-  //    Intersection<KinKal::LoopHelix, KinKal::Cylinder> retval(lhelix,cyl,tol);
-  //    // compare radii and directions, and divide into cases
-  //    double rratio = lhelix.rad()/cyl.radius();
-  //    double ddot = fabs(lhelix.bnom().Unit().Dot(cyl.axis()));
-  //    double speed = lhelix.speed(tstart); // speed is constant
-  //    if (rratio < 1 && ddot*cyl.halfLength() < std::min(lhelix.rad(),cyl.radius())){
-  //      // the helix is smaller than the cylinder and they are roughly co-linear.  Do a quick test to see if they could intersect within the boundary
-//      // TODO
-//    } else if (rratio > 1 && ddot < 0.1) {
+  //
+  // specializations for different trajectory and surface types
+  // Helix and cylinder.  This must be explicit to differentiate from the line intersection below.
+  // All the work is done in common with CentralHelix and LoopHelix
+  //  The actual implementation is generic for any helix
+  //
+  template < class HELIX> Intersection<HELIX> helixIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+    // compare directions and divide into cases
+    double ddot = fabs(helix.bnom().Unit().Dot(cyl.axis()));
+    if (ddot > 0.9) {
+      // the helix and cylinder are roughly co-linear.
+      // find the intersections with the front and back disks.  Use that to refine the range
+      auto frontdisk = cyl.frontDisk();
+      auto backdisk = cyl.backDisk();
+      auto frontinter = planeIntersect(helix,frontdisk,trange,tol);
+      auto backinter = planeIntersect(helix,frontdisk,trange,tol);
+      if(frontinter.flag_.onsurface_ && backinter.flag_.onsurface_){
+        // front and back disks intersected.  Use these to define a restricted range.
+        double tmin = std::min(frontinter.time_,backinter.time_);
+        double tmax = std::max(frontinter.time_,backinter.time_);
+        TimeRange srange(std::max(tmin,trange.begin()),std::min(tmax,trange.end()));
+        // do a rough test if an intersection is possible by comparing the positions at the extrema
+        auto axis = helix.axis(srange.begin());
+        auto vz = helix.velocity(srange.begin()).Dot(axis.dir_);
+        double dist = srange.range()*vz;
+        auto backpos = axis.position(dist);
+        // if the circles at both ends are fully contained one in the other no intersection is possible
+        double drfront = ROOT::Math::VectorUtil::Perp(axis.start_ - cyl.center(),cyl.axis());
+        double drback = ROOT::Math::VectorUtil::Perp(backpos - cyl.center(),cyl.axis());
+        double dr = fabs(cyl.radius()-helix.bendRadius());
+        if(drfront < dr && drback < dr){
+          // intersection is possible: step within the restricted range
+          return stepIntersect(helix,cyl,srange,tol);
+        }
+      }
+//    } else if (ddot < 0.1) {
 //      // the helix and cylinder are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
-//      // TODO
-//    } else {
-//      // intermediate case: use step intersection
-//      stepIntersect(lhelix,cyl,tstart,tol);
-//    }
-//    return retval;
-//  }
-//  //
-//// Helix with planar surfaces can be solved generically
-////
-//  template <class PSURF> Intersection<KinKal::LoopHelix,class PSURF > intersect( KinKal::LoopHelix const& lhelix, PSURF const& psurf, double tstart ,double tol) {
-//    Intersection<KinKal::LoopHelix, PSURF> retval(lhelix,psurf,tol);
-//    // compare helix direction and plane direction, and divide into cases
-//    double ddot = fabs(lhelix.bnom().Unit().Dot(cyl.axis()));
-//    double speed = lhelix.speed(tstart); // speed is constant
-//    if (ddot > 0.9 ){
-//      // roughly colinear; use the Z component of velocity to determine an approximate time, then step.
-//      // TODO
-//    } else {
-//      // use step intersection.  Set step according to curvature
-//      double tstep = 0.01*cyl.radius()/speed;
-//      stepIntersect(lhelix,psurf,tstart,tstep,tol);
-//    }
-//    return retval;
-//  }
-//
-
-
+//      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
+    } else {
+      // intermediate case: use step intersection
+      return stepIntersect(helix,cyl,trange,tol);
+    }
+    return Intersection<HELIX> (helix,cyl,trange,tol);
+  }
   //
-  // Line trajectory can provide an exact answer for generic surfaces
+  // Helix and planar surfaces
   //
-  template<class SURF> Intersection<KinKal::KinematicLine,SURF> intersect(KinKal::KinematicLine const& kkline, SURF const& surf, double tstart,double tol) {
-    Intersection<KinKal::KinematicLine,SURF> retval(kkline,surf,tol);
+  template <class HELIX> Intersection<HELIX> planeIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+    // Find the intersection time of the  helix axis (along bnom) with the plane
+    auto axis = helix.axis(trange.begin());
+    double ddot = fabs(axis.dir_.Dot(plane.normal()));
+    double vz = helix.velocity(trange.mid()).Dot(axis.dir_);
+    double dist(0.0);
+    auto pinter = plane.intersect(axis,dist,true,tol);
+    if(pinter.onsurface_){
+      double tmid = trange.begin() + dist/vz;
+    // use the curvature to bound the range of intersection times
+      double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
+      double dt = std::max(tol,helix.bendRadius()*tantheta)/vz; // make range finite in case the helix is exactly co-linear with the plane normal
+      TimeRange srange(std::max(tmid-dt,trange.begin()),std::min(tmid+dt,trange.end()));
+      // now step to the exact intersection
+      return stepIntersect(helix,plane,srange,tol);
+    }
+    return Intersection<HELIX>(helix,plane,trange,tol);
+  }
+  //
+  Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+    return helixIntersect(lhelix,cyl,trange,tol);
+  }
+  Intersection<KinKal::CentralHelix> intersect( CentralHelix const& chelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+    return helixIntersect(chelix,cyl,trange,tol);
+  }
+  Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lplane, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+    return planeIntersect(lplane,plane,trange,tol);
+  }
+  Intersection<KinKal::CentralHelix> intersect( CentralHelix const& cplane, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+    return planeIntersect(cplane,plane,trange,tol);
+  }
+  //
+  // Line trajectory with generic surfaces
+  //
+  template<class SURF> Intersection<KinKal::KinematicLine> intersect(KinKal::KinematicLine const& kkline, SURF const& surf, TimeRange trange,double tol) {
+    Intersection<KinKal::KinematicLine> retval(kkline,surf,trange,tol);
+    auto tstart = trange.begin();
     auto pos = kkline.position3(tstart);
     auto dir = kkline.direction(tstart);
     Ray ray(dir,pos);
@@ -131,5 +164,9 @@ namespace KinKal {
     return retval;
   }
 }
+//    auto curv = surf.curvature(pos);
+//    if(curv > 0)tstep = std::min(tstep,0.1/(ktraj.speed()*curv));
+//    auto acc = ktraj.acceleration();
+//    if(acc > 0) tstep = std::min(tstep,0.01*ktraj.speed()/acc);
 
 #endif

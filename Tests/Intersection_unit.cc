@@ -91,32 +91,31 @@ int main(int argc, char** argv) {
   // intersect with various surfaces
   Cylinder cyl(axis,origin,slen1,slen2);
   std::cout << "Test " << cyl << std::endl;
-
-  KinKal::Intersection<KinKal::KinematicLine, KinKal::Cylinder> kc_inter = intersect(ktraj,cyl, 0.0, 1.0e-8);
+  auto kc_inter = intersect(ktraj,cyl, trange, 1.0e-8);
   std::cout << "KinematicLine Cylinder Intersection status " << kc_inter.flag_ << " position " << kc_inter.pos_ << " time " << kc_inter.time_ << std::endl;
 
   Disk disk(axis,origin,slen1);
   std::cout << "Test " << disk << std::endl;
 
-  KinKal::Intersection<KinKal::KinematicLine, KinKal::Disk> kd_inter = intersect(ktraj,disk, 0.0, 1.0e-8);
+  auto kd_inter = intersect(ktraj,disk, trange, 1.0e-8);
   std::cout << "KinematicLine Disk Intersection status " << kd_inter.flag_ << " position " << kd_inter.pos_ << " time " << kd_inter.time_ << std::endl;
 
   Annulus ann(axis,origin,slen1, slen2);
   std::cout << "Test " << ann << std::endl;
 
-  KinKal::Intersection<KinKal::KinematicLine, KinKal::Annulus> ka_inter = intersect(ktraj,ann, 0.0, 1.0e-8);
+  auto ka_inter = intersect(ktraj,ann, trange, 1.0e-8);
   std::cout << "KinematicLine Annulus Intersection status " << ka_inter.flag_ << " position " << ka_inter.pos_ << " time " << ka_inter.time_ << std::endl;
 
   VEC3 udir(scost*cos(sphi), scost*sin(sphi), -ssint);
   Rectangle rect(axis,origin,udir,slen1, slen2);
   std::cout << "Test " << rect << std::endl;
 
-  KinKal::Intersection<KinKal::KinematicLine, KinKal::Rectangle> kr_inter = intersect(ktraj,rect, 0.0, 1.0e-8);
+  auto kr_inter = intersect(ktraj,rect, trange, 1.0e-8);
   std::cout << "KinematicLine Rectangle Intersection status " << kr_inter.flag_ << " position " << kr_inter.pos_ << " time " << kr_inter.time_ << std::endl;
 
   // now try with helices
   KinKal::LoopHelix lhelix(pstate,bnom,trange);
-  KinKal::Intersection<KinKal::LoopHelix, KinKal::Disk> ld_inter = stepIntersect(lhelix,disk, trange, 1.0e-8);
+  auto ld_inter = intersect(lhelix,disk, trange, 1.0e-8);
   std::cout << "LoopHelix Disk Intersection status " << ld_inter.flag_ << " position " << ld_inter.pos_ << " time " << ld_inter.time_ << std::endl;
 
   return 0;
