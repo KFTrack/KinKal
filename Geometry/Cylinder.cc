@@ -1,5 +1,6 @@
 #include "KinKal/Geometry/Cylinder.hh"
 #include "Math/VectorUtil.h"
+#include <exception>
 using namespace ROOT::Math::VectorUtil;
 namespace KinKal {
   bool Cylinder::onSurface(VEC3 const& point, double tol) const {
@@ -23,6 +24,48 @@ namespace KinKal {
     auto rvec = point - center_;
     auto pvec = PerpVector(rvec,axis_);
     return pvec.Unit();
+  }
+
+  VEC3 Cylinder::uDirection() const {
+    // u direction is arbitrary; use 'x' if the axis is mostly along z
+    static const VEC3 xdir(1.0,0.0,0.0);
+    static const VEC3 ydir(0.0,1.0,0.0);
+    static const VEC3 zdir(0.0,0.0,1.0);
+    double zdot  = fabs(axis_.Dot(zdir));
+    if(zdot > 0.5){
+      return ydir.Cross(axis_).Unit();
+    } else if(zdot > 0.01) {
+      return axis_.Cross(zdir).Unit();
+    } else {
+      double xdot = fabs(axis_.Dot(xdir));
+      if(xdot > 0.5)
+        return ydir.Cross(axis_).Unit();
+      else
+        return xdir.Cross(axis_).Unit();
+    }
+  }
+
+  Disk Cylinder::frontDisk() const {
+      return Disk(axis_,uDirection(),center_-halflen_*axis_,radius_);
+  }
+
+  Disk Cylinder::backDisk() const {
+    return Disk(axis_,uDirection(),center_+halflen_*axis_,radius_);
+  }
+
+  Rectangle Cylinder::inscribedRectangle(VEC3 const& norm) const {
+    // make sure normal is perpendicular to the axis
+    if(axis_.Dot(norm) > 1e-10) throw std::invalid_argument("normal not perpendicular to axis");
+    // U points along the cylinder
+    return Rectangle(norm,axis_,center_,halflen_,radius_);
+  }
+
+  Rectangle Cylinder::tangentRectangle(VEC3 const& spoint) const {
+    // rectangle normal is the local cylinder normal
+    auto norm = normal(spoint);
+    // rectangle center is on the cylinder
+    VEC3 rcenter = center_ + norm*radius_;
+    return Rectangle(norm,axis_,rcenter,halflen_,radius_);
   }
 
   IntersectFlag Cylinder::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {

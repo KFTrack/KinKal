@@ -10,7 +10,7 @@ namespace KinKal {
     public:
       ~Annulus() {};
       // construct from necessary parameters
-      Annulus(VEC3 const& norm, VEC3 const& center, double innerrad, double outerrad) : Plane(norm,center), irad_(innerrad), orad_(outerrad) {}
+      Annulus(VEC3 const& norm, VEC3 const& udir, VEC3 const& center, double innerrad, double outerrad) : Plane(norm,udir,center), irad_(innerrad), orad_(outerrad) {}
       // surface interface
       bool inBounds(VEC3 const& point, double tol) const override;
       // annulus-specific interface

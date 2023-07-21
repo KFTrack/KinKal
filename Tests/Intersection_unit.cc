@@ -75,6 +75,7 @@ int main(int argc, char** argv) {
 
   double ssint = sqrt(1.0-scost*scost);
   VEC3 axis(ssint*cos(sphi), ssint*sin(sphi), scost);
+  VEC3 udir(scost*cos(sphi), scost*sin(sphi), -ssint);
 
   double psint = sqrt(1.0-pcost*pcost);
   VEC3 momvec(psint*cos(pphi), psint*sin(pphi), pcost);
@@ -94,20 +95,19 @@ int main(int argc, char** argv) {
   auto kc_inter = intersect(ktraj,cyl, trange, 1.0e-8);
   std::cout << "KinematicLine Cylinder Intersection status " << kc_inter.flag_ << " position " << kc_inter.pos_ << " time " << kc_inter.time_ << std::endl;
 
-  Disk disk(axis,origin,slen1);
+  Disk disk(axis,udir,origin,slen1);
   std::cout << "Test " << disk << std::endl;
 
   auto kd_inter = intersect(ktraj,disk, trange, 1.0e-8);
   std::cout << "KinematicLine Disk Intersection status " << kd_inter.flag_ << " position " << kd_inter.pos_ << " time " << kd_inter.time_ << std::endl;
 
-  Annulus ann(axis,origin,slen1, slen2);
+  Annulus ann(axis,udir,origin,slen1, slen2);
   std::cout << "Test " << ann << std::endl;
 
   auto ka_inter = intersect(ktraj,ann, trange, 1.0e-8);
   std::cout << "KinematicLine Annulus Intersection status " << ka_inter.flag_ << " position " << ka_inter.pos_ << " time " << ka_inter.time_ << std::endl;
 
-  VEC3 udir(scost*cos(sphi), scost*sin(sphi), -ssint);
-  Rectangle rect(axis,origin,udir,slen1, slen2);
+  Rectangle rect(axis, udir, origin, slen1, slen2);
   std::cout << "Test " << rect << std::endl;
 
   auto kr_inter = intersect(ktraj,rect, trange, 1.0e-8);

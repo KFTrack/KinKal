@@ -9,7 +9,7 @@ namespace KinKal {
   class Disk : public Annulus {
     public:
       // construct from necessary parameters
-      Disk(VEC3 const& norm, VEC3 const& center, double radius) : Annulus(norm,center,0.0,radius) {}
+      Disk(VEC3 const& norm,VEC3 const& udir, VEC3 const& center, double radius) : Annulus(norm,udir,center,0.0,radius) {}
   };
 }
 std::ostream& operator <<(std::ostream& ost, KinKal::Disk const& disk);

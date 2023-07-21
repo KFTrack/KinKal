@@ -6,6 +6,7 @@
 #define KinKal_Cylinder_hh
 #include "KinKal/Geometry/Surface.hh"
 #include "KinKal/Geometry/Disk.hh"
+#include "KinKal/Geometry/Rectangle.hh"
 namespace KinKal {
   class Cylinder : public Surface {
     public:
@@ -18,21 +19,26 @@ namespace KinKal {
       double curvature(VEC3 const& point) const override { return 1.0/radius_; }
       bool inBounds(VEC3 const& point, double tol) const override;
       IntersectFlag intersect(Ray const& ray,double& dist, bool forwards, double tol) const override;
-      VEC3 normal(VEC3 const& point) const override;
+      VEC3 normal(VEC3 const& point) const override; // radially outward
       // cylinder-specific interface
       auto const& axis() const { return axis_; }
       auto const& center() const { return center_; }
       double radius() const { return radius_; }
       double halfLength() const { return halflen_; }
-      // return the front and rear bounds of this cylinder as disks
-      Disk frontDisk() const { return Disk(axis_,center_-halflen_*axis_,radius_); }
-      Disk backDisk() const { return Disk(axis_,center_+halflen_*axis_,radius_); }
+      // front and rear boundaries of this cylinder as disks.  U direction is arbitrary
+      Disk frontDisk() const;
+      Disk backDisk() const;
+      // inscribed rectangle with given normal direction.  U direction is long the axis
+      Rectangle inscribedRectangle(VEC3 const& norm) const;
+      // tangent rectangle at a given surface point.  U direction is along the axis
+      Rectangle tangentRectangle(VEC3 const& surfpos) const;
     private:
       VEC3 axis_; // symmetry axis of the cylinder
       VEC3 center_; // geometric center
       double radius_; // transverse radius
       double halflen_; // half length
       double radius2_; // squared radius (cache);
+      VEC3 uDirection() const; // arbitrary direction orthogonal to the axis
   };
 }
 std::ostream& operator <<(std::ostream& ost, KinKal::Cylinder const& cyl);
