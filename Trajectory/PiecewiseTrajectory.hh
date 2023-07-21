@@ -20,7 +20,6 @@ namespace KinKal {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using DKTRAJ = std::deque<KTRAJPTR>;
       // forward calls to the pieces
-      void position3(VEC4& pos) const {nearestPiece(pos.T()).position3(pos); }
       VEC3 position3(double time) const { return nearestPiece(time).position3(time); }
       VEC3 velocity(double time) const { return nearestPiece(time).velocity(time); }
       double speed(double time) const { return nearestPiece(time).speed(time); }

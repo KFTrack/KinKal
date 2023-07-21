@@ -28,7 +28,7 @@ namespace KinKal {
         if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
         PTTRAJ::prepend(newpiece,allowremove);
       }
-      VEC3 position3(double time) const  { return PTTRAJ::nearestPiece(time).position3(time); }
+      // kinematic interface
       VEC4 position4(double time) const  { return PTTRAJ::nearestPiece(time).position4(time); }
       VEC3 momentum3(double time) const  { return PTTRAJ::nearestPiece(time).momentum3(time); }
       MOM4 momentum4(double time) const  { return PTTRAJ::nearestPiece(time).momentum4(time); }

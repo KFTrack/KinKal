@@ -6,6 +6,9 @@
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Geometry/Cylinder.hh"
+#include "KinKal/Geometry/Disk.hh"
+#include "KinKal/Geometry/Intersection.hh"
 
 #include <iostream>
 #include <cstdio>
@@ -256,6 +259,14 @@ int ParticleTrajectoryTest(int argc, char **argv) {
 
   pkfile.Write();
   pkfile.Close();
+
+  // test intersection
+
+  Cylinder cyl(bnom,origin.Vect(),hlen,wlen);
+  std::cout << "Test " << cyl << std::endl;
+  auto kc_inter = pieceIntersect(ptraj,cyl, ptraj.range(), 1.0e-8);
+  std::cout << "KinematicLine Cylinder Intersection status " << kc_inter.flag_ << " position " << kc_inter.pos_ << " time " << kc_inter.time_ << std::endl;
+
   //
   return 0;
 }

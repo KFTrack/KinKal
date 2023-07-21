@@ -10,6 +10,7 @@
 #include "KinKal/Geometry/Plane.hh"
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/CentralHelix.hh"
+#include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/KinematicLine.hh"
 #include "Math/VectorUtil.h"
 
@@ -113,7 +114,8 @@ namespace KinKal {
   // Helix and planar surfaces
   //
   template <class HELIX> Intersection<HELIX> planeIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
-    // Find the intersection time of the  helix axis (along bnom) with the plane
+    Intersection<HELIX> retval(helix,plane,trange,tol);
+   // Find the intersection time of the  helix axis (along bnom) with the plane
     auto axis = helix.axis(trange.begin());
     double ddot = fabs(axis.dir_.Dot(plane.normal()));
     double vz = helix.velocity(trange.mid()).Dot(axis.dir_);
@@ -121,14 +123,19 @@ namespace KinKal {
     auto pinter = plane.intersect(axis,dist,true,tol);
     if(pinter.onsurface_){
       double tmid = trange.begin() + dist/vz;
-    // use the curvature to bound the range of intersection times
+    // use the difference in axis direction and curvature to bound the range of intersection times
       double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
       double dt = std::max(tol,helix.bendRadius()*tantheta)/vz; // make range finite in case the helix is exactly co-linear with the plane normal
-      TimeRange srange(std::max(tmid-dt,trange.begin()),std::min(tmid+dt,trange.end()));
+      TimeRange srange(tmid-dt,tmid+dt);
       // now step to the exact intersection
-      return stepIntersect(helix,plane,srange,tol);
+      auto sinter = stepIntersect(helix,plane,srange,tol);
+      retval.time_ = sinter.time_;
+      retval.pos_  = sinter.pos_;
+      retval.pdir_ = sinter.pdir_;
+      retval.flag_ = sinter.flag_;
+      retval.norm_ = sinter.norm_;
     }
-    return Intersection<HELIX>(helix,plane,trange,tol);
+    return retval;
   }
   //
   Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
@@ -163,6 +170,41 @@ namespace KinKal {
     }
     return retval;
   }
+
+//  Find first intersection of a particle trajectory.  First, generic implementation looping over pieces
+  template <class KTRAJ, class SURF> Intersection<ParticleTrajectory<KTRAJ>> pieceIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
+    Intersection<ParticleTrajectory<KTRAJ>> retval(ptraj,surf,trange,tol);
+    // loop over pieces, and test the ones in range
+    bool first(false);
+    bool startinside,endinside;
+    for(auto traj : ptraj.pieces()) {
+      if(trange.inRange(traj->range().begin()) || trange.inRange(traj->range().end())){
+        if(first){
+          double tmin = std::max(trange.begin(),traj->range().begin());
+          auto spos = traj->position3(tmin);
+          startinside = surf.isInside(spos);
+          first = false;
+        }
+        double tmax = std::min(trange.end(),traj->range().end());
+        auto epos = traj->position3(tmax);
+        endinside = surf.isInside(epos);
+        if(startinside != endinside){
+          // we crossed the surface: find the exact intersection
+          TimeRange srange(std::max(trange.begin(),traj->range().begin()),tmax);
+          auto pinter = intersect(*traj,surf,srange,tol);
+          if(pinter.flag_.onsurface_ && pinter.inRange()){
+            retval.flag_ = pinter.flag_;
+            retval.pos_ = pinter.pos_;
+            retval.norm_ = pinter.norm_;
+            retval.pdir_ = pinter.pdir_;
+            retval.time_ = pinter.time_;
+          }
+        }
+      }
+    }
+    return retval;
+  }
+
 }
 //    auto curv = surf.curvature(pos);
 //    if(curv > 0)tstep = std::min(tstep,0.1/(ktraj.speed()*curv));
