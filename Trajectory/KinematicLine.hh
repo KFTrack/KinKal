@@ -12,6 +12,7 @@
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Geometry/Ray.hh"
+#include "KinKal/Geometry/Plane.hh"
 #include "Math/Rotation3D.h"
 #include <stdexcept>
 #include <vector>
@@ -70,6 +71,7 @@ class KinematicLine {
 
     double momentumVariance(double time) const { return pars_.covariance()(mom_,mom_); }
     double positionVariance(double time,MomBasis::Direction dir) const;
+    PMAT planeCovariance(double time,Plane const& plane) const;
     double energy() const { double momval = mom(); return sqrt(momval*momval+mass_*mass_); }
     double energy(double time) const { return energy(); }
 

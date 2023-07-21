@@ -15,6 +15,7 @@
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
 #include "KinKal/Geometry/Ray.hh"
+#include "KinKal/Geometry/Plane.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
@@ -67,6 +68,7 @@ namespace KinKal {
       double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar_); }
       double momentumVariance(double time=0) const;
       double positionVariance(double time,MomBasis::Direction dir) const;
+      PMAT planeCovariance(double time,Plane const& plane) const;
       double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar_); }
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const;

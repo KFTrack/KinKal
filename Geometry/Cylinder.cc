@@ -63,9 +63,10 @@ namespace KinKal {
   Rectangle Cylinder::tangentRectangle(VEC3 const& spoint) const {
     // rectangle normal is the local cylinder normal
     auto norm = normal(spoint);
-    // rectangle center is on the cylinder
-    VEC3 rcenter = center_ + norm*radius_;
-    return Rectangle(norm,axis_,rcenter,halflen_,radius_);
+    // correct for any tolerance if the point isnt exactly on the surface (up to FP accuracy)
+    double rad = Perp(spoint - center_,axis_);
+    auto rcent = spoint + norm*(radius_-rad);
+    return Rectangle(norm,axis_,rcent,halflen_,radius_);
   }
 
   IntersectFlag Cylinder::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {

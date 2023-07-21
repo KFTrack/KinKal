@@ -14,6 +14,7 @@
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Geometry/Plane.hh"
 #include "KinKal/Geometry/Ray.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
@@ -72,6 +73,7 @@ namespace KinKal {
       double momentum(double time=0) const  { return  mass_*betaGamma(); }
       double momentumVariance(double time=0) const;
       double positionVariance(double time,MomBasis::Direction dir) const;
+      PMAT planeCovariance(double time,Plane const& plane) const;
       double energy(double time=0) const  { return  ebar()*Q(); }
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       double mass() const { return mass_;} // mass

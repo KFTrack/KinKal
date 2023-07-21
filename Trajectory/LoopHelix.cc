@@ -120,6 +120,20 @@ namespace KinKal {
     return ROOT::Math::Similarity(dxdp,params().covariance());
   }
 
+  PMAT LoopHelix::planeCovariance(double time,Plane const& plane) const {
+    // project covariance onto the U, V direction of the given plane
+    // particle direction cannot be orthogonal to the plane normal
+    auto momdir = direction(time);
+    if(fabs(plane.normal().Dot(momdir)) < 1.0e-10)throw invalid_argument("Momentum direction lies in the plane");
+    auto dxdpvec = dXdPar(time);
+    SVEC3 uvec(plane.uDirection().X(),plane.uDirection().Y(),plane.uDirection().Z());
+    SVEC3 vvec(plane.vDirection().X(),plane.vDirection().Y(),plane.vDirection().Z());
+    PPMAT dPlanedPar;
+    dPlanedPar.Place_in_row(uvec*dxdpvec,0,0);
+    dPlanedPar.Place_in_row(vvec*dxdpvec,1,0);
+    return ROOT::Math::Similarity(dPlanedPar,params().covariance());
+  }
+
   VEC4 LoopHelix::position4(double time) const {
     VEC3 temp = position3(time);
     return VEC4(temp.X(),temp.Y(),temp.Z(),time);

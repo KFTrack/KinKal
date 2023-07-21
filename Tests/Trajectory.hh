@@ -316,6 +316,18 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   double tphivar = ktraj.positionVariance(ltime,MomBasis::phidir_);
   double tperpvar = ktraj.positionVariance(ltime,MomBasis::perpdir_);
 
+  auto momdir = ktraj.direction(ltime);
+  auto udir = ktraj.direction(ltime,MomBasis::perpdir_);
+  Plane plane(momdir,udir,ppos);
+  auto pcov = ktraj.planeCovariance(ltime,plane);
+//  cout << "Plane covariance " << pcov << endl;
+
+  if(fabs(pcov(0,0) - pperpvar) > 1e-9 ||
+      fabs(pcov(1,1) - pphivar) > 1e-9) {
+    cout << "Position covariance check failed" << endl;
+    return -2;
+  }
+
   // test acceleration
   auto acc = ktraj.acceleration(ltime);
   auto vel = ktraj.velocity(ltime);

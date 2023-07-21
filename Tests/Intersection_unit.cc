@@ -45,7 +45,7 @@ int main(int argc, char** argv) {
   int long_index =0;
   VEC3 point(0.0,0.0,0.0);
   double scost(1.0), sphi(0.0), slen1(400), slen2(1000);
-  double pcost(0.5), pphi(0.0), pmom(400);
+  double pcost(0.5), pphi(1.0), pmom(100);
   double zpos(0.0);
   while ((opt = getopt_long_only(argc, argv,"",
           long_options, &long_index )) != -1) {
@@ -94,6 +94,11 @@ int main(int argc, char** argv) {
   std::cout << "Test " << cyl << std::endl;
   auto kc_inter = intersect(ktraj,cyl, trange, 1.0e-8);
   std::cout << "KinematicLine Cylinder Intersection status " << kc_inter.flag_ << " position " << kc_inter.pos_ << " time " << kc_inter.time_ << std::endl;
+
+  if(kc_inter.flag_.inbounds_){
+    auto iplane = cyl.tangentRectangle(kc_inter.pos_);
+    std::cout << "tangent plane at intersection " << iplane << std::endl;
+  }
 
   Disk disk(axis,udir,origin,slen1);
   std::cout << "Test " << disk << std::endl;
