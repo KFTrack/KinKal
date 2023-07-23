@@ -454,17 +454,21 @@ namespace KinKal {
     return retval;
   }
 
-  Ray CentralHelix::axis(double time) const {
+  VEC3 CentralHelix::center(double time) const {
     // local transverse position is at the center.  Use the time to define the Z position
     VEC3 cpos = center();
     cpos.SetZ(z0()+tanDip()*dphi(time)/omega());
     // transform to global coordinates
-    VEC3 gcpos = l2g_(cpos);
+    auto gcpos = l2g_(cpos);
+    return gcpos;
+  }
+
+  Ray CentralHelix::axis(double time) const {
     // direction is along Bnom, signed by pz
     VEC3 adir = bnom_.Unit();
     auto pzsign = sinDip();
     if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
-    return Ray(adir,gcpos);
+    return Ray(adir,center(time));
   }
 
   void CentralHelix::print(std::ostream& ost, int detail) const {

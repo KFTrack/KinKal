@@ -384,16 +384,20 @@ namespace KinKal {
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
   }
 
-  Ray LoopHelix::axis(double time) const {
+  VEC3 LoopHelix::center(double time) const {
     // local transverse position is at the center.  Use the time to define the Z position
     VEC3 cpos(cx(),cy(),dphi(time)*lam());
     // transform to global coordinates
-    VEC3 gcpos = l2g_(cpos);
-    // direction is along Bnom, signed by pz
+    auto gcpos = l2g_(cpos);
+    return gcpos;
+  }
+
+  Ray LoopHelix::axis(double time) const {
+    // direction is along Bnom, signed by pz.  Note Bnom is in global coordinates
     VEC3 adir = bnom_.Unit();
     auto pzsign = -lam()*sign();
     if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
-    return Ray(adir,gcpos);
+    return Ray(adir,center(time));
   }
 
   void LoopHelix::print(ostream& ost, int detail) const {

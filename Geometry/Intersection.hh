@@ -72,40 +72,55 @@ namespace KinKal {
   // All the work is done in common with CentralHelix and LoopHelix
   //  The actual implementation is generic for any helix
   //
+  //  First, a test if the circles can intersect at the specified time
+
+  template < class HELIX> bool canIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, double time ,double tol) {
+    auto hpos = helix.center(time);
+    // if the circles are fully contained one in the other no intersection is possible
+    double dcenter = ROOT::Math::VectorUtil::Perp(hpos - cyl.center(),cyl.axis());
+    double drad = fabs(cyl.radius()-helix.bendRadius());
+    return dcenter - drad + tol > 0.0;
+  }
+
   template < class HELIX> Intersection<HELIX> helixIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     // compare directions and divide into cases
     double ddot = fabs(helix.bnom().Unit().Dot(cyl.axis()));
     if (ddot > 0.9) {
       // the helix and cylinder are roughly co-linear.
-      // find the intersections with the front and back disks.  Use that to refine the range
-      auto frontdisk = cyl.frontDisk();
-      auto backdisk = cyl.backDisk();
-      auto frontinter = planeIntersect(helix,frontdisk,trange,tol);
-      auto backinter = planeIntersect(helix,frontdisk,trange,tol);
-      if(frontinter.flag_.onsurface_ && backinter.flag_.onsurface_){
-        // front and back disks intersected.  Use these to define a restricted range.
-        double tmin = std::min(frontinter.time_,backinter.time_);
-        double tmax = std::max(frontinter.time_,backinter.time_);
-        TimeRange srange(std::max(tmin,trange.begin()),std::min(tmax,trange.end()));
-        // do a rough test if an intersection is possible by comparing the positions at the extrema
-        auto axis = helix.axis(srange.begin());
-        auto vz = helix.velocity(srange.begin()).Dot(axis.dir_);
-        double dist = srange.range()*vz;
-        auto backpos = axis.position(dist);
-        // if the circles at both ends are fully contained one in the other no intersection is possible
-        double drfront = ROOT::Math::VectorUtil::Perp(axis.start_ - cyl.center(),cyl.axis());
-        double drback = ROOT::Math::VectorUtil::Perp(backpos - cyl.center(),cyl.axis());
-        double dr = fabs(cyl.radius()-helix.bendRadius());
-        if(drfront < dr && drback < dr){
-          // intersection is possible: step within the restricted range
-          return stepIntersect(helix,cyl,srange,tol);
+      // see if the range is in bounds
+      auto binb = cyl.inBounds(helix.position3(trange.begin()),tol);
+      auto einb = cyl.inBounds(helix.position3(trange.end()),tol);
+      if(binb && einb) {
+        // both in bounds: use this range
+        if(canIntersect(helix,cyl,trange.begin(),tol) || canIntersect(helix,cyl,trange.end(),tol)){
+          return stepIntersect(helix,cyl,trange,tol);
+        }
+      } else {
+        // create a list of times to select the most restrictive range
+        std::vector<double>times;
+        if(binb)times.push_back(trange.begin());
+        if(einb)times.push_back(trange.end());
+        // find the intersections with the front and back disks.  Use those to refine the range
+        // note we don't know the orientation of the trajectory WRT the axis so we have to try both
+        auto frontdisk = cyl.frontDisk();
+        auto backdisk = cyl.backDisk();
+        auto frontinter = planeIntersect(helix,frontdisk,trange,tol);
+        auto backinter = planeIntersect(helix,backdisk,trange,tol);
+        if(frontinter.flag_.onsurface_ && frontinter.flag_.inbounds_ && frontinter.inRange())times.push_back(frontinter.time_);
+        if(backinter.flag_.onsurface_ && backinter.flag_.inbounds_ && backinter.inRange())times.push_back(backinter.time_);
+        if(times.size() >=2){
+          TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
+// intersection is possible: step within the restricted range
+          if(canIntersect(helix,cyl,srange.begin(),tol) || canIntersect(helix,cyl,srange.end(),tol)){
+            return stepIntersect(helix,cyl,srange,tol);
+          }
         }
       }
-//    } else if (ddot < 0.1) {
-//      // the helix and cylinder are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
-//      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
+      //    } else if (ddot < 0.1) {
+      //      // the helix and cylinder are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
+      //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
     } else {
-      // intermediate case: use step intersection
+    // intermediate case: use step intersection
       return stepIntersect(helix,cyl,trange,tol);
     }
     return Intersection<HELIX> (helix,cyl,trange,tol);
@@ -115,7 +130,7 @@ namespace KinKal {
   //
   template <class HELIX> Intersection<HELIX> planeIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     Intersection<HELIX> retval(helix,plane,trange,tol);
-   // Find the intersection time of the  helix axis (along bnom) with the plane
+    // Find the intersection time of the  helix axis (along bnom) with the plane
     auto axis = helix.axis(trange.begin());
     double ddot = fabs(axis.dir_.Dot(plane.normal()));
     double vz = helix.velocity(trange.mid()).Dot(axis.dir_);
@@ -123,7 +138,7 @@ namespace KinKal {
     auto pinter = plane.intersect(axis,dist,true,tol);
     if(pinter.onsurface_){
       double tmid = trange.begin() + dist/vz;
-    // use the difference in axis direction and curvature to bound the range of intersection times
+      // use the difference in axis direction and curvature to bound the range of intersection times
       double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
       double dt = std::max(tol,helix.bendRadius()*tantheta)/vz; // make range finite in case the helix is exactly co-linear with the plane normal
       TimeRange srange(tmid-dt,tmid+dt);
@@ -193,11 +208,16 @@ namespace KinKal {
           TimeRange srange(std::max(trange.begin(),traj->range().begin()),tmax);
           auto pinter = intersect(*traj,surf,srange,tol);
           if(pinter.flag_.onsurface_ && pinter.inRange()){
+            // we found the intersection; set return value and finish
             retval.flag_ = pinter.flag_;
             retval.pos_ = pinter.pos_;
             retval.norm_ = pinter.norm_;
             retval.pdir_ = pinter.pdir_;
             retval.time_ = pinter.time_;
+            break;
+          } else {
+            // this crossing doesn't yield a valid intersection.  Move to the next
+            startinside = endinside;
           }
         }
       }

@@ -89,6 +89,7 @@ namespace KinKal {
         double d2 = (beta + delta)/alpha;
         if(!forwards){
           // closest solution
+          retval.onsurface_ = true;
           dist = fabs(d1) < fabs(d2) ? d1 : d2;
         } else {
           // closest forwards solution

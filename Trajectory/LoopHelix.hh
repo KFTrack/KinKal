@@ -130,6 +130,7 @@ namespace KinKal {
       DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
       DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector
       // helix interface
+      VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
       double bendRadius() const { return fabs(rad());}
     private :

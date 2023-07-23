@@ -140,6 +140,7 @@ namespace KinKal {
         pars_.parameters()[t0_] *= -1.0;
       }
       // helix interface
+      VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
       double bendRadius() const { return fabs(1.0/omega()); }
     private :
