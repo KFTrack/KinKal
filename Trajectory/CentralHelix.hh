@@ -110,6 +110,7 @@ namespace KinKal {
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge
+      double omegaZ() const { return omega()/(CLHEP::c_light*beta()*sinDip()); } // dPhi/dz
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma

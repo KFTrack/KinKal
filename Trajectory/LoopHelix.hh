@@ -104,6 +104,7 @@ namespace KinKal {
       double mbar() const { return fabs(mass_/Q()); } // mass in mm
       double Q() const { return -BFieldMap::cbar()*charge()*bnom_.R(); } // reduced charge
       double omega() const { return -CLHEP::c_light*sign()/ ebar(); } // rotational velocity, sign set by magnetic force
+      double omegaZ() const { return 1.0/lam(); } // dPhi/dz
       double beta() const { return pbar()/ebar(); } // relativistic beta
       double gamma() const { return ebar()/mbar(); } // relativistic gamma
       double betaGamma() const { return pbar()/mbar(); } // relativistic betagamma

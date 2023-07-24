@@ -20,6 +20,14 @@ namespace KinKal {
     TimeRange trange_; // time range used to search for this intersection
     bool inRange() const { return trange_.inRange(time_);}
     Ray ray() const { return Ray(pdir_,pos_); }
+    // copy the result from anothter intersection
+    void copyResult(InterData const& other) {
+      time_ = other.time_;
+      pos_ = other.pos_;
+      pdir_ = other.pdir_;
+      flag_ = other.flag_;
+      norm_ = other.norm_;
+    }
   };
 }
 #endif
