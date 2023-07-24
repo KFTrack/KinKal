@@ -1,5 +1,5 @@
 #include "KinKal/Trajectory/Line.hh"
-#include "KinKal/Trajectory/GeometricLine.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/ConstantDistanceToTime.hh"
 #include <iostream>
 #include <stdexcept>

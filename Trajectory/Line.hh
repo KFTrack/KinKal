@@ -9,7 +9,7 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/Trajectory/DistanceToTime.hh"
-#include "KinKal/Trajectory/GeometricLine.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 
 namespace KinKal {
   class Line {
@@ -45,7 +45,7 @@ namespace KinKal {
        //double speed_; // signed linear velocity, translates time to distance along the trajectory (mm/nsec)
       //double length_; // line length
       std::shared_ptr<DistanceToTime> d2t_; // represents the possibly nonlinear distance to time relationship of the line
-      GeometricLine gline_; // geometic representation of the line
+      SensorLine gline_; // geometic representation of the line
   };
   std::ostream& operator <<(std::ostream& ost, Line const& tline);
 }
