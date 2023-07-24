@@ -40,11 +40,11 @@ jobs:
           cd ..
           ENABLE_COVERAGE=""
 
-          if [ "${{ matrix.build-type }}" = "Debug" ]; then
-            if [ "${{ matrix.os }}" = "macos-latest" ]; then
-              ENABLE_COVERAGE="-DCOVERAGE=ON"
-            fi
-          fi
+          #          if [ "${{ matrix.build-type }}" = "Debug" ]; then
+          #  if [ "${{ matrix.os }}" = "macos-latest" ]; then
+          #    ENABLE_COVERAGE="-DCOVERAGE=ON"
+          #  fi
+          #fi
 
           cmake -S KinKal -B KinKal_${{ matrix.build-type }} \
                 -DCMAKE_BUILD_TYPE=${{ matrix.build-type }} \
