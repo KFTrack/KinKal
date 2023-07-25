@@ -110,7 +110,7 @@ namespace KinKal {
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge
-      double omegaZ() const { return omega()/(CLHEP::c_light*beta()*sinDip()); } // dPhi/dz
+      double omegaZ() const { return omega()/(CLHEP::c_light*beta()*tanDip()); } // dPhi/dz
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
@@ -143,6 +143,7 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
+      double axisSpeed() const; // speed along the axis direction (always positive)
       double bendRadius() const { return fabs(1.0/omega()); }
     private :
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;

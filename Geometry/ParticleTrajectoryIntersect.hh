@@ -14,7 +14,7 @@ namespace KinKal {
   template <class KTRAJ, class SURF> Intersection<ParticleTrajectory<KTRAJ>> pstepIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
     Intersection<ParticleTrajectory<KTRAJ>> retval(ptraj,surf,trange,tol);
     // loop over pieces, and test the ones in range
-    bool first(false);
+    bool first(true);
     VEC3 spos, epos;
     double tmin, tmax;
     bool startinside,endinside;
@@ -32,7 +32,7 @@ namespace KinKal {
           // we crossed the surface through a trajectory gap. Search for an intersection on this piece
           // including an early buffer for the gap
           double gaptime = (spos-epos).R()/traj->speed();
-          TimeRange srange(std::max(trange.begin(),traj->range().begin()-gaptime),tmax);
+          TimeRange srange(std::max(trange.begin(),traj->range().begin()-gaptime),traj->range().end());
           auto pinter = intersect(*traj,surf,srange,tol);
           if(pinter.flag_.onsurface_ && pinter.inRange()){
             // we found the intersection; set return value and finish

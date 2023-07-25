@@ -124,25 +124,41 @@ namespace KinKal {
   //
   template <class HELIX> Intersection<HELIX> hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     Intersection<HELIX> retval(helix,plane,trange,tol);
-    // Find the intersection time of the  helix axis (along bnom) with the plane
     auto axis = helix.axis(trange.begin());
+    // test for the helix being circular or tangent to the plane
+    double vz = helix.axisSpeed();  // speed along the helix axis
     double ddot = fabs(axis.dir_.Dot(plane.normal()));
-    double speed = helix.speed();
-    double vz = speed*axis.dir_.Z();
-    double dist(0.0);
-    auto pinter = plane.intersect(axis,dist,true,tol);
-    if(pinter.onsurface_){
-      double tmid = trange.begin() + dist/vz;
-      // bound the range of intersections by the extrema of the cylinder-plane intersection
-      double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
-      double dt = std::max(tol/speed,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
-      TimeRange srange(tmid-dt,tmid+dt);
-      if(srange.restrict(trange)){
-        // step to the intersection in the restricted range.  Use a separate intersection object as the
-        // range is different
-        auto sinter = stepIntersect(helix,plane,srange,tol);
-        retval.copyResult(sinter);
+    if(fabs(vz*trange.range()) > tol && ddot > tol ){
+      // Find the intersection time of the  helix axis (along bnom) with the plane
+      double dist(0.0);
+      auto pinter = plane.intersect(axis,dist,true,tol);
+      if(pinter.onsurface_){
+        // translate the axis intersection to a time
+        double tmid = trange.begin() + dist/vz;
+        // bound the range of intersections by the extrema of the cylinder-plane intersection
+        double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
+        double dt = std::max(tol/vz,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
+        // if we're already in tolerance, finish
+        if(dt*vz/ddot < tol){
+          retval.flag_ = pinter;
+          retval.time_ = tmid;
+          retval.pos_ = helix.position3(tmid);
+          retval.pdir_ = helix.direction(tmid);
+          retval.norm_ = plane.normal(retval.pos_);
+        } else {
+          TimeRange srange(tmid-dt,tmid+dt);
+          if(srange.restrict(trange)){
+            // step to the intersection in the restricted range.  Use a separate intersection object as the
+            // range is different
+            auto sinter = stepIntersect(helix,plane,srange,tol);
+            retval.copyResult(sinter);
+          }
+        }
       }
+    } else {
+      // simply step to intersection
+      auto sinter = stepIntersect(helix,plane,trange,tol);
+      retval.copyResult(sinter);
     }
     return retval;
   }

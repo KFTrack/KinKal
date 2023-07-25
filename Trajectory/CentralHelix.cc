@@ -471,6 +471,10 @@ namespace KinKal {
     return Ray(adir,center(time));
   }
 
+  double CentralHelix::axisSpeed() const {
+    return fabs(speed()*sinDip());
+  }
+
   void CentralHelix::print(std::ostream& ost, int detail) const {
     ost << " CentralHelix parameters: ";
     for(size_t ipar=0;ipar < CentralHelix::npars_;ipar++){

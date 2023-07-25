@@ -133,6 +133,7 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
+      double axisSpeed() const; // speed along the axis direction (always positive)
       double bendRadius() const { return fabs(rad());}
     private :
       // local coordinate system functions, used internally

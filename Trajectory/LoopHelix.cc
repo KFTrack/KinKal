@@ -400,6 +400,10 @@ namespace KinKal {
     return Ray(adir,center(time));
   }
 
+  double LoopHelix::axisSpeed() const {
+    return fabs(speed()*lam()/pbar());
+  }
+
   void LoopHelix::print(ostream& ost, int detail) const {
     auto pvar = params().covariance().Diagonal();
     ost << " LoopHelix " << range() << " parameters: ";
