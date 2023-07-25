@@ -7,7 +7,7 @@
 add_library(Trajectory SHARED
     CentralHelix.cc
     ClosestApproachData.cc
-    GeometricLine.cc
+    SensorLine.cc
     KinematicLine.cc
     Line.cc
     LoopHelix.cc
