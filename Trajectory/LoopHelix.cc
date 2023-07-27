@@ -111,6 +111,29 @@ namespace KinKal {
     return ROOT::Math::Similarity(dMomdP,params().covariance());
   }
 
+  double LoopHelix::positionVariance(double time, MomBasis::Direction mdir) const {
+    auto dxdpvec = dXdPar(time);
+    auto momdir = direction(time);
+    auto posdir = MomBasis::direction(mdir, momdir);
+    SVEC3 sdir(posdir.X(),posdir.Y(),posdir.Z());
+    DVEC dxdp = sdir*dxdpvec;
+    return ROOT::Math::Similarity(dxdp,params().covariance());
+  }
+
+  PMAT LoopHelix::planeCovariance(double time,Plane const& plane) const {
+    // project covariance onto the U, V direction of the given plane
+    // particle direction cannot be orthogonal to the plane normal
+    auto momdir = direction(time);
+    if(fabs(plane.normal().Dot(momdir)) < 1.0e-10)throw invalid_argument("Momentum direction lies in the plane");
+    auto dxdpvec = dXdPar(time);
+    SVEC3 uvec(plane.uDirection().X(),plane.uDirection().Y(),plane.uDirection().Z());
+    SVEC3 vvec(plane.vDirection().X(),plane.vDirection().Y(),plane.vDirection().Z());
+    PPMAT dPlanedPar;
+    dPlanedPar.Place_in_row(uvec*dxdpvec,0,0);
+    dPlanedPar.Place_in_row(vvec*dxdpvec,1,0);
+    return ROOT::Math::Similarity(dPlanedPar,params().covariance());
+  }
+
   VEC4 LoopHelix::position4(double time) const {
     VEC3 temp = position3(time);
     return VEC4(temp.X(),temp.Y(),temp.Z(),time);
@@ -131,6 +154,12 @@ namespace KinKal {
 
   VEC3 LoopHelix::velocity(double time) const{
     return direction(time)*speed(time);
+  }
+
+  VEC3 LoopHelix::acceleration(double time) const {
+    auto phival = phi(time);
+    auto locacc = acceleration()*VEC3(-sin(phival),cos(phival),0.0);
+    return l2g_(locacc);
   }
 
   VEC3 LoopHelix::localDirection(double time, MomBasis::Direction mdir) const {
@@ -353,6 +382,26 @@ namespace KinKal {
     // express the parameter space covariance in global state space
     PSMAT dsdp = dStatedPar(time);
     return ParticleStateEstimate(state(time),ROOT::Math::Similarity(dsdp,pars_.covariance()));
+  }
+
+  VEC3 LoopHelix::center(double time) const {
+    // local transverse position is at the center.  Use the time to define the Z position
+    VEC3 cpos(cx(),cy(),dphi(time)*lam());
+    // transform to global coordinates
+    auto gcpos = l2g_(cpos);
+    return gcpos;
+  }
+
+  Ray LoopHelix::axis(double time) const {
+    // direction is along Bnom, signed by pz.  Note Bnom is in global coordinates
+    VEC3 adir = bnom_.Unit();
+    auto pzsign = -lam()*sign();
+    if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
+    return Ray(adir,center(time));
+  }
+
+  double LoopHelix::axisSpeed() const {
+    return fabs(speed()*lam()/pbar());
   }
 
   void LoopHelix::print(ostream& ost, int detail) const {

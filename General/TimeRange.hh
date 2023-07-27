@@ -30,6 +30,16 @@ namespace KinKal {
         range_[0] = std::min(begin(),other.begin());
         range_[1] = std::max(end(),other.end());
       }
+      // restrict the range to the overlap with another range.  Note that a null range is illegal,
+      // so null overlap leaves the object unchanged and returns 'false'
+      bool restrict(TimeRange const& other ) {
+        bool retval = overlaps(other);
+        if(retval){
+          range_[0] = std::max(begin(),other.begin());
+          range_[1] = std::min(end(),other.end());
+        }
+        return retval;
+      }
     private:
       std::array<double,2> range_; // range of times
   };

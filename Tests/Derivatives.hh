@@ -4,7 +4,7 @@
 #include "KinKal/Trajectory/ClosestApproach.hh"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <getopt.h>
 #include <typeinfo>
@@ -12,7 +12,6 @@
 #include "TROOT.h"
 #include "TH1F.h"
 #include "TFile.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TArrow.h"

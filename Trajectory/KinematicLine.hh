@@ -11,6 +11,8 @@
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
+#include "KinKal/Geometry/Ray.hh"
+#include "KinKal/Geometry/Plane.hh"
 #include "Math/Rotation3D.h"
 #include <stdexcept>
 #include <vector>
@@ -68,6 +70,8 @@ class KinematicLine {
     double momentum(double time) const { return mom(); }
 
     double momentumVariance(double time) const { return pars_.covariance()(mom_,mom_); }
+    double positionVariance(double time,MomBasis::Direction dir) const;
+    PMAT planeCovariance(double time,Plane const& plane) const;
     double energy() const { double momval = mom(); return sqrt(momval*momval+mass_*mass_); }
     double energy(double time) const { return energy(); }
 
@@ -106,6 +110,9 @@ class KinematicLine {
     VEC4 position4(double time) const;
 
     VEC3 velocity(double time) const { return direction() * speed(); }
+    double acceleration() const { return 0; }
+    VEC3 acceleration(double time) const { return VEC3(0.0,0.0,0.0); }
+
     void print(std::ostream &ost, int detail) const;
 
     // local momentum direction basis
@@ -132,6 +139,9 @@ class KinematicLine {
     // Parameter derivatives given a change in BField.  These return null for KinematicLine
     DVEC dPardB(double time) const { return DVEC(); }
     DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
+    // implement 'helix' interface.  This has a physically valid interpretion even for a line
+    Ray axis(double time) const; // helix axis in global coordinates
+    double bendRadius() const { return 0.0; }
 
     void invertCT() {
       charge_ *= -1;

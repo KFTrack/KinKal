@@ -14,6 +14,8 @@
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Geometry/Ray.hh"
+#include "KinKal/Geometry/Plane.hh"
 #include "Math/Rotation3D.h"
 #include <vector>
 #include <string>
@@ -58,13 +60,16 @@ namespace KinKal {
       MOM4 momentum4(double time) const;
       VEC3 momentum3(double time) const;
       VEC3 velocity(double time) const;
+      double speed(double time=0) const  { return CLHEP::c_light * beta(); }
+      double acceleration() const { return CLHEP::c_light*CLHEP::c_light/(omega()*ebar2()); }
+      VEC3 acceleration(double time) const;
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
       double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar_); }
       double momentumVariance(double time=0) const;
+      double positionVariance(double time,MomBasis::Direction dir) const;
+      PMAT planeCovariance(double time,Plane const& plane) const;
       double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar_); }
-      // speed in mm/ns
-      double speed(double time=0) const  { return CLHEP::c_light * beta(); }
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const;
       TimeRange const& range() const { return trange_; }
@@ -99,20 +104,19 @@ namespace KinKal {
       // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
       double helicity() const { return copysign(1.0,tanDip()); } // needs to be checked TODO
       double pbar() const { return 1./ (omega() * cosDip() ); } // momentum in mm
-      double ebar() const { return sqrt(pbar()*pbar() + mbar_ * mbar_); } // energy in mm
+      double ebar2() const { return pbar()*pbar() + mbar_ * mbar_; }
+      double ebar() const { return sqrt(ebar2()); } // energy in mm
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
       double Q() const { return mass_/mbar_; } // reduced charge
+      double omegaZ() const { return omega()/(CLHEP::c_light*beta()*tanDip()); } // dPhi/dz
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma
       double betaGamma() const { return fabs(pbar()/mbar_); } // relativistic betagamma
       double Omega() const { return Q()*CLHEP::c_light/energy(); } // true angular velocity
       double dphi(double t) const { return Omega()*(t - t0()); } // rotation WRT 0 at a given time
       double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
-      double rc() const { return -1.0/omega() - d0(); }
-      double bendRadius() const { return fabs(1.0/omega()); }
-      VEC3 center() const { return VEC3(rc()*sin(phi0()), -rc()*cos(phi0()), 0.0); } // circle center (2d)
       VEC3 const &bnom(double time=0.0) const { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       DPDV dPardX(double time) const;
@@ -136,7 +140,11 @@ namespace KinKal {
         pars_.parameters()[phi0_] += M_PI;
         pars_.parameters()[t0_] *= -1.0;
       }
-      //
+      // helix interface
+      VEC3 center(double time) const; // helix center in global coordinates
+      Ray axis(double time) const; // helix axis in global coordinates
+      double axisSpeed() const; // speed along the axis direction (always positive)
+      double bendRadius() const { return fabs(1.0/omega()); }
     private :
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       VEC3 localMomentum(double time) const;
@@ -144,6 +152,8 @@ namespace KinKal {
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
       DPDV dPardXLoc(double time) const;
       PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
+      double rc() const { return -1.0/omega() - d0(); }
+      VEC3 center() const { return VEC3(rc()*sin(phi0()), -rc()*cos(phi0()), 0.0); } // local circle center
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2

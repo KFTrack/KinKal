@@ -4,7 +4,6 @@
 #include <functional>
 
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TFile.h"
 #include "TPolyLine3D.h"
@@ -54,7 +53,7 @@ double speedWrapper(double x, DistanceToTime* d) {
 int main(int argc, char **argv) {
     // cout << "Hello World" << endl;
     ConstantDistanceToTime* d = new ConstantDistanceToTime(-136);
-    
+
     TGraph* g1 = graph(200, 0, 1, d, &timeWrapper);
     g1->SetTitle("Distance->deltaT;Distance (mm);deltaT (ns)");
     TGraph* g2 = graph(200, 0, 1, d, &inverseSpeedWrapper);
