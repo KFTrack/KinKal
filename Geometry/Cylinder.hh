@@ -18,6 +18,7 @@ namespace KinKal {
       bool isInside(VEC3 const& point) const override;
       double curvature(VEC3 const& point) const override { return 1.0/radius_; }
       bool inBounds(VEC3 const& point, double tol) const override;
+      double distance(VEC3 const& point) const override;
       IntersectFlag intersect(Ray const& ray,double& dist, bool forwards, double tol) const override;
       VEC3 normal(VEC3 const& point) const override; // radially outward
       // cylinder-specific interface

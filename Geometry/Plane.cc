@@ -16,6 +16,10 @@ namespace KinKal {
     return norm_.Dot(point-center_) < 0.0;
   }
 
+  double Plane::distance(VEC3 const& point) const {
+    return norm_.Dot(point-center_);
+  }
+
   IntersectFlag Plane::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {
     IntersectFlag retval;
     double ddir = norm_.Dot(ray.dir_);
