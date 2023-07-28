@@ -17,7 +17,7 @@ namespace KinKal {
     bool first(true);
     VEC3 spos, epos;
     double tmin, tmax;
-    bool startinside,endinside;
+    bool startinside(true),endinside(true);
     for(auto traj : ptraj.pieces()) {
       if(trange.inRange(traj->range().begin()) || trange.inRange(traj->range().end())){
         tmin = std::max(trange.begin(),traj->range().begin());

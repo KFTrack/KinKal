@@ -12,6 +12,7 @@ add_library(Geometry SHARED
   Plane.cc
   Ray.cc
   Rectangle.cc
+  ThinSolid.cc
 )
 # make the library names unique
 set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")

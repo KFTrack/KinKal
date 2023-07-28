@@ -17,6 +17,7 @@ namespace KinKal {
       // the absolute value should never matter
       bool isInside(VEC3 const& point) const override;
       bool inBounds(VEC3 const& point, double tol) const override { return true; }
+      double distance(VEC3 const& point) const override;
       double curvature(VEC3 const& point) const override { return 0.0; }
       IntersectFlag intersect(Ray const& ray,double& dist, bool forwards, double tol) const override;
       VEC3 normal(VEC3 const& point) const override { return norm_; }

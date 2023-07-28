@@ -19,6 +19,11 @@ namespace KinKal {
     return Perp2(rvec,axis_) < radius2_;
   }
 
+  double Cylinder::distance(VEC3 const& point) const {
+    auto rvec = point - center_;
+    return Perp(rvec,axis_) - radius_;
+  }
+
   VEC3 Cylinder::normal(VEC3 const& point) const {
     // normal is perpendicular part of the difference
     auto rvec = point - center_;
