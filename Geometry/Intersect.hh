@@ -7,6 +7,7 @@
 #define KinKal_Intersect_hh
 #include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Cylinder.hh"
+#include "KinKal/Geometry/Frustrum.hh"
 #include "KinKal/Geometry/Plane.hh"
 #include "KinKal/Trajectory/LoopHelix.hh"
 #include "KinKal/Trajectory/CentralHelix.hh"
@@ -66,12 +67,25 @@ namespace KinKal {
   //
   //  First, a test if the circles can intersect at the specified time
 
-  template < class HELIX> bool canIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, double time ,double tol) {
-    auto hpos = helix.center(time);
+  template < class HELIX> bool canIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange const& trange, double tol) {
+    auto hbeg = helix.center(trange.begin());
+    auto hend = helix.center(trange.end());
     // if the circles are fully contained one in the other no intersection is possible
-    double dcenter = ROOT::Math::VectorUtil::Perp(hpos - cyl.center(),cyl.axis());
+    double dbeg = ROOT::Math::VectorUtil::Perp(hbeg - cyl.center(),cyl.axis());
+    double dend = ROOT::Math::VectorUtil::Perp(hend - cyl.center(),cyl.axis());
     double drad = fabs(cyl.radius()-helix.bendRadius());
-    return dcenter - drad + tol > 0.0;
+    return dbeg > drad -tol && dend > drad -tol;
+  }
+
+  template < class HELIX> bool canIntersect( HELIX const& helix, KinKal::Frustrum const& fru, TimeRange const& trange, double tol) {
+    auto hbeg = helix.center(trange.begin());
+    auto hend = helix.center(trange.end());
+    // if the circles are fully contained one in the other no intersection is possible
+    double dbeg = ROOT::Math::VectorUtil::Perp(hbeg - fru.center(),fru.axis());
+    double dend = ROOT::Math::VectorUtil::Perp(hend - fru.center(),fru.axis());
+    double dradbeg = fru.radius(hbeg)-helix.bendRadius();
+    double dradend = fru.radius(hend)-helix.bendRadius();
+    return dradbeg*dradend < 0.0 || (dbeg > fabs(dradbeg)  -tol && dend > fabs(dradend) -tol);
   }
 
   template < class HELIX> Intersection<HELIX> hcIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
@@ -85,7 +99,7 @@ namespace KinKal {
       auto einb = cyl.inBounds(helix.position3(trange.end()),tol);
       if(binb && einb) {
         // both in bounds: use this range
-        if(canIntersect(helix,cyl,trange.begin(),tol) || canIntersect(helix,cyl,trange.end(),tol)){
+        if(canIntersect(helix,cyl,trange,tol)){
           retval.copyResult(stepIntersect(helix,cyl,trange,tol));
         }
       } else {
@@ -104,7 +118,7 @@ namespace KinKal {
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
 // intersection is possible: step within the restricted range
-          if(canIntersect(helix,cyl,srange.begin(),tol) || canIntersect(helix,cyl,srange.end(),tol)){
+          if(canIntersect(helix,cyl,srange,tol)){
             auto sinter = stepIntersect(helix,cyl,srange,tol);
             retval.copyResult(sinter);
           }
@@ -163,6 +177,55 @@ namespace KinKal {
     return retval;
   }
   //
+  //  Helix and frustrum
+  //
+  template < class HELIX> Intersection<HELIX> hfIntersect( HELIX const& helix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+    Intersection<HELIX> retval(helix,fru,trange,tol);
+    double ddot = fabs(helix.bnom().Unit().Dot(fru.axis()));
+    if (ddot > 0.9) { // I need a more physical co-linear test TODO
+      // the helix and frustrum are roughly co-linear.
+      // see if the range is in bounds
+      auto binb = fru.inBounds(helix.position3(trange.begin()),tol);
+      auto einb = fru.inBounds(helix.position3(trange.end()),tol);
+      if(binb && einb) {
+        // both in bounds: use this range
+        if(canIntersect(helix,fru,trange,tol)) {
+          retval.copyResult(stepIntersect(helix,fru,trange,tol));
+        }
+      } else {
+        // create a list of times to select the most restrictive range
+        std::vector<double>times;
+        if(binb)times.push_back(trange.begin());
+        if(einb)times.push_back(trange.end());
+        // find the intersections with the front and back disks.  Use those to refine the range
+        // note we don't know the orientation of the trajectory WRT the axis so we have to try both
+        auto frontdisk = fru.frontDisk();
+        auto backdisk = fru.backDisk();
+        auto frontinter = hpIntersect(helix,frontdisk,trange,tol);
+        auto backinter = hpIntersect(helix,backdisk,trange,tol);
+        if(frontinter.flag_.onsurface_ && frontinter.flag_.inbounds_ && frontinter.inRange())times.push_back(frontinter.time_);
+        if(backinter.flag_.onsurface_ && backinter.flag_.inbounds_ && backinter.inRange())times.push_back(backinter.time_);
+        if(times.size() >=2){
+          TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
+// intersection is possible: step within the restricted range
+          if(canIntersect(helix,fru,srange,tol) ) {
+            auto sinter = stepIntersect(helix,fru,srange,tol);
+            retval.copyResult(sinter);
+          }
+        }
+      }
+      //    } else if (ddot < 0.1) {
+      //      // the helix and frustrum are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
+      //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the frustrum, then invoke POCA.
+    } else {
+    // intermediate case: use step intersection
+      retval.copyResult(stepIntersect(helix,fru,trange,tol));
+    }
+    return retval;
+  }
+
+
+  //
   Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return hcIntersect(lhelix,cyl,trange,tol);
   }
@@ -174,6 +237,12 @@ namespace KinKal {
   }
   Intersection<KinKal::CentralHelix> intersect( CentralHelix const& chelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     return hpIntersect(chelix,plane,trange,tol);
+  }
+  Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+    return hfIntersect(lhelix,fru,trange,tol);
+  }
+  Intersection<KinKal::CentralHelix> intersect( CentralHelix const& chelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+    return hfIntersect(chelix,fru,trange,tol);
   }
   //
   // Line trajectory with generic surfaces

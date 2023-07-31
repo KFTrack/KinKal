@@ -8,6 +8,7 @@ add_library(Geometry SHARED
   Annulus.cc
   Cylinder.cc
   Disk.cc
+  Frustrum.cc
   IntersectFlag.cc
   Plane.cc
   Ray.cc
