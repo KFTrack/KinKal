@@ -10,9 +10,7 @@ namespace KinKal {
     public:
       virtual ~Rectangle() {};
       // construct from necessary parameters
-      Rectangle(VEC3 const& norm, VEC3 const& udir, VEC3 const& center, double uhalflen, double vhalflen) :
-        Plane(norm,udir,center),
-        uhalflen_(uhalflen), vhalflen_(vhalflen) {}
+      Rectangle(VEC3 const& norm, VEC3 const& udir, VEC3 const& center, double uhalflen, double vhalflen);
       // surface interface
       bool inBounds(VEC3 const& point, double tol) const override;
       // rectangle-specific interface

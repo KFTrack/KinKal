@@ -3,6 +3,10 @@
 #include <exception>
 using namespace ROOT::Math::VectorUtil;
 namespace KinKal {
+  Cylinder::Cylinder(VEC3 const& axis, VEC3 const& center, double radius, double halflen ) : axis_(axis.Unit()), center_(center), radius_(radius), halflen_(halflen), radius2_(radius*radius) {
+    if(radius <= 0.0 || halflen <= 0.0 ) throw std::invalid_argument("Invalid Cylinder arguments");
+  }
+
   bool Cylinder::onSurface(VEC3 const& point, double tol) const {
     auto rvec = point - center_;
     auto pvec = PerpVector(rvec,axis_);
@@ -65,13 +69,13 @@ namespace KinKal {
     return Rectangle(norm,axis_,center_,halflen_,radius_);
   }
 
-  Rectangle Cylinder::tangentRectangle(VEC3 const& spoint) const {
+  Plane Cylinder::tangentPlane(VEC3 const& spoint) const {
     // rectangle normal is the local cylinder normal
     auto norm = normal(spoint);
     // correct for any tolerance if the point isnt exactly on the surface (up to FP accuracy)
     double rad = Perp(spoint - center_,axis_);
     auto rcent = spoint + norm*(radius_-rad);
-    return Rectangle(norm,axis_,rcent,halflen_,radius_);
+    return Plane(norm,axis_,rcent);
   }
 
   IntersectFlag Cylinder::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {
@@ -98,7 +102,10 @@ namespace KinKal {
           dist = fabs(d1) < fabs(d2) ? d1 : d2;
         } else {
           // closest forwards solution
-          if(d1 > 0.0){
+          if(d1 > 0.0 && d2 > 0.0 ){
+            retval.onsurface_ = true;
+            dist = std::min(d1,d2);
+          } else if(d1 > 0.0) {
             retval.onsurface_ = true;
             dist = d1;
           } else if(d2 > 0.0) {
@@ -116,6 +123,8 @@ namespace KinKal {
     return retval;
   }
 }
+
+
 
 std::ostream& operator <<(std::ostream& ost, KinKal::Cylinder const& cyl) {
   ost << "Cylinder with center = " << cyl.center() << " , axis " << cyl.axis() << " radius " << cyl.radius() << " half-length " << cyl.halfLength();
