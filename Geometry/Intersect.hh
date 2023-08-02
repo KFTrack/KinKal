@@ -223,8 +223,8 @@ namespace KinKal {
     }
     return retval;
   }
-
-
+  //
+  // Tie intersect to the explicit helix implementations
   //
   Intersection<KinKal::LoopHelix> intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return hcIntersect(lhelix,cyl,trange,tol);
@@ -263,6 +263,20 @@ namespace KinKal {
       retval.time_ = tstart + dist/kkline.speed(tstart);
     }
     return retval;
+  }
+  // generic surface intersection; cast down till we find something that works
+  template <class KTRAJ> Intersection<KTRAJ> intersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
+    // use pointers to cast to avoid avoid a throw
+    const Surface* surfp = &surf;
+    // go through the possibilities: I don't know of anything more elegant
+    auto cyl = dynamic_cast<const Cylinder*>(surfp);
+    if(cyl)return intersect(ktraj,*cyl,trange,tol);
+    auto fru = dynamic_cast<const Frustrum*>(surfp);
+    if(fru)return intersect(ktraj,*fru,trange,tol);
+    auto plane = dynamic_cast<const Plane*>(surfp);
+    if(plane)return intersect(ktraj,*plane,trange,tol);
+    // unknown surface subclass; return failure
+    return Intersection<KTRAJ>(ktraj,surf,trange,tol);
   }
 }
 

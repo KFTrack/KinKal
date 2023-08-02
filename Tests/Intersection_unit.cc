@@ -34,6 +34,8 @@ static struct option long_options[] = {
   {"pphi",       required_argument, 0, 'P'  },
   {"pmom",       required_argument, 0, 'M'  },
   {"zpos",         required_argument, 0, 'z'  },
+  {"ypos",         required_argument, 0, 'y'  },
+  {"xpos",         required_argument, 0, 'x'  },
   {NULL, 0,0,0}
 };
 
@@ -48,7 +50,7 @@ int main(int argc, char** argv) {
   VEC3 point(0.0,0.0,0.0);
   double scost(1.0), sphi(0.0), slen1(400), slen2(1000), slen3(500);
   double pcost(0.5), pphi(1.0), pmom(100);
-  double zpos(0.0);
+  VEC3 ppos(0.0,0.0,0.0);
   while ((opt = getopt_long_only(argc, argv,"",
           long_options, &long_index )) != -1) {
     switch (opt) {
@@ -68,14 +70,17 @@ int main(int argc, char** argv) {
                  break;
       case 'M' : pmom = atof(optarg);
                  break;
-      case 'z' : zpos = atof(optarg);
+      case 'x' : ppos.SetX(atof(optarg));
+                 break;
+      case 'y' : ppos.SetY(atof(optarg));
+                 break;
+      case 'z' : ppos.SetZ(atof(optarg));
                  break;
       default: print_usage();
                exit(EXIT_FAILURE);
     }
   }
   VEC3 origin(0.0,0.0,0.0);
-  VEC3 ppos(0.0,0.0,zpos);
 
   double ssint = sqrt(1.0-scost*scost);
   VEC3 axis(ssint*cos(sphi), ssint*sin(sphi), scost);
@@ -145,6 +150,23 @@ int main(int argc, char** argv) {
 
   auto lf_inter = intersect(lhelix,fru, trange, tol);
   std::cout << "loophelix frustrum intersection status " << lf_inter.flag_ << " position " << lf_inter.pos_ << " time " << lf_inter.time_ << std::endl;
+
+  // test generic surface intersection
+  KinKal::Surface const& psurf = static_cast<KinKal::Surface const&>(disk);
+  auto ls_inter = intersect(lhelix,psurf,trange,tol);
+   std::cout << "loophelix surface (plane) intersection status " << ls_inter.flag_ << " position " << ls_inter.pos_ << " time " << ls_inter.time_ << std::endl;
+ if(ls_inter.flag_ != ld_inter.flag_ || (ls_inter.pos_-ld_inter.pos_).R() > tol){
+    std::cout << "Generic plane intersection failed" << std::endl;
+    return -1;
+  }
+  // test generic surface intersection
+  KinKal::Surface const& csurf = static_cast<KinKal::Surface const&>(cyl);
+  auto ls2_inter = intersect(lhelix,csurf,trange,tol);
+   std::cout << "loophelix surface (cylinder) intersection status " << ls2_inter.flag_ << " position " << ls2_inter.pos_ << " time " << ls2_inter.time_ << std::endl;
+ if(ls2_inter.flag_ != lc_inter.flag_ || (ls2_inter.pos_-lc_inter.pos_).R() > tol){
+    std::cout << "Generic cylinder intersection failed" << std::endl;
+    return -1;
+  }
 
   return 0;
 }
