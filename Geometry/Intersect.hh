@@ -265,7 +265,8 @@ namespace KinKal {
     return retval;
   }
   // generic surface intersection; cast down till we find something that works
-  template <class KTRAJ> Intersection<KTRAJ> intersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
+  // Only do this for helices, as the KinematicLine is already fully implemented for surfaces
+  template <class KTRAJ> Intersection<KTRAJ> phsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
@@ -278,6 +279,13 @@ namespace KinKal {
     // unknown surface subclass; return failure
     return Intersection<KTRAJ>(ktraj,surf,trange,tol);
   }
+  Intersection<KinKal::LoopHelix> intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+    return phsIntersect(ploophelix,surf,trange,tol);
+  }
+  Intersection<KinKal::CentralHelix> intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+    return phsIntersect(pcentralhelix,surf,trange,tol);
+  }
+
 }
 
 #endif
