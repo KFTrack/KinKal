@@ -59,7 +59,7 @@ namespace KinKal {
     return retval;
   }
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
-  template<class SURF> Intersection<ParticleTrajectory<KinKal::KinematicLine>> ptIntersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, SURF const& surf, TimeRange trange,double tol) {
+  Intersection<ParticleTrajectory<KinKal::KinematicLine>> intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange,double tol) {
     return pstepIntersect(kklptraj,surf,trange,tol);
   }
 
@@ -82,45 +82,45 @@ namespace KinKal {
 
   // explicit 'specializations' for the different helix types
 
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> ptIntersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return phcIntersect(ploophelix,cyl,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> ptIntersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return phcIntersect(pcentralhelix,cyl,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> ptIntersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     return phfIntersect(ploophelix,fru,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> ptIntersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     return phfIntersect(pcentralhelix,fru,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> ptIntersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     return phpIntersect(ploophelix,plane,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> ptIntersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     return phpIntersect(pcentralhelix,plane,trange,tol);
   }
 
   // generic surface intersection; cast down till we find something that works
-  // Only do this for helices, as the KinematicLine is already fully implemented for surfaces
-  template <class KTRAJ> Intersection<ParticleTrajectory<KTRAJ>> hptIntersect(ParticleTrajectory<KTRAJ> const& pktraj, Surface const& surf,TimeRange trange, double tol) {
+  template <class KTRAJ> Intersection<ParticleTrajectory<KTRAJ>> phsIntersect(ParticleTrajectory<KTRAJ> const& pktraj, Surface const& surf,TimeRange trange, double tol) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
     auto cyl = dynamic_cast<const Cylinder*>(surfp);
-    if(cyl)return ptIntersect(pktraj,*cyl,trange,tol);
+    if(cyl)return intersect(pktraj,*cyl,trange,tol);
     auto fru = dynamic_cast<const Frustrum*>(surfp);
-    if(fru)return ptIntersect(pktraj,*fru,trange,tol);
+    if(fru)return intersect(pktraj,*fru,trange,tol);
     auto plane = dynamic_cast<const Plane*>(surfp);
-    if(plane)return ptIntersect(pktraj,*plane,trange,tol);
+    if(plane)return intersect(pktraj,*plane,trange,tol);
     // unknown surface subclass; return failure
     return Intersection<ParticleTrajectory<KTRAJ>>(pktraj,surf,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> ptIntersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return hptIntersect(ploophelix,surf,trange,tol);
+  // now overload the function for helices for generic surfaces
+  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+    return phsIntersect(ploophelix,surf,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> ptIntersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return hptIntersect(pcentralhelix,surf,trange,tol);
+  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+    return phsIntersect(pcentralhelix,surf,trange,tol);
   }
 
 }

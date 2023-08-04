@@ -245,9 +245,9 @@ namespace KinKal {
     return hfIntersect(chelix,fru,trange,tol);
   }
   //
-  // Line trajectory with generic surfaces
+  // Line trajectory with generic surfaces; no specialization needed
   //
-  template<class SURF> Intersection<KinKal::KinematicLine> intersect(KinKal::KinematicLine const& kkline, SURF const& surf, TimeRange trange,double tol) {
+  Intersection<KinKal::KinematicLine> intersect(KinKal::KinematicLine const& kkline, KinKal::Surface const& surf, TimeRange trange,double tol) {
     Intersection<KinKal::KinematicLine> retval(kkline,surf,trange,tol);
     auto tstart = trange.begin();
     auto pos = kkline.position3(tstart);
@@ -264,9 +264,9 @@ namespace KinKal {
     }
     return retval;
   }
-  // generic surface intersection; cast down till we find something that works
-  // Only do this for helices, as the KinematicLine is already fully implemented for surfaces
-  template <class KTRAJ> Intersection<KTRAJ> phsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
+  // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine
+  // is already complete
+  template <class KTRAJ> Intersection<KTRAJ> hsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
@@ -279,11 +279,12 @@ namespace KinKal {
     // unknown surface subclass; return failure
     return Intersection<KTRAJ>(ktraj,surf,trange,tol);
   }
+  // now provide the explicit generic interface
   Intersection<KinKal::LoopHelix> intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return phsIntersect(ploophelix,surf,trange,tol);
+    return hsIntersect(ploophelix,surf,trange,tol);
   }
   Intersection<KinKal::CentralHelix> intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return phsIntersect(pcentralhelix,surf,trange,tol);
+    return hsIntersect(pcentralhelix,surf,trange,tol);
   }
 
 }
