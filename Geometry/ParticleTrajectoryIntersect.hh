@@ -11,8 +11,8 @@ namespace KinKal {
 //  Find first intersection of a particle trajectory.  This is a generic implementation looping over pieces
 //  It can miss double-intersections on the same piece; those are special cases that need to be tested for
 //  in a dedicated function
-  template <class KTRAJ, class SURF> Intersection<ParticleTrajectory<KTRAJ>> pstepIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
-    Intersection<ParticleTrajectory<KTRAJ>> retval(ptraj,surf,trange,tol);
+  template <class KTRAJ, class SURF> Intersection pstepIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
+    Intersection retval;
     // loop over pieces, and test the ones in range
     bool first(true);
     VEC3 spos, epos;
@@ -34,9 +34,9 @@ namespace KinKal {
           double gaptime = (spos-epos).R()/traj->speed();
           TimeRange srange(std::max(trange.begin(),traj->range().begin()-gaptime),traj->range().end());
           auto pinter = intersect(*traj,surf,srange,tol);
-          if(pinter.flag_.onsurface_ && pinter.inRange()){
+          if(pinter.inRange(srange)){
             // we found the intersection; set return value and finish
-            retval.copyResult(pinter);
+            retval = pinter;
             break;
           }
         }
@@ -48,9 +48,9 @@ namespace KinKal {
           // we crossed the surface: find the exact intersection
           TimeRange srange(std::max(trange.begin(),traj->range().begin()),tmax);
           auto pinter = intersect(*traj,surf,srange,tol);
-          if(pinter.flag_.onsurface_ && pinter.inRange()){
+          if(pinter.inRange(srange)){
             // we found the intersection; set return value and finish
-            retval.copyResult(pinter);
+            retval = pinter;
             break;
           }
         }
@@ -59,50 +59,50 @@ namespace KinKal {
     return retval;
   }
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
-  Intersection<ParticleTrajectory<KinKal::KinematicLine>> intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange,double tol) {
+  Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange,double tol) {
     return pstepIntersect(kklptraj,surf,trange,tol);
   }
 
   // Helix-based particle trajectory intersect implementation with a plane
-  template <class HELIX> Intersection<ParticleTrajectory<HELIX>> phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can do a smarter binary search for the correct piece using the 'constant'
     // z velocity
     return pstepIntersect(phelix,plane,trange,tol);
   }
 
-  template < class HELIX> Intersection<ParticleTrajectory<HELIX>> phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
     return pstepIntersect(phelix,cyl,trange,tol);
   }
 
-  template < class HELIX> Intersection<ParticleTrajectory<HELIX>> phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
     return pstepIntersect(phelix,fru,trange,tol);
   }
 
   // explicit 'specializations' for the different helix types
 
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return phcIntersect(ploophelix,cyl,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     return phcIntersect(pcentralhelix,cyl,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     return phfIntersect(ploophelix,fru,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     return phfIntersect(pcentralhelix,fru,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     return phpIntersect(ploophelix,plane,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     return phpIntersect(pcentralhelix,plane,trange,tol);
   }
 
   // generic surface intersection; cast down till we find something that works
-  template <class KTRAJ> Intersection<ParticleTrajectory<KTRAJ>> phsIntersect(ParticleTrajectory<KTRAJ> const& pktraj, Surface const& surf,TimeRange trange, double tol) {
+  template <class KTRAJ> Intersection phsIntersect(ParticleTrajectory<KTRAJ> const& pktraj, Surface const& surf,TimeRange trange, double tol) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
@@ -113,13 +113,13 @@ namespace KinKal {
     auto plane = dynamic_cast<const Plane*>(surfp);
     if(plane)return intersect(pktraj,*plane,trange,tol);
     // unknown surface subclass; return failure
-    return Intersection<ParticleTrajectory<KTRAJ>>(pktraj,surf,trange,tol);
+    return Intersection();
   }
   // now overload the function for helices for generic surfaces
-  Intersection<ParticleTrajectory<KinKal::LoopHelix>> intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
     return phsIntersect(ploophelix,surf,trange,tol);
   }
-  Intersection<ParticleTrajectory<KinKal::CentralHelix>> intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
+  Intersection intersect( ParticleTrajectory<CentralHelix> const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
     return phsIntersect(pcentralhelix,surf,trange,tol);
   }
 

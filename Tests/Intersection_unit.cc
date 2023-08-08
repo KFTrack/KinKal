@@ -3,6 +3,7 @@
 //
 #include "KinKal/General/ParticleState.hh"
 #include "KinKal/General/TimeRange.hh"
+#include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Intersect.hh"
 #include "KinKal/Geometry/Cylinder.hh"
 #include "KinKal/Geometry/Disk.hh"

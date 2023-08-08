@@ -1,19 +1,27 @@
 //
-//  Complete payload for intersection calculation
+//  payload for intersection calculation
 //  original author: David Brown (LBNL) 2023
 //
 #ifndef KinKal_Intersection_hh
 #define KinKal_Intersection_hh
-#include "KinKal/Geometry/InterData.hh"
-#include "KinKal/Geometry/Surface.hh"
+#include "KinKal/General/Vectors.hh"
+#include "KinKal/General/TimeRange.hh"
+#include "KinKal/Geometry/IntersectFlag.hh"
+#include "KinKal/Geometry/Ray.hh"
+#include <memory>
 
 namespace KinKal {
-  // intersection product
-  template <class KTRAJ> struct Intersection : public InterData {
-    Intersection(KTRAJ const& ktraj, Surface const& surf,TimeRange const& trange, double tol) : InterData(trange), ktraj_(ktraj), surf_(surf), tol_(tol) {}
-    KTRAJ const& ktraj_; // trajectory of this intersection
-    Surface const& surf_; // surf of this intersection
-    double tol_; // tol used in this intersection
+  struct Intersection {
+    Intersection() : time_(0.0) {}
+    IntersectFlag flag_; // intersection status
+    VEC3 pos_; // intersection position
+    VEC3 norm_; // surface normal at intersection
+    VEC3 pdir_; // particle direction at intersection
+    TimeRange range_; // time range searched for this intersection
+    double time_; // time at intersection (from particle)
+    // simple utility functions
+    bool inRange(TimeRange const& trange) const { return flag_.onsurface_ && trange.inRange(time_); }
+    Ray ray() const { return Ray(pdir_,pos_); }
   };
 }
 #endif
