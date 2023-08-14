@@ -25,7 +25,7 @@ namespace KinKal {
     double speed = ktraj.speed(ttest); // speed is constant
     bool startinside = surf.isInside(pos);
     bool stepinside;
-    // set the step according to the range and tolerance.  The range division is arbitrary
+    // set the step according to the range and tolerance.  The maximum range division is arbitrary, it should be set to a physical value TODO
     double tstep = std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
     // step until we cross the surface or the time is out of range
     do {
@@ -37,23 +37,25 @@ namespace KinKal {
       // we crossed the cylinder: backup and do a linear search.
       ttest -= tstep;
       double dist;
+      IntersectFlag rayinter;
       do {
         retval.pos_ = ktraj.position3(ttest);
         retval.pdir_ = ktraj.direction(ttest);
         auto ray = retval.ray();
-        retval.flag_ = surf.intersect(ray,dist,false,tol);
-        if(retval.flag_.onsurface_){
+        rayinter = surf.intersect(ray,dist,false,tol);
+        if(rayinter.onsurface_){
           ttest += dist/speed;
         } else {
           break;
         }
       } while (fabs(dist) > tol);
-      if(retval.flag_.onsurface_){
-       // calculate the time
+      if(rayinter.onsurface_){
+        retval.onsurface_ = rayinter.onsurface_;
+        retval.inbounds_ = rayinter.inbounds_;
         retval.time_ = ttest;
         retval.pos_ = ktraj.position3(retval.time_);
         retval.pdir_ = ktraj.direction(retval.time_);
-        retval.flag_.inbounds_ = surf.inBounds(retval.pos_,tol);
+        retval.inbounds_ = surf.inBounds(retval.pos_,tol);
         retval.norm_ = surf.normal(retval.pos_);
      }
     }
@@ -153,7 +155,8 @@ namespace KinKal {
         double dt = std::max(tol/vz,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
         // if we're already in tolerance, finish
         if(dt*vz/ddot < tol){
-          retval.flag_ = pinter;
+          retval.onsurface_ = pinter.onsurface_;
+          retval.inbounds_ = pinter.inbounds_;
           retval.time_ = tmid;
           retval.pos_ = helix.position3(tmid);
           retval.pdir_ = helix.direction(tmid);
@@ -250,8 +253,10 @@ namespace KinKal {
     auto dir = kkline.direction(tstart);
     Ray ray(dir,pos);
     double dist;
-    retval.flag_ = surf.intersect(ray,dist,true,tol);
-    if(retval.flag_.onsurface_){
+    auto rayinter = surf.intersect(ray,dist,true,tol);
+    if(rayinter.onsurface_){
+      retval.onsurface_ = rayinter.onsurface_;
+      retval.inbounds_ = rayinter.inbounds_;
       retval.pos_ = ray.position(dist);
       retval.norm_ = surf.normal(retval.pos_);
       retval.pdir_ = dir;

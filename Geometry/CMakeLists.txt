@@ -10,6 +10,7 @@ add_library(Geometry SHARED
   Disk.cc
   Frustrum.cc
   IntersectFlag.cc
+  Intersection.cc
   Plane.cc
   Ray.cc
   Rectangle.cc

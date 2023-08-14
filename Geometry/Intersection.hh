@@ -9,19 +9,20 @@
 #include "KinKal/Geometry/IntersectFlag.hh"
 #include "KinKal/Geometry/Ray.hh"
 #include <memory>
+#include <ostream>
 
 namespace KinKal {
-  struct Intersection {
-    Intersection() : time_(0.0) {}
-    IntersectFlag flag_; // intersection status
+  struct Intersection : public IntersectFlag {
     VEC3 pos_; // intersection position
     VEC3 norm_; // surface normal at intersection
     VEC3 pdir_; // particle direction at intersection
     TimeRange range_; // time range searched for this intersection
-    double time_; // time at intersection (from particle)
+    double time_ = 0.0; // time at intersection (from particle)
+    bool gap_ = false; // intersection is in a piecewise-trajectory gap
     // simple utility functions
-    bool inRange(TimeRange const& trange) const { return flag_.onsurface_ && trange.inRange(time_); }
+    bool inRange(TimeRange const& trange) const { return onsurface_ && trange.inRange(time_); }
     Ray ray() const { return Ray(pdir_,pos_); }
   };
 }
+std::ostream& operator <<(std::ostream& ost, KinKal::Intersection const& inter);
 #endif

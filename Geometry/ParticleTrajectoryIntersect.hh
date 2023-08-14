@@ -8,76 +8,52 @@
 #include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Intersect.hh"
 namespace KinKal {
-//  Find first intersection of a particle trajectory.  This is a generic implementation looping over pieces
-//  It can miss double-intersections on the same piece; those are special cases that need to be tested for
-//  in a dedicated function
-  template <class KTRAJ, class SURF> Intersection pstepIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
+//  Find first intersection of a particle trajectory in the specified range.  This generic implementation tests
+  template <class KTRAJ, class SURF> Intersection pIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
     Intersection retval;
     // loop over pieces, and test the ones in range
-    bool first(true);
     VEC3 spos, epos;
-    double tmin, tmax;
-    bool startinside(true),endinside(true);
-    for(auto traj : ptraj.pieces()) {
-      if(trange.inRange(traj->range().begin()) || trange.inRange(traj->range().end())){
-        tmin = std::max(trange.begin(),traj->range().begin());
-        spos = traj->position3(tmin);
-        startinside = surf.isInside(spos);
-        if(first){ // preload first valid end side
-          first = false;
-          endinside = startinside;
-        }
-        // compare to the previous end position
-        if(startinside != endinside){
-          // we crossed the surface through a trajectory gap. Search for an intersection on this piece
-          // including an early buffer for the gap
-          double gaptime = (spos-epos).R()/traj->speed();
-          TimeRange srange(std::max(trange.begin(),traj->range().begin()-gaptime),traj->range().end());
-          auto pinter = intersect(*traj,surf,srange,tol);
-          if(pinter.inRange(srange)){
-            // we found the intersection; set return value and finish
-            retval = pinter;
-            break;
-          }
-        }
-        tmax = std::min(trange.end(),traj->range().end());
-        epos = traj->position3(tmax);
-        endinside = surf.isInside(epos);
-        // test for crossing in this piece
-        if(startinside != endinside){
-          // we crossed the surface: find the exact intersection
-          TimeRange srange(std::max(trange.begin(),traj->range().begin()),tmax);
-          auto pinter = intersect(*traj,surf,srange,tol);
-          if(pinter.inRange(srange)){
-            // we found the intersection; set return value and finish
-            retval = pinter;
-            break;
-          }
-        }
+    auto curr = ptraj.nearestTraj(trange.begin());
+    auto prev = curr;
+    // loop until we find the best piece
+    unsigned ntries(0);
+    unsigned maxntries = ptraj.pieces().size(); // only try as many times as there are pieces
+    do {
+      ++ntries;
+      // compute the intersection with the current piece
+      retval = intersect(*curr,surf,trange,tol);
+      if(retval.onsurface_){
+        // update to use the piece nearest the current intersection time
+        prev = curr;
+        curr = ptraj.nearestTraj(retval.time_);
       }
+    } while(curr != prev && ntries < maxntries);
+    if(curr != prev){
+      // we found an intersection but not on the current piece. This can happen due to gaps in the trajectory
+      retval.gap_ = true;
     }
     return retval;
   }
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
   Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange,double tol) {
-    return pstepIntersect(kklptraj,surf,trange,tol);
+    return pIntersect(kklptraj,surf,trange,tol);
   }
 
   // Helix-based particle trajectory intersect implementation with a plane
   template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can do a smarter binary search for the correct piece using the 'constant'
     // z velocity
-    return pstepIntersect(phelix,plane,trange,tol);
+    return pIntersect(phelix,plane,trange,tol);
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
-    return pstepIntersect(phelix,cyl,trange,tol);
+    return pIntersect(phelix,cyl,trange,tol);
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
     // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
-    return pstepIntersect(phelix,fru,trange,tol);
+    return pIntersect(phelix,fru,trange,tol);
   }
 
   // explicit 'specializations' for the different helix types

@@ -265,11 +265,11 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   Cylinder cyl(bnom,origin.Vect(),hlen,wlen);
   std::cout << "Test " << cyl << std::endl;
   auto kc_inter = intersect(ptraj,cyl, ptraj.range(), 1.0e-8);
-  std::cout << "KinematicLine Cylinder Intersection status " << kc_inter.flag_ << " position " << kc_inter.pos_ << " time " << kc_inter.time_ << std::endl;
+  std::cout << "KinematicLine Cylinder " << kc_inter << std::endl;
 
   KinKal::Surface const& csurf = static_cast<KinKal::Surface const&>(cyl);
   auto kc2_inter = intersect(ptraj,csurf, ptraj.range(), 1.0e-8);
-  std::cout << "KinematicLine generic Cylinder Intersection status " << kc2_inter.flag_ << " position " << kc2_inter.pos_ << " time " << kc2_inter.time_ << std::endl;
+  std::cout << "KinematicLine Surface (Cylinder) " << kc2_inter << std::endl;
 
   //
   return 0;
