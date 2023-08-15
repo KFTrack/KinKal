@@ -16,11 +16,8 @@ namespace KinKal {
     VEC3 pos_; // intersection position
     VEC3 norm_; // surface normal at intersection
     VEC3 pdir_; // particle direction at intersection
-    TimeRange range_; // time range searched for this intersection
     double time_ = 0.0; // time at intersection (from particle)
     bool gap_ = false; // intersection is in a piecewise-trajectory gap
-    // simple utility functions
-    bool inRange(TimeRange const& trange) const { return onsurface_ && trange.inRange(time_); }
     Ray ray() const { return Ray(pdir_,pos_); }
   };
 }

@@ -115,8 +115,8 @@ namespace KinKal {
         auto backdisk = cyl.backDisk();
         auto frontinter = hpIntersect(helix,frontdisk,trange,tol);
         auto backinter = hpIntersect(helix,backdisk,trange,tol);
-        if(frontinter.inRange(trange))times.push_back(frontinter.time_);
-        if(backinter.inRange(trange))times.push_back(backinter.time_);
+        if(trange.inRange(frontinter.time_))times.push_back(frontinter.time_);
+        if(trange.inRange(backinter.time_))times.push_back(backinter.time_);
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
 // intersection is possible: step within the restricted range
@@ -203,8 +203,8 @@ namespace KinKal {
         auto backdisk = fru.backDisk();
         auto frontinter = hpIntersect(helix,frontdisk,trange,tol);
         auto backinter = hpIntersect(helix,backdisk,trange,tol);
-        if(frontinter.inRange(trange))times.push_back(frontinter.time_);
-        if(backinter.inRange(trange))times.push_back(backinter.time_);
+        if(trange.inRange(frontinter.time_))times.push_back(frontinter.time_);
+        if(trange.inRange(backinter.time_))times.push_back(backinter.time_);
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
 // intersection is possible: step within the restricted range
