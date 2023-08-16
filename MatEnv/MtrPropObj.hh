@@ -3,16 +3,16 @@
 //      $Id: MtrPropObj.hh 516 2010-01-15 08:22:00Z stroili $
 //
 // Description:
-//      Class MtrPropObj 
-//      this class computes the materials properties (radiation length 
-//      and ionisation parameters) from the basic elements data stored 
-//      in the condition database. 
-//      The functions AddElement(), AddMaterial(), 
-//      ComputeDerivedQuantities(), ComputeRadiationLength(), 
-//      ComputeIonisationParam() are taken from Geant4 
-//      (the 4 first are from G4Material and the last one is from 
-//      G4IonisParamMat). 
-// 
+//      Class MtrPropObj
+//      this class computes the materials properties (radiation length
+//      and ionisation parameters) from the basic elements data stored
+//      in the condition database.
+//      The functions AddElement(), AddMaterial(),
+//      ComputeDerivedQuantities(), ComputeRadiationLength(),
+//      ComputeIonisationParam() are taken from Geant4
+//      (the 4 first are from G4Material and the last one is from
+//      G4IonisParamMat).
+//
 // Environment:
 //	Software developed for the BaBar Detector at the SLAC B-Factory.
 //
@@ -28,11 +28,11 @@
 //-------------
 // C Headers --
 //-------------
-#include <sys/types.h>
 
 //---------------
 // C++ Headers --
 //---------------
+//#include <cctype>
 
 //----------------------
 // Base Class Headers --
@@ -49,15 +49,15 @@ namespace MatEnv {
 
   class MtrPropObj
   {
-    public:   
+    public:
 
       enum { numShellV = 3 };
 
-      // Default constructor 
-      MtrPropObj(); 
+      // Default constructor
+      MtrPropObj();
 
       // Constructor to create Material from a combination of Elements or Materials
-      MtrPropObj( MatMaterialObj* theMaterial ); 
+      MtrPropObj( MatMaterialObj* theMaterial );
 
       // Copy constructor
       MtrPropObj(const MtrPropObj&);
@@ -66,7 +66,7 @@ namespace MatEnv {
       ~MtrPropObj();
 
       // Operators (Assignment op)
-      MtrPropObj& operator=( const MtrPropObj& );   
+      MtrPropObj& operator=( const MtrPropObj& );
       bool operator==( const MtrPropObj& ) const;
 
       // Add and element, giving number of atoms
@@ -107,7 +107,7 @@ namespace MatEnv {
       const std::vector< double >& getVecClow() const;
       const std::vector< double >& getVecZ()    const;
 
-      double getZ() const;           
+      double getZ() const;
       double getA() const;
 
       const std::string& getState() const;
@@ -125,15 +125,15 @@ namespace MatEnv {
 
       // Basic data members (define a Material)
 
-      std::string* _matName;     
-      double _matDensity;     
+      std::string* _matName;
+      double _matDensity;
       double _cdensity;
       double _mdensity;
       double _adensity;
       double _x0density;
       double _x1density;
       double _taul;
-      double _radLength;    
+      double _radLength;
       double _intLength;
 
       double _dEdxFactor;
@@ -163,8 +163,8 @@ namespace MatEnv {
 
       std::vector< double >* _vecNbOfAtomsPerVolume;
       // vector of nb of atoms per volume
-      double  _totNbOfAtomsPerVolume;      // total nb of atoms per volume 
-      double  _totNbOfElectPerVolume;      // total nb of electrons per volume 
+      double  _totNbOfAtomsPerVolume;      // total nb of atoms per volume
+      double  _totNbOfElectPerVolume;      // total nb of electrons per volume
 
   };
 }

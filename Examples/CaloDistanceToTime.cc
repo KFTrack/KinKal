@@ -1,14 +1,13 @@
-#include "KinKal/Trajectory/CaloDistanceToTime.hh"
+#include "KinKal/Examples/CaloDistanceToTime.hh"
 #include <cmath>
 #include <stdexcept>
 #include <cstdlib>
-#include <iostream> 
-using namespace std;
+#include <string>
 
 CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
   asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset), timeOffset_(sqrt(1+pow(distanceOffset/asymptoticSpeed, 2))) {}
 
-double CaloDistanceToTime::distance(double deltaT) {
+  double CaloDistanceToTime::distance(double deltaT) {
     if (deltaT > timeOffset_-1) {
         throw std::invalid_argument("deltaT out of range with value: " + std::to_string(deltaT));
     }

@@ -5,6 +5,7 @@
 // the momentum and Z, perpdir_ is perpendicular to momdir_ and perpdir_.  This basis is used to define directions and
 // derivatives in the kinematic kalman fit
 //
+#include "KinKal/General/Vectors.hh"
 #include <string>
 namespace KinKal {
   struct MomBasis {
@@ -21,6 +22,7 @@ namespace KinKal {
           return std::string("Unknown");
       }
     }
+    static VEC3 direction(Direction tdir, VEC3 momdir);
   };
 }
 #endif

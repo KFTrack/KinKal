@@ -42,7 +42,6 @@
 #include "TH1F.h"
 #include "TTree.h"
 #include "TBranch.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TPolyLine3D.h"
 #include "TAxis3D.h"

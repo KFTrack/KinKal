@@ -10,13 +10,12 @@
 #include "KinKal/General/PhysicalConstants.h"
 
 #include <iostream>
-#include <stdio.h>
+#include <cstdio>
 #include <iostream>
 #include <getopt.h>
-#include <limits.h>
+#include <climits>
 
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TFile.h"
 #include "TPolyLine3D.h"

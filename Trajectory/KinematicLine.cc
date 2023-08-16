@@ -114,6 +114,29 @@ namespace KinKal {
     return MOM4(mom3.X(),mom3.Y(),mom3.Z(),mass_);
   }
 
+  double KinematicLine::positionVariance(double time, MomBasis::Direction mdir) const {
+    auto dxdpvec = dXdPar(time);
+    auto momdir = direction(time);
+    auto posdir = MomBasis::direction(mdir, momdir);
+    SVEC3 sdir(posdir.X(),posdir.Y(),posdir.Z());
+    DVEC dxdp = sdir*dxdpvec;
+    return ROOT::Math::Similarity(dxdp,params().covariance());
+  }
+
+  PMAT KinematicLine::planeCovariance(double time,Plane const& plane) const {
+    // project covariance onto the U, V direction of the given plane
+    // particle direction cannot be orthogonal to the plane normal
+    auto momdir = direction(time);
+    if(fabs(plane.normal().Dot(momdir)) < 1.0e-10)throw invalid_argument("Momentum direction lies in the plane");
+    auto dxdpvec = dXdPar(time);
+    SVEC3 uvec(plane.uDirection().X(),plane.uDirection().Y(),plane.uDirection().Z());
+    SVEC3 vvec(plane.vDirection().X(),plane.vDirection().Y(),plane.vDirection().Z());
+    PPMAT dPlanedPar;
+    dPlanedPar.Place_in_row(uvec*dxdpvec,0,0);
+    dPlanedPar.Place_in_row(vvec*dxdpvec,1,0);
+    return ROOT::Math::Similarity(dPlanedPar,params().covariance());
+  }
+
   ParticleState KinematicLine::state(double time) const {
     return ParticleState(position4(time),momentum4(time), charge());
   }
@@ -270,6 +293,13 @@ namespace KinKal {
     auto dir = direction(time,mdir);
     double mommag = momentum(time);
     return mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
+  }
+
+  Ray KinematicLine::axis(double time) const {
+    VEC3 lpos = position3(time);
+    // direction is along the trajectory
+    VEC3 adir = direction();
+    return Ray(adir,lpos);
   }
 
   void KinematicLine::print(ostream &ost, int detail) const {

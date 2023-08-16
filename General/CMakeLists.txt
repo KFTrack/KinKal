@@ -15,7 +15,8 @@ add_library(General SHARED
     InterpBilinear.cc
     CylBMap.cc
     CylBFieldMap.cc
-    )
+    MomBasis.cc
+)
 
 # create shared library with ROOT dict
 ROOT_GENERATE_DICTIONARY(GeneralDict

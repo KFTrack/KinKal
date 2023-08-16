@@ -1,4 +1,3 @@
-
 # Explicitly list source files in this shared library
 # When a new source file is added, it must be added to this list.
 
@@ -8,12 +7,11 @@
 add_library(Trajectory SHARED
     CentralHelix.cc
     ClosestApproachData.cc
-    GeometricLine.cc
+    SensorLine.cc
     KinematicLine.cc
     Line.cc
     LoopHelix.cc
     POCAUtil.cc
-    CaloDistanceToTime.cc
     ConstantDistanceToTime.cc
     )
 # make the library names unique
@@ -29,7 +27,7 @@ ROOT_GENERATE_DICTIONARY(TrajectoryDict
 target_include_directories(Trajectory PRIVATE ${PROJECT_SOURCE_DIR}/..)
 
 # link this library with ROOT libraries
-target_link_libraries(Trajectory General ${ROOT_LIBRARIES})
+target_link_libraries(Trajectory Geometry General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
 set_target_properties(Trajectory PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

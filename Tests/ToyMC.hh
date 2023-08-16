@@ -8,7 +8,7 @@
 #include "KinKal/MatEnv/MatDBInfo.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/MatEnv/SimpleFileFinder.hh"
-#include "KinKal/Trajectory/CaloDistanceToTime.hh"
+#include "KinKal/Examples/CaloDistanceToTime.hh"
 #include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -88,7 +88,7 @@ namespace KKTest {
       double sigt_; // drift time resolution in ns
       double sigtot_; // TOT drift time resolution (ns)
       double ineff_; // hit inefficiency
-      // time hit parameters
+                     // time hit parameters
       double scitsig_, shPosSig_, shmax_, cz_, clen_, cprop_;
       double osig_, ctmin_, ctmax_;
       double tol_; // tolerance on momentum accuracy due to BField effects
@@ -213,24 +213,23 @@ namespace KKTest {
     VEC3 pvel = ptraj.velocity(tend);
     VEC3 ppos = ptraj.position3(tend);
     double shstart = tend + (cz_-ppos.Z())/pvel.Z();
-// extend the trajectory to here
+    // extend the trajectory to here
     extendTraj(ptraj,shstart);
     pvel = ptraj.velocity(shstart);
     // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
     auto endpos = ptraj.position4(shstart);
     shmaxTrue = ptraj.position3(shmaxtime); // true position at shower-max
-    // smear the x-y position by the transverse variance.
+                                            // smear the x-y position by the transverse variance.
     shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
     shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
     // set the z position to the sensor plane (end of the crystal)
     shmaxMeas.SetZ(endpos.Z()+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
     //double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
-    
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-    
+
     // put in manual values
     std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(85.76, clen_-27.47);
     //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
@@ -265,18 +264,18 @@ namespace KKTest {
       dBdt = bfield_.fieldDeriv(pos,vel);
       //    std::cout << "end time " << ptraj.back().range().begin() << " hit time " << htime << std::endl;
       if(dBdt.R() != 0.0){
-	double tbeg = ptraj.range().end();
-	while(tbeg < htime) {
-	  double tend = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
-	  double tmid = 0.5*(tbeg+tend);
-	  auto bf = bfield_.fieldVect(ptraj.position3(tmid));
-	  auto pos = ptraj.position4(tmid);
-	  auto mom =  ptraj.momentum4(tmid);
-	  TimeRange prange(tbeg,tend);
-	  KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
-	  ptraj.append(newend);
-	  tbeg = tend;
-	}
+        double tbeg = ptraj.range().end();
+        while(tbeg < htime) {
+          double tend = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+          double tmid = 0.5*(tbeg+tend);
+          auto bf = bfield_.fieldVect(ptraj.position3(tmid));
+          auto pos = ptraj.position4(tmid);
+          auto mom =  ptraj.momentum4(tmid);
+          TimeRange prange(tbeg,tend);
+          KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
+          ptraj.append(newend);
+          tbeg = tend;
+        }
       }
     }
   }

@@ -1,10 +1,9 @@
-#include "KinKal/Trajectory/CaloDistanceToTime.cc"
+#include "KinKal/Examples/CaloDistanceToTime.cc"
 #include "KinKal/Trajectory/DistanceToTime.hh"
 #include <iostream>
 #include <functional>
 
 #include "TH1F.h"
-#include "TSystem.h"
 #include "THelix.h"
 #include "TFile.h"
 #include "TPolyLine3D.h"
@@ -60,7 +59,6 @@ int main(int argc, char **argv) {
     // cout << "Hello World" << endl;
     double static const calorimeterLength = 200;
     CaloDistanceToTime* d = new CaloDistanceToTime(85.76, calorimeterLength-27.47);
-    
     TGraph* g1 = graph(200, 0, 1, d, &timeWrapper);
     g1->SetTitle("Distance->deltaT;Distance (mm);deltaT (ns)");
     TGraph* g2 = graph(200, 0, 1, d, &inverseSpeedWrapper);
