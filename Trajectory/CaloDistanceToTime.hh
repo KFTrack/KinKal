@@ -12,4 +12,5 @@ class CaloDistanceToTime : public DistanceToTime {
         double evaluate_root(double distance);
         double asymptoticSpeed_;
         double distanceOffset_;
+        double timeOffset_;
 };
