@@ -3,6 +3,7 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
+#include <iostream>
 
 CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
   asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset), timeOffset_(sqrt(1+pow(distanceOffset/asymptoticSpeed, 2))) {}
@@ -26,12 +27,11 @@ double CaloDistanceToTime::time(double distance) {
 
 double CaloDistanceToTime::speed(double distance) {
     double static const speedOfLight = 299792458.0;
-    double invSpeed = inverseSpeed(distance);
-
-    if (abs(invSpeed) < 1/speedOfLight) {
+    double actualSpeed = 1 / inverseSpeed(distance);
+    if (abs(actualSpeed) > speedOfLight) {
         return speedOfLight;
     }
-    return 1/invSpeed;
+    return actualSpeed;
 }
 
 double CaloDistanceToTime::inverseSpeed(double distance) {
