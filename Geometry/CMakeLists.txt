@@ -8,10 +8,13 @@ add_library(Geometry SHARED
   Annulus.cc
   Cylinder.cc
   Disk.cc
+  Frustrum.cc
   IntersectFlag.cc
+  Intersection.cc
   Plane.cc
   Ray.cc
   Rectangle.cc
+  ThinSolid.cc
 )
 # make the library names unique
 set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")

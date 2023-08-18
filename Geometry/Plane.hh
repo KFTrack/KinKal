@@ -17,12 +17,15 @@ namespace KinKal {
       // the absolute value should never matter
       bool isInside(VEC3 const& point) const override;
       bool inBounds(VEC3 const& point, double tol) const override { return true; }
+      double distance(VEC3 const& point) const override;
       double curvature(VEC3 const& point) const override { return 0.0; }
       IntersectFlag intersect(Ray const& ray,double& dist, bool forwards, double tol) const override;
       VEC3 normal(VEC3 const& point) const override { return norm_; }
       auto const& uDirection() const { return udir_; }
       auto const& vDirection() const { return vdir_; }
       auto const& normal() const { return norm_; }
+      Plane tangentPlane(VEC3 const& point) const override { return Plane(norm_,udir_,point); }
+      // plane interfac3
       auto const& center() const { return center_; }
     private:
       // note that UVW forms a right-handed orthonormal coordinate system

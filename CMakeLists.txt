@@ -120,7 +120,7 @@ add_compile_options(
   "-Wall"
   "-Wno-unused-parameter"
   "-Wno-unused-local-typedefs"
-  #  "-Werror"
+  "-Werror"
   #  "-Wpedantic"
   "-gdwarf-2"
   "-Werror=return-type"
