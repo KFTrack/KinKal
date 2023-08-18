@@ -3,14 +3,14 @@
 #include <stdexcept>
 #include <cstdlib>
 #include <string>
-#include <iostream>
 
 CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
   asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset), timeOffset_(sqrt(1+pow(distanceOffset/asymptoticSpeed, 2))) {}
 
   double CaloDistanceToTime::distance(double deltaT) {
+    // Use linear taylor approximation at t=0 if invalid
     if (deltaT > timeOffset_-1) {
-        throw std::invalid_argument("deltaT out of range with value: " + std::to_string(deltaT));
+        return deltaT * (pow(asymptoticSpeed_, 2) + pow(distanceOffset_, 2)) / (distanceOffset_ * timeOffset_);
     }
     return distanceOffset_ - asymptoticSpeed_ * sqrt(pow(deltaT - timeOffset_, 2) - 1);
 }
