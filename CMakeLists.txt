@@ -31,8 +31,8 @@ endif()
 message(STATUS "Build Type: ${CMAKE_BUILD_TYPE}" )
 
 
-# enable c++17 standard
-set(CMAKE_CXX_STANDARD 17)
+# enable c++20 standard
+set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED on)
 
 # make sure CMake is able to find ROOT
