@@ -4,39 +4,43 @@
 #include <cstdlib>
 #include <string>
 
-CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset) : 
-  asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset), timeOffset_(sqrt(1+pow(distanceOffset/asymptoticSpeed, 2))) {}
+CaloDistanceToTime::CaloDistanceToTime(double asymptoticSpeed, double distanceOffset, double flatSlope) : 
+  asymptoticSpeed_(asymptoticSpeed), distanceOffset_(distanceOffset), 
+  timeOffset_(sqrt(1+pow(distanceOffset/asymptoticSpeed, 2))), flatSlope_(flatSlope), 
+  slopeRoot_(sqrt(1-pow(flatSlope * asymptoticSpeed, 2))) {}
 
   double CaloDistanceToTime::distance(double deltaT) {
-    // Use linear taylor approximation at t=0 if invalid
-    if (deltaT > timeOffset_-1) {
-        return deltaT * (pow(asymptoticSpeed_, 2) + pow(distanceOffset_, 2)) / (distanceOffset_ * timeOffset_);
+    if (deltaT > timeOffset_ - 1/slopeRoot_) {
+        return ((deltaT - timeOffset_ + 1/slopeRoot_) / flatSlope_) + distanceOffset_ - flatSlope_*pow(asymptoticSpeed_, 2)/slopeRoot_;
     }
     return distanceOffset_ - asymptoticSpeed_ * sqrt(pow(deltaT - timeOffset_, 2) - 1);
 }
 
 double CaloDistanceToTime::time(double distance) {
     //double static const calorimeterLength = 200;
-    if (distance >= distanceOffset_) {
-        return timeOffset_-1;
-    } else if (distance <= 0) {
-        return 0;
+    double cutoff = distanceOffset_ - flatSlope_*pow(asymptoticSpeed_, 2) / slopeRoot_;
+    if (distance >= cutoff) {
+        return (distance - cutoff) * flatSlope_ + timeOffset_-1/slopeRoot_;
     }
     return timeOffset_ - evaluate_root(distance);
 }
 
 double CaloDistanceToTime::speed(double distance) {
-    double static const speedOfLight = 299792458.0;
-    double actualSpeed = 1 / inverseSpeed(distance);
+    // double static const speedOfLight = 299.792458; // mm/ns
+    /*double actualSpeed = 1 / inverseSpeed(distance);
     if (abs(actualSpeed) > speedOfLight) {
         return speedOfLight;
-    }
-    return actualSpeed;
+    } */
+    double invSpeed = inverseSpeed(distance);
+    /*if (invSpeed < (1/speedOfLight)) {
+        return speedOfLight;
+    }*/
+    return 1/invSpeed;
 }
 
 double CaloDistanceToTime::inverseSpeed(double distance) {
-    if (distance >= distanceOffset_) {
-        return 0;
+    if (distance >= distanceOffset_ - flatSlope_*pow(asymptoticSpeed_, 2) / slopeRoot_) {
+        return flatSlope_;
     }
     return (distanceOffset_ - distance) / (pow(asymptoticSpeed_, 2) * evaluate_root(distance));
 }

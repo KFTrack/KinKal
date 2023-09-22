@@ -27,15 +27,9 @@ using namespace std;
 TGraph* graph(int numIter, double start, double stepSize, DistanceToTime* d, function<double(double, DistanceToTime*)> fn) {
     double x[numIter];
     double y[numIter];
-    double val;
     for (int i = 0; i < numIter; i++) {
         x[i] = i * stepSize + start;
-        val = fn(x[i], d);
-        if (val > 100000) {
-            y[i] = 1;
-        } else {
-            y[i] = val;
-        }
+        y[i] = fn(x[i], d);
     }
     return new TGraph(numIter, x, y);
 }
@@ -59,15 +53,15 @@ double speedWrapper(double x, DistanceToTime* d) {
 int main(int argc, char **argv) {
     // cout << "Hello World" << endl;
     double static const calorimeterLength = 200;
-    CaloDistanceToTime* d = new CaloDistanceToTime(85.76, calorimeterLength-27.47);
+    CaloDistanceToTime* d = new CaloDistanceToTime(85.76, calorimeterLength-27.47, 0.003);
     //ConstantDistanceToTime* linear = new ConstantDistanceToTime(85.76);
-    TGraph* g1 = graph(200, 0, 1, d, &timeWrapper);
+    TGraph* g1 = graph(220, -10, 1, d, &timeWrapper);
     g1->SetTitle("Distance->deltaT;Distance (mm);deltaT (ns)");
-    TGraph* g2 = graph(200, 0, 1, d, &inverseSpeedWrapper);
+    TGraph* g2 = graph(220, -10, 1, d, &inverseSpeedWrapper);
     g2->SetTitle("Inverse Speed (ns/mm);Distance (mm); dt/dx (ns/mm)");
-    TGraph* g3 = graph(200, 0, 1, d, &speedWrapper);
+    TGraph* g3 = graph(220, -10, 1, d, &speedWrapper);
     g3->SetTitle("Speed (mm/ns); Distance (mm); dx/dt (mm/ns)");
-    TGraph* g4 = graph(200, 0, 0.00623, d, &distanceWrapper);
+    TGraph* g4 = graph(361, -0.5, 0.00623, d, &distanceWrapper);
     g4->SetTitle("DeltaT->Distance; deltaT (ns); Distance (mm)");
 
     TFile mefile("CaloDistanceToTime.root","RECREATE");

@@ -232,7 +232,7 @@ namespace KKTest {
 
     // put in manual values
     //std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(85.76, clen_-27.47);
-    std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47);
+    std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47, 0.001);
     //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
     double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
     Line lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
