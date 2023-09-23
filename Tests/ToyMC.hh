@@ -226,18 +226,19 @@ namespace KKTest {
     // set the z position to the sensor plane (end of the crystal)
     shmaxMeas.SetZ(endpos.Z()+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
-    double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
-
+    //double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
 
     // put in manual values
-    // std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(1.985, 85.76, 27.47);
+    //std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(85.76, clen_-27.47);
+    std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47, 0.001);
     //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
-    // double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
-    //CaloDistanceToTime calod2t(tmeas, sqrt(lvel.Mag2()), 27.47);
-    // Line lline(shmaxMeas, clen_, lvel, calod2t);
-    Line lline(shmaxMeas,tmeas,lvel,clen_);
+    double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
+    Line lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
+    
+    // original
+    //Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
     PCA pca(ptraj,lline,tphint,tprec_);

@@ -15,7 +15,7 @@ namespace KinKal {
   Line::Line(VEC3 const& pos0, double tmeas , VEC3 const& svel, double length )  :
     t0_(tmeas), d2t_(new ConstantDistanceToTime(sqrt(svel.Mag2()))), sline_(pos0, svel, length) {}
   Line::Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed ) : t0_(t0), d2t_(new ConstantDistanceToTime(speed)), sline_(p0, p1) {}
-  Line::Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d) : t0_(t0), d2t_(d), sline_(p0, svel, length) {}
+  Line::Line(VEC3 const& p0, double t0, VEC3 const& svel, double length, std::shared_ptr<DistanceToTime> d) : t0_(t0), d2t_(d), sline_(p0, svel, length) {}
 
   VEC3 Line::position3(double time) const {
     return sline_.position3(d2t_->distance(time - t0_));
@@ -36,10 +36,9 @@ namespace KinKal {
   }
 
   void Line::print(std::ostream& ost, int detail) const {
-    ost << " Line, intial position " << endPosition()
+    ost << " Line, initial position " << startPosition()
     << " t0 " << t0()
     << " direction " << direction() << endl;
-    //<< " speed " << speed() << endl;
   }
 
   std::ostream& operator <<(std::ostream& ost, Line const& tline) {

@@ -19,13 +19,14 @@ namespace KinKal {
       Line(VEC3 const& p0, double t0, VEC3 const& svel, double length);
       // construct from 2 points plus timing information.  P0 is the measurement (near) end, p1 the far end.  Signals propagate from far to near
       Line(VEC3 const& p0, VEC3 const& p1, double t0, double speed );
-      Line(VEC3 const& p0, double length, VEC3 const& svel, double t0, std::shared_ptr<DistanceToTime> d2t);
+      Line(VEC3 const& p0, double t0, VEC3 const& svel, double length, std::shared_ptr<DistanceToTime> d2t);
       // accessors
       double t0() const { return t0_; }
       double& t0() { return t0_; } // detector updates need to refine t0
-                                   // signal ends at pos0
+
+      // signal ends at pos0
       VEC3 startPosition() const { return sline_.startPosition(); }
-      VEC3 const& endPosition() const { return sline_.endPosition() ; }
+      VEC3 const& endPosition() const { return sline_.endPosition(); }
       double speed(double time) const { return d2t_->speed(d2t_->distance(time-t0_)); }
       double length() const { return sline_.length(); }
       VEC3 const& direction() const { return sline_.direction(); }

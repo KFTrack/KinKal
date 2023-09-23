@@ -4,7 +4,7 @@
 
 class CaloDistanceToTime : public DistanceToTime {
   public:
-    CaloDistanceToTime(double asymptoticSpeed, double distanceOffset);
+    CaloDistanceToTime(double asymptoticSpeed, double distanceOffset, double flatSlope);
     double distance(double deltaT) override;
     double time(double distance) override;
     double speed(double distance) override;
@@ -13,5 +13,8 @@ class CaloDistanceToTime : public DistanceToTime {
     double evaluate_root(double distance);
     double asymptoticSpeed_;
     double distanceOffset_;
+    double timeOffset_;
+    double flatSlope_;
+    double slopeRoot_;
 };
 #endif
