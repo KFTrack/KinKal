@@ -81,8 +81,7 @@ namespace KinKal {
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       DVEC momDeriv(double time, MomBasis::Direction mdir) const;
       double mass() const { return mass_;} // mass
-      int charge() const { return charge_;} // charge in proton charge units
-
+      int charge() const { return copysign(charge_,-1*omega()/bnom_.R());} // charge in proton charge units
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       double paramVar(size_t index) const { return pars_.covariance()(index,index); }
@@ -99,7 +98,7 @@ namespace KinKal {
       ParticleStateEstimate stateEstimate(double time) const;
 
       // simple functions
-      double sign() const { return copysign(1.0,mbar_); } // combined bending sign including Bz and charge
+      double sign() const { return copysign(1.0,omega()); } // combined bending sign including Bz and charge
       double parameterSign() const { return copysign(1.0,omega()); }
       // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
       double helicity() const { return copysign(1.0,tanDip()); } // needs to be checked TODO
@@ -109,7 +108,7 @@ namespace KinKal {
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
       double mbar() const { return mbar_; } // mass in mm; includes charge information!
-      double Q() const { return mass_/mbar_; } // reduced charge
+      double Q() const { return mass_/copysign(mbar_,omega()); } // reduced charge
       double omegaZ() const { return omega()/(CLHEP::c_light*beta()*tanDip()); } // dPhi/dz
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
       double gamma() const { return fabs(ebar()/mbar_); } // relativistic gamma

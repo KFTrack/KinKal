@@ -47,7 +47,7 @@ namespace KinKal {
     // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
-    double amsign = sign();
+    double amsign = copysign(1.0,mbar_);
     param(omega_) = amsign/radius;
     param(tanDip_) = mom.Z()/pt;
     // vector pointing to the circle center from the measurement point; this is perp to the transverse momentum
