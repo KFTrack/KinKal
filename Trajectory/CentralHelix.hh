@@ -81,7 +81,7 @@ namespace KinKal {
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
       DVEC momDeriv(double time, MomBasis::Direction mdir) const;
       double mass() const { return mass_;} // mass
-      int charge() const { return copysign(charge_,-1*omega()/bnom_.R());} // charge in proton charge units
+      int charge() const { return copysign(1.0,-1*omega()/bnom_.R());} // charge in proton charge units
       // named parameter accessors
       double paramVal(size_t index) const { return pars_.parameters()[index]; }
       double paramVar(size_t index) const { return pars_.covariance()(index,index); }
@@ -132,7 +132,6 @@ namespace KinKal {
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
         mbar_ *= -1.0;
-        charge_ *= -1;
         pars_.parameters()[omega_] *= -1.0;
         pars_.parameters()[tanDip_] *= -1.0;
         pars_.parameters()[d0_] *= -1.0;
@@ -156,7 +155,6 @@ namespace KinKal {
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2
-      int charge_; // charge in units of proton charge
       double mbar_;  // reduced mass in units of mm, computed from the mass and nominal field
       VEC3 bnom_;    // nominal BField vector, from the map
       ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates

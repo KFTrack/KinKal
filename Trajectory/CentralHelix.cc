@@ -29,7 +29,7 @@ namespace KinKal {
 
   CentralHelix::CentralHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : CentralHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
   CentralHelix::CentralHelix(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
-      TimeRange const &trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom)
+      TimeRange const &trange) : trange_(trange), mass_(mom0.M()), bnom_(bnom)
   {
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
@@ -41,7 +41,7 @@ namespace KinKal {
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
-    double radToMom = BFieldMap::cbar()*charge_*bnom_.R();
+    double radToMom = BFieldMap::cbar()*charge*bnom_.R();
     double momToRad = 1.0/radToMom;
     mbar_ = -mass_ * momToRad;
     // caches
@@ -114,9 +114,9 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), charge_(charge), bnom_(VEC3(0.0,0.0,bnom)){
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
     // compute kinematic cache
-    double momToRad = 1.0/(BFieldMap::cbar()*charge_*bnom);
+    double momToRad = 1.0/(BFieldMap::cbar()*charge*bnom);
     mbar_ = -mass_ * momToRad;
   }
 
