@@ -116,12 +116,13 @@ namespace KinKal {
     l2g_ = g2l_.Inverse();
   }
 
-  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int abscharge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
-    if(abscharge < 0) throw invalid_argument("Central helix charge sign should be defined by omega");
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
+    //FIXME for now just ignore sign
+    // if(abscharge < 0) throw invalid_argument("Central helix charge sign should be defined by omega");
     // compute kinematic cache
-    double momToRad = 1.0/(BFieldMap::cbar()*abscharge*bnom);
+    double momToRad = 1.0/(BFieldMap::cbar()*charge*bnom);
     absmbar_ = fabs(-mass_ * momToRad);
-    abscharge_ = abs(abscharge);
+    abscharge_ = abs(charge);
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, CentralHelix const& other) : CentralHelix(other) {
