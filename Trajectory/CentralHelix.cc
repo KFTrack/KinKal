@@ -29,7 +29,7 @@ namespace KinKal {
 
   CentralHelix::CentralHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : CentralHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
   CentralHelix::CentralHelix(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
-      TimeRange const &trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom)
+      TimeRange const &trange) : trange_(trange), mass_(mom0.M()), bnom_(bnom)
   {
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
@@ -41,13 +41,15 @@ namespace KinKal {
     // create inverse rotation; this moves back into the original coordinate system
     l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
-    double radToMom = BFieldMap::cbar()*charge_*bnom_.R();
+    double radToMom = BFieldMap::cbar()*charge*bnom_.R();
     double momToRad = 1.0/radToMom;
-    mbar_ = -mass_ * momToRad;
+    abscharge_ = abs(charge);
+    double mbar = -mass_ * momToRad;
+    absmbar_ = fabs(mbar);
     // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
-    double amsign = sign();
+    double amsign = copysign(1.0,mbar);
     param(omega_) = amsign/radius;
     param(tanDip_) = mom.Z()/pt;
     // vector pointing to the circle center from the measurement point; this is perp to the transverse momentum
@@ -98,7 +100,7 @@ namespace KinKal {
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
     // adjust the parameters for the change in bnom
-    mbar_ *= bnom_.R()/bnom.R();
+    absmbar_ *= bnom_.R()/bnom.R();
     pars_.parameters() += dPardB(time,bnom);
     bnom_ = bnom;
     // adjust rotations to global space
@@ -107,17 +109,20 @@ namespace KinKal {
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
-    mbar_ *= bnom_.R()/bnom.R();
+    absmbar_ *= bnom_.R()/bnom.R();
     bnom_ = bnom;
     pars_.parameters() += other.dPardB(trot,bnom);
     g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();
   }
 
-  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), charge_(charge), bnom_(VEC3(0.0,0.0,bnom)){
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
+    //FIXME for now just ignore sign
+    // if(abscharge < 0) throw invalid_argument("Central helix charge sign should be defined by omega");
     // compute kinematic cache
-    double momToRad = 1.0/(BFieldMap::cbar()*charge_*bnom);
-    mbar_ = -mass_ * momToRad;
+    double momToRad = 1.0/(BFieldMap::cbar()*charge*bnom);
+    absmbar_ = fabs(-mass_ * momToRad);
+    abscharge_ = abs(charge);
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, CentralHelix const& other) : CentralHelix(other) {
