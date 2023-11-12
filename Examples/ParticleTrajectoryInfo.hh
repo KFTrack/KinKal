@@ -5,7 +5,6 @@
 namespace KinKal {
   struct ParticleTrajectoryInfo {
     ParticleTrajectoryInfo(){};
-    ~ParticleTrajectoryInfo(){};
     Float_t time_, dperp_, dt_;
     static std::string leafnames() { return std::string("time/f:dperp/f:dt/f"); }
   };

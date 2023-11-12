@@ -60,7 +60,7 @@ class KinematicLine {
     explicit KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
 
 
-    virtual ~KinematicLine() {}
+    virtual ~KinematicLine() = default;
 
     // particle momentum as a function of time
     MOM4 momentum4(double time) const;

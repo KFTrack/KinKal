@@ -19,6 +19,8 @@ namespace KinKal {
       FitData() {}
       // copy with optional inversion
       FitData(FitData const& tdata, bool inv=false) : vec_(tdata.vec_), mat_(tdata.mat_) { if (inv) invert(); }
+      FitData& operator=(const FitData &) = default;
+      ~FitData() = default;
       // accessors
       DVEC const& vec() const { return vec_; }
       DMAT const& mat() const { return mat_; }
