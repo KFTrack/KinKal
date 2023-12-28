@@ -56,7 +56,7 @@ namespace KinKal {
   }
 
   // estimate how long the momentum vector from the given trajectory will stay within the given (fractional) tolerance given the field spatial variation
-  // ie mag(P_true(tstart+dt) - P_traj(tstart+dt)) < tol.  This is good to 1st order (ignores trajectory curvature)
+  // ie mag(P_true(tstart+dt) - P_traj(tstart+dt)) < tol.  This is a 2nd order local calculation
   template<class KTRAJ> double BFieldMap::rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol) const {
     auto tpos = ktraj.position3(tstart); // starting position
     double dp = ktraj.momentum(tstart)*tol; // fractional tolerance on momentum
@@ -64,9 +64,9 @@ namespace KinKal {
     auto dBdt = fieldDeriv(tpos,vel); // change in field WRT time along this velocity
     double d2pdt2 = (dBdt.Cross(vel)).R()*cbar()*fabs(ktraj.charge()); // 2nd derivative of momentum due to B change along the path
     if(d2pdt2 > 1e-10)
-      return tstart + sqrt(dp/d2pdt2);
+      return sqrt(dp/d2pdt2);
     else
-      return ktraj.range().end();
+      return ktraj.range().range()
   }
 
   // trivial instance of the above, used for testing

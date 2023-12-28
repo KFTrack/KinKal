@@ -115,7 +115,7 @@ int BFieldMapTest(int argc, char **argv) {
   TimeRange prange = start.range();
   do {
     auto const& piece = xptraj.back();
-    prange = TimeRange(prange.begin(),BF->rangeInTolerance(piece,prange.begin(), tol));
+    prange = TimeRange(prange.begin(),prange.begin() + BF->rangeInTolerance(piece,prange.begin(), tol));
     // integrate the momentum change over this range
     VEC3 dp = BF->integrate(piece,prange);
     // approximate change in position

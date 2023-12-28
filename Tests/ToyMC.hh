@@ -236,7 +236,7 @@ namespace KKTest {
     //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
     double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
     Line lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
-    
+
     // original
     //Line lline(shmaxMeas,tmeas,lvel,clen_);
     // then create the hit and add it; the hit has no material
@@ -266,7 +266,7 @@ namespace KKTest {
       if(dBdt.R() != 0.0){
         double tbeg = ptraj.range().end();
         while(tbeg < htime) {
-          double tend = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+          double tend = tbeg + bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
           double tmid = 0.5*(tbeg+tend);
           auto bf = bfield_.fieldVect(ptraj.position3(tmid));
           auto pos = ptraj.position4(tmid);

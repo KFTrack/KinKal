@@ -14,7 +14,7 @@ namespace KinKal {
     status status_; // current status
     Chisq chisq_; // current chisquared
     std::string comment_; // further information about the status
-    bool usable() const { return status_ < lowNDOF; }
+    bool usable() const { return status_ > unfit && status_ < lowNDOF; }
     bool needsFit() const { return status_ == unfit || status_ == unconverged; }
     Status(unsigned miter,unsigned iter=0) : miter_(miter), iter_(iter), status_(unfit){}
     static std::string statusName(status stat);

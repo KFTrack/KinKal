@@ -42,12 +42,16 @@
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/BField.hh"
 #include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/ExtraConfig.hh"
 #include "KinKal/Fit/Status.hh"
+#include "KinKal/fit/Domain.hh"
 #include "KinKal/General/BFieldMap.hh"
+#include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "TMath.h"
 #include <set>
 #include <vector>
+#include <deque>
 #include <array>
 #include <iterator>
 #include <memory>
@@ -57,6 +61,7 @@
 #include <ostream>
 
 namespace KinKal {
+
   template<class KTRAJ> class Track {
     public:
       using KKEFF = Effect<KTRAJ>;
@@ -68,7 +73,7 @@ namespace KinKal {
             return false;
         }
       };
-      using KKEFFCOL = std::vector<std::unique_ptr<KKEFF>>; // container type for effects
+      using KKEFFCOL = std::deque<std::unique_ptr<KKEFF>>; // container type for effects
       using KKEFFFWD = typename std::vector<std::unique_ptr<KKEFF>>::iterator;
       using KKEFFREV = typename std::vector<std::unique_ptr<KKEFF>>::reverse_iterator;
       using KKEFFFWDBND = std::array<KKEFFFWD,2>;
@@ -84,13 +89,17 @@ namespace KinKal {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
-      using DOMAINCOL = std::vector<TimeRange>;
+      using DOMAINCOL = std::deque<Domains>;
       using CONFIGCOL = std::vector<Config>;
       using FitStateArray = std::array<FitState,2>;
       // construct from a set of hits and passive material crossings
       Track(Config const& config, BFieldMap const& bfield, PTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
+      // extrapolate the fit with the given config until the given predicate is satisfied. This function requires
+      // the fit be valid, otherwise the return code is false.  If successful the status, domains, and trajectory of the fit are updated
+      // Note that the actual fit itself is unchanged
+      template <class XTEST> bool extrapolate(ExtraConfig const& xconfig, XTEST const& XTest);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -121,9 +130,11 @@ namespace KinKal {
       void replaceTraj(DOMAINCOL const& domains);
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
+      // add a single domain within the tolerance and extend the fit in the specified direction.
+      void addDomain(Domain const& domain,TimeDir const& tdir);
       auto& status() { return history_.back(); } // most recent status
                                                  // divide a kinematic trajectory range into magnetic 'domains' within which the BField inhomogeneity effects are within tolerance
-      void createDomains(PTRAJ const& ptraj, TimeRange const& range, std::vector<TimeRange>& ranges, TimeDir tdir=TimeDir::forwards) const;
+      void createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
       // payload
       CONFIGCOL config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
@@ -153,7 +164,7 @@ namespace KinKal {
     seedtraj_.setRange(refrange);
     // if correcting for BField effects, define the domains
     DOMAINCOL domains;
-    if(config().bfcorr_ ) createDomains(seedtraj_, refrange, domains);
+    if(config().bfcorr_ ) createDomains(seedtraj_, refrange, domains, config().tol_);
     // Create the initial reference trajectory from the seed trajectory
     createTraj(seedtraj_,refrange,domains);
     // create all the other effects
@@ -183,28 +194,27 @@ namespace KinKal {
       auto oldconfig = config_.end();  --oldconfig; --oldconfig;
       if(!oldconfig->bfcorr_){
         // create domains for the whole range
-        createDomains(*fittraj_, exrange,domains);
-        // replace the reftraj with one with BField rotations
+        createDomains(*fittraj_, exrange, domains, config().tol_);
+        // replace the traj with one with BField rotations
         replaceTraj(domains);
       } else {
-        // create domains just for the extensions, and extend the reftraj as needed
+        // create domains just for the extensions
         TimeRange exlow(exrange.begin(),fittraj_->range().begin());
         if(exlow.range()>0.0) {
           DOMAINCOL lowdomains;
-          createDomains(*fittraj_, exlow, lowdomains, TimeDir::backwards);
-          extendTraj(domains);
+          createDomains(*fittraj_, exlow, lowdomains, config().tol_);
           domains.insert(domains.begin(),lowdomains.begin(),lowdomains.end());
         }
         TimeRange exhigh(fittraj_->range().end(),exrange.end());
         if(exhigh.range()>0.0){
           DOMAINCOL highdomains;
-          createDomains(*fittraj_, exhigh, highdomains,TimeDir::forwards);
-          extendTraj(highdomains);
+          createDomains(*fittraj_, exhigh, highdomains, config().tol_);
           domains.insert(domains.end(),highdomains.begin(),highdomains.end());
         }
       }
     }
-    // create the effects for the new info and the new domains
+    // Extend the traj and create the effects for the new info and the new domains
+    extendTraj(domains);
     createEffects(hits,exings,domains);
     // update all the effects for this new configuration
     for(auto& ieff : effects_ ) ieff->updateConfig(config());
@@ -223,7 +233,7 @@ namespace KinKal {
       auto bf = bfield_.fieldVect(fittraj_->position3(dtime));
       // loop until we're either out of this domain or the piece is out of this domain
       while(dtime < domain.end()){
-        // find the nearest piece of the current reftraj
+        // find the nearest piece of the traj
         auto index = fittraj_->nearestIndex(dtime);
         auto const& oldpiece = *fittraj_->pieces()[index];
         // create a new piece
@@ -242,15 +252,12 @@ namespace KinKal {
       auto const& ltrajptr = newtraj->nearestTraj(eff->time());
       eff->updateReference(ltrajptr);
     }
-
     // swap
     fittraj_.swap(newtraj);
   }
 
   template <class KTRAJ> void Track<KTRAJ>::extendTraj(DOMAINCOL const& domains ) {
-    // dummy implementation: need to put in parameter rotation at each domain boundary FIXME!
     if(domains.size() > 0){
-      // extend the reftraj range
       TimeRange newrange(std::min(fittraj_->range().begin(),domains.front().begin()),
           std::max(fittraj_->range().end(),domains.back().end()));
       fittraj_->setRange(newrange);
@@ -306,7 +313,7 @@ namespace KinKal {
     }
     // sort
     std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
-    // store the inputs; these are just for convenience
+    // store the inputs; these are just for and may not be in time order
     hits_.insert(hits_.end(),hits.begin(),hits.end());
     exings_.insert(exings_.end(),exings.begin(),exings.end());
     domains_.insert(domains_.end(),domains.begin(),domains.end());
@@ -549,15 +556,14 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the BField corrections
-  template<class KTRAJ> void Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, std::vector<TimeRange>& ranges,
-      TimeDir tdir) const {
-    double tstart;
-    tstart = range.begin();
+  template<class KTRAJ> void Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const {
+    double tstart = range.begin();
     do {
       // see how far we can go on the current traj before the BField change causes the momentum estimate to go out of tolerance
+      // note this assumes the trajectory is accurate (geometric extrapolation only)
       auto const& ktraj = ptraj.nearestPiece(tstart);
-      double tend = bfield_.rangeInTolerance(ktraj,tstart,config().tol_);
-      ranges.emplace_back(tstart,tend);
+      double tend = tstart + bfield_.rangeInTolerance(ktraj,tstart,tol);
+      domains.emplace_back(TimeRange(tstart,tend),tol);
       // start the next domain and the end of this one
       tstart = tend;
     } while(tstart < range.end());
@@ -576,5 +582,53 @@ namespace KinKal {
     }
     return TimeRange(tmin,tmax);
   }
+
+  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(ExtraConfig const& xconfig, XTEST const& xtest) {
+    bool retval(false);
+    using enum TimeDir;
+    if(this->fitStatus().usable()){
+      if(config().bfcorr_){
+        // iterate until the extrapolation condition is met
+        double time = xconfig.xdir_ == forwards ? domains.back().end() : domains.front().begin();
+        double tstart = time;
+        auto pos4 = traj().position4(time);
+        auto mom4 = traj().momentum4(time);
+        while(xtest.needsExtrapolation(pos4,mom4) && fabs(pos4.t()-tstart) < xconfig.maxdt_){
+          // create a domain for this extrapolation
+          auto const& ktraj = fittraj_.nearestPiece(time);
+          double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
+          TimeRange range = xconfig.xdir_ == forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+          Domain domain(range,tol);
+          addDomain(domain,xconfig.xdir_);
+          time = xconfig.xdir_ == forwards ? domain.end() : domain.begin();
+          pos4 = traj().position4(time);
+          mom4 = traj().momentum4(time);
+        }
+        retval = true;
+      }
+    } else {
+      retval = true;
+    }
+    return retval;
+  }
+
+  template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
+    using enum TimeDir;
+    domains_.push_back(domain);
+    if(tdir == forwards){
+      auto const& ktraj = fittraj_.nearestPiece(domain.begin());
+      FitState fstate(ktraj.params());
+      effects_.emplace_back(std::make_unique<KKBFIELD>(config(),bfield_,domain));
+      effects_.back()->process(fstate,tdir);
+      effects_.back()->append(*fittraj_,tdir);
+    } else {
+      auto const& ktraj = fittraj_.nearestPiece(domain.end());
+      FitState fstate(ktraj.params());
+      effects_.emplace_front(std::make_unique<KKBFIELD>(config(),bfield_,domain));
+      effects_.front()->process(fstate,tdir);
+      effects_.front()->append(*fittraj_,tdir);
+    }
+  }
+
 }
 #endif
