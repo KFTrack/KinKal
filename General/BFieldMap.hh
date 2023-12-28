@@ -66,7 +66,7 @@ namespace KinKal {
     if(d2pdt2 > 1e-10)
       return sqrt(dp/d2pdt2);
     else
-      return ktraj.range().range()
+      return ktraj.range().range();
   }
 
   // trivial instance of the above, used for testing

@@ -18,9 +18,9 @@ namespace KinKal {
   struct Config {
     enum printLevel{none=0,minimal, basic, complete, detailed, extreme};
     using Schedule = std::vector<MetaIterConfig>;
+    explicit Config() {}
     explicit Config(Schedule const& schedule) : Config() { schedule_ = schedule; }
     Schedule const& schedule() const { return schedule_; }
-
     // algebraic iteration parameters
     unsigned maxniter_ = 10; // maximum number of algebraic iterations for this config
     double dwt_ = 1.0e6; // dweighting of initial seed covariance

@@ -8,7 +8,8 @@ namespace KinKal {
   struct Domain : public TimeRange {
     double tol_; // tolerance used to create this domain
     Domain(TimeRange const& trange, double tol) : TimeRange(trange), tol_(tol) {}
-  }
+    bool operator < (Domain const& other) const {return begin() < other.begin(); }
+  };
 }
 #endif
 
