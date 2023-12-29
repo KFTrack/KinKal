@@ -124,7 +124,7 @@ namespace KinKal {
       void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
-      void initFitState(FitStateArray& states, double dwt=1.0);
+      void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createTraj(PTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
@@ -389,7 +389,8 @@ namespace KinKal {
     }
     if(ndof >= (int)config().minndof_) { // I need a better way to define coverage as just having sufficien NDOF doesn't mean all parameters are constrained TODO
       FitStateArray states;
-      initFitState(states, config().dwt_/miconfig.varianceScale());
+      TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+      initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
       // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
       for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
         auto effptr = feff->get();
@@ -443,10 +444,10 @@ namespace KinKal {
     }
   }
 
-  // initialize statess used before iteration
-  template <class KTRAJ> void Track<KTRAJ>::initFitState(FitStateArray& states, double dwt) {
-    auto fwdtraj = fittraj_->front();
-    auto revtraj = fittraj_->back();
+  // initialize states used before iteration
+  template <class KTRAJ> void Track<KTRAJ>::initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt) {
+    auto fwdtraj = fittraj_->nearestPiece(fitrange.begin());
+    auto revtraj = fittraj_->nearestPiece(fitrange.end());
     // dweight the covariance, scaled by the temperature.
     fwdtraj.params().covariance() *= dwt;
     revtraj.params().covariance() *= dwt;
@@ -458,8 +459,7 @@ namespace KinKal {
 
   // finalize after iteration
   template <class KTRAJ> void Track<KTRAJ>::setStatus(PTRAJPTR& ptraj) {
-    // to test for compute parameter difference WRT previous iteration.  Compare at front and back ends
-    // to test for compute parameter difference WRT previous iteration.  Compare at front and back ends
+    // compute parameter difference WRT previous iteration.  Compare at front and back ends
     auto const& ffront = ptraj->front();
     auto const& sfront = fittraj_->nearestPiece(ffront.range().mid());
     DVEC dpfront = ffront.params().parameters() - sfront.params().parameters();
@@ -521,19 +521,12 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
-    // sort the end sites
     KKEFFFWDBND fwdbnds; // bounds for iterating
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds);
-    // update the end effects: this makes their internal content consistent with the others
-    // use the final meta-iteration
-    for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
-      feff->get()->updateState(config().schedule().back(),false);
-    for(auto reff=revbnds[1]; reff != effects_.rend(); ++reff)
-      reff->get()->updateState(config().schedule().back(),false);
-    // then process these sites.  Start with the state at the apropriate end, but without any deweighting
     FitStateArray states;
-    initFitState(states, 1.0); // no deweighting
+    TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+    initFitState(states, fitrange, 1.0); // no deweighting
     for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
       feff->get()->process(states[1],TimeDir::forwards);
     for(auto reff=revbnds[1]; reff != effects_.rend(); ++reff)

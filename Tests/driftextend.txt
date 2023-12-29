@@ -1,7 +1,7 @@
 #
 #  Test Configuration iteration schedule for a drift extension
 # first global parameters: maxniter dewight dchisquared_converge dchisquared_diverge dchisq_paramdiverge gapdiv tol minndof bfcor ends plevel
-10 1.0e6 1.0 50.0 1.0e6 100.0 1e-4 5 1 0 0
+10 1.0e6 1.0 50.0 1.0e6 100.0 1e-4 5 1 1 0
 #  Order:
 #  temperature updater mindoca maxdoca
 2.0 1  1.5  5
