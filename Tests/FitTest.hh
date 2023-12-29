@@ -14,12 +14,12 @@
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/Measurement.hh"
 #include "KinKal/Fit/Material.hh"
-#include "KinKal/Fit/BField.hh"
+#include "KinKal/Fit/DomainWall.hh"
 #include "KinKal/Fit/Track.hh"
 #include "KinKal/Tests/ToyMC.hh"
 #include "KinKal/Examples/HitInfo.hh"
 #include "KinKal/Examples/MaterialInfo.hh"
-#include "KinKal/Examples/BFieldInfo.hh"
+#include "KinKal/Examples/DomainWallInfo.hh"
 #include "KinKal/Examples/ParticleTrajectoryInfo.hh"
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
 #include "KinKal/General/PhysicalConstants.h"
@@ -167,7 +167,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using KKEFF = Effect<KTRAJ>;
   using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
-  using KKBFIELD = BField<KTRAJ>;
+  using KKDW = DomainWall<KTRAJ>;
   using PTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
@@ -420,7 +420,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
   float fft_,mft_, bft_;
-  int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
+  int ndof_, niter_, status_, igap_, nmeta_, nkkdw_, nkkhit_, nkkmat_;
   int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
@@ -547,7 +547,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ftree->Branch("bferrs.", &bfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
-      ftree->Branch("nkkbf", &nkkbf_,"nkkbf/I");
+      ftree->Branch("nkkdw", &nkkdw_,"nkkdw/I");
       ftree->Branch("nkkmat", &nkkmat_,"nkkmat/I");
       ftree->Branch("nkkhit", &nkkhit_,"nkkhit/I");
       ftree->Branch("nactivehit", &nactivehit_,"nactivehit/I");
@@ -714,7 +714,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       maxgap_ = avgap_ = -1;
       igap_ = -1;
       // fill effect information
-      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
+      nkkdw_ = 0; nkkhit_ = 0; nkkmat_ = 0;
       // accumulate chisquared info
       chisq_ = fstat.chisq_.chisq();
       ndof_ = fstat.chisq_.nDOF();
@@ -831,7 +831,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           nactivehit_ = nstrawhit_ = nnull_ = nscinthit_ = 0;
           for(auto const& eff: kktrk.effects()) {
             const KKMEAS* kkhit = dynamic_cast<const KKMEAS*>(eff.get());
-            const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
+            const KKDW* kkdw = dynamic_cast<const KKDW*>(eff.get());
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
@@ -926,12 +926,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               }
               minfovec.push_back(minfo);
             }
-            if(kkbf != 0){
-              nkkbf_++;
-              BFieldInfo bfinfo;
-              bfinfo.active_ = kkbf->active();
-              bfinfo.time_ = kkbf->time();
-              bfinfo.range_ = kkbf->range().range();
+            if(kkdw != 0){
+              nkkdw_++;
+              DomainWallInfo bfinfo;
+              bfinfo.active_ = kkdw->active();
+              bfinfo.time_ = kkdw->time();
+              bfinfo.range_ = kkdw->range().range();
               bfinfovec.push_back(bfinfo);
             }
           }

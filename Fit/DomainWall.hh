@@ -1,7 +1,7 @@
-#ifndef KinKal_BField_hh
-#define KinKal_BField_hh
+#ifndef KinKal_DomainWall_hh
+#define KinKal_DomainWall_hh
 //
-// Effect to correct the fit parameters for the change in BField along a small piece of the trajectory.
+// Effect describing the change in fit parameters for the change in BField crossing between 2 domains
 // This effect adds no information content or noise (presently), just transports the parameters
 //
 #include "KinKal/Fit/Effect.hh"
@@ -14,7 +14,7 @@
 #include <ostream>
 
 namespace KinKal {
-  template<class KTRAJ> class BField : public Effect<KTRAJ> {
+  template<class KTRAJ> class DomainWall : public Effect<KTRAJ> {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
@@ -29,12 +29,12 @@ namespace KinKal {
       void append(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       auto const& parameterChange() const { return dpfwd_; }
-      virtual ~BField(){}
+      virtual ~DomainWall(){}
       // disallow copy and equivalence
-      BField(BField const& ) = delete;
-      BField& operator =(BField const& ) = delete;
+      DomainWall(DomainWall const& ) = delete;
+      DomainWall& operator =(DomainWall const& ) = delete;
       // create from the domain range, the effect, and the
-      BField(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
+      DomainWall(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
         bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
       TimeRange const& range() const { return drange_; }
 
@@ -45,25 +45,25 @@ namespace KinKal {
       bool bfcorr_; // apply correction or not
   };
 
-  template<class KTRAJ> void BField<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(bfcorr_){
       kkdata.append(dpfwd_,tdir);
       // rotate the covariance matrix for the change in BField.  This requires 2nd derivatives TODO
     }
   }
 
-  template<class KTRAJ> void BField<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
+  template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
     if(bfcorr_){
       double etime = time();
       // make sure the piece is appendable
       if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
           (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
-        throw std::invalid_argument("BField: Can't append piece");
+        throw std::invalid_argument("DomainWall: Can't append piece");
       // assume the next domain has ~about the same range
-      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),drange_.end())) :
-        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),etime);
-//      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(drange_.begin(),std::max(ptraj.range().end(),drange_.end())) :
-//        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),drange_.end());
+//      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),drange_.end())) :
+//        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),etime);
+      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(drange_.begin(),std::max(ptraj.range().end(),drange_.end())) :
+        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),drange_.end());
       // update the parameters according to the change in bnom across this domain
       // This corresponds to keeping the physical position and momentum constant, but referring to the BField
       // at the end vs the begining of the domain
@@ -93,12 +93,12 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void BField<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost << "BField " << static_cast<Effect<KTRAJ>const&>(*this);
+  template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {
+    ost << "DomainWall " << static_cast<Effect<KTRAJ>const&>(*this);
     ost << " effect " << dpfwd_ << " domain range " << drange_ << std::endl;
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, BField<KTRAJ> const& kkmat) {
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DomainWall<KTRAJ> const& kkmat) {
     kkmat.print(ost,0);
     return ost;
   }
