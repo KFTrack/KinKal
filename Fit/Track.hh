@@ -382,28 +382,23 @@ namespace KinKal {
     KKEFFFWDBND fwdbnds;
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds );
-    int ndof(0); ndof -= NParams();
+    FitStateArray states;
+    TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+    initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
+    // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
-      auto const* kkmeas = dynamic_cast<const KKMEAS*>(feff->get());
-      if(kkmeas && kkmeas->active())ndof += kkmeas->hit()->nDOF();
-    }
-    if(ndof >= (int)config().minndof_) { // I need a better way to define coverage as just having sufficien NDOF doesn't mean all parameters are constrained TODO
-      FitStateArray states;
-      TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
-      initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
-      // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
-      for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
-        auto effptr = feff->get();
-        // update chisquared increment WRT the current state: only needed once
-        Chisq dchisq = effptr->chisq(states[0].pData());
-        status().chisq_ += dchisq;
-        // process
-        effptr->process(states[0],TimeDir::forwards);
-        if(config().plevel_ >= Config::detailed && dchisq.nDOF() > 0){
-          std::cout << "Chisq increment " << dchisq << " ";
-          effptr->print(std::cout,config().plevel_-Config::detailed);
-        }
+      auto effptr = feff->get();
+      // update chisquared increment WRT the current state: only needed once
+      Chisq dchisq = effptr->chisq(states[0].pData());
+      status().chisq_ += dchisq;
+      // process
+      effptr->process(states[0],TimeDir::forwards);
+      if(config().plevel_ >= Config::detailed && dchisq.nDOF() > 0){
+        std::cout << "Chisq increment " << dchisq << " ";
+        effptr->print(std::cout,config().plevel_-Config::detailed);
       }
+    }
+    if(status().chisq_.nDOF() >= (int)config().minndof_) { // I need a better way to define coverage as just having sufficien NDOF doesn't mean all parameters are constrained TODO
       double mintime(std::numeric_limits<double>::max());
       double maxtime(-std::numeric_limits<float>::max());
       for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
@@ -439,7 +434,6 @@ namespace KinKal {
       fittraj_.swap(ptraj);
       if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
     } else {
-      status().chisq_ = Chisq(-1.0,ndof);
       status().status_ = Status::lowNDOF;
     }
   }
