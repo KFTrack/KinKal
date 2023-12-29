@@ -398,23 +398,24 @@ namespace KinKal {
         effptr->print(std::cout,config().plevel_-Config::detailed);
       }
     }
-    if(status().chisq_.nDOF() >= (int)config().minndof_) { // I need a better way to define coverage as just having sufficien NDOF doesn't mean all parameters are constrained TODO
+    if(status().chisq_.nDOF() >= (int)config().minndof_) { // I need a better way to define coverage as this test doesn't guarantee all parameters are constrained TODO
       double mintime(std::numeric_limits<double>::max());
       double maxtime(-std::numeric_limits<float>::max());
       for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
         auto effptr = beff->get();
         effptr->process(states[1],TimeDir::backwards);
-        mintime = std::min(mintime,effptr->time());
-        maxtime = std::max(maxtime,effptr->time());
+        if(effptr->active()){
+          double etime = effptr->time();
+          mintime = std::min(mintime,etime);
+          maxtime = std::max(maxtime,etime);
+        }
       }
       // convert the fit result into a new trajectory
       // initialize the parameters to the backward processing end
       auto front = fittraj_->front();
       front.params() = states[1].pData();
       // extend range if needed
-//      TimeRange maxrange(std::min(fittraj_->range().begin(),fwdbnds[0]->get()->time()),
-//          std::max(fittraj_->range().end(),revbnds[0]->get()->time()));
-      TimeRange maxrange(mintime-0.1,maxtime+0.1); //fixed time buffer shouldn't be needed FIXME
+      TimeRange maxrange(mintime-0.1,maxtime+0.1); //fixed time buffer should be configurable TODO
       front.setRange(maxrange);
       auto ptraj = std::make_unique<PTRAJ>(front);
       // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory

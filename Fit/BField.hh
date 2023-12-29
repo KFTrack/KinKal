@@ -62,6 +62,8 @@ namespace KinKal {
       // assume the next domain has ~about the same range
       TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),drange_.end())) :
         TimeRange(std::min(ptraj.range().begin(),drange_.begin()),etime);
+//      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(drange_.begin(),std::max(ptraj.range().end(),drange_.end())) :
+//        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),drange_.end());
       // update the parameters according to the change in bnom across this domain
       // This corresponds to keeping the physical position and momentum constant, but referring to the BField
       // at the end vs the begining of the domain
