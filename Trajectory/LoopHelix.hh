@@ -143,6 +143,7 @@ namespace KinKal {
       DPDV dPardXLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) position vector
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
       PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
+      void setTransforms(); // define global to local and local to global given BNom
 
       TimeRange trange_;
       Parameters pars_; // parameters

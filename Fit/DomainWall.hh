@@ -5,6 +5,7 @@
 // This effect adds no information content or noise (presently), just transports the parameters
 //
 #include "KinKal/Fit/Effect.hh"
+#include "KinKal/Fit/Domain.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/Fit/Config.hh"
@@ -18,84 +19,82 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
-      using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      double time() const override { return drange_.mid(); } // apply the correction at the middle of the range
-      bool active() const override { return bfcorr_; }
+      double time() const override { return domain_.begin(); } // set by convention that this bounds the upper domain
+      bool active() const override { return true; } // always active
       void process(FitState& kkdata,TimeDir tdir) override;
-      void updateState(MetaIterConfig const& miconfig,bool first) override {}
-      void updateConfig(Config const& config) override { bfcorr_ = config.bfcorr_; }
-      void updateReference(KTRAJPTR const& ltrajptr) override {} // nothing explicit here
+      void updateState(MetaIterConfig const& miconfig,bool first) override {}; // nothing to do here
+      void updateConfig(Config const& config) override {}
+      void updateReference(PTRAJ const& ptraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PTRAJ& fit,TimeDir tdir) override;
-      Chisq chisq(Parameters const& pdata) const override { return Chisq();}
+      Chisq chisq(Parameters const& pdata) const override { return Chisq();} // no information added
       auto const& parameterChange() const { return dpfwd_; }
       virtual ~DomainWall(){}
       // disallow copy and equivalence
       DomainWall(DomainWall const& ) = delete;
       DomainWall& operator =(DomainWall const& ) = delete;
-      // create from the domain range, the effect, and the
-      DomainWall(Config const& config, BFieldMap const& bfield,TimeRange const& drange) :
-        bfield_(bfield), drange_(drange), bfcorr_(config.bfcorr_) {}
-      TimeRange const& range() const { return drange_; }
+      // specific DomainWall interface
+      // create from the domain and BField
+      DomainWall(BFieldMap const& bfield,Domain const& domain,PTRAJ const& ptraj);
+      auto const& domain() const { return domain_; }
+      // time at the middle of the PREVIOUS domain (approximate)
+      double prevTime() const { return domain_.begin() - 0.5*domain_.range(); }
+       // time at the middle of the NEXT domain
+      double nextTime() const { return domain_.mid(); }
 
     private:
       BFieldMap const& bfield_; // bfield
-      TimeRange drange_; // extent of this effect.  The middle is at the transition point between 2 bfield domains (domain transition)
-      DVEC dpfwd_; // aggregate effect in parameter space of BFieldMap change over this domain in the forwards time direction
-      bool bfcorr_; // apply correction or not
+      Domain domain_;  // the upper domain bounded by this wall
+      DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
   };
 
-  template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    if(bfcorr_){
-      kkdata.append(dpfwd_,tdir);
-      // rotate the covariance matrix for the change in BField.  This requires 2nd derivatives TODO
+  template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,Domain const& domain,PTRAJ const& ptraj) :
+    bfield_(bfield), domain_(domain) {
+      updateReference(ptraj);
     }
+
+  template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+    kkdata.append(dpfwd_,tdir);
+    // rotate the covariance matrix for the change in reference BField.  TODO
+  }
+
+  template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
+    // sample BField in the domains bounded by this domain wall
+    auto bnext = bfield_.fieldVect(ptraj.position3(nextTime()));
+    auto const& refpiece = ptraj.nearestPiece(prevTime()); // by convention, use previous domains parameters to define the derivative
+    dpfwd_ = refpiece.dPardB(this->time(),bnext);
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
-    if(bfcorr_){
-      double etime = time();
-      // make sure the piece is appendable
-      if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
-          (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
-        throw std::invalid_argument("DomainWall: Can't append piece");
-      // assume the next domain has ~about the same range
-//      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),drange_.end())) :
-//        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),etime);
-      TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(drange_.begin(),std::max(ptraj.range().end(),drange_.end())) :
-        TimeRange(std::min(ptraj.range().begin(),drange_.begin()),drange_.end());
-      // update the parameters according to the change in bnom across this domain
-      // This corresponds to keeping the physical position and momentum constant, but referring to the BField
-      // at the end vs the begining of the domain
-      // Use the 1st order approximation: the exact method tried below doesn't do any better (slightly worse)
-      VEC3 bend = (tdir == TimeDir::forwards) ? bfield_.fieldVect(ptraj.position3(drange_.end())) : bfield_.fieldVect(ptraj.position3(drange_.begin()));
-      // update the parameter change due to the BField change.  Note this assumes the traj piece
-      // at the begining of the domain has the same bnom as the BField at that point in space
-      KTRAJ newpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
-      newpiece.setBNom(etime,bend);
-      newpiece.range() = newrange;
-      // extract the parameter change for the next processing BEFORE appending
-      // This should really be done in updateState, but it's easier here and has no knock-on effects
-      dpfwd_ = (tdir == TimeDir::forwards) ? newpiece.params().parameters() - ptraj.back().params().parameters() : ptraj.back().params().parameters() - newpiece.params().parameters();
-      if( tdir == TimeDir::forwards){
-        ptraj.append(newpiece);
-      } else {
-        ptraj.prepend(newpiece);
-      }
-      // exact calculation (for reference)
-      // extract the particle state at this transition
-      // auto pstate = ptraj.back().stateEstimate(etime);
-      // re-compute the trajectory at the domain end using this state
-      // KTRAJ newpiece(pstate,bend,newrange);
-      // set the parameter change for the next processing BEFORE appending
-      // dpfwd_ = newpiece.params().parameters()-ptraj.back().params().parameters();
-      // ptraj.append(newpiece);
+    double etime = time();
+    // make sure the piece is appendable
+    if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
+        (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
+      throw std::invalid_argument("DomainWall: Can't append piece");
+    // The prepend direction is awkward, as it must assume the previous domain has the same range as this
+    TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(domain_.begin(),std::max(ptraj.range().end(),domain_.end())) :
+      TimeRange(std::min(ptraj.range().begin(),domain_.begin()-domain_.range()),domain_.begin());
+    auto const& oldpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
+    KTRAJ newpiece(oldpiece);
+    newpiece.range() = newrange;
+    if( tdir == TimeDir::forwards){
+      auto bnext = bfield_.fieldVect(oldpiece.position3(nextTime()));
+      newpiece.setBNom(etime,bnext);
+      ptraj.append(newpiece);
+      // update the parameters for the next iteration
+      dpfwd_ = newpiece.params().parameters() - oldpiece.params().parameters();
+    } else {
+      auto bprev = bfield_.fieldVect(oldpiece.position3(prevTime()));
+      newpiece.setBNom(etime,bprev);
+      ptraj.prepend(newpiece);
+      // update the parameters for the next iteration
+      dpfwd_ = oldpiece.params().parameters() - newpiece.params().parameters();
     }
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "DomainWall " << static_cast<Effect<KTRAJ>const&>(*this);
-    ost << " effect " << dpfwd_ << " domain range " << drange_ << std::endl;
+    ost << " effect " << dpfwd_ << " domain " << domain_ << std::endl;
   }
 
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DomainWall<KTRAJ> const& kkmat) {

@@ -34,12 +34,9 @@ namespace KinKal {
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
     MOM4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+    setTransforms();
     pos = g2l_(pos);
     mom = g2l_(mom);
-    // create inverse rotation; this moves back into the original coordinate system
-    l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
     double radToMom = BFieldMap::cbar()*charge*bnom_.R();
     double momToRad = 1.0/radToMom;
@@ -102,18 +99,17 @@ namespace KinKal {
     // adjust the parameters for the change in bnom
     absmbar_ *= bnom_.R()/bnom.R();
     pars_.parameters() += dPardB(time,bnom);
+    // rotate covariance: TODO
     bnom_ = bnom;
     // adjust rotations to global space
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    l2g_ = g2l_.Inverse();
+    setTransforms();
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
     absmbar_ *= bnom_.R()/bnom.R();
     bnom_ = bnom;
+    setTransforms();
     pars_.parameters() += other.dPardB(trot,bnom);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    l2g_ = g2l_.Inverse();
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
@@ -139,6 +135,12 @@ namespace KinKal {
       PSMAT dpds = dPardState(pstate.time());
       pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
     }
+
+  void CentralHelix::setTransforms() {
+    // adjust rotations to global space
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
+  }
 
   double CentralHelix::momentumVariance(double time) const {
     DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);

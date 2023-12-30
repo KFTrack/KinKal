@@ -35,13 +35,10 @@ namespace KinKal {
     // The transform is a pure rotation about the origin
     VEC4 pos(pos0);
     MOM4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
     // to convert global vectors into parameters they must first be rotated into the local system.
+    setTransforms();
     pos = g2l_(pos);
     mom = g2l_(mom);
-    // create inverse rotation; this moves back into the global coordinate system
-    l2g_ = g2l_.Inverse();
     // compute some simple useful parameters
     double pt = mom.Pt();
     double phibar = mom.Phi();
@@ -70,13 +67,19 @@ namespace KinKal {
 //    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
  }
 
-  void LoopHelix::setBNom(double time, VEC3 const& bnom) {
-    // adjust the parameters for the change in bnom
-    pars_.parameters() += dPardB(time,bnom);
-    bnom_ = bnom;
+  void LoopHelix::setTransforms() {
     // adjust rotations to global space
     g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();
+  }
+
+  void LoopHelix::setBNom(double time, VEC3 const& bnom) {
+    // adjust the parameters for the change in bnom
+    pars_.parameters() += dPardB(time,bnom);
+    // rotate covariance: TODO
+    bnom_ = bnom;
+    // adjust rotations to global space
+    setTransforms();
   }
 
   LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref) : LoopHelix(other) {
@@ -89,10 +92,8 @@ namespace KinKal {
 
   LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
     trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
-      // set the transforms
-      g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-      l2g_ = g2l_.Inverse();
-    }
+    setTransforms();
+  }
 
   LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
     LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range)
@@ -278,7 +279,8 @@ namespace KinKal {
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);
     auto mvec = localMomentum(time);
-    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    static const VEC3 zhat(0.0,0.0,1.0);
+    VEC3 BxdB = zhat.Cross(dB)/bnomR();
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change

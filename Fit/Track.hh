@@ -134,7 +134,7 @@ namespace KinKal {
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir);
       auto& status() { return history_.back(); } // most recent status
-                                                 // divide a kinematic trajectory range into magnetic 'domains' within which the DomainWall inhomogeneity effects are within tolerance
+      // divide the range into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
       void createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
       // payload
       CONFIGCOL config_; // configuration
@@ -267,8 +267,7 @@ namespace KinKal {
     }
     // update all effects to reference this trajectory
     for (auto& eff : effects_) {
-      auto const& ltrajptr = newtraj->nearestTraj(eff->time());
-      eff->updateReference(ltrajptr);
+      eff->updateReference(*newtraj);
     }
     // swap
     fittraj_.swap(newtraj);
@@ -309,28 +308,18 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createEffects( HITCOL& hits, EXINGCOL& exings,DOMAINCOL const& domains ) {
-    // pre-allocate as needed
-//    effects_.reserve(effects_.size()+hits.size()+exings.size()+domains.size());
-    // append the effects.  First, loop over the hits
+    // create and append the effects.  First, loop over the hits
     for(auto& hit : hits ) {
-      // create the hit effects and insert them in the collection
-      effects_.emplace_back(std::make_unique<KKMEAS>(hit));
-      // update hit reference; this should be done on construction FIXME
-      hit->updateReference(fittraj_->nearestTraj(hit->time()));
+      effects_.emplace_back(std::make_unique<KKMEAS>(hit,*fittraj_));
     }
     //add material effects
     for(auto& exing : exings) {
       effects_.emplace_back(std::make_unique<KKMAT>(exing,*fittraj_));
-      // update xing reference; should be done on construction FIXME
-      exing->updateReference(fittraj_->nearestTraj(exing->time()));
     }
     // add DomainWall effects
     for( auto const& domain : domains) {
-      // create the DomainWall effect for integrated differences over this range
-      effects_.emplace_back(std::make_unique<KKDW>(config(),bfield_,domain));
+      effects_.emplace_back(std::make_unique<KKDW>(bfield_,domain,*fittraj_));
     }
-    // sort
-//    std::sort(effects_.begin(),effects_.end(),KKEFFComp ());
     effects_.sort(KKEFFComp ());
     // store the inputs; these are just for and may not be in time order
     hits_.insert(hits_.end(),hits.begin(),hits.end());
@@ -426,10 +415,8 @@ namespace KinKal {
       // prepare for the next iteration: first, update the references for effects outside the fit range
       // (the ones inside the range were updated above in 'append')
       if(status().usable()){
-        for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
-          feff->get()->updateReference(ptraj->nearestTraj(feff->get()->time()));
-        for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff)
-          beff->get()->updateReference(ptraj->nearestTraj(beff->get()->time()));
+        for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff) feff->get()->updateReference(*ptraj);
+        for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff) beff->get()->updateReference(*ptraj);
       }
       // now all effects reference the new traj: we can swap it with the old
       fittraj_.swap(ptraj);
@@ -559,16 +546,19 @@ namespace KinKal {
   }
   // divide a trajectory into magnetic 'domains' used to apply the DomainWall corrections
   template<class KTRAJ> void Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const {
-    double tstart = range.begin();
+    auto const& ktraj = ptraj.nearestPiece(range.begin());
+    double trange = bfield_.rangeInTolerance(ktraj,range.begin(),tol);
+    // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
+    double tstart = range.begin() - 0.5*trange;
     do {
       // see how far we can go on the current traj before the DomainWall change causes the momentum estimate to go out of tolerance
       // note this assumes the trajectory is accurate (geometric extrapolation only)
       auto const& ktraj = ptraj.nearestPiece(tstart);
-      double tend = tstart + bfield_.rangeInTolerance(ktraj,tstart,tol);
-      domains.insert(Domain(TimeRange(tstart,tend),tol));
-      // start the next domain and the end of this one
-      tstart = tend;
-    } while(tstart < range.end());
+      trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
+      domains.emplace(tstart,trange,tol);
+      // start the next domain at the end of this one
+      tstart += trange;
+    } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
   }
 
   template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {

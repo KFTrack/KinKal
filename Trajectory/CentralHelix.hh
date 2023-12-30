@@ -151,6 +151,7 @@ namespace KinKal {
       PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
       double rc() const { return -1.0/omega() - d0(); }
       VEC3 center() const { return VEC3(rc()*sin(phi0()), -rc()*cos(phi0()), 0.0); } // local circle center
+      void setTransforms(); // define global to local and local to global given BNom
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2

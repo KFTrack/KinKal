@@ -15,7 +15,6 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
-      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using HITPTR = std::shared_ptr<HIT>;
       // Effect Interface
@@ -24,21 +23,23 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void updateReference(KTRAJPTR const& ltrajptr) override;
+      void updateReference(PTRAJ const& ptraj) override;
       void append(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Measurement(){}
       // local functions
       // construct from a hit and reference trajectory
-      Measurement(HITPTR const& hit);
+      Measurement(HITPTR const& hit,PTRAJ const& ptraj);
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
     private:
-      HITPTR hit_ ; // hit used for this constraint
+      HITPTR hit_ ; // hit used for this measurement
   };
 
-  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit) : hit_(hit) {}
+  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit,PTRAJ const& ptraj) : hit_(hit) {
+    this->updateReference(ptraj);
+  }
 
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     // add this effect's information. direction is irrelevant for processing hits
@@ -58,15 +59,15 @@ namespace KinKal {
       hit_->updateReference(ptraj.frontPtr());
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::updateReference(KTRAJPTR const& ltrajptr) {
-    hit_->updateReference(ltrajptr);
+  template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj) {
+    hit_->updateReference(ptraj.nearestTraj(hit_->time()));
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {
     return hit_->chisq(pdata);
   }
 
-  template <class KTRAJ> void Measurement<KTRAJ>::print(std::ostream& ost, int detail) const {
+  template<class KTRAJ> void Measurement<KTRAJ>::print(std::ostream& ost, int detail) const {
     ost << "Measurement " << static_cast<Effect<KTRAJ> const&>(*this) << std::endl;
     if(detail > 0){
       hit_->print(ost,detail);
