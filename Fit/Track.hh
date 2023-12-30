@@ -577,20 +577,19 @@ namespace KinKal {
 
   template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(ExtraConfig const& xconfig, XTEST const& xtest) {
     bool retval(false);
-    using enum TimeDir;
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
         // iterate until the extrapolation condition is met
-        double time = xconfig.xdir_ == forwards ? domains_.rbegin()->end() : domains_.begin()->begin();
+        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.rbegin()->end() : domains_.begin()->begin();
         double tstart = time;
         while(xtest.needsExtrapolation(*this) && fabs(time-tstart) < xconfig.maxdt_){
           // create a domain for this extrapolation
           auto const& ktraj = fittraj_.nearestPiece(time);
           double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
-          TimeRange range = xconfig.xdir_ == forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+          TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
           Domain domain(range,xconfig.tol_);
           addDomain(domain,xconfig.xdir_);
-          time = xconfig.xdir_ == forwards ? domain.end() : domain.begin();
+          time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
         }
         retval = true;
       }
@@ -601,8 +600,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
-    using enum TimeDir;
-    if(tdir == forwards){
+    if(tdir == TimeDir::forwards){
       auto const& ktraj = fittraj_.nearestPiece(domains_.begin());
       FitState fstate(ktraj.params());
       effects_.emplace_back(std::make_unique<KKDW>(config(),bfield_,domain));
