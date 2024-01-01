@@ -16,7 +16,7 @@ jobs:
       matrix:
         os: ["ubuntu-latest", "macos-latest"]
         python-version: ["3.9"]
-        root-version: ["6.26.10"]
+        root-version: ["6.28.0"]
         build-type: ["Debug", "Release"]
 
     steps:
@@ -24,13 +24,11 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install conda environment with micromamba
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba
         with:
-          environment-file: false
+          micromamba-version: '1.2.0-1'
           environment-name: "kinkal-test-env"
-          channels: conda-forge,defaults
-          channel-priority: strict
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
             root=${{ matrix.root-version }}
             cxx-compiler
