@@ -20,13 +20,12 @@ jobs:
         build-type: ["Debug", "Release"]
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout
         with:
           fetch-depth: 0
       - name: Install conda environment with micromamba
-        uses: mamba-org/setup-micromamba
+        uses: mamba-org/setup-micromamba@v1
         with:
-          micromamba-version: '1.2.0-1'
           environment-name: "kinkal-test-env"
           create-args: >-
             python=${{ matrix.python-version }}
