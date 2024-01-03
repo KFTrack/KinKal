@@ -103,15 +103,15 @@ namespace KKTest {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
     auto hdir = traj.direction(htime);
-    // generate a random direction for the straw
-    double eta = tr_.Uniform(-M_PI,M_PI);
-    VEC3 sdir(cos(eta),sin(eta),0.0);
+    // generate a random azimuth direction for the straw
+    double azimuth = tr_.Uniform(-M_PI,M_PI);
+    VEC3 sdir(cos(azimuth),sin(azimuth),0.0);
     // generate a random drift perp to this and the trajectory
     double rdrift = tr_.Uniform(-rstraw_,rstraw_);
-    VEC3 drift = (sdir.Cross(hdir)).Unit();
-    VEC3 dpos = hpos.Vect() + rdrift*drift;
+    VEC3 driftdir = (sdir.Cross(hdir)).Unit();
+    VEC3 dpos = hpos.Vect() + rdrift*driftdir;
     //  cout << "Generating hit at position " << dpos << endl;
-    double dprop = tr_.Uniform(0.0,0.5*wlen_);
+    double dprop = tr_.Uniform(0.0,wlen_);
     VEC3 mpos = dpos + sdir*dprop;
     VEC3 vprop = sdir*sprop_;
     // measured time is after propagation and drift
