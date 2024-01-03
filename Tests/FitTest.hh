@@ -3,7 +3,6 @@
 //
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
@@ -66,7 +65,6 @@ using namespace MatEnv;
 using namespace KinKal;
 using namespace std;
 // avoid confusion with root
-using KinKal::Line;
 void print_usage() {
   printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i\n");
 }
@@ -487,8 +485,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
         auto const& tline = shptr->wire();
-        plow = tline.startPosition();
-        phigh = tline.endPosition();
+        plow = tline.start();
+        phigh = tline.end();
         line->SetLineColor(kRed);
         auto hitpos = tline.position3(shptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(shptr->closestApproach().particleToca());
@@ -498,8 +496,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         tpos->SetMarkerColor(kGreen);
       } else if (lhptr.use_count() > 0){
         auto const& tline = lhptr->sensorAxis();
-        plow = tline.startPosition();
-        phigh = tline.endPosition();
+        plow = tline.start();
+        phigh = tline.end();
         line->SetLineColor(kCyan);
         auto hitpos = tline.position3(lhptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(lhptr->closestApproach().particleToca());

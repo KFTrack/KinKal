@@ -1,15 +1,3 @@
-/*
-
-   code based on MuteUtilities/src/TwoLinePCA:
-
-   Given two lines in 3D, compute the distance of closest
-   approach between the two lines.  The lines are
-   specified in point-slope form.
-
-   Original author Rob Kutschke
-
- */
-
 #include "KinKal/Trajectory/POCAUtil.hh"
 #include <math.h>
 #include <stdexcept>

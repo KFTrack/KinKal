@@ -3,7 +3,6 @@
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/LoopHelix.hh"
-#include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Examples/ScintHit.hh"
@@ -41,8 +40,6 @@
 using namespace MatEnv;
 using namespace KinKal;
 using namespace std;
-// avoid confusion with root
-using KinKal::Line;
 
 void print_usage() {
   printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --By f --Bgrad f --simmat_ i --prec f\n");
@@ -190,13 +187,13 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
       auto const& tline = shptr->wire();
-      plow = tline.startPosition();
-      phigh = tline.endPosition();
+      plow = tline.start();
+      phigh = tline.end();
       line->SetLineColor(kRed);
     } else if ((bool)lhptr){
       auto const& tline = lhptr->sensorAxis();
-      plow = tline.startPosition();
-      phigh = tline.endPosition();
+      plow = tline.start();
+      phigh = tline.end();
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());

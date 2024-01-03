@@ -9,7 +9,7 @@
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/MatEnv/SimpleFileFinder.hh"
 #include "KinKal/Examples/CaloDistanceToTime.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
@@ -37,7 +37,7 @@ namespace KKTest {
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
-      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool scinthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
@@ -52,7 +52,7 @@ namespace KKTest {
         }
 
       // generate a straw at the given time.  direction and drift distance are random
-      Line generateStraw(PTRAJ const& traj, double htime);
+      SensorLine generateStraw(PTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PTRAJ& ptraj,double htime);
@@ -99,7 +99,7 @@ namespace KKTest {
 
   };
 
-  template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
+  template <class KTRAJ> SensorLine ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
     auto hdir = traj.direction(htime);
@@ -119,7 +119,7 @@ namespace KKTest {
     // smear measurement time
     tmeas = tr_.Gaus(tmeas,sigt_);
     // construct the trajectory for this hit
-    return Line(mpos,tmeas,vprop,wlen_);
+    return SensorLine(mpos,tmeas,vprop,wlen_);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
@@ -235,7 +235,7 @@ namespace KKTest {
     std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47, 0.001);
     //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
     double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
-    Line lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
+    SensorLine lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
 
     // original
     //Line lline(shmaxMeas,tmeas,lvel,clen_);

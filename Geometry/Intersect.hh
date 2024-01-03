@@ -142,7 +142,7 @@ namespace KinKal {
     auto axis = helix.axis(trange.begin());
     // test for the helix being circular or tangent to the plane
     double vz = helix.axisSpeed();  // speed along the helix axis
-    double ddot = fabs(axis.dir_.Dot(plane.normal()));
+    double ddot = fabs(axis.direction().Dot(plane.normal()));
     if(fabs(vz*trange.range()) > tol && ddot > tol ){
       // Find the intersection time of the  helix axis (along bnom) with the plane
       double dist(0.0);

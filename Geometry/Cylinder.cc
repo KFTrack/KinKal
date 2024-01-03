@@ -80,13 +80,13 @@ namespace KinKal {
 
   IntersectFlag Cylinder::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {
     IntersectFlag retval;
-    double ddot = ray.dir_.Dot(axis_);
+    double ddot = ray.direction().Dot(axis_);
     double alpha = (1.0 - ddot*ddot); // always positive
                                       // make sure the ray isn't co-linear on the relevant scale
     if(alpha > tol/std::max(radius_,halflen_)){
-      auto rvec = ray.start_ - center_;
+      auto rvec = ray.start() - center_;
       double sdot = rvec.Dot(axis_);
-      double beta = sdot*ddot - rvec.Dot(ray.dir_);
+      double beta = sdot*ddot - rvec.Dot(ray.direction());
       double gamma = rvec.Mag2() - sdot*sdot - radius2_;
       double beta2 = beta*beta;
       double ag = alpha*gamma;

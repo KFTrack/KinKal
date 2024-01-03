@@ -7,7 +7,7 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/StrawXingConfig.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
 namespace KinKal {
@@ -16,8 +16,8 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
-      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using CA = ClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
+      using CA = ClosestApproach<KTRAJ,SensorLine>;
       // construct from PCA and material
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
@@ -36,7 +36,7 @@ namespace KinKal {
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
     private:
-      Line axis_; // straw axis, expressed as a timeline
+      SensorLine axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
       CA tpca_; // result of most recent TPOCA
       double toff_; // small time offset

@@ -1,7 +1,7 @@
 //
 // test basic functions of kinematic trajectory class
 //
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/General/ParticleStateEstimate.hh"
 #include "KinKal/General/PhysicalConstants.h"
@@ -30,8 +30,6 @@
 
 using namespace KinKal;
 using namespace std;
-// avoid confusion with root
-using KinKal::Line;
 
 void print_usage() {
   printf("Usage: Trajectory --momentum f --costheta f --azimuth f --particle i --charge i --xorigin f -- yorigin f --zorigin f --torigin --tmin f--tmax f --ltime f --By f --invert i\n");
@@ -267,16 +265,16 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   // shift the position
   VEC3 perpdir(-sin(phi),cos(phi),0.0);
   VEC3 ppos = pos + gap*perpdir;
-  Line tline(ppos, ltime, pvel, wlen);
+  SensorLine tline(ppos, ltime, pvel, wlen);
   // find ClosestApproach
   CAHint hint(ltime,ltime);
-  ClosestApproach<KTRAJ,Line> tp(ktraj,tline,hint, 1e-6);
+  ClosestApproach<KTRAJ,SensorLine> tp(ktraj,tline,hint, 1e-6);
   //  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   if(tp.status() == ClosestApproachData::converged) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
-    auto plow = tline.startPosition();
-    auto phigh = tline.endPosition();
+    auto plow = tline.start();
+    auto phigh = tline.end();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);
@@ -339,9 +337,9 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   // test axis
   auto axis = ktraj.axis(ltime);
   auto bdir = ktraj.bnom().Unit();
-  auto rtest = (axis.start_-ktraj.position3(ltime)).R();
-  if( fabs(axis.dir_.Dot(acc)) > 1e-9 || fabs(rtest-ktraj.bendRadius()) > 1e-9 ||
-      (acc.R() != 0 && fabs(fabs(axis.dir_.Dot(bdir))-1.0)>1e-9) ){
+  auto rtest = (axis.start()-ktraj.position3(ltime)).R();
+  if( fabs(axis.direction().Dot(acc)) > 1e-9 || fabs(rtest-ktraj.bendRadius()) > 1e-9 ||
+      (acc.R() != 0 && fabs(fabs(axis.direction().Dot(bdir))-1.0)>1e-9) ){
     cout << "Axis check failed " << endl;
     return -2;
   }

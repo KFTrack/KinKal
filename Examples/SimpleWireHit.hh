@@ -7,7 +7,7 @@
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
 #include "KinKal/Examples/WireHitStructs.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -18,8 +18,8 @@ namespace KinKal {
   template <class KTRAJ> class SimpleWireHit : public ResidualHit<KTRAJ> {
     public:
       using HIT = Hit<KTRAJ>;
-      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using CA = ClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
+      using CA = ClosestApproach<KTRAJ,SensorLine>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       enum Dimension { dresid=0, tresid=1};  // residual dimensions
 
@@ -49,7 +49,7 @@ namespace KinKal {
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       WireHitState whstate_; // current state
-      Line wire_; // local linear approximation to the wire of this hit, encoding all (local) position and time information.
+      SensorLine wire_; // local linear approximation to the wire of this hit, encoding all (local) position and time information.
                   // the start time is the measurement time, the direction is from
                   // the physical source of the signal (particle) to the measurement recording location (electronics), the direction magnitude
                   // is the effective signal propagation velocity along the wire, and the time range describes the active wire length
@@ -129,7 +129,7 @@ namespace KinKal {
     return rresid_[ires];
   }
 
-  template <class KTRAJ> ClosestApproach<KTRAJ,Line> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
+  template <class KTRAJ> ClosestApproach<KTRAJ,SensorLine> SimpleWireHit<KTRAJ>::unbiasedClosestApproach() const {
     // compute the unbiased closest approach; this is brute force, but works
     auto const& ca = this->closestApproach();
     auto uparams = HIT::unbiasedParameters();

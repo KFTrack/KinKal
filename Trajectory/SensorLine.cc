@@ -1,34 +1,52 @@
 #include "KinKal/Trajectory/SensorLine.hh"
+#include "KinKal/Trajectory/ConstantDistanceToTime.hh"
 #include <iostream>
 #include <stdexcept>
 #include <vector>
 #include <string>
+#include <memory>
 
 using namespace std;
 using namespace ROOT::Math;
 
 namespace KinKal {
-  SensorLine::SensorLine(VEC4 const& p0, VEC3 const& svel, double length) : SensorLine(p0.Vect(), svel, length) {}
-  SensorLine::SensorLine(VEC3 const& p0, VEC3 const& svel, double length )  : 
-    pos0_(p0), dir_(svel.Unit()), length_(length) {}
-  SensorLine::SensorLine(VEC3 const& p0, VEC3 const& p1) : pos0_(p0), dir_((p0-p1).Unit()), length_((p1-p0).R()) {}
 
-  VEC3 SensorLine::position3(double distance) const {
-    return pos0_ + distance*dir_;
+  SensorLine::SensorLine(VEC4 const& mpos, VEC3 const& svel, double length ) : SensorLine(mpos.Vect(), mpos.T(), svel, length) {}
+
+// note the measurement position is at the END of the directed line segment, since that points in the direction of signal propagation
+  SensorLine::SensorLine(VEC3 const& mpos, double mtime , VEC3 const& svel, double length )  :
+    mtime_(mtime), d2t_(new ConstantDistanceToTime(svel.R())), lineseg_(mpos-svel.unit()*length, mpos) {}
+
+  SensorLine::SensorLine(VEC3 const& mpos, VEC3 const& endpos, double mtime, double speed ) : mtime_(mtime),
+  d2t_(new ConstantDistanceToTime(speed)), lineseg_(endpos,mpos) {}
+
+  SensorLine::SensorLine(VEC3 const& mpos, double mtime, VEC3 const& svel, double length, std::shared_ptr<DistanceToTime> d) : mtime_(mtime),
+  d2t_(d), lineseg_(mpos-svel.unit()*length, mpos) {}
+
+  VEC3 SensorLine::position3(double time) const {
+    return lineseg_.position(d2t_->distance(time - mtime_));
   }
 
-  double SensorLine::DOCA(VEC3 const& point) const {
-    return (point - pos0_).Dot(dir_);
+  VEC4 SensorLine::position4(double time) const {
+    VEC3 pos3 = position3(time);
+    return VEC4(pos3.X(),pos3.Y(),pos3.Z(),time);
+  }
+
+  VEC3 SensorLine::velocity(double time) const {
+    return direction(time)*speed(time);
+  }
+
+  double SensorLine::timeTo(VEC3 const& point) const {
+    double s = lineseg_.distanceTo(point);
+    return s/speed(s) - measurementTime();
   }
 
   void SensorLine::print(std::ostream& ost, int detail) const {
-    ost << " SensorLine, initial position " << pos0_
-    << " direction " << dir_
-    << " length " << length_ << endl;
+    ost << *this << endl;
   }
 
-  std::ostream& operator <<(std::ostream& ost, SensorLine const& tSensorLine) {
-    tSensorLine.print(ost,0);
+  std::ostream& operator <<(std::ostream& ost, SensorLine const& sline) {
+    ost << "SensorLine " << sline.line() << " measurement time " << sline.measurementTime();
     return ost;
   }
 

@@ -2,7 +2,6 @@
 // test basic functions of BFieldMap class
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"

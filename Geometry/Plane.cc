@@ -22,9 +22,9 @@ namespace KinKal {
 
   IntersectFlag Plane::intersect(Ray const& ray,double& dist, bool forwards, double tol) const {
     IntersectFlag retval;
-    double ddir = norm_.Dot(ray.dir_);
+    double ddir = norm_.Dot(ray.direction());
     if(fabs(ddir)>0.0) {
-      double pdist = norm_.Dot(center_ - ray.start_);
+      double pdist = norm_.Dot(center_ - ray.start());
       dist = pdist/ddir;
       if(dist > 0.0 || !forwards){
         retval.onsurface_ = true;

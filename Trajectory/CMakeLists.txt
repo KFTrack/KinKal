@@ -9,7 +9,6 @@ add_library(Trajectory SHARED
     ClosestApproachData.cc
     SensorLine.cc
     KinematicLine.cc
-    Line.cc
     LoopHelix.cc
     POCAUtil.cc
     ConstantDistanceToTime.cc
