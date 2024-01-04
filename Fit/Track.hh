@@ -121,7 +121,7 @@ namespace KinKal {
       // helper functions
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
+      bool setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
@@ -370,7 +370,10 @@ namespace KinKal {
     effects_.sort(KKEFFComp ());
     KKEFFFWDBND fwdbnds;
     KKEFFREVBND revbnds;
-    setBounds(fwdbnds,revbnds );
+    if(!setBounds(fwdbnds,revbnds )){
+      status().status_ = Status::lowNDOF;
+      return;
+    }
     FitStateArray states;
     TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
@@ -482,16 +485,19 @@ namespace KinKal {
   }
 
   // update between iterations
-  template <class KTRAJ> void Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
+  template <class KTRAJ> bool Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
 // find bounds between first and last measurement
+    bool retval(false);
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){
         fwdbnds[0] = ieff;
         revbnds[1] = KKEFFREV(ieff);
+        retval = true;
         break;
       }
     }
+
     for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){
@@ -500,6 +506,7 @@ namespace KinKal {
         break;
       }
     }
+    return retval;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
