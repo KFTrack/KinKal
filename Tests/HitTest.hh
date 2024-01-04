@@ -42,7 +42,7 @@ using namespace KinKal;
 using namespace std;
 
 void print_usage() {
-  printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --By f --Bgrad f --simmat_ i --prec f\n");
+  printf("Usage: HitTest  --momentum f --particle i --charge i --strawhit i --scinthit i --zrange f --nhits i --hres f --seed i --ambigdoca f --By f --Bgrad f --simmat_ i --prec f --maxdr f \n");
 }
 
 template <class KTRAJ>
@@ -74,6 +74,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
   double Bgrad(0.0), By(0.0);
   bool simmat_(true), scinthit_(true), strawhit_(true);
   double zrange(3000.0); // tracker dimension
+  double maxdr(1.0);
 
   static struct option long_options[] = {
     {"momentum",     required_argument, 0, 'm' },
@@ -90,6 +91,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     {"By",     required_argument, 0, 'y'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"prec",     required_argument, 0, 'P'  },
+    {"maxdr",     required_argument, 0, 'M'  },
     {NULL, 0,0,0}
   };
 
@@ -100,6 +102,8 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
       case 'm' : mom = atof(optarg);
                  break;
       case 'p' : imass = atoi(optarg);
+                 break;
+      case 'M' : maxdr = atof(optarg);
                  break;
       case 'q' : icharge = atoi(optarg);
                  break;
@@ -282,7 +286,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           // compare the change with the expected from the derivatives
           double ddr = ROOT::Math::Dot(pder,dpvec);
           hderivg[ipar]->SetPoint(ipt++,dr,ddr);
-          if(fabs(dr - ddr) > 1.0 ){
+          if(fabs(dr - ddr) > maxdr ){
             cout << "Large ddiff " << KTRAJ::paramName(tpar) << " " << *thit << " delta " << dpar
               << " doca " << tpdata.doca() << " DirDot " << tpdata.dirDot() <<" Exact change " << dr << " deriv " << ddr << endl;
             status = 2;

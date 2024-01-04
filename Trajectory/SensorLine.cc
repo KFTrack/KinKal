@@ -24,7 +24,7 @@ namespace KinKal {
   d2t_(d), lineseg_(mpos-svel.unit()*length, mpos) {}
 
   VEC3 SensorLine::position3(double time) const {
-    return lineseg_.position(d2t_->distance(time - mtime_));
+    return lineseg_.endPosition(d2t_->distance(mtime_ - time));
   }
 
   VEC4 SensorLine::position4(double time) const {

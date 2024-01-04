@@ -206,7 +206,7 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
-    // first, find the position at showermax_.
+    // first, find the position at showermax.
     VEC3 shmaxTrue,shmaxMeas;
     double tend = thits.back()->time();
     // extend to the calorimeter z
@@ -218,24 +218,17 @@ namespace KKTest {
     pvel = ptraj.velocity(shstart);
     // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
-    auto endpos = ptraj.position4(shstart);
     shmaxTrue = ptraj.position3(shmaxtime); // true position at shower-max
                                             // smear the x-y position by the transverse variance.
     shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
     shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
     // set the z position to the sensor plane (end of the crystal)
-    shmaxMeas.SetZ(endpos.Z()+clen_);
-    // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
-    //double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
+    shmaxMeas.SetZ(cz_+clen_);
+    // set the measurement time to correspond to the light propagation from showermax_, smeared by the time resolution
+    double tmeas = tr_.Gaus(shmaxtime+(cz_ - shmaxTrue.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-
-    // put in manual values
-    //std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(85.76, clen_-27.47);
-    std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47, 0.001);
-    //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
-    double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
-    SensorLine lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
+    SensorLine lline(shmaxMeas, tmeas, lvel, clen_);
 
     // original
     //Line lline(shmaxMeas,tmeas,lvel,clen_);

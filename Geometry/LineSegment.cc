@@ -4,11 +4,7 @@
 #include <vector>
 #include <string>
 
-using namespace std;
-using namespace ROOT::Math;
-
 namespace KinKal {
-
 
   void LineSegment::print(std::ostream& ost, int detail) const {
     ost << *this << std::endl;
