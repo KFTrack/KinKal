@@ -446,6 +446,14 @@ namespace KinKal {
   template <class KTRAJ> void Track<KTRAJ>::setStatus(PTRAJPTR& ptraj) {
     // compute parameter difference WRT previous iteration.  Compare at front and back ends
     auto const& ffront = ptraj->front();
+    // test covariance
+    auto fdiag = ffront.params().covariance().Diagonal();
+    for(size_t ipar = 0; ipar < NParams(); ++ipar){
+      if(fdiag[ipar] < 0.0 || std::isnan(fdiag[ipar])){
+        status().status_ = Status::failed;
+        return;
+      }
+    }
     auto const& sfront = fittraj_->nearestPiece(ffront.range().mid());
     DVEC dpfront = ffront.params().parameters() - sfront.params().parameters();
     DMAT frontwt = sfront.params().covariance();
@@ -453,12 +461,19 @@ namespace KinKal {
     double dpchisqfront = ROOT::Math::Similarity(dpfront,frontwt);
     // back
     auto const& fback = ptraj->back();
+    auto bdiag = fback.params().covariance().Diagonal();
+    for(size_t ipar = 0; ipar < NParams(); ++ipar){
+      if(bdiag[ipar] < 0.0 || std::isnan(bdiag[ipar])){
+        status().status_ = Status::failed;
+        return;
+      }
+    }
     auto const& sback = fittraj_->nearestPiece(fback.range().mid());
     DVEC dpback = fback.params().parameters() - sback.params().parameters();
     DMAT backwt = sback.params().covariance();
     if(! backwt.Invert())throw std::runtime_error("Reference covariance uninvertible");
     double dpchisqback = ROOT::Math::Similarity(dpback,backwt);
-    // fit chisquared chang3
+    // fit chisquared change
     double dchisq = config().convdchisq_ + 1e-4;  // initialize to insure 0th iteration doesn't converge
     if(fitStatus().iter_ > 0){
       auto prevstat = history_.rbegin();

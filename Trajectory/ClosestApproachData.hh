@@ -10,7 +10,7 @@
 namespace KinKal {
 
   struct ClosestApproachData {
-    enum TPStat{converged=0,unconverged,oscillating,diverged,pocafailed,invalid};
+    enum TPStat{converged=0,unconverged,oscillating,diverged,parallel,failed,invalid};
     static std::string const& statusName(TPStat status);
     //accessors
     VEC4 const& particlePoca() const { return partCA_; }
