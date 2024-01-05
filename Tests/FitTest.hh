@@ -754,6 +754,13 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ffmomerr_ = -1.0;
       mfmomerr_ = -1.0;
       bfmomerr_ = -1.0;
+      // gaps
+      double maxgap, avgap;
+      size_t igap;
+      kktrk.fitTraj().gaps(maxgap, igap, avgap);
+      maxgap_ = maxgap;
+      avgap_ = avgap;
+      igap_ = igap;
 
       if(fstat.usable()){
         // basic info
@@ -817,11 +824,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
         mmompull->Fill((mfmom_-mtmom_)/mfmomerr_);
         bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-        // state space parameter difference and errors
-        //      ParticleStateEstimate tslow = tptraj.state(tlow);
-        //      ParticleStateEstimate tshigh = tptraj.state(thigh);
-        //      ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
-        //      ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
+       //
         if(ttree && fstat.usable()){
           fbeg_ = fptraj.range().begin();
           fend_ = fptraj.range().end();
@@ -959,12 +962,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             ktinfo.dt_= tstep-ttrue;
             tinfovec.push_back(ktinfo);
           }
-          double maxgap, avgap;
-          size_t igap;
-          fptraj.gaps(maxgap, igap, avgap);
-          maxgap_ = maxgap;
-          avgap_ = avgap;
-          igap_ = igap;
         }
       } else if(printbad){
         cout << "Bad Fit event " << ievent << " status " << kktrk.fitStatus() << endl;

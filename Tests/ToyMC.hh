@@ -102,13 +102,13 @@ namespace KKTest {
   template <class KTRAJ> SensorLine ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
-    auto hdir = traj.direction(htime);
+    auto tdir = traj.direction(htime);
     // generate a random azimuth direction for the straw
     double azimuth = tr_.Uniform(-M_PI,M_PI);
     VEC3 sdir(cos(azimuth),sin(azimuth),0.0);
     // generate a random drift perp to this and the trajectory
     double rdrift = tr_.Uniform(-rstraw_,rstraw_);
-    VEC3 driftdir = (sdir.Cross(hdir)).Unit();
+    VEC3 driftdir = (sdir.Cross(tdir)).Unit();
     VEC3 dpos = hpos.Vect() + rdrift*driftdir;
     //  cout << "Generating hit at position " << dpos << endl;
     double dprop = tr_.Uniform(0.0,wlen_);
@@ -207,7 +207,7 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
     // first, find the position at showermax.
-    VEC3 shmaxTrue,shmaxMeas;
+    VEC3 shmax,shmeas;
     double tend = thits.back()->time();
     // extend to the calorimeter z
     VEC3 pvel = ptraj.velocity(tend);
@@ -218,20 +218,17 @@ namespace KKTest {
     pvel = ptraj.velocity(shstart);
     // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
-    shmaxTrue = ptraj.position3(shmaxtime); // true position at shower-max
-                                            // smear the x-y position by the transverse variance.
-    shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
-    shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
-    // set the z position to the sensor plane (end of the crystal)
-    shmaxMeas.SetZ(cz_+clen_);
+    shmax = ptraj.position3(shmaxtime); // true position at shower-max
+    // Compute measurement position: smear the x-y position by the transverse variance.
+    shmeas.SetX(tr_.Gaus(shmax.X(),shPosSig_));
+    shmeas.SetY(tr_.Gaus(shmax.Y(),shPosSig_));
+    // set the z position to the sensor plane (forward end of the crystal)
+    shmeas.SetZ(cz_+clen_);
     // set the measurement time to correspond to the light propagation from showermax_, smeared by the time resolution
-    double tmeas = tr_.Gaus(shmaxtime+(cz_ - shmaxTrue.Z())/cprop_,scitsig_);
+    double tmeas = tr_.Gaus(shmaxtime+(shmeas.Z() - shmax.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-    SensorLine lline(shmaxMeas, tmeas, lvel, clen_);
-
-    // original
-    //Line lline(shmaxMeas,tmeas,lvel,clen_);
+    SensorLine lline(shmeas, tmeas, lvel, clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
     PCA pca(ptraj,lline,tphint,tprec_);

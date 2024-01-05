@@ -21,9 +21,10 @@ namespace KinKal {
       auto const& measurementPosition() const { return lineseg_.end(); } // measurement is at the end (latest time)
       double measurementTime() const { return mtime_; }
       double& measurementTime() { return mtime_; } // Fit updates need to refine this
-      // early and late positions (according to signal propagation direction)
+      // LineSegment positions
       auto const& start() const { return lineseg_.start(); }
       auto const& end() const { return lineseg_.end(); }
+      auto middle() const { return lineseg_.middle(); }
       //
       auto const& line() const { return lineseg_; }
       double speed(double time) const { return d2t_->speed(d2t_->distance(mtime_ - time)); } // D2T is relative to measurement end

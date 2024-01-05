@@ -17,6 +17,7 @@ namespace KinKal {
       LineSegment(VEC3 const& start, VEC3 const& end) : Ray(end-start,start), length_((end-start).R()), end_(end) {}
       // accessors
       VEC3 const& end() const { return end_; }
+      VEC3 middle() const { return 0.5*(start() + end()); }
       double length() const { return length_; }
       void print(std::ostream& ost, int detail) const;
       // position from the end

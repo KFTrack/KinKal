@@ -64,22 +64,21 @@ namespace KinKal {
     // early in the fit when t0 has very large errors.
     // If it is unphysical try to adjust it back using a better hint.
     auto ppos = tpca_.particlePoca().Vect();
-    auto sstart = saxis_.start();
-    auto send = saxis_.end();
-    double slen = (send-sstart).R();
+    auto const& sstart = saxis_.start();
+    auto const& send = saxis_.end();
     // tolerance should come from the config.  Should also test relative to the error. FIXME
-    double tol = slen*1.0;
-    double sdist = (ppos - saxis_.position3(saxis_.timeAtMidpoint())).Dot(saxis_.direction());
-    if( (ppos-sstart).Dot(saxis_.direction()) < -tol ||
-        (ppos-send).Dot(saxis_.direction()) > tol) {
+    double tol = saxis_.length()*1.0;
+    double sdist = (ppos - saxis_.middle()).Dot(saxis_.direction());
+    if( (ppos-sstart).Dot(saxis_.direction()) < -tol || (ppos-send).Dot(saxis_.direction()) > tol) {
       // adjust hint to the middle and try agian
       double sspeed = tpca_.particleTraj().velocity(tpca_.particleToca()).Dot(saxis_.direction());
-
       auto tphint = tpca_.hint();
       tphint.particleToca_ -= sdist/sspeed;
       tpca_ = CA(tpca_.particleTrajPtr(),saxis_,tphint,precision());
       // should check if this is still unphysical and disable the hit if so FIXME
+      sdist = (tpca_.particlePoca().Vect() - saxis_.middle()).Dot(saxis_.direction());
     }
+
     // residual is just delta-T at CA.
     // the variance includes the measurement variance and the tranvserse size (which couples to the relative direction)
     // Might want to do more updating (set activity) based on DOCA in future: TODO
