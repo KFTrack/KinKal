@@ -121,7 +121,7 @@ namespace KinKal {
       // helper functions
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      bool setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
+      void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
@@ -326,7 +326,8 @@ namespace KinKal {
     exings_.insert(exings_.end(),exings.begin(),exings.end());
     domains_.insert(domains.begin(),domains.end());
   }
-  // fit the
+
+  // fit the track
   template <class KTRAJ> void Track<KTRAJ>::fit() {
     // execute the schedule of meta-iterations
     for(auto imiconfig=config().schedule().begin(); imiconfig != config().schedule().end(); imiconfig++){
@@ -346,7 +347,7 @@ namespace KinKal {
       } while(canIterate());
       if(!status().usable())break;
     }
-    // if the fit is usable, process the passive effects on either end
+    // if the fit is usable, extend the track as necessary
     if(config().ends_ && status().usable()){
       history_.push_back(fitStatus());
       status().comment_ = "EndProcessing";
@@ -360,7 +361,7 @@ namespace KinKal {
     if(config().plevel_ > Config::none)print(std::cout, config().plevel_);
   }
 
-  // single algebraic iteration
+  // single algebraic iteration of the fit
   template <class KTRAJ> void Track<KTRAJ>::iterate(MetaIterConfig const& miconfig) {
     if(config().plevel_ >= Config::basic)std::cout << "Processing fit iteration " << fitStatus().iter_ << std::endl;
     // update the effects for this configuration; this will sort the effects and find the iteration bounds
@@ -370,7 +371,8 @@ namespace KinKal {
     effects_.sort(KKEFFComp ());
     KKEFFFWDBND fwdbnds;
     KKEFFREVBND revbnds;
-    if(!setBounds(fwdbnds,revbnds )){
+    setBounds(fwdbnds,revbnds);
+    if(fwdbnds[0] == effects_.end()){
       status().status_ = Status::lowNDOF;
       return;
     }
@@ -499,29 +501,46 @@ namespace KinKal {
       status().status_ = Status::unconverged;
   }
 
-  // update between iterations
-  template <class KTRAJ> bool Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
-// find bounds between first and last measurement
-    bool retval(false);
+  template <class KTRAJ> void Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
+    // find the bounding sites for algebraic processing this iteraiton.  This excludes effects which can't change the fit
+    // find first measurement
+    fwdbnds[0] = effects_.end();
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
       if(kkmeas != 0 && kkmeas->active()){
         fwdbnds[0] = ieff;
         revbnds[1] = KKEFFREV(ieff);
-        retval = true;
         break;
       }
     }
-
-    for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
-      auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
-      if(kkmeas != 0 && kkmeas->active()){
-        revbnds[0] = ieff;
-        fwdbnds[1] = ieff.base();
-        break;
+    if(fwdbnds[0] != effects_.end()){
+      // now the last measurement
+      for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
+        auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
+        if(kkmeas != 0 && kkmeas->active()){
+          revbnds[0] = ieff;
+          fwdbnds[1] = ieff.base();
+          break;
+        }
+      }
+      // if we're correcting for BField effects, move back past the first domain wall.  This clearly defines the reference field
+      if(config().bfcorr_){
+        for(auto ieff = revbnds[1]; ieff != effects_.rend(); ++ieff){
+          auto const* kkdw = dynamic_cast<const KKDW*>(ieff->get());
+          if(kkdw != 0){
+            fwdbnds[0] = ieff.base();
+            revbnds[1] = ieff;
+          }
+        }
+        for(auto ieff = fwdbnds[1]; ieff != effects_.end(); ++ieff){
+          auto const* kkdw = dynamic_cast<const KKDW*>(ieff->get());
+          if(kkdw != 0){
+            fwdbnds[1] = ieff;
+            revbnds[0] = KKEFFREV(ieff);
+          }
+        }
       }
     }
-    return retval;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
