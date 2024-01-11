@@ -122,7 +122,7 @@ namespace KinKal {
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
       void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
-      void extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the rang
+      bool extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the range.  Return value says if domains are added
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
@@ -377,8 +377,14 @@ namespace KinKal {
       status().status_ = Status::lowNDOF;
       return;
     }
+    // make sure the BField correction range covers the fit range (which can change)
     TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
-    if(config().bfcorr_)extendDomains(fitrange,config().tol_);
+    if(config().bfcorr_){
+      if(extendDomains(fitrange,config().tol_)){
+// update the limits if new DW effects were added
+        setBounds(fwdbnds,revbnds);
+      }
+    }
     FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
     // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
@@ -528,9 +534,11 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> void Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
+  template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
+    bool retval(false);
     TimeRange drange(domains().begin()->begin(),domains().rbegin()->end());
     if(!drange.contains(fitrange)){
+      retval = true;
       // we need to extend the domains.  First backwards
       if(drange.begin() > fitrange.begin()){
         double time = drange.begin();
@@ -556,6 +564,7 @@ namespace KinKal {
         }
       }
     }
+    return retval;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
