@@ -122,6 +122,7 @@ namespace KinKal {
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
       void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
+      void extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the rang
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
@@ -376,8 +377,9 @@ namespace KinKal {
       status().status_ = Status::lowNDOF;
       return;
     }
-    FitStateArray states;
     TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+    if(config().bfcorr_)extendDomains(fitrange,config().tol_);
+    FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
     // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
@@ -523,21 +525,34 @@ namespace KinKal {
           break;
         }
       }
-      // if we're correcting for BField effects, move back past the first domain wall.  This clearly defines the reference field
-      if(config().bfcorr_){
-        for(auto ieff = revbnds[1]; ieff != effects_.rend(); ++ieff){
-          auto const* kkdw = dynamic_cast<const KKDW*>(ieff->get());
-          if(kkdw != 0){
-            fwdbnds[0] = ieff.base();
-            revbnds[1] = ieff;
-          }
+    }
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
+    TimeRange drange(domains().begin()->begin(),domains().rbegin()->end());
+    if(!drange.contains(fitrange)){
+      // we need to extend the domains.  First backwards
+      if(drange.begin() > fitrange.begin()){
+        double time = drange.begin();
+        while(time > fitrange.begin()){
+          auto const& ktraj = fittraj_->nearestPiece(time);
+          double dt = bfield_.rangeInTolerance(ktraj,time,tol);
+          TimeRange range(time-dt,time);
+          Domain domain(range,tol);
+          addDomain(domain,TimeDir::backwards);
+          time = domain.begin();
         }
-        for(auto ieff = fwdbnds[1]; ieff != effects_.end(); ++ieff){
-          auto const* kkdw = dynamic_cast<const KKDW*>(ieff->get());
-          if(kkdw != 0){
-            fwdbnds[1] = ieff;
-            revbnds[0] = KKEFFREV(ieff);
-          }
+      }
+      // then forwards
+      if(drange.end() < fitrange.end()){
+        double time = drange.end();
+        while(time < fitrange.end()){
+          auto const& ktraj = fittraj_->nearestPiece(time);
+          double dt = bfield_.rangeInTolerance(ktraj,time,tol);
+          TimeRange range(time,time+dt);
+          Domain domain(range,tol);
+          addDomain(domain,TimeDir::forwards);
+          time = domain.end();
         }
       }
     }
@@ -642,15 +657,15 @@ namespace KinKal {
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
     if(tdir == TimeDir::forwards){
-      auto const& ktraj = fittraj_.nearestPiece(domains_.begin());
+      auto const& ktraj = fittraj_->nearestPiece(domains_.rbegin()->end());
       FitState fstate(ktraj.params());
-      effects_.emplace_back(std::make_unique<KKDW>(config(),bfield_,domain));
+      effects_.emplace_back(std::make_unique<KKDW>(bfield_,domain,ktraj));
       effects_.back()->process(fstate,tdir);
       effects_.back()->append(*fittraj_,tdir);
     } else {
-      auto const& ktraj = fittraj_.nearestPiece(domains_.end());
+      auto const& ktraj = fittraj_->nearestPiece(domains_.begin()->begin());
       FitState fstate(ktraj.params());
-      effects_.emplace_front(std::make_unique<KKDW>(config(),bfield_,domain));
+      effects_.emplace_front(std::make_unique<KKDW>(bfield_,domain,ktraj));
       effects_.front()->process(fstate,tdir);
       effects_.front()->append(*fittraj_,tdir);
     }
