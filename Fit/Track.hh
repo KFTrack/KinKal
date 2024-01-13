@@ -121,7 +121,8 @@ namespace KinKal {
       // helper functions
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      void setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds);
+      bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds);
+; // set the bounds.  Returns false if the bounds are empty
       bool extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the range.  Return value says if domains are added
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
@@ -147,6 +148,7 @@ namespace KinKal {
       HITCOL hits_; // hits used in this fit
       EXINGCOL exings_; // material xings used in this fit
       DOMAINCOL domains_; // DomainWall domains used in this fit, contiguous and sorted by time
+
   };
   // sub-class constructor, based just on the seed.  It requires added hits to create a functional track
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj ) :
@@ -358,7 +360,7 @@ namespace KinKal {
         status().status_ = Status::failed;
         status().comment_ = status().comment_ + error.what();
       }
-   }
+    }
     if(config().plevel_ > Config::none)print(std::cout, config().plevel_);
   }
 
@@ -370,20 +372,17 @@ namespace KinKal {
     for(auto& ieff : effects_ ) ieff->updateState(miconfig,first);
     // sort the sites, and set the iteration bounds
     effects_.sort(KKEFFComp ());
-    KKEFFFWDBND fwdbnds;
+    KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
-    setBounds(fwdbnds,revbnds);
-    if(fwdbnds[0] == effects_.end()){
+    if(!setBounds(fwdbnds,revbnds)){
       status().status_ = Status::lowNDOF;
       return;
     }
     // make sure the BField correction range covers the fit range (which can change)
-    TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+    TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
     if(config().bfcorr_){
-      if(extendDomains(fitrange,config().tol_)){
 // update the limits if new DW effects were added
-        setBounds(fwdbnds,revbnds);
-      }
+      if(extendDomains(fitrange,config().tol_))setBounds(fwdbnds,revbnds);
     }
     FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
@@ -509,9 +508,10 @@ namespace KinKal {
       status().status_ = Status::unconverged;
   }
 
-  template <class KTRAJ> void Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds, KKEFFREVBND& revbnds) {
+  template <class KTRAJ> bool Track<KTRAJ>::setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds) {
     // find the bounding sites for algebraic processing this iteraiton.  This excludes effects which can't change the fit
     // find first measurement
+    bool retval(false);
     fwdbnds[0] = effects_.end();
     for(auto ieff=effects_.begin();ieff!=effects_.end();++ieff){
       auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
@@ -522,6 +522,7 @@ namespace KinKal {
       }
     }
     if(fwdbnds[0] != effects_.end()){
+      retval = true;
       // now the last measurement
       for(auto ieff=effects_.rbegin();ieff!=effects_.rend();++ieff){
         auto const* kkmeas = dynamic_cast<const KKMEAS*>(ieff->get());
@@ -532,6 +533,7 @@ namespace KinKal {
         }
       }
     }
+    return retval;
   }
 
   template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
@@ -568,12 +570,17 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
-    KKEFFFWDBND fwdbnds; // bounds for iterating
+    // extend domains as needed to cover the end effects
+    TimeRange endrange(effects_.front()->time(),effects_.back()->time());
+    extendDomains(endrange,config().tol_);
+    KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds);
+    // initialize the fit state where we left off processing
     FitStateArray states;
-    TimeRange fitrange((*fwdbnds[0])->time(),(*revbnds[0])->time());
+    TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
     initFitState(states, fitrange, 1.0); // no deweighting
+    // process forwards and backwards
     for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff)
       feff->get()->process(states[1],TimeDir::forwards);
     for(auto reff=revbnds[1]; reff != effects_.rend(); ++reff)
