@@ -37,7 +37,7 @@ namespace KinKal {
       auto const& referenceTrajectory() const { return exing_->referenceTrajectory(); }
     private:
       EXINGPTR exing_; // element crossing for this effect
-      Weights nextwt_, prevwt_; // cache of weight processing in opposite directions, on opposite sides of the material, used to build the fit trajectory
+      Weights nextwt_; // cache of weight forwards of this effect.
   };
 
   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& dxing, PTRAJ const& ptraj) : exing_(dxing) {
@@ -46,16 +46,15 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
     if(exing_->active()){
+      // cache for the forwards side of this effect
       // forwards
       if(tdir == TimeDir::forwards) {
-        prevwt_ += kkdata.wData();
-        kkdata.append(exing_->parameters(tdir));
+        kkdata.append(exing_->params(tdir));
         nextwt_ += kkdata.wData();
       } else {
-        // backwards
+        // backwards; note the append uses FORWARDS DIRECTION because the params funtcion already does the time ordering, using both would double-count
         nextwt_ += kkdata.wData();
-        kkdata.append(exing_->parameters(tdir));
-        prevwt_ += kkdata.wData();
+        kkdata.append(exing_->params(tdir));
       }
     }
   }
@@ -64,7 +63,7 @@ namespace KinKal {
     // update the ElementXing
     exing_->updateState(miconfig,first);
     // reset the cached weights
-    nextwt_ = prevwt_ = Weights();
+    nextwt_ = Weights();
   }
 
   template<class KTRAJ> void Material<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -79,11 +78,13 @@ namespace KinKal {
       // make sure the range includes the transit time
       newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),etime+exing_->transitTime())) :
         TimeRange(std::min(ptraj.range().begin(),etime-exing_->transitTime()),etime);
+      newpiece.params() = Parameters(nextwt_);
       if( tdir == TimeDir::forwards){
-        newpiece.params() = Parameters(nextwt_);
         ptraj.append(newpiece);
       } else {
-        newpiece.params() = Parameters(prevwt_);
+        // Since the cache was forwards of this site, we have to apply the effect of this material to the parameters.
+        newpiece.params().parameters() -= exing_->params(tdir).parameters(); // going backwards; subtract
+        newpiece.params().covariance() += exing_->params(tdir).covariance(); // covariance always adds
         ptraj.prepend(newpiece);
       }
     }
@@ -105,8 +106,6 @@ namespace KinKal {
     if(detail >3){
       ost << " forward cache ";
       nextwt_.print(ost,detail);
-      ost << " reverse cache ";
-      prevwt_.print(ost,detail);
     }
   }
 

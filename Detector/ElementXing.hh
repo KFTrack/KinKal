@@ -25,7 +25,7 @@ namespace KinKal {
       virtual ~ElementXing() {}
       virtual void updateReference(KTRAJPTR const& ktrajptr) = 0; // update the trajectory reference
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
-      virtual Parameters parameters(TimeDir tdir) const =0; // parameter change induced by this element crossing WRT the reference
+      virtual Parameters params(TimeDir tdir) const =0; // parameter change induced by this element crossing WRT the reference
       virtual double time() const=0; // time the particle crosses thie element
       virtual double transitTime() const=0; // time to cross this element
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined

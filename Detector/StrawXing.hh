@@ -24,7 +24,7 @@ namespace KinKal {
       // ElementXing interface
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config,bool first) override;
-      Parameters parameters(TimeDir tdir) const override;
+      Parameters params(TimeDir tdir) const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
       double transitTime() const override; // time to cross this element
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
@@ -101,7 +101,7 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> Parameters StrawXing<KTRAJ>::parameters(TimeDir tdir) const {
+  template <class KTRAJ> Parameters StrawXing<KTRAJ>::params(TimeDir tdir) const {
     if(tdir == TimeDir::forwards)
       return fparams_;
     else
