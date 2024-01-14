@@ -49,12 +49,12 @@ namespace KinKal {
       // cache for the forwards side of this effect
       // forwards
       if(tdir == TimeDir::forwards) {
-        kkdata.append(exing_->params(tdir));
+        kkdata.append(exing_->params(),tdir);
         nextwt_ += kkdata.wData();
       } else {
         // backwards; note the append uses FORWARDS DIRECTION because the params funtcion already does the time ordering, using both would double-count
         nextwt_ += kkdata.wData();
-        kkdata.append(exing_->params(tdir));
+        kkdata.append(exing_->params(),tdir);
       }
     }
   }
@@ -82,9 +82,10 @@ namespace KinKal {
       if( tdir == TimeDir::forwards){
         ptraj.append(newpiece);
       } else {
-        // Since the cache was forwards of this site, we have to apply the effect of this material to the parameters.
-        newpiece.params().parameters() -= exing_->params(tdir).parameters(); // going backwards; subtract
-        newpiece.params().covariance() += exing_->params(tdir).covariance(); // covariance always adds
+        // Since the cache was forwards of this site, we have to apply the effect of this material xing to the parameters.
+        auto temp = exing_->params();
+        temp.parameters() *= -1; // reverse the sign of the parameter change
+        newpiece.params() += temp;
         ptraj.prepend(newpiece);
       }
     }

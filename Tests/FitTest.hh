@@ -915,7 +915,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               minfo.active_ = kkmat->active();
               minfo.nxing_ = kkmat->elementXing().matXings().size();
               std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-              kkmat->elementXing().materialEffects(TimeDir::forwards, dmom, momvar);
+              kkmat->elementXing().materialEffects(dmom, momvar);
               minfo.dmomf_ = dmom[MomBasis::momdir_];
               minfo.momvar_ = momvar[MomBasis::momdir_];
               minfo.perpvar_ = momvar[MomBasis::perpdir_];

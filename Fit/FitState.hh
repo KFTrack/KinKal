@@ -17,8 +17,8 @@ namespace KinKal {
       // accessors
       bool hasParameters() const { return hasParameters_; }
       bool hasWeights() const { return hasWeights_; }
-      // add to either parameters or weights.  Parameters can have a direction
-      void append(Parameters const& pdata,TimeDir tdir=TimeDir::forwards) {
+      // add to either parameters or weights.  Parameters can have a direction.  Covariance is always additivie
+      void append(Parameters const& pdata,TimeDir tdir) {
         if(tdir==TimeDir::forwards)
           pData().parameters() += pdata.parameters();
         else

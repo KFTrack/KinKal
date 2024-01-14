@@ -7,7 +7,6 @@
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/Detector/MaterialXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/General/TimeDir.hh"
 #include "KinKal/Detector/Hit.hh"
 #include "KinKal/Fit/MetaIterConfig.hh"
 #include <vector>
@@ -25,7 +24,7 @@ namespace KinKal {
       virtual ~ElementXing() {}
       virtual void updateReference(KTRAJPTR const& ktrajptr) = 0; // update the trajectory reference
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
-      virtual Parameters params(TimeDir tdir) const =0; // parameter change induced by this element crossing WRT the reference
+      virtual Parameters params() const =0; // parameter change induced by this element crossing WRT the reference parameters going forwards in time
       virtual double time() const=0; // time the particle crosses thie element
       virtual double transitTime() const=0; // time to cross this element
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined
@@ -33,19 +32,18 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
       bool active() const { return matXings().size() > 0; }
-      // calculate the cumulative material effect from these crossings
-      void materialEffects(TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const;
+      // calculate the cumulative material effect from all the materials in this element crossing going forwards in time
+      void materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const;
       // sum radiation fraction
       double radiationFraction() const;
-      static double elossFactor(TimeDir const& tdir) { return tdir == TimeDir::forwards ? 1.0 : -1.0; }
     private:
   };
 
-  template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(TimeDir tdir, std::array<double,3>& dmom, std::array<double,3>& momvar) const {
+  template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const {
     // compute the derivative of momentum to energy, at the reference trajectory
     double mom = referenceTrajectory().momentum(time());
     double mass = referenceTrajectory().mass();
-    double dmFdE = elossFactor(tdir)*sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
+    double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
     // loop over crossings for this detector piece
     for(auto const& mxing : matXings()){
       // compute FRACTIONAL momentum change and variance on that in the given direction
