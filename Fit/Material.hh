@@ -45,14 +45,12 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+    // The assymetry in the cache processing WRT fit update implements the convention that the cache is forwards in time of this effect, and insures the effect is only included once
     if(exing_->active()){
-      // cache for the forwards side of this effect
-      // forwards
       if(tdir == TimeDir::forwards) {
         kkdata.append(exing_->params(),tdir);
         nextwt_ += kkdata.wData();
       } else {
-        // backwards; note the append uses FORWARDS DIRECTION because the params funtcion already does the time ordering, using both would double-count
         nextwt_ += kkdata.wData();
         kkdata.append(exing_->params(),tdir);
       }
