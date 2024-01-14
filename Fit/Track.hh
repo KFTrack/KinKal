@@ -122,7 +122,7 @@ namespace KinKal {
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
       bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds);
-; // set the bounds.  Returns false if the bounds are empty
+      // set the bounds.  Returns false if the bounds are empty
       bool extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the range.  Return value says if domains are added
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
