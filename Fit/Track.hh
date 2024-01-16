@@ -320,14 +320,23 @@ namespace KinKal {
       effects_.emplace_back(std::make_unique<KKMAT>(exing,*fittraj_));
     }
     // add DomainWall effects
-    for( auto const& domain : domains) {
-      effects_.emplace_back(std::make_unique<KKDW>(bfield_,domain,*fittraj_));
+    if(config().bfcorr_ && domains.size() > 1){
+      auto nextdom = domains.cbegin();
+      auto prevdom = nextdom;
+      ++nextdom;
+      while( nextdom != domains.cend() ){
+        if(fabs(prevdom->end()-nextdom->begin())>1e-10)throw std::invalid_argument("Invalid domains");
+
+        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom, *nextdom ,*fittraj_));
+        prevdom = nextdom;
+        ++nextdom;
+      }
     }
     effects_.sort(KKEFFComp ());
     // store the inputs; these are just for and may not be in time order
     hits_.insert(hits_.end(),hits.begin(),hits.end());
     exings_.insert(exings_.end(),exings.begin(),exings.end());
-    domains_.insert(domains.begin(),domains.end());
+    domains_.insert(domains.cbegin(),domains.cend());
   }
 
   // fit the track
@@ -652,7 +661,7 @@ namespace KinKal {
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
         // iterate until the extrapolation condition is met
-        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.rbegin()->end() : domains_.begin()->begin();
+        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->end() : domains_.cbegin()->begin();
         double tstart = time;
         while(xtest.needsExtrapolation(*this) && fabs(time-tstart) < xconfig.maxdt_){
           // create a domain for this extrapolation
@@ -673,15 +682,17 @@ namespace KinKal {
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
     if(tdir == TimeDir::forwards){
-      auto const& ktraj = fittraj_->nearestPiece(domains_.rbegin()->end());
+      auto const& prevdom = *domains_.crbegin();
+      auto const& ktraj = fittraj_->nearestPiece(prevdom.end());
       FitState fstate(ktraj.params());
-      effects_.emplace_back(std::make_unique<KKDW>(bfield_,domain,ktraj));
+      effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,domain,ktraj));
       effects_.back()->process(fstate,tdir);
       effects_.back()->append(*fittraj_,tdir);
     } else {
-      auto const& ktraj = fittraj_->nearestPiece(domains_.begin()->begin());
+      auto const& nextdom = *domains_.cbegin();
+      auto const& ktraj = fittraj_->nearestPiece(nextdom.begin());
       FitState fstate(ktraj.params());
-      effects_.emplace_front(std::make_unique<KKDW>(bfield_,domain,ktraj));
+      effects_.emplace_front(std::make_unique<KKDW>(bfield_,domain,nextdom,ktraj));
       effects_.front()->process(fstate,tdir);
       effects_.front()->append(*fittraj_,tdir);
     }

@@ -932,7 +932,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               DomainWallInfo bfinfo;
               bfinfo.active_ = kkdw->active();
               bfinfo.time_ = kkdw->time();
-              bfinfo.range_ = kkdw->domain().range();
+              bfinfo.range_ = kkdw->nextDomain().mid()-kkdw->prevDomain().mid();
               bfinfovec.push_back(bfinfo);
             }
           }

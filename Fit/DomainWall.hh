@@ -19,7 +19,7 @@ namespace KinKal {
     public:
       using KKEFF = Effect<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
-      double time() const override { return domain_.begin(); } // set by convention that this bounds the upper domain
+      double time() const override { return prev_.end(); }
       bool active() const override { return true; } // always active
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override {}; // nothing to do here
@@ -35,21 +35,20 @@ namespace KinKal {
       DomainWall& operator =(DomainWall const& ) = delete;
       // specific DomainWall interface
       // create from the domain and BField
-      DomainWall(BFieldMap const& bfield,Domain const& domain,PTRAJ const& ptraj);
-      auto const& domain() const { return domain_; }
-      // time at the middle of the PREVIOUS domain (approximate)
-      double prevTime() const { return domain_.begin() - 0.5*domain_.range(); }
-       // time at the middle of the NEXT domain
-      double nextTime() const { return domain_.mid(); }
+      DomainWall(BFieldMap const& bfield,Domain const& prevdomain,Domain const& nextdomain, PTRAJ const& ptraj);
+      // previous and next domains
+      auto const& prevDomain() const { return prev_; }
+      auto const& nextDomain() const { return next_; }
 
     private:
       BFieldMap const& bfield_; // bfield
-      Domain domain_;  // the upper domain bounded by this wall
+      Domain prev_, next_; // previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
   };
 
-  template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,Domain const& domain,PTRAJ const& ptraj) :
-    bfield_(bfield), domain_(domain) {
+  template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,
+      Domain const& prevdomain, Domain const& nextdomain, PTRAJ const& ptraj) :
+    bfield_(bfield), prev_(prevdomain), next_(nextdomain) {
       updateReference(ptraj);
     }
 
@@ -60,8 +59,8 @@ namespace KinKal {
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // sample BField in the domains bounded by this domain wall
-    auto bnext = bfield_.fieldVect(ptraj.position3(nextTime()));
-    auto const& refpiece = ptraj.nearestPiece(prevTime()); // by convention, use previous domains parameters to define the derivative
+    auto bnext = bfield_.fieldVect(ptraj.position3(next_.mid()));
+    auto const& refpiece = ptraj.nearestPiece(prev_.mid()); // by convention, use previous domains parameters to define the derivative
     dpfwd_ = refpiece.dPardB(this->time(),bnext);
   }
 
@@ -71,20 +70,19 @@ namespace KinKal {
     if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
         (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
       throw std::invalid_argument("DomainWall: Can't append piece");
-    // The prepend direction is awkward, as it must assume the previous domain has the same range as this
-    TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(domain_.begin(),std::max(ptraj.range().end(),domain_.end())) :
-      TimeRange(std::min(ptraj.range().begin(),domain_.begin()-domain_.range()),domain_.begin());
+    TimeRange newrange = (tdir == TimeDir::forwards) ? TimeRange(next_.begin(),std::max(ptraj.range().end(),next_.end())) :
+      TimeRange(std::min(ptraj.range().begin(),prev_.begin()),prev_.end());
     auto const& oldpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
     KTRAJ newpiece(oldpiece);
     newpiece.range() = newrange;
     if( tdir == TimeDir::forwards){
-      auto bnext = bfield_.fieldVect(oldpiece.position3(nextTime()));
+      auto bnext = bfield_.fieldVect(oldpiece.position3(next_.mid()));
       newpiece.setBNom(etime,bnext);
       ptraj.append(newpiece);
       // update the parameters for the next iteration
       dpfwd_ = newpiece.params().parameters() - oldpiece.params().parameters();
     } else {
-      auto bprev = bfield_.fieldVect(oldpiece.position3(prevTime()));
+      auto bprev = bfield_.fieldVect(oldpiece.position3(prev_.mid()));
       newpiece.setBNom(etime,bprev);
       ptraj.prepend(newpiece);
       // update the parameters for the next iteration
@@ -94,7 +92,8 @@ namespace KinKal {
 
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "DomainWall " << static_cast<Effect<KTRAJ>const&>(*this);
-    ost << " effect " << dpfwd_ << " domain " << domain_ << std::endl;
+    ost << " previous domain " << prev_ << " next domain " << next_;
+    ost << " effect " << dpfwd_ << std::endl;
   }
 
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DomainWall<KTRAJ> const& kkmat) {
