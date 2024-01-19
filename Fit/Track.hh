@@ -202,7 +202,6 @@ namespace KinKal {
         createDomains(*fittraj_, exrange, domains, config().tol_);
         // replace the domains.  This also replace the trajectory, as that must reference the new domains
         replaceDomains(domains);
-        // tolerance has changed: remove the old domains and start again
       } else {
         // create domains just for the extensions
         TimeRange exlow(exrange.begin(),fittraj_->range().begin());
@@ -663,9 +662,9 @@ namespace KinKal {
         // iterate until the extrapolation condition is met
         double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->end() : domains_.cbegin()->begin();
         double tstart = time;
-        while(xtest.needsExtrapolation(*this) && fabs(time-tstart) < xconfig.maxdt_){
+        while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
           // create a domain for this extrapolation
-          auto const& ktraj = fittraj_.nearestPiece(time);
+          auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
           TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
           Domain domain(range,xconfig.tol_);

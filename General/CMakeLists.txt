@@ -26,6 +26,8 @@ ROOT_GENERATE_DICTIONARY(GeneralDict
     FitData.hh
     TimeRange.hh
     Vectors.hh
+    PhysicalConstants.h
+    SystemOfUnits.h
     LINKDEF LinkDef.h
     MODULE General
 )
