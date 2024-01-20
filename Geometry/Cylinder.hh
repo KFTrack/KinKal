@@ -29,6 +29,7 @@ namespace KinKal {
       double halfLength() const { return halflen_; }
       // front and rear boundaries of this cylinder as disks.  U direction is arbitrary
       Disk frontDisk() const;
+      Disk midDisk() const;
       Disk backDisk() const;
       // inscribed rectangle with given normal direction.  U direction is long the axis
       Rectangle inscribedRectangle(VEC3 const& norm) const;

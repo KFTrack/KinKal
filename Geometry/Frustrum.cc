@@ -79,6 +79,10 @@ namespace KinKal {
     return Disk(axis_,uDirection(),center_-halflen_*axis_,radius(-halflen_));
   }
 
+  Disk Frustrum::midDisk() const {
+    return Disk(axis_,uDirection(),center_,radius(0.0));
+  }
+
   Disk Frustrum::backDisk() const {
     return Disk(axis_,uDirection(),center_+halflen_*axis_,radius(halflen_));
   }

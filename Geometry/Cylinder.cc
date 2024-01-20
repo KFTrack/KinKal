@@ -55,7 +55,11 @@ namespace KinKal {
   }
 
   Disk Cylinder::frontDisk() const {
-      return Disk(axis_,uDirection(),center_-halflen_*axis_,radius_);
+    return Disk(axis_,uDirection(),center_-halflen_*axis_,radius_);
+  }
+
+  Disk Cylinder::midDisk() const {
+    return Disk(axis_,uDirection(),center_,radius_);
   }
 
   Disk Cylinder::backDisk() const {

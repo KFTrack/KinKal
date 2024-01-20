@@ -331,7 +331,6 @@ namespace KinKal {
         ++nextdom;
       }
     }
-    effects_.sort(KKEFFComp ());
     // store the inputs; these are just for and may not be in time order
     hits_.insert(hits_.end(),hits.begin(),hits.end());
     exings_.insert(exings_.end(),exings.begin(),exings.end());
@@ -379,7 +378,7 @@ namespace KinKal {
     bool first = status().iter_ == 0; // 1st iteration of a meta-iteration: update the effect internals
     for(auto& ieff : effects_ ) ieff->updateState(miconfig,first);
     // sort the sites, and set the iteration bounds
-    effects_.sort(KKEFFComp ());
+    effects_.sort(KKEFFComp());
     KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
     if(!setBounds(fwdbnds,revbnds)){
@@ -578,6 +577,8 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
+    // sort effects in case ends have migrated
+    effects_.sort(KKEFFComp());
     // extend domains as needed to cover the end effects
     TimeRange endrange(effects_.front()->time(),effects_.back()->time());
     extendDomains(endrange,config().tol_);

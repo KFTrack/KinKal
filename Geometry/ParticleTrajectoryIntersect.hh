@@ -9,11 +9,11 @@
 #include "KinKal/Geometry/Intersect.hh"
 namespace KinKal {
 //  Find first intersection of a particle trajectory in the specified range.  This generic implementation tests
-  template <class KTRAJ, class SURF> Intersection pIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol) {
+  template <class KTRAJ, class SURF> Intersection pIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tstart, double tol) {
     Intersection retval;
     // loop over pieces, and test the ones in range
     VEC3 spos, epos;
-    auto curr = ptraj.nearestTraj(trange.begin());
+    auto curr = ptraj.nearestTraj(tstart);
     auto prev = curr;
     // loop until we find the best piece
     unsigned ntries(0);
@@ -35,27 +35,54 @@ namespace KinKal {
     return retval;
   }
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
-  Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange,double tol) {
-    return pIntersect(kklptraj,surf,trange,tol);
+  Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange, double tol) {
+    return pIntersect(kklptraj,surf,trange,trange.begin(),tol);
   }
 
   // Helix-based particle trajectory intersect implementation with a plane
   template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
-    // for now, call generic function.  In future, we can do a smarter binary search for the correct piece using the 'constant'
-    // z velocity
-    return pIntersect(phelix,plane,trange,tol);
+    // use the middle range time to estimate the start time
+    auto const& midhelix = phelix.nearestPiece(trange.mid());
+    auto axis = midhelix.axis(trange.mid());
+    double dist; // distance from ray start to the plane
+    auto ainter = plane.intersect(axis,dist,false,tol);
+    double tstart = trange.begin(); // backup if the following fails due to pathological geometry
+    if(ainter.onsurface_){
+      double vz = midhelix.axisSpeed();  // speed along the helix axis
+      tstart = trange.mid() + dist/vz;
+    }
+    return pIntersect(phelix,plane,trange,tstart,tol);
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
-    // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
-    return pIntersect(phelix,cyl,trange,tol);
+    // use the middle range time to estimate the start time
+    auto const& midhelix = phelix.nearestPiece(trange.mid());
+    auto axis = midhelix.axis(trange.mid());
+    double dist; // distance to the midplane
+    auto mdisk = cyl.midDisk();
+    auto ainter = mdisk.intersect(axis,dist,false,tol);
+    double tstart = trange.begin(); // backup if the following fails due to pathological geometry
+    if(ainter.onsurface_ ){
+      double vz = midhelix.axisSpeed();  // speed along the helix axis
+      tstart = trange.mid() + dist/vz; // time the axis reaches the midplane
+    }
+    return pIntersect(phelix,cyl,trange,tstart,tol);
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
-    // for now, call generic function.  In future, we can call the above intersection on the end disks to find the correct range more efficiently
-    return pIntersect(phelix,fru,trange,tol);
+    // use the middle range time to estimate the start time
+    auto const& midhelix = phelix.nearestPiece(trange.mid());
+    auto axis = midhelix.axis(trange.mid());
+    double dist; // distance to the midplane
+    auto mdisk = fru.midDisk();
+    auto ainter = mdisk.intersect(axis,dist,false,tol);
+    double tstart = trange.begin(); // backup if the following fails due to pathological geometry
+    if(ainter.onsurface_ ){
+      double vz = midhelix.axisSpeed();  // speed along the helix axis
+      tstart = trange.mid() + dist/vz; // time the axis reaches the midplane
+    }
+    return pIntersect(phelix,fru,trange,tstart,tol);
   }
-
   // explicit 'specializations' for the different helix types
 
   Intersection intersect( ParticleTrajectory<LoopHelix> const& ploophelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
@@ -82,12 +109,12 @@ namespace KinKal {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
+    auto plane = dynamic_cast<const Plane*>(surfp);
+    if(plane)return intersect(pktraj,*plane,trange,tol);
     auto cyl = dynamic_cast<const Cylinder*>(surfp);
     if(cyl)return intersect(pktraj,*cyl,trange,tol);
     auto fru = dynamic_cast<const Frustrum*>(surfp);
     if(fru)return intersect(pktraj,*fru,trange,tol);
-    auto plane = dynamic_cast<const Plane*>(surfp);
-    if(plane)return intersect(pktraj,*plane,trange,tol);
     // unknown surface subclass; return failure
     return Intersection();
   }
