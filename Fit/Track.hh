@@ -565,7 +565,7 @@ namespace KinKal {
           auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = bfield_.rangeInTolerance(ktraj,time,tol);
           TimeRange range(time-dt,time);
-          Domain domain(range,tol);
+          Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),tol);
           addDomain(domain,TimeDir::backwards);
           time = domain.begin();
         }
@@ -577,7 +577,7 @@ namespace KinKal {
           auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = bfield_.rangeInTolerance(ktraj,time,tol);
           TimeRange range(time,time+dt);
-          Domain domain(range,tol);
+          Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),tol);
           addDomain(domain,TimeDir::forwards);
           time = domain.end();
         }
@@ -646,7 +646,7 @@ namespace KinKal {
       // note this assumes the trajectory is accurate (geometric extrapolation only)
       auto const& ktraj = ptraj.nearestPiece(tstart);
       trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
-      domains.emplace(std::make_shared<Domain>(tstart,trange,tol));
+      domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(range.mid())),tol));
       // start the next domain at the end of this one
       tstart += trange;
     } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
@@ -678,7 +678,7 @@ namespace KinKal {
           auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
           TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-          Domain domain(range,xconfig.tol_);
+          Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xconfig.tol_);
           addDomain(domain,xconfig.xdir_);
           time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
         }
