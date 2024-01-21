@@ -74,6 +74,15 @@ namespace KinKal {
             return false;
         }
       };
+      struct DomainComp { // comparator to sort effects by time
+        constexpr bool operator()(std::shared_ptr<Domain> const& a, std::shared_ptr<Domain> const&  b) const {
+          if(a.get() != b.get())
+            return a->begin() < b->begin();
+          else
+            return false;
+        }
+
+      };
       using KKEFFCOL = std::list<std::unique_ptr<KKEFF>>;
       using KKEFFFWD = typename KKEFFCOL::iterator;
       using KKEFFREV = typename KKEFFCOL::reverse_iterator;
@@ -90,7 +99,8 @@ namespace KinKal {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
-      using DOMAINCOL = std::set<Domain>;
+      using DOMAINPTR = std::shared_ptr<Domain>;
+      using DOMAINCOL = std::set<DOMAINPTR,DomainComp>;
       using CONFIGCOL = std::vector<Config>;
       using FitStateArray = std::array<FitState,2>;
       // construct from a set of hits and passive material crossings
@@ -248,18 +258,18 @@ namespace KinKal {
     auto newtraj = std::make_unique<PTRAJ>();
     // loop over domains
     for(auto const& domain : domains) {
-      double dtime = domain.begin();
+      double dtime = domain->begin();
       // Set the DomainWall to the start of this domain
       auto bf = bfield_.fieldVect(fittraj_->position3(dtime));
       // loop until we're either out of this domain or the piece is out of this domain
-      while(dtime < domain.end()){
+      while(dtime < domain->end()){
         // find the nearest piece of the traj
         auto index = fittraj_->nearestIndex(dtime);
         auto const& oldpiece = *fittraj_->pieces()[index];
         // create a new piece
         KTRAJ newpiece(oldpiece,bf,dtime);
         // set the range as needed
-        double endtime = (index < fittraj_->pieces().size()-1) ? std::min(domain.end(),oldpiece.range().end()) : domain.end();
+        double endtime = (index < fittraj_->pieces().size()-1) ? std::min(domain->end(),oldpiece.range().end()) : domain->end();
         newpiece.range() = TimeRange(dtime,endtime);
         newtraj->append(newpiece);
         // update the time
@@ -277,8 +287,8 @@ namespace KinKal {
 
   template <class KTRAJ> void Track<KTRAJ>::extendTraj(DOMAINCOL const& domains ) {
     if(domains.size() > 0){
-      TimeRange newrange(std::min(fittraj_->range().begin(),domains.begin()->begin()),
-          std::max(fittraj_->range().end(),domains.rbegin()->end()));
+      TimeRange newrange(std::min(fittraj_->range().begin(),domains.begin()->get()->begin()),
+          std::max(fittraj_->range().end(),domains.rbegin()->get()->end()));
       fittraj_->setRange(newrange);
     }
   }
@@ -292,9 +302,9 @@ namespace KinKal {
       fittraj_ = std::make_unique<PTRAJ>();
       for(auto const& domain : domains) {
         // Set the DomainWall to the start of this domain
-        auto bf = bfield_.fieldVect(seedtraj.position3(domain.begin()));
-        KTRAJ newpiece(seedtraj.nearestPiece(domain.begin()),bf,domain.begin());
-        newpiece.range() = domain;
+        auto bf = bfield_.fieldVect(seedtraj.position3(domain->begin()));
+        KTRAJ newpiece(seedtraj.nearestPiece(domain->begin()),bf,domain->begin());
+        newpiece.range() = *domain;
         fittraj_->append(newpiece);
       }
     } else {
@@ -324,9 +334,9 @@ namespace KinKal {
       auto prevdom = nextdom;
       ++nextdom;
       while( nextdom != domains.cend() ){
-        if(fabs(prevdom->end()-nextdom->begin())>1e-10)throw std::invalid_argument("Invalid domains");
+        if(fabs(prevdom->get()->end()-nextdom->get()->begin())>1e-10)throw std::invalid_argument("Invalid domains");
 
-        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom, *nextdom ,*fittraj_));
+        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom->get(), *nextdom->get() ,*fittraj_));
         prevdom = nextdom;
         ++nextdom;
       }
@@ -545,7 +555,7 @@ namespace KinKal {
 
   template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
     bool retval(false);
-    TimeRange drange(domains().begin()->begin(),domains().rbegin()->end());
+    TimeRange drange(domains().begin()->get()->begin(),domains().rbegin()->get()->end());
     if(!drange.contains(fitrange)){
       retval = true;
       // we need to extend the domains.  First backwards
@@ -636,7 +646,7 @@ namespace KinKal {
       // note this assumes the trajectory is accurate (geometric extrapolation only)
       auto const& ktraj = ptraj.nearestPiece(tstart);
       trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
-      domains.emplace(tstart,trange,tol);
+      domains.emplace(std::make_shared<Domain>(tstart,trange,tol));
       // start the next domain at the end of this one
       tstart += trange;
     } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
@@ -661,7 +671,7 @@ namespace KinKal {
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
         // iterate until the extrapolation condition is met
-        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->end() : domains_.cbegin()->begin();
+        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
         double tstart = time;
         while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
           // create a domain for this extrapolation
@@ -682,21 +692,21 @@ namespace KinKal {
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
     if(tdir == TimeDir::forwards){
-      auto const& prevdom = *domains_.crbegin();
+      auto const& prevdom = *domains_.crbegin()->get();
       auto const& ktraj = fittraj_->nearestPiece(prevdom.end());
       FitState fstate(ktraj.params());
       effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,domain,ktraj));
       effects_.back()->process(fstate,tdir);
       effects_.back()->append(*fittraj_,tdir);
     } else {
-      auto const& nextdom = *domains_.cbegin();
+      auto const& nextdom = *domains_.cbegin()->get();
       auto const& ktraj = fittraj_->nearestPiece(nextdom.begin());
       FitState fstate(ktraj.params());
       effects_.emplace_front(std::make_unique<KKDW>(bfield_,domain,nextdom,ktraj));
       effects_.front()->process(fstate,tdir);
       effects_.front()->append(*fittraj_,tdir);
     }
-    domains_.insert(domain);
+    domains_.insert(std::make_shared<Domain>(domain));
  }
 }
 #endif
