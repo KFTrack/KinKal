@@ -336,7 +336,7 @@ namespace KinKal {
       while( nextdom != domains.cend() ){
         if(fabs(prevdom->get()->end()-nextdom->get()->begin())>1e-10)throw std::invalid_argument("Invalid domains");
 
-        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom->get(), *nextdom->get() ,*fittraj_));
+        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom,*nextdom ,*fittraj_));
         prevdom = nextdom;
         ++nextdom;
       }
@@ -691,22 +691,23 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
+    auto dptr = std::make_shared<Domain>(domain);
     if(tdir == TimeDir::forwards){
-      auto const& prevdom = *domains_.crbegin()->get();
-      auto const& ktraj = fittraj_->nearestPiece(prevdom.end());
+      auto const& prevdom = *domains_.crbegin();
+      auto const& ktraj = fittraj_->nearestPiece(prevdom->end());
       FitState fstate(ktraj.params());
-      effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,domain,ktraj));
+      effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
       effects_.back()->process(fstate,tdir);
       effects_.back()->append(*fittraj_,tdir);
     } else {
-      auto const& nextdom = *domains_.cbegin()->get();
-      auto const& ktraj = fittraj_->nearestPiece(nextdom.begin());
+      auto const& nextdom = *domains_.cbegin();
+      auto const& ktraj = fittraj_->nearestPiece(nextdom->begin());
       FitState fstate(ktraj.params());
-      effects_.emplace_front(std::make_unique<KKDW>(bfield_,domain,nextdom,ktraj));
+      effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
       effects_.front()->process(fstate,tdir);
       effects_.front()->append(*fittraj_,tdir);
     }
-    domains_.insert(std::make_shared<Domain>(domain));
+    domains_.insert(dptr);
  }
 }
 #endif
