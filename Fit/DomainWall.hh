@@ -23,7 +23,7 @@ namespace KinKal {
       double time() const override { return prev_->end(); }
       bool active() const override { return true; } // always active
       void process(FitState& kkdata,TimeDir tdir) override;
-      void updateState(MetaIterConfig const& miconfig,bool first) override;
+      void updateState(MetaIterConfig const& miconfig,bool first) override {}
       void updateConfig(Config const& config) override {}
       void updateReference(PTRAJ const& ptraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -57,8 +57,6 @@ namespace KinKal {
     kkdata.append(dpfwd_,tdir);
     // rotate the covariance matrix for the change in reference BField.  TODO
   }
-  template<class KTRAJ> void DomainWall<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
-  }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // update BField at the domain centers given the new trajectory
@@ -80,19 +78,20 @@ namespace KinKal {
     newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end())) :
       TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
     if( tdir == TimeDir::forwards){
-//      newpiece.params() += dpfwd_;
-//      newpiece.bnom() = next_->bnom();
-//      newpiece.setBNom(etime,next_->bnom()); // worst
-        newpiece.setBNom(etime,bfield_.fieldVect(ptraj.position3(next_->mid()))); // best
+      newpiece.params() += dpfwd_;
+      newpiece.bnom() = next_->bnom(); // set the parameters according to what was used in processing
+      newpiece.setBNom(next_->mid(),bfield_.fieldVect(ptraj.position3(next_->mid()))); // update to reference the BField at the next
       ptraj.append(newpiece);
     } else {
-//      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
-//      newpiece.bnom() = prev_->bnom();
-//      newpiece.setBNom(etime,prev_->bnom());
-        newpiece.setBNom(etime,bfield_.fieldVect(ptraj.position3(prev_->mid())));
+      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
+      newpiece.bnom() = prev_->bnom();
+      newpiece.setBNom(prev_->mid(),bfield_.fieldVect(ptraj.position3(prev_->mid())));
       ptraj.prepend(newpiece);
     }
-    updateReference(ptraj);
+    // update for the next iteration
+    prev_->updateBNom(bfield_.fieldVect(oldpiece.position3(prev_->mid())));
+    next_->updateBNom(bfield_.fieldVect(newpiece.position3(next_->mid())));
+    dpfwd_ = oldpiece.dPardB(etime,next_->bnom());
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {

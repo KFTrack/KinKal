@@ -430,7 +430,6 @@ namespace KinKal {
       // set bnom for these parameters to the domain used
       if(config().bfcorr_){
         // find the relevant domain
-//        auto dptr = domains_.find(front.range().mid());
         double ftime = front.range().mid();
         for(auto const& domain : domains_) {
           if(domain->range().inRange(ftime)){
