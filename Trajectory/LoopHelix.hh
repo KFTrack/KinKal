@@ -112,6 +112,7 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + phi0(); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       VEC3 const& bnom(double time=0.0) const { return bnom_; }
+      VEC3& bnom(double time=0.0) { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {

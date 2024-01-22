@@ -128,6 +128,7 @@ class KinematicLine {
     double gamma() const { return energy()/mass_; }
     double betaGamma() const { return beta() * gamma(); }
     VEC3 const &bnom(double time = 0.0) const { return bnom_; }
+    VEC3& bnom(double time=0.0) { return bnom_; }
 
     DPDV dPardX(double time) const;
     DPDV dPardM(double time) const;

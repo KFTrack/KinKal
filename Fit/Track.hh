@@ -62,6 +62,10 @@
 #include <ostream>
 
 namespace KinKal {
+  using DOMAINPTR = std::shared_ptr<Domain>;
+  bool operator < (DOMAINPTR const& a, DOMAINPTR const&  b) { return a->begin() < b->begin(); }
+  bool operator < (DOMAINPTR const& a, double val) { return a->begin() < val; }
+  bool operator < (double val, DOMAINPTR const& b) { return val < b->begin(); }
 
   template<class KTRAJ> class Track {
     public:
@@ -74,15 +78,7 @@ namespace KinKal {
             return false;
         }
       };
-      struct DomainComp { // comparator to sort effects by time
-        constexpr bool operator()(std::shared_ptr<Domain> const& a, std::shared_ptr<Domain> const&  b) const {
-          if(a.get() != b.get())
-            return a->begin() < b->begin();
-          else
-            return false;
-        }
 
-      };
       using KKEFFCOL = std::list<std::unique_ptr<KKEFF>>;
       using KKEFFFWD = typename KKEFFCOL::iterator;
       using KKEFFREV = typename KKEFFCOL::reverse_iterator;
@@ -99,8 +95,7 @@ namespace KinKal {
       using EXING = ElementXing<KTRAJ>;
       using EXINGPTR = std::shared_ptr<EXING>;
       using EXINGCOL = std::vector<EXINGPTR>;
-      using DOMAINPTR = std::shared_ptr<Domain>;
-      using DOMAINCOL = std::set<DOMAINPTR,DomainComp>;
+      using DOMAINCOL = std::set<DOMAINPTR>;
       using CONFIGCOL = std::vector<Config>;
       using FitStateArray = std::array<FitState,2>;
       // construct from a set of hits and passive material crossings
@@ -304,7 +299,7 @@ namespace KinKal {
         // Set the DomainWall to the start of this domain
         auto bf = bfield_.fieldVect(seedtraj.position3(domain->begin()));
         KTRAJ newpiece(seedtraj.nearestPiece(domain->begin()),bf,domain->begin());
-        newpiece.range() = *domain;
+        newpiece.range() = domain->range();
         fittraj_->append(newpiece);
       }
     } else {
@@ -397,8 +392,8 @@ namespace KinKal {
     }
     // make sure the BField correction range covers the fit range (which can change)
     TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
+    // update the limits if new DW effects were added
     if(config().bfcorr_){
-// update the limits if new DW effects were added
       if(extendDomains(fitrange,config().tol_))setBounds(fwdbnds,revbnds);
     }
     FitStateArray states;
@@ -432,6 +427,18 @@ namespace KinKal {
       // initialize the parameters to the backward processing end
       auto front = fittraj_->front();
       front.params() = states[1].pData();
+      // set bnom for these parameters to the domain used
+      if(config().bfcorr_){
+        // find the relevant domain
+//        auto dptr = domains_.find(front.range().mid());
+        double ftime = front.range().mid();
+        for(auto const& domain : domains_) {
+          if(domain->range().inRange(ftime)){
+            front.bnom() = domain->bnom();
+            break;
+          }
+        }
+      }
       // extend range if needed
       TimeRange maxrange(mintime-0.1,maxtime+0.1); //fixed time buffer should be configurable TODO
       front.setRange(maxrange);
@@ -447,7 +454,7 @@ namespace KinKal {
         for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff) feff->get()->updateReference(*ptraj);
         for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff) beff->get()->updateReference(*ptraj);
       }
-      // now all effects reference the new traj: we can swap it with the old
+      // now all effects reference the new traj: we can swap the fit to that.
       fittraj_.swap(ptraj);
       if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
     } else {
