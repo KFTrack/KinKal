@@ -204,7 +204,8 @@ install(TARGETS General Trajectory Geometry Detector Fit MatEnv Examples
 # Globbing here is fine because it does not influence build behaviour
 install(DIRECTORY "${CMAKE_SOURCE_DIR}/"
   DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/KinKal
-  FILES_MATCHING PATTERN "*.hh"
+  FILES_MATCHING PATTERN "*.hh" PATTERN "*.h"
+  PATTERN "LinkDef.h" EXCLUDE
   PATTERN ".git*" EXCLUDE
   )
 
