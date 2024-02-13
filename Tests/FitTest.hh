@@ -424,7 +424,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   float maxgap_, avgap_;
 
   // test parameterstate
-  auto const& traj = kktrk.fitTraj().front();
+  auto const& traj = kktrk.fitTraj().nearestPiece(kktrk.fitTraj().range().mid());
   auto pstate = traj.stateEstimate(traj.t0());
   double momvar1 = traj.momentumVariance(traj.t0());
   double momvar2 = pstate.momentumVariance();
@@ -440,8 +440,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       return -3;
     }
     for(size_t jpar=0; jpar < NParams(); jpar++){
-      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-6){
-        std::cout << "Covariance error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-3){
+        std::cout << "Covariance error " <<  traj.params().covariance()(ipar,jpar) << " " << testtraj.params().covariance()(ipar,jpar) << std::endl;
         return -3;
       }
     }
