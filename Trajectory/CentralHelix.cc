@@ -74,25 +74,6 @@ namespace KinKal {
     param(z0_) = z0 - nwind*deltaz;
     // t0, also correcting for winding
     param(t0_) = pos.T() -(dphi + 2*M_PI*nwind)/Omega();
-    // test
-//    auto testpos = position3(pos0.T());
-//    auto testmom = momentum3(pos0.T());
-//    auto dp = testpos - pos0.Vect();
-//    auto dm = testmom - mom0.Vect();
-//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
-//    // check
-//    auto lmom = localMomentum(pos0.T());
-//    auto tcent = center();
-//    if(fabs(lcent.phi()-tcent.phi())>1e-5 || fabs(lcent.perp2()-tcent.perp2()) > 1e-5){
-//      cout << "center " << lcent << " test center " << tcent << endl;
-//    }
-//    if(fabs(tan(phi0()) +1.0/tan(lcent.phi())) > 1e-5){
-//      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl;
-//    }
-//    double d0t = sign()*sqrt(lcent.perp2())-sqrt(lmom.perp2())/Q();
-//    if(fabs(d0t - d0()) > 1e-5){
-//      cout  << " d0 " << d0() << " d0 test " << d0t << endl;
-//    }
   }
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
@@ -108,8 +89,8 @@ namespace KinKal {
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
     absmbar_ *= bnom_.R()/bnom.R();
     bnom_ = bnom;
-    setTransforms();
     pars_.parameters() += other.dPardB(trot,bnom);
+    setTransforms();
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){

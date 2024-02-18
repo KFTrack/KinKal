@@ -93,6 +93,47 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   return ((pos2-pos1).Cross(dir1)).R();
 }
 
+template <class KTRAJ>
+int testState(KinKal::Track<KTRAJ> const& kktrk) {
+  // test parameterstate
+  int retval(0);
+  auto const& traj = kktrk.fitTraj().nearestPiece(kktrk.fitTraj().range().mid());
+  auto pstate = traj.stateEstimate(traj.t0());
+  auto pos1 = traj.position3(traj.t0());
+  auto pos2 = pstate.position3();
+  if(fabs(pos1.Dot(pos2) - pos1.Mag2()) >1e-10){
+    std::cout << "Position difference " << pos1 << " " << pos2 << std::endl;
+    retval = -1;
+  }
+  auto mom1 = traj.momentum3(traj.t0());
+  auto mom2 = pstate.momentum3();
+  if(fabs(mom1.Dot(mom2)-mom1.Mag2())>1e-10){
+    std::cout << "Momentum difference " << mom1 << " " << mom2 << std::endl;
+    retval = -1;
+  }
+  double momvar1 = traj.momentumVariance(traj.t0());
+  double momvar2 = pstate.momentumVariance();
+  if(fabs(momvar1-momvar2)>1e-10){
+    std::cout << "Momentum variance differencer " << momvar1 << " " << momvar2 << std::endl;
+    retval = -1;
+  }
+  // full reversibility
+  KTRAJ testtraj(pstate,traj.bnom(),traj.range());
+  for(size_t ipar=0; ipar < NParams(); ipar++){
+    if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
+      std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+      retval = -1;
+    }
+    for(size_t jpar=0; jpar < NParams(); jpar++){
+      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-3){
+        std::cout << "Covariance mismatch par " << ipar << " , " << jpar << " diff " <<  traj.params().covariance()(ipar,jpar) << " " << testtraj.params().covariance()(ipar,jpar) << std::endl;
+        retval = -1;
+      }
+    }
+  }
+    return retval;
+}
+
 int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) {
   string fullfile;
   if(strncmp(cfile.c_str(),"/",1) == 0) {
@@ -423,30 +464,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
 
-  // test parameterstate
-  auto const& traj = kktrk.fitTraj().nearestPiece(kktrk.fitTraj().range().mid());
-  auto pstate = traj.stateEstimate(traj.t0());
-  double momvar1 = traj.momentumVariance(traj.t0());
-  double momvar2 = pstate.momentumVariance();
-  if(fabs(momvar1-momvar2)>1e-10){
-    std::cout << "Momentum variance error " << momvar1 << " " << momvar2 << std::endl;
-    return -3;
-  }
-  // full reversibility
-  KTRAJ testtraj(pstate,traj.bnom(),traj.range());
-  for(size_t ipar=0; ipar < NParams(); ipar++){
-    if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
-      std::cout << "Parameter error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
-      return -3;
-    }
-    for(size_t jpar=0; jpar < NParams(); jpar++){
-      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-3){
-        std::cout << "Covariance error " <<  traj.params().covariance()(ipar,jpar) << " " << testtraj.params().covariance()(ipar,jpar) << std::endl;
-        return -3;
-      }
-    }
-  }
-  std::cout << "Passed ParameterState tests" << std::endl;
   if(nevents ==0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
@@ -763,6 +780,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       igap_ = igap;
 
       if(fstat.usable()){
+        int ts = testState(kktrk);
+        if(ts == 0)std::cout << "State Test passed" << std::endl;
+//        if(ts != 0)return ts;
         // basic info
         auto const& fptraj = kktrk.fitTraj();
         // compare parameters at the first traj of both true and fit
