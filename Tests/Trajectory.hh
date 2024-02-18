@@ -132,6 +132,17 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   double sint = sqrt(1.0-cost*cost);
   MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
   KTRAJ ktraj(origin,momv,icharge,bnom,TimeRange(-10,10));
+
+// test state
+  auto state = ktraj.state(3.0);
+  KTRAJ straj(state,bnom,ktraj.range());
+  for(size_t ipar=0; ipar < NParams(); ipar++){
+    if(fabs(ktraj.paramVal(ipar)-straj.paramVal(ipar)) > 1.0e-10){
+      std::cout << "Parameter mismatch, par " << ipar << " diff " <<  ktraj.paramVal(ipar) << " " << straj.paramVal(ipar) << std::endl;
+      return -1;
+    }
+  }
+
   if(invert)ktraj.invertCT();
   auto testmom = ktraj.momentum4(ot);
   //  cout << "KTRAJ with momentum " << momv.Vect() << " position " << origin << " has parameters: " << ktraj << endl;

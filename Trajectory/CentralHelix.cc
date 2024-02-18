@@ -42,7 +42,6 @@ namespace KinKal {
     double momToRad = 1.0/radToMom;
     abscharge_ = abs(charge);
     double mbar = -mass_ * momToRad;
-    absmbar_ = fabs(mbar);
     // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
@@ -78,7 +77,6 @@ namespace KinKal {
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
     // adjust the parameters for the change in bnom
-    absmbar_ *= bnom_.R()/bnom.R();
     pars_.parameters() += dPardB(time,bnom);
     // rotate covariance: TODO
     bnom_ = bnom;
@@ -87,7 +85,6 @@ namespace KinKal {
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
-    absmbar_ *= bnom_.R()/bnom.R();
     bnom_ = bnom;
     pars_.parameters() += other.dPardB(trot,bnom);
     setTransforms();
@@ -95,10 +92,6 @@ namespace KinKal {
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
     //FIXME for now just ignore sign
-    // if(abscharge < 0) throw invalid_argument("Central helix charge sign should be defined by omega");
-    // compute kinematic cache
-    double momToRad = 1.0/(BFieldMap::cbar()*charge*bnom);
-    absmbar_ = fabs(-mass_ * momToRad);
     abscharge_ = abs(charge);
   }
 

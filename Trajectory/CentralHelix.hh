@@ -29,6 +29,7 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {d0_=0,phi0_=1,omega_=2,z0_=3,tanDip_=4,t0_=5,npars_=6};
+      constexpr static ParamIndex phi0Index() { return phi0_; }
       constexpr static ParamIndex t0Index() { return t0_; }
 
       static std::vector<std::string> const &paramNames();
@@ -65,11 +66,11 @@ namespace KinKal {
       VEC3 acceleration(double time) const;
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       // scalar momentum and energy in MeV/c units
-      double momentum(double time=0) const  { return fabs(mass_ * pbar() / absmbar_); }
+      double momentum(double time=0) const  { return fabs(mass_ * pbar() / mbar()); }
       double momentumVariance(double time=0) const;
       double positionVariance(double time,MomBasis::Direction dir) const;
       PMAT planeCovariance(double time,Plane const& plane) const;
-      double energy(double time=0) const  { return fabs(mass_ * ebar() / absmbar_); }
+      double energy(double time=0) const  { return fabs(mass_ * ebar() / mbar()); }
       // local momentum direction basis
       void print(std::ostream& ost, int detail) const;
       TimeRange const& range() const { return trange_; }
@@ -103,20 +104,20 @@ namespace KinKal {
       // helicity is defined as the sign of the projection of the angular momentum vector onto the linear momentum vector
       double helicity() const { return copysign(1.0,tanDip()); } // needs to be checked TODO
       double pbar() const { return 1./ (omega() * cosDip() ); } // momentum in mm
-      double ebar2() const { return pbar()*pbar() + absmbar_ * absmbar_; }
+      double ebar2() const { return pbar()*pbar() + mbar() * mbar(); }
       double ebar() const { return sqrt(ebar2()); } // energy in mm
+      double mbar() const { return fabs(mass_/Q()); } // mass in mm
+      double Q() const { return -BFieldMap::cbar()*charge()*bnom_.R(); } // reduced charge
       double cosDip() const { return 1./sqrt(1.+ tanDip() * tanDip() ); }
       double sinDip() const { return tanDip()*cosDip(); }
-      double mbar() const { return copysign(absmbar_,omega()); } // mass in mm; includes charge information!
-      double Q() const { return mass_/copysign(absmbar_,omega()); } // reduced charge
       double omegaZ() const { return omega()/(CLHEP::c_light*beta()*tanDip()); } // dPhi/dz
       double beta() const { return fabs(pbar()/ebar()); } // relativistic beta
-      double gamma() const { return fabs(ebar()/absmbar_); } // relativistic gamma
-      double betaGamma() const { return fabs(pbar()/absmbar_); } // relativistic betagamma
+      double gamma() const { return fabs(ebar()/mbar()); } // relativistic gamma
+      double betaGamma() const { return fabs(pbar()/mbar()); } // relativistic betagamma
       double Omega() const { return Q()*CLHEP::c_light/energy(); } // true angular velocity
       double dphi(double t) const { return Omega()*(t - t0()); } // rotation WRT 0 at a given time
       double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
-      VEC3 const &bnom(double time=0.0) const { return bnom_; }
+      VEC3 const& bnom(double time=0.0) const { return bnom_; }
       VEC3& bnom(double time=0.0) { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       DPDV dPardX(double time) const;
@@ -156,8 +157,7 @@ namespace KinKal {
       TimeRange trange_;
       Parameters pars_; // parameters
       double mass_;  // in units of MeV/c^2
-      double absmbar_;  // reduced mass in units of mm, computed from the mass and nominal field
-      int abscharge_; // absolute value of charge in units of proton charge
+      int abscharge_; // absolute value of charge in units of proton charge; we need to take the sign of the charge from omega
       VEC3 bnom_;    // nominal BField vector, from the map
       ROOT::Math::Rotation3D l2g_, g2l_; // rotations between local and global coordinates
       const static std::vector<std::string> paramTitles_;

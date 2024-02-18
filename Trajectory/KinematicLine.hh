@@ -39,6 +39,7 @@ class KinematicLine {
     static std::string const &paramUnit(ParamIndex index);
 
     constexpr static ParamIndex t0Index() { return t0_; }
+    constexpr static ParamIndex phi0Index() { return phi0_; }
     static std::string const &trajName();
 
     // This also requires the nominal BField, which can be a vector (3d) or a

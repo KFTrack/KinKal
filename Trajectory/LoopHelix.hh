@@ -29,6 +29,7 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
+      constexpr static ParamIndex phi0Index() { return phi0_; }
       constexpr static ParamIndex t0Index() { return t0_; }
 
       static std::vector<std::string> const& paramNames();

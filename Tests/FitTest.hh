@@ -117,12 +117,21 @@ int testState(KinKal::Track<KTRAJ> const& kktrk) {
     std::cout << "Momentum variance differencer " << momvar1 << " " << momvar2 << std::endl;
     retval = -1;
   }
-  // full reversibility
+  // test reversibility
   KTRAJ testtraj(pstate,traj.bnom(),traj.range());
+
   for(size_t ipar=0; ipar < NParams(); ipar++){
     if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
-      std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
-      retval = -1;
+      if(ipar == KTRAJ::phi0Index()){
+        if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))-2*M_PI > 1.0e-10){
+          std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+          retval = -1;
+        }
+        // allow phi0 to be off by 2pi
+      } else {
+        std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+        retval = -1;
+      }
     }
     for(size_t jpar=0; jpar < NParams(); jpar++){
       if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-3){
@@ -463,6 +472,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
+  int ts = testState(kktrk);
+  if(ts != 0)return ts;
 
   if(nevents ==0 ){
     // draw the fit result
@@ -781,8 +792,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
 
       if(fstat.usable()){
         int ts = testState(kktrk);
-        if(ts == 0)std::cout << "State Test passed" << std::endl;
-//        if(ts != 0)return ts;
+        if(ts != 0)return ts;
         // basic info
         auto const& fptraj = kktrk.fitTraj();
         // compare parameters at the first traj of both true and fit
