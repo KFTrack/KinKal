@@ -126,12 +126,13 @@ namespace KinKal {
       // helper functions
       TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds);
-      // set the bounds.  Returns false if the bounds are empty
-      bool extendDomains(TimeRange const& fitrange,double tol); // make sure the domains cover the range.  Return value says if domains are added
+      bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds); // set the bounds.  Returns false if the bounds are empty
+      bool extendDomains(TimeRange const& fitrange,double tol); // extend domains if the fit range changes.  Return value says if domains were added
+      void updateDomains(PTRAJ const& ptraj); // Update domains between iterations
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PTRAJPTR& ptrajptr);
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
+      PTRAJPTR initTraj(FitState& state, TimeRange const& fitrange);
       bool canIterate() const;
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void createTraj(PTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
@@ -390,15 +391,15 @@ namespace KinKal {
       status().status_ = Status::lowNDOF;
       return;
     }
-    // make sure the BField correction range covers the fit range (which can change)
+    // update the domains
     TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
-    // update the limits if new DW effects were added
     if(config().bfcorr_){
+    // update the limits if new DW effects were added
       if(extendDomains(fitrange,config().tol_))setBounds(fwdbnds,revbnds);
     }
     FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
-    // loop over relevant effects, adding their info to the fit state.  Also compute chisquared
+    // process the relevant effects forwards in time, adding their info to the fit state.  Also compute chisquared
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
       auto effptr = feff->get();
       // update chisquared increment WRT the current state: only needed once
@@ -411,54 +412,52 @@ namespace KinKal {
         effptr->print(std::cout,config().plevel_-Config::detailed);
       }
     }
-    if(status().chisq_.nDOF() >= (int)config().minndof_) { // I need a better way to define coverage as this test doesn't guarantee all parameters are constrained TODO
-      double mintime(std::numeric_limits<double>::max());
-      double maxtime(-std::numeric_limits<float>::max());
-      for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
-        auto effptr = beff->get();
-        effptr->process(states[1],TimeDir::backwards);
-        if(effptr->active()){
-          double etime = effptr->time();
-          mintime = std::min(mintime,etime);
-          maxtime = std::max(maxtime,etime);
-        }
-      }
-      // convert the fit result into a new trajectory
-      // initialize the parameters to the backward processing end
-      auto front = fittraj_->front();
-      front.params() = states[1].pData();
-      // set bnom for these parameters to the domain used
-      if(config().bfcorr_){
-        // find the relevant domain
-        double ftime = front.range().mid();
-        for(auto const& domain : domains_) {
-          if(domain->range().inRange(ftime)){
-            front.bnom() = domain->bnom();
-            break;
-          }
-        }
-      }
-      // extend range if needed
-      TimeRange maxrange(mintime-0.1,maxtime+0.1); //fixed time buffer should be configurable TODO
-      front.setRange(maxrange);
-      auto ptraj = std::make_unique<PTRAJ>(front);
-      // process forwards, adding pieces as necessary.  This also sets the effects to reference the new trajectory
-      for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
-        ieff->get()->append(*ptraj,TimeDir::forwards);
-      }
-      setStatus(ptraj); // set the status for this iteration
-      // prepare for the next iteration: first, update the references for effects outside the fit range
-      // (the ones inside the range were updated above in 'append')
-      if(status().usable()){
-        for(auto feff=fwdbnds[1]; feff != effects_.end(); ++feff) feff->get()->updateReference(*ptraj);
-        for(auto beff=revbnds[1]; beff != effects_.rend(); ++beff) beff->get()->updateReference(*ptraj);
-      }
-      // now all effects reference the new traj: we can swap the fit to that.
-      fittraj_.swap(ptraj);
-      if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
-    } else {
+    if(status().chisq_.nDOF() < (int)config().minndof_) { // I need a better way to define coverage as this test doesn't guarantee all parameters are constrained TODO
       status().status_ = Status::lowNDOF;
+      return;
     }
+    // Now process effects backwards in time
+    for(auto beff = revbnds[0]; beff!=revbnds[1]; ++beff){
+      auto effptr = beff->get();
+      effptr->process(states[1],TimeDir::backwards);
+    }
+    // convert the innermost state into a new trajectory
+    auto ptraj = initTraj(states[1],fitrange);
+    // append forwards in time
+    for(auto& ieff=fwdbnds[0]; ieff != fwdbnds[1]; ++ieff) {
+      ieff->get()->append(*ptraj,TimeDir::forwards);
+    }
+    setStatus(ptraj); // set the status for this iteration.  This compares the trajs, so it must be done before swapping out the old fit
+    if(status().usable()){
+      // prepare for the next iteration.  Update the domains
+      updateDomains(*ptraj);
+      // update the effects to reference the new trajectory
+      for(auto& effptr : effects_) effptr->updateReference(*ptraj);
+      fittraj_.swap(ptraj);
+      // now all effects reference the new traj: we can swap the fit to that.
+      if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
+    }
+  }
+
+  template <class KTRAJ> std::unique_ptr<ParticleTrajectory<KTRAJ>> Track<KTRAJ>::initTraj(FitState& state, TimeRange const& fitrange) {
+    // use the existing fit to define the parameterization
+    auto front = fittraj_->front();
+    // initialize the parameters to the earliest backward processing end
+    front.params() = state.pData();
+    // set bnom for the front piece parameters to the domain used
+    if(config().bfcorr_){
+      // find the relevant domain
+      double ftime = fitrange.begin();
+      for(auto const& domain : domains_) {
+        if(domain->range().inRange(ftime)){
+          front.resetBNom(domain->bnom());
+          break;
+        }
+      }
+    }
+    // set the range
+    front.setRange(fitrange);
+    return std::make_unique<PTRAJ>(front);
   }
 
   // initialize states used before iteration
@@ -559,8 +558,15 @@ namespace KinKal {
     return retval;
   }
 
+  template <class KTRAJ> void Track<KTRAJ>::updateDomains(PTRAJ const& ptraj) {
+    for(auto& domain : domains_) {
+      domain->updateBNom(bfield_.fieldVect(ptraj.position3(domain->mid())));
+    }
+  }
+
   template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange, double tol) {
     bool retval(false);
+    // then, check if the range has
     TimeRange drange(domains().begin()->get()->begin(),domains().rbegin()->get()->end());
     if(!drange.contains(fitrange)){
       retval = true;
@@ -595,7 +601,7 @@ namespace KinKal {
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
     // sort effects in case ends have migrated
     effects_.sort(KKEFFComp());
-    // extend domains as needed to cover the end effects
+    // update domains as needed to cover the end effects
     TimeRange endrange(effects_.front()->time(),effects_.back()->time());
     extendDomains(endrange,config().tol_);
     KKEFFFWDBND fwdbnds; // bounding sites used for fitting
@@ -652,7 +658,7 @@ namespace KinKal {
       // note this assumes the trajectory is accurate (geometric extrapolation only)
       auto const& ktraj = ptraj.nearestPiece(tstart);
       trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
-      domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(range.mid())),tol));
+      domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange)),tol));
       // start the next domain at the end of this one
       tstart += trange;
     } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect

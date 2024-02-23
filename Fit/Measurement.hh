@@ -52,11 +52,6 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
-    // update the hit to reference this trajectory.  Use the end piece
-    if(tdir == TimeDir::forwards)
-      hit_->updateReference(ptraj.backPtr());
-    else
-      hit_->updateReference(ptraj.frontPtr());
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj) {

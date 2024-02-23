@@ -68,6 +68,8 @@ namespace KinKal {
       void setRange(TimeRange const& trange) { trange_ = trange; }
       // allow resetting the BField.  Note this is time-dependent
       void setBNom(double time, VEC3 const& bnom);
+      // change the BField.  This also resets the transforms
+      void resetBNom(VEC3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
       VEC3 momentum3(double time) const;
       MOM4 momentum4(double time) const;
@@ -113,7 +115,6 @@ namespace KinKal {
       double phi(double t) const { return dphi(t) + phi0(); }
       double zphi(double zpos) const { return zpos/lam() + phi0(); }
       VEC3 const& bnom(double time=0.0) const { return bnom_; }
-      VEC3& bnom(double time=0.0) { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       // flip the helix in time and charge; it remains unchanged geometrically
       void invertCT() {
@@ -130,8 +131,9 @@ namespace KinKal {
       DVEC momDeriv(double time, MomBasis::Direction mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
       // Parameter derivatives given a change in BField
-      DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
-      DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector
+      DVEC dPardB(double time) const; // parameter change for BField fraction
+      PSMAT dPardBdPar(double time) const; // 2nd derivative of parameter change WRT BField and parameter
+      DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector; this includes the magnitude and direction changes
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates

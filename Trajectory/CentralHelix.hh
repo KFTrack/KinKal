@@ -77,6 +77,8 @@ namespace KinKal {
       TimeRange& range() { return trange_; }
       void setRange(TimeRange const& trange) { trange_ = trange; }
       void setBNom(double time, VEC3 const& bnom);
+      // change the BField.  This also resets the transforms
+      void resetBNom(VEC3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
 
       // momentum change derivatives; this is required to instantiate a KalTrk using this KTraj
@@ -118,7 +120,6 @@ namespace KinKal {
       double dphi(double t) const { return Omega()*(t - t0()); } // rotation WRT 0 at a given time
       double phi(double t) const { return dphi(t) + phi0(); } // absolute azimuth at a given time
       VEC3 const& bnom(double time=0.0) const { return bnom_; }
-      VEC3& bnom(double time=0.0) { return bnom_; }
       double bnomR() const { return bnom_.R(); }
       DPDV dPardX(double time) const;
       DPDV dPardM(double time) const;

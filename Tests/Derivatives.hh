@@ -441,6 +441,7 @@ int test(int argc, char **argv) {
   std::array<std::string,3> bnames{"BDirection", "PhiDirection", "MomPerpendicular"};
   // gaps
   TGraph* bgapgraph[3];
+  auto state = reftraj.stateEstimate(ttest);
   for(size_t idir =0; idir<3;idir++){
     bgraphs[idir] = std::vector<TGraph*>(NParams(),0);
     for(size_t ipar = 0; ipar < NParams(); ipar++){
@@ -458,7 +459,6 @@ int test(int argc, char **argv) {
       // construct exact helix for this field and the corresponding exact parameter change
       double dval = dmin + del*id;
       VEC3 bf = bnom + basis[idir]*dval/10.0;
-      auto state = reftraj.stateEstimate(ttest);
       // exact traj given the full state
       KTRAJ newbfhel(state,bf);
       auto newstate = newbfhel.stateEstimate(ttest);

@@ -59,12 +59,6 @@ namespace KinKal {
     // circle center
     param(cx_) = pos.X() - mom.Y()*momToRad;
     param(cy_) = pos.Y() + mom.X()*momToRad;
-     // test
-//    auto testpos = position3(pos0.T());
-//    auto testmom = momentum3(pos0.T());
-//    auto dp = testpos - pos0.Vect();
-//    auto dm = testmom - mom0.Vect();
-//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
  }
 
   void LoopHelix::setTransforms() {
@@ -75,10 +69,14 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& bnom) {
     // adjust the parameters for the change in bnom
-    pars_.parameters() += dPardB(time,bnom);
+    VEC3 db = bnom-bnom_;
+    pars_.parameters() += dPardB(time,db);
+    resetBNom(bnom);
     // rotate covariance: TODO
+  }
+
+  void LoopHelix::resetBNom(VEC3 const& bnom) {
     bnom_ = bnom;
-    // adjust rotations to global space
     setTransforms();
   }
 
@@ -267,14 +265,34 @@ namespace KinKal {
     retval[cy_] = -rad()*cos(phival);
     retval[phi0_] = -dphi(time);
     retval[t0_] = 0.0;
-    return (1.0/bnom_.R())*retval;
+    return retval;
   }
 
-  DVEC LoopHelix::dPardB(double time, VEC3 const& BPrime) const {
-    // rotate new B field difference into local coordinate system
-    VEC3 dB = g2l_(BPrime-bnom_);
+  PSMAT LoopHelix::dPardBdPar(double time) const {
+    double phival = phi(time);
+    double cphi = cos(phival);
+    double sphi = sin(phival);
+    double dphibar = dphi(time)/ebar2();
+    double om = omega();
+    double r2 = rad()*rad();
+    double lr = lam()*rad();
+    DVEC dpdbdr (-1.0, 0.0, sphi -cphi*r2*dphibar, -cphi -sphi*r2*dphibar, rad()*dphibar, 0);
+    DVEC dpdbdl (0, -1.0, -cphi*lr*dphibar, -sphi*lr*dphibar, lam()*dphibar, 0);
+    DVEC dpdbdp0 (0, 0, rad()*cphi, rad()*sphi, 0, 0);
+    DVEC dpdbdt0 (0, 0, -om*rad()*cphi, -om*rad()*sphi, om, 0 );
+    PSMAT dpdbdp;
+    dpdbdp.Place_in_row(dpdbdr,rad_,0);
+    dpdbdp.Place_in_row(dpdbdl,lam_,0);
+    dpdbdp.Place_in_row(dpdbdp0,phi0_,0);
+    dpdbdp.Place_in_row(dpdbdt0,t0_,0);
+    return dpdbdp;
+  }
+
+  DVEC LoopHelix::dPardB(double time, VEC3 const& dB) const {
+    // translate dB to local coordinates
+    VEC3 dBloc = g2l_(dB);
     // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
-    DVEC retval = dPardB(time)*dB.Z();
+    DVEC retval = dPardB(time)*dBloc.Z()/bnom_.R();
     // find the change in (local) position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);

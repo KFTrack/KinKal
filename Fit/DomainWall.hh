@@ -23,7 +23,7 @@ namespace KinKal {
       double time() const override { return prev_->end(); }
       bool active() const override { return true; } // always active
       void process(FitState& kkdata,TimeDir tdir) override;
-      void updateState(MetaIterConfig const& miconfig,bool first) override {}
+      void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
       void updateReference(PTRAJ const& ptraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -45,6 +45,7 @@ namespace KinKal {
       BFieldMap const& bfield_; // bfield
       DOMAINPTR prev_, next_; // pointers to previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
+      Weights nextwt_; // cache of weight forwards of this effect.
   };
 
   template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,
@@ -54,14 +55,22 @@ namespace KinKal {
     }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
-    kkdata.append(dpfwd_,tdir);
+    if(tdir == TimeDir::forwards) {
+      kkdata.append(dpfwd_,tdir);
+      nextwt_ += kkdata.wData();
+    } else {
+      nextwt_ += kkdata.wData();
+      kkdata.append(dpfwd_,tdir);
+    }
     // rotate the covariance matrix for the change in reference BField.  TODO
   }
 
+  template<class KTRAJ> void DomainWall<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
+    // reset the cached weights
+    nextwt_ = Weights();
+  }
+
   template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    // update BField at the domain centers given the new trajectory
-    prev_->updateBNom(bfield_.fieldVect(ptraj.position3(prev_->mid())));
-    next_->updateBNom(bfield_.fieldVect(ptraj.position3(next_->mid())));
     // update change in parameters for passage through this DW
     auto const& refpiece = ptraj.nearestPiece(prev_->mid()); // by convention, use previous domains parameters to define the derivative
     dpfwd_ = refpiece.dPardB(this->time(),next_->bnom());
@@ -78,20 +87,24 @@ namespace KinKal {
     newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end())) :
       TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
     if( tdir == TimeDir::forwards){
-      newpiece.params() += dpfwd_;
-      newpiece.bnom() = next_->bnom(); // set the parameters according to what was used in processing
+      newpiece.params() = Parameters(nextwt_);
+//      newpiece.params() += dpfwd_;
+      newpiece.resetBNom(next_->bnom()); // set the parameters according to what was used in processing
       newpiece.setBNom(next_->mid(),bfield_.fieldVect(ptraj.position3(next_->mid()))); // update to reference the BField at the next
+//      newpiece.setBNom(next_->mid(),next_->bnom()); // update to reference the BField at the next
       ptraj.append(newpiece);
     } else {
-      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
-      newpiece.bnom() = prev_->bnom();
+      newpiece.params() = Parameters(nextwt_);
+//      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
+      newpiece.resetBNom(prev_->bnom());
       newpiece.setBNom(prev_->mid(),bfield_.fieldVect(ptraj.position3(prev_->mid())));
-      ptraj.prepend(newpiece);
+//      newpiece.setBNom(prev_->mid(),prev_->bnom());
+        ptraj.prepend(newpiece);
     }
     // update for the next iteration
-    prev_->updateBNom(bfield_.fieldVect(oldpiece.position3(prev_->mid())));
-    next_->updateBNom(bfield_.fieldVect(newpiece.position3(next_->mid())));
-    dpfwd_ = oldpiece.dPardB(etime,next_->bnom());
+//    prev_->updateBNom(bfield_.fieldVect(oldpiece.position3(prev_->mid())));
+//    next_->updateBNom(bfield_.fieldVect(newpiece.position3(next_->mid())));
+//    dpfwd_ = oldpiece.dPardB(etime,next_->bnom());
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {

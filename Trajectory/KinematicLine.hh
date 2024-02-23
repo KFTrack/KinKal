@@ -101,7 +101,8 @@ class KinematicLine {
     TimeRange const &range() const { return trange_; }
     TimeRange &range() {return trange_; }
     virtual void setRange(TimeRange const &trange) { trange_ = trange; }
-    void setBNom(double time, VEC3 const& bnom) { bnom_ = bnom; }
+    void setBNom(double time, VEC3 const& bnom) { resetBNom(bnom); }
+    void resetBNom(VEC3 const& bnom) { bnom_ = bnom; }
     bool inRange(double time) const { return trange_.inRange(time); }
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
@@ -129,7 +130,6 @@ class KinematicLine {
     double gamma() const { return energy()/mass_; }
     double betaGamma() const { return beta() * gamma(); }
     VEC3 const &bnom(double time = 0.0) const { return bnom_; }
-    VEC3& bnom(double time=0.0) { return bnom_; }
 
     DPDV dPardX(double time) const;
     DPDV dPardM(double time) const;

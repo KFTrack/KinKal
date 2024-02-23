@@ -76,6 +76,7 @@ namespace KinKal {
       // make sure the range includes the transit time
       newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(etime,std::max(ptraj.range().end(),etime+exing_->transitTime())) :
         TimeRange(std::min(ptraj.range().begin(),etime-exing_->transitTime()),etime);
+      // invert the cached weight to define the parameters
       newpiece.params() = Parameters(nextwt_);
       if( tdir == TimeDir::forwards){
         ptraj.append(newpiece);
@@ -87,11 +88,6 @@ namespace KinKal {
         ptraj.prepend(newpiece);
       }
     }
-    // update the xing
-    if( tdir == TimeDir::forwards)
-      exing_->updateReference(ptraj.backPtr());
-    else
-      exing_->updateReference(ptraj.frontPtr());
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj) {
