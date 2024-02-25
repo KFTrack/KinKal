@@ -94,7 +94,7 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
 }
 
 template <class KTRAJ>
-int testState(KinKal::Track<KTRAJ> const& kktrk) {
+int testState(KinKal::Track<KTRAJ> const& kktrk,DVEC sigmas) {
   // test parameterstate
   int retval(0);
   auto const& traj = kktrk.fitTraj().nearestPiece(kktrk.fitTraj().range().mid());
@@ -121,7 +121,7 @@ int testState(KinKal::Track<KTRAJ> const& kktrk) {
   KTRAJ testtraj(pstate,traj.bnom(),traj.range());
 
   for(size_t ipar=0; ipar < NParams(); ipar++){
-    auto dp = fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))/std::max(1.0,fabs(traj.paramVal(ipar)));
+    auto dp = fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))/sigmas(ipar);
     if( dp > 1.0e-10){
       if(ipar == KTRAJ::phi0Index()){
         if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))-2*M_PI > 1.0e-8){
@@ -135,7 +135,7 @@ int testState(KinKal::Track<KTRAJ> const& kktrk) {
       }
     }
     for(size_t jpar=0; jpar < NParams(); jpar++){
-      auto dc = fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar))/sqrt(traj.params().covariance()[ipar][ipar]*traj.params().covariance()[jpar][jpar]);
+      auto dc = fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar))/sigmas(ipar)*sigmas(jpar);
       if(dc > 1.0e-8){
         std::cout << "Covariance mismatch par " << ipar << " , " << jpar << " diff " <<  traj.params().covariance()(ipar,jpar) << " " << testtraj.params().covariance()(ipar,jpar) << std::endl;
         retval = -1;
@@ -145,16 +145,17 @@ int testState(KinKal::Track<KTRAJ> const& kktrk) {
 
 // test covariance rotation
   if(traj.bnom().R()>0.0){
-    double db = 0.01;
+    double db = 0.001;
     //  PSMAT dpdbdp = traj.dPardBdPar(traj.t0());
     KTRAJ dbtraj(traj);
-    DVEC dpdb = traj.dPardB(traj.t0());
+//    DVEC dpdb = traj.dPardB(traj.t0());
     auto bnomp = (1.0+db)*traj.bnom();
-    dbtraj.resetBNom(bnomp);
-    dbtraj.params().parameters() += dpdb*db/(1.0+db);
+    dbtraj.setBNom(traj.t0(),bnomp);
+//    dbtraj.resetBNom(bnomp);
+//    dbtraj.params().parameters() += dpdb*db/(1.0+db);
     auto dbpstate = dbtraj.stateEstimate(traj.t0());
     for(size_t ipar=0; ipar < NParams(); ipar++){
-      auto dp = fabs(pstate.state()[ipar]-dbpstate.state()[ipar])/std::max(1.0,fabs(pstate.state()[ipar]))/db;
+      auto dp = fabs(pstate.state()[ipar]-dbpstate.state()[ipar])/db;
       if(dp > 1.0e-8){
         std::cout << "State mismatch, par " << ipar << " diff " <<  dp << " pars " << pstate.state()[ipar] << " " << dbpstate.state()[ipar] << std::endl;
         retval = -1;
@@ -501,7 +502,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
-  int ts = testState(kktrk);
+  int ts = testState(kktrk,sigmas);
 //  if(ts != 0)return ts;
   if(ts != 0)std::cout << "state test failed" << std::endl;
 
@@ -821,7 +822,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       igap_ = igap;
 
       if(fstat.usable()){
-        int ts = testState(kktrk);
+        int ts = testState(kktrk,sigmas);
         if(ts != 0)std::cout << "state test failed" << std::endl;
         // basic info
         auto const& fptraj = kktrk.fitTraj();

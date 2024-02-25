@@ -292,7 +292,7 @@ namespace KinKal {
     // translate dB to local coordinates
     VEC3 dBloc = g2l_(dB);
     // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
-    // correct for higher-order terms
+    // the last part corrects for higher-order terms
     double bfrac = dBloc.Z()/bnom_.R();
     DVEC retval = dPardB(time)*bfrac/(1.0 + bfrac);
     // find the change in (local) position and momentum due to the rotation implied by the B direction change

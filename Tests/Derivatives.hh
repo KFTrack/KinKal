@@ -431,14 +431,14 @@ int test(int argc, char **argv) {
       << dPdM << endl;
   }
 
-  // test changes due to BFieldMap
+  // test changes due to bnom
   TCanvas* dbcan[3]; // 3 directions
   std::vector<TGraph*> bgraphs[3];
   std::array<VEC3,3> basis;
   basis[0] = reftraj.bnom().Unit();
   basis[1] = reftraj.direction(MomBasis::phidir_);
   basis[2] = VEC3(basis[1].Y(),-basis[1].X(), 0.0); //perp
-  std::array<std::string,3> bnames{"BDirection", "PhiDirection", "MomPerpendicular"};
+  std::array<std::string,3> bnames{"BDir", "PhiDir", "PerpDir"};
   // gaps
   TGraph* bgapgraph[3];
   auto state = reftraj.stateEstimate(ttest);
@@ -458,23 +458,29 @@ int test(int argc, char **argv) {
     for(int id=0;id<ndel;++id){
       // construct exact helix for this field and the corresponding exact parameter change
       double dval = dmin + del*id;
-      VEC3 bf = bnom + basis[idir]*dval/10.0;
+      VEC3 bf = bnom + basis[idir]*dval;
       // exact traj given the full state
       KTRAJ newbfhel(state,bf);
       auto newstate = newbfhel.stateEstimate(ttest);
       for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
-        if(fabs(state.state()[ipar] - newstate.state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "
+        if(fabs(state.state()[ipar] - newstate.state()[ipar])>1.0e-6) cout << "Exact State vector " << ipar << " doesn't match: original "
           << state.state()[ipar] << " rotated " << newstate.state()[ipar]  << endl;
       }
       dpx = newbfhel.params().parameters() - reftraj.params().parameters();
-      // 1st order change trajectory
-      KTRAJ dbtraj(reftraj,bf,ttest);
+      // test 1st order change
+      auto dbtraj = reftraj;
+      dbtraj.setBNom(ttest, bf);
       dpdb = dbtraj.params().parameters() - reftraj.params().parameters();
       for(size_t ipar = 0; ipar < NParams(); ipar++){
         bgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
       bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-newbfhel.position3(ttest)).R());
-      // BField derivatives
+      // test state
+      auto dbstate = dbtraj.stateEstimate(ttest);
+      for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
+        if(fabs(state.state()[ipar] - dbstate.state()[ipar])>1.0e-6) cout << "1st order State vector " << ipar << " doesn't match: original "
+          << state.state()[ipar] << " rotated " << dbstate.state()[ipar]  << endl;
+      }
 
     }
     char gtitle[80];

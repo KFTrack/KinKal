@@ -76,10 +76,11 @@ namespace KinKal {
   }
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
-    // adjust the parameters for the change in bnom
-    pars_.parameters() += dPardB(time,bnom);
-    // rotate covariance: TODO
+    // adjust the parameters for the change in bnom holding the state constant
+    VEC3 db = bnom-bnom_;
+    pars_.parameters() += dPardB(time,db);
     resetBNom(bnom);
+    // rotate covariance TODO
   }
 
   void CentralHelix::resetBNom(VEC3 const& bnom) {
@@ -88,9 +89,7 @@ namespace KinKal {
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
-    bnom_ = bnom;
-    pars_.parameters() += other.dPardB(trot,bnom);
-    setTransforms();
+    setBNom(trot,bnom);
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
@@ -421,9 +420,10 @@ namespace KinKal {
 
   DVEC CentralHelix::dPardB(double time, VEC3 const& dB) const {
     // rotate Bfield difference into local coordinate system
-    VEC3 dbloc = g2l_(dB);
+    VEC3 dBloc = g2l_(dB);
     // find the parameter change due to BField magnitude change using component parallel to the local nominal Bfield (always along z)
-    DVEC retval = dPardB(time)*dbloc.Z()/bnom_.R();
+    double bfrac = dBloc.Z()/bnom_.R();
+    DVEC retval = dPardB(time)*bfrac/(1.0 + bfrac);
     // find the change in (local) position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);

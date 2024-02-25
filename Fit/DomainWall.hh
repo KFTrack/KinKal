@@ -72,8 +72,9 @@ namespace KinKal {
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // update change in parameters for passage through this DW
-    auto const& refpiece = ptraj.nearestPiece(prev_->mid()); // by convention, use previous domains parameters to define the derivative
-    dpfwd_ = refpiece.dPardB(this->time(),next_->bnom());
+    auto const& refpiece = ptraj.nearestPiece(time()-1e-5); // disambiguate derivativates
+    auto db = next_->bnom() - prev_->bnom();
+    dpfwd_ = refpiece.dPardB(this->time(),db);
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -84,27 +85,23 @@ namespace KinKal {
       throw std::invalid_argument("DomainWall: Can't append piece");
     auto const& oldpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
     KTRAJ newpiece(oldpiece);
-    newpiece.range() = (tdir == TimeDir::forwards) ? TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end())) :
-      TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
     if( tdir == TimeDir::forwards){
+      newpiece.range() = TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end()));
       newpiece.params() = Parameters(nextwt_);
 //      newpiece.params() += dpfwd_;
-      newpiece.resetBNom(next_->bnom()); // set the parameters according to what was used in processing
-      newpiece.setBNom(next_->mid(),bfield_.fieldVect(ptraj.position3(next_->mid()))); // update to reference the BField at the next
-//      newpiece.setBNom(next_->mid(),next_->bnom()); // update to reference the BField at the next
+//      newpiece.resetBNom(next_->bnom()); // set the parameters according to what was used in processing
+//      newpiece.setBNom(next_->mid(),bfield_.fieldVect(ptraj.position3(next_->mid()))); // update to reference the BField at the next
+      newpiece.setBNom(next_->mid(),next_->bnom()); // update to reference the BField at the next
       ptraj.append(newpiece);
     } else {
+      newpiece.range() = TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
       newpiece.params() = Parameters(nextwt_);
 //      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
-      newpiece.resetBNom(prev_->bnom());
-      newpiece.setBNom(prev_->mid(),bfield_.fieldVect(ptraj.position3(prev_->mid())));
-//      newpiece.setBNom(prev_->mid(),prev_->bnom());
+//      newpiece.resetBNom(prev_->bnom());
+//      newpiece.setBNom(prev_->mid(),bfield_.fieldVect(ptraj.position3(prev_->mid())));
+      newpiece.setBNom(prev_->mid(),prev_->bnom());
         ptraj.prepend(newpiece);
     }
-    // update for the next iteration
-//    prev_->updateBNom(bfield_.fieldVect(oldpiece.position3(prev_->mid())));
-//    next_->updateBNom(bfield_.fieldVect(newpiece.position3(next_->mid())));
-//    dpfwd_ = oldpiece.dPardB(etime,next_->bnom());
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {
