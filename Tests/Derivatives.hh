@@ -431,7 +431,7 @@ int test(int argc, char **argv) {
       << dPdM << endl;
   }
 
-  // test changes due to bnom
+  // test changing bnom
   TCanvas* dbcan[3]; // 3 directions
   std::vector<TGraph*> bgraphs[3];
   std::array<VEC3,3> basis;
@@ -460,13 +460,8 @@ int test(int argc, char **argv) {
       double dval = dmin + del*id;
       VEC3 bf = bnom + basis[idir]*dval;
       // exact traj given the full state
-      KTRAJ newbfhel(state,bf);
-      auto newstate = newbfhel.stateEstimate(ttest);
-      for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
-        if(fabs(state.state()[ipar] - newstate.state()[ipar])>1.0e-6) cout << "Exact State vector " << ipar << " doesn't match: original "
-          << state.state()[ipar] << " rotated " << newstate.state()[ipar]  << endl;
-      }
-      dpx = newbfhel.params().parameters() - reftraj.params().parameters();
+      KTRAJ xdbtraj(state,bf);
+      dpx = xdbtraj.params().parameters() - reftraj.params().parameters();
       // test 1st order change
       auto dbtraj = reftraj;
       dbtraj.setBNom(ttest, bf);
@@ -474,12 +469,21 @@ int test(int argc, char **argv) {
       for(size_t ipar = 0; ipar < NParams(); ipar++){
         bgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
-      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-newbfhel.position3(ttest)).R());
+      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-reftraj.position3(ttest)).R());
       // test state
-      auto dbstate = dbtraj.stateEstimate(ttest);
-      for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
-        if(fabs(state.state()[ipar] - dbstate.state()[ipar])>1.0e-6) cout << "1st order State vector " << ipar << " doesn't match: original "
-          << state.state()[ipar] << " rotated " << dbstate.state()[ipar]  << endl;
+      if(id==0){
+        // exact state test
+        auto xdbstate = xdbtraj.stateEstimate(ttest);
+        for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
+          if(fabs(state.state()[ipar] - xdbstate.state()[ipar])>1.0e-6) cout << "Exact State vector " << ipar << " doesn't match: dir "
+            << idir << " original " << state.state()[ipar] << " changed " << xdbstate.state()[ipar]  << endl;
+        }
+        // 1st order state test
+        auto dbstate = dbtraj.stateEstimate(ttest);
+        for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
+          if(fabs(state.state()[ipar] - dbstate.state()[ipar])>1.0e-6) cout << "1st order State vector " << ipar << " doesn't match: dir "
+            << idir << " original " << state.state()[ipar] << " changed " << dbstate.state()[ipar]  << endl;
+        }
       }
 
     }

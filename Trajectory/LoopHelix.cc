@@ -28,37 +28,33 @@ namespace KinKal {
   string const& LoopHelix::trajName() { return trajName_; }
 
   LoopHelix::LoopHelix() : mass_(0.0), charge_(0) {}
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : LoopHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom) {
+  LoopHelix::LoopHelix( VEC4 const& gpos, MOM4 const& gmom, int charge, double bnom, TimeRange const& range) : LoopHelix(gpos,gmom,charge,VEC3(0.0,0.0,bnom),range) {}
+  LoopHelix::LoopHelix( VEC4 const& gpos, MOM4 const& gmom, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(gmom.M()), charge_(charge), bnom_(bnom) {
     static double twopi = 2*M_PI;
-    // Transform into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
-    // The transform is a pure rotation about the origin
-    VEC4 pos(pos0);
-    MOM4 mom(mom0);
-    // to convert global vectors into parameters they must first be rotated into the local system.
+    // Transform position and momentum into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
+    // This is a pure rotation about the origin
     setTransforms();
-    pos = g2l_(pos);
-    mom = g2l_(mom);
+    auto lpos = g2l_(gpos);
+    auto lmom = g2l_(gmom);
     // compute some simple useful parameters
-    double pt = mom.Pt();
-    double phibar = mom.Phi();
+    double pt = lmom.Pt();
+    double lmomphi = lmom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
-    double momToRad = 1.0/Q();
+    double lmomToRad = 1.0/Q();
     // transverse radius of the helix
-    param(rad_) = pt*momToRad;
+    param(rad_) = pt*lmomToRad;
     // longitudinal wavelength
-    param(lam_) = mom.Z()*momToRad;
-    // time at z=0
-    double om = omega();
-    param(t0_) = pos.T() - pos.Z()/(om*lam());
+    param(lam_) = lmom.Z()*lmomToRad;
+    // time when particle reaches local z=0
+    double zbar = lpos.Z()/lam();
+    param(t0_) = lpos.T() - zbar/omega();
     // compute winding that puts phi0 in the range -pi,pi
-    double nwind = rint((pos.Z()/lam() - phibar)/twopi);
-    //  cout << "winding number = " << nwind << endl;
-    // azimuth at z=0
-    param(phi0_) = phibar - om*(pos.T()-t0()) + twopi*nwind;
+    double nwind = rint((zbar - lmomphi)/twopi);
+    // particle momentum azimuth at z=0
+    param(phi0_) = lmomphi - zbar + twopi*nwind;
     // circle center
-    param(cx_) = pos.X() - mom.Y()*momToRad;
-    param(cy_) = pos.Y() + mom.X()*momToRad;
+    param(cx_) = lpos.X() - lmom.Y()*lmomToRad;
+    param(cy_) = lpos.Y() + lmom.X()*lmomToRad;
  }
 
   void LoopHelix::setTransforms() {
