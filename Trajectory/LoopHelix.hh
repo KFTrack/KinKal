@@ -130,8 +130,6 @@ namespace KinKal {
       PSMAT dStatedPar(double time) const; // derivative of global state WRT parameters
       DVEC momDeriv(double time, MomBasis::Direction mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
-      // Parameter derivatives given a change in BField
-      DVEC dPardB(double time) const; // parameter change for BField fraction
       PSMAT dPardBdPar(double time) const; // 2nd derivative of parameter change WRT BField and parameter
       DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector; this includes the magnitude and direction changes
       // helix interface
