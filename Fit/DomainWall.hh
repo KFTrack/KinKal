@@ -88,19 +88,14 @@ namespace KinKal {
     if( tdir == TimeDir::forwards){
       newpiece.range() = TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end()));
       newpiece.params() = Parameters(nextwt_);
-//      newpiece.params() += dpfwd_;
-//      newpiece.resetBNom(next_->bnom()); // set the parameters according to what was used in processing
-//      newpiece.setBNom(next_->mid(),bfield_.fieldVect(ptraj.position3(next_->mid()))); // update to reference the BField at the next
-      newpiece.setBNom(next_->mid(),next_->bnom()); // update to reference the BField at the next
+      newpiece.setBNom(time(),next_->bnom());
       ptraj.append(newpiece);
     } else {
       newpiece.range() = TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
       newpiece.params() = Parameters(nextwt_);
-//      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards.  Should also rotate covariance TODO
-//      newpiece.resetBNom(prev_->bnom());
-//      newpiece.setBNom(prev_->mid(),bfield_.fieldVect(ptraj.position3(prev_->mid())));
-      newpiece.setBNom(prev_->mid(),prev_->bnom());
-        ptraj.prepend(newpiece);
+      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards
+      newpiece.setBNom(time(),prev_->bnom());
+      ptraj.prepend(newpiece);
     }
   }
 

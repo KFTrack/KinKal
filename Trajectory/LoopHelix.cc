@@ -65,9 +65,11 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& newbnom) {
     auto db = newbnom - bnom_;
+//    PSMAT dpdpdb = dPardPardB(time,db);
+//    pars_.covariance() = ROOT::Math::Similarity(dpdpdb,pars_.covariance());
     pars_.parameters() += dPardB(time,db);
+    // rotate covariance: for now, just for the magnitude change.  Rotation is still TODO
     resetBNom(newbnom);
-    // rotate covariance: TODO
   }
 
   void LoopHelix::resetBNom(VEC3 const& newbnom) {
@@ -251,24 +253,29 @@ namespace KinKal {
     return dPardMLoc(time)*g2lmat;
   }
 
-  PSMAT LoopHelix::dPardBdPar(double time) const {
+  PSMAT LoopHelix::dPardPardB(double time,VEC3 const& db) const {
+    auto newbnom = bnom_ + db;
+    double bfrac = bnom_.R()/newbnom.R();
+    auto xvec = localPosition(time);
     double phival = phi(time);
     double cphi = cos(phival);
     double sphi = sin(phival);
-    double dphibar = dphi(time)/ebar2();
-    double om = omega();
-    double r2 = rad()*rad();
-    double lr = lam()*rad();
-    DVEC dpdbdr (-1.0, 0.0, sphi -cphi*r2*dphibar, -cphi -sphi*r2*dphibar, rad()*dphibar, 0);
-    DVEC dpdbdl (0, -1.0, -cphi*lr*dphibar, -sphi*lr*dphibar, lam()*dphibar, 0);
-    DVEC dpdbdp0 (0, 0, rad()*cphi, rad()*sphi, 0, 0);
-    DVEC dpdbdt0 (0, 0, -om*rad()*cphi, -om*rad()*sphi, om, 0 );
-    PSMAT dpdbdp;
-    dpdbdp.Place_in_row(dpdbdr,rad_,0);
-    dpdbdp.Place_in_row(dpdbdl,lam_,0);
-    dpdbdp.Place_in_row(dpdbdp0,phi0_,0);
-    dpdbdp.Place_in_row(dpdbdt0,t0_,0);
-    return dpdbdp;
+    // compute the rows
+    DVEC dpdpdb_rad; dpdpdb_rad[rad_] = bfrac;
+    DVEC dpdpdb_lam; dpdpdb_lam[lam_] = bfrac;
+    DVEC dpdpdb_cx; dpdpdb_cx[cx_] = 1.0; dpdpdb_cx[rad_] = sphi*(1-bfrac);
+    DVEC dpdpdb_cy; dpdpdb_cy[cy_] = 1.0; dpdpdb_cy[rad_] = -cphi*(1-bfrac);
+    DVEC dpdpdb_phi0; dpdpdb_phi0[phi0_] = 1.0;  dpdpdb_phi0[lam_] = -xvec.Z()*(1-1.0/bfrac)/(lam()*lam());
+    DVEC dpdpdb_t0; dpdpdb_t0[t0_] = 0.0;
+    // build the matrix from these rows
+    PSMAT dpdpdb;
+    dpdpdb.Place_in_row(dpdpdb_rad,rad_,0);
+    dpdpdb.Place_in_row(dpdpdb_lam,lam_,0);
+    dpdpdb.Place_in_row(dpdpdb_cx,cx_,0);
+    dpdpdb.Place_in_row(dpdpdb_cy,cy_,0);
+    dpdpdb.Place_in_row(dpdpdb_phi0,phi0_,0);
+    dpdpdb.Place_in_row(dpdpdb_t0,t0_,0);
+    return dpdpdb;
   }
 
   DVEC LoopHelix::dPardB(double time, VEC3 const& db) const {
@@ -292,14 +299,14 @@ namespace KinKal {
     retval[cx_] = -sin(mvec.Phi())*retval[rad_];
     retval[cy_] = cos(mvec.Phi())*retval[rad_];
 
-    // find the change in (local) position and momentum due to the rotation implied by the B direction change
+    // find the change in local position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
     VEC3 BxdB = zhat.Cross(dbloc)/br;
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
-    // convert these to a full state vector change
+    // convert these to the state vector change
     ParticleState dstate(dx,dm,time,mass(),charge());
-    // convert the change in (local) state due to rotation to parameter space
+    // convert the (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;
   }
