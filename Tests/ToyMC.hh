@@ -247,7 +247,6 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& ptraj,double htime) {
     if(htime > ptraj.range().end()){
-      ROOT::Math::SMatrix<double,3> bgrad;
       VEC3 pos,vel, dBdt;
       pos = ptraj.position3(htime);
       vel = ptraj.velocity(htime);
@@ -256,13 +255,15 @@ namespace KKTest {
       if(dBdt.R() != 0.0){
         double tbeg = ptraj.range().end();
         while(tbeg < htime) {
-          double tend = tbeg + bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+          double tend = std::min(tbeg + bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_),htime);
           double tmid = 0.5*(tbeg+tend);
           auto bf = bfield_.fieldVect(ptraj.position3(tmid));
-          auto pos = ptraj.position4(tmid);
-          auto mom =  ptraj.momentum4(tmid);
+          auto pos = ptraj.position4(tend);
+          auto mom =  ptraj.momentum4(tend);
           TimeRange prange(tbeg,tend);
           KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
+          // make sure phi0 stays continuous
+          newend.syncPhi0(ptraj.back());
           ptraj.append(newend);
           tbeg = tend;
         }

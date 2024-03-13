@@ -49,13 +49,20 @@ namespace KinKal {
     double zbar = lpos.Z()/lam();
     param(t0_) = lpos.T() - zbar/omega();
     // compute winding that puts phi0 in the range -pi,pi
-    double nwind = rint((zbar - lmomphi)/twopi);
+    double nwind = round((zbar - lmomphi)/twopi);
     // particle momentum azimuth at z=0
     param(phi0_) = lmomphi - zbar + twopi*nwind;
     // circle center
     param(cx_) = lpos.X() - lmom.Y()*invq;
     param(cy_) = lpos.Y() + lmom.X()*invq;
- }
+  }
+
+  void LoopHelix::syncPhi0(LoopHelix const& other) {
+// adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    static double twopi = 2*M_PI;
+    int nloop = static_cast<int>(round( (other.phi0() - phi0())/twopi));
+    if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
+  }
 
   void LoopHelix::setTransforms() {
     // adjust rotations to global space

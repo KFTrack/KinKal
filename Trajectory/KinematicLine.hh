@@ -55,6 +55,7 @@ class KinematicLine {
     KinematicLine(Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
 
     KinematicLine(Parameters const& pars);
+    void syncPhi0(KinematicLine const& other);
 
     explicit KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information

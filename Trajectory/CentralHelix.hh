@@ -55,6 +55,7 @@ namespace KinKal {
       explicit CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
       explicit CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      void syncPhi0(CentralHelix const& other);
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;

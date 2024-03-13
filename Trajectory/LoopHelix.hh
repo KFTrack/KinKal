@@ -56,6 +56,8 @@ namespace KinKal {
       LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
+      // synchronize phi0, which has a 2pi wrapping
+      void syncPhi0(LoopHelix const& other);
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;

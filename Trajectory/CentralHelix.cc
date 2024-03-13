@@ -1,6 +1,7 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;
@@ -111,6 +112,13 @@ namespace KinKal {
       PSMAT dpds = dPardState(pstate.time());
       pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
     }
+
+  void CentralHelix::syncPhi0(CentralHelix const& other) {
+    // adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    static double twopi = 2*M_PI;
+    int nloop = static_cast<int>(std::round( (other.phi0() - phi0())/twopi));
+    if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
+  }
 
   void CentralHelix::setTransforms() {
     // adjust rotations to global space

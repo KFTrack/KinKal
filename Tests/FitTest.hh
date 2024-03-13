@@ -119,6 +119,7 @@ int testState(KinKal::Track<KTRAJ> const& kktrk,DVEC sigmas) {
   }
   // test reversibility
   KTRAJ testtraj(pstate,traj.bnom(),traj.range());
+  testtraj.syncPhi0(traj);
 
   for(size_t ipar=0; ipar < NParams(); ipar++){
     auto dp = fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))/sigmas(ipar);
