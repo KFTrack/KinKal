@@ -418,6 +418,12 @@ namespace KinKal {
     return retval;
   }
 
+  PSMAT CentralHelix::dPardPardB(double time,VEC3 const& db) const {
+    PSMAT dpdpdb = ROOT::Math::SMatrixIdentity();
+    return dpdpdb;
+  }
+
+
   DVEC CentralHelix::dPardB(double time, VEC3 const& dB) const {
     // rotate Bfield difference into local coordinate system
     VEC3 dBloc = g2l_(dB);

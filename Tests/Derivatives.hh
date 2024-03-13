@@ -514,6 +514,33 @@ int test(int argc, char **argv) {
     dbcan[idir]->Draw();
     dbcan[idir]->Write();
   }
+
+// test covariance rotation
+//    double db = 0.001;
+//    //  PSMAT dpdbdp = traj.dPardBdPar(traj.t0());
+//    KTRAJ dbtraj(traj);
+////    DVEC dpdb = traj.dPardB(traj.t0());
+//    auto bnomp = (1.0+db)*traj.bnom();
+//    dbtraj.setBNom(traj.t0(),bnomp);
+////    dbtraj.resetBNom(bnomp);
+////    dbtraj.params().parameters() += dpdb*db/(1.0+db);
+//    auto dbpstate = dbtraj.stateEstimate(traj.t0());
+//    for(size_t ipar=0; ipar < NParams(); ipar++){
+//      auto dp = fabs(pstate.state()[ipar]-dbpstate.state()[ipar])/db;
+//      if(dp > 1.0e-8){
+//        std::cout << "State mismatch, par " << ipar << " diff " <<  dp << " pars " << pstate.state()[ipar] << " " << dbpstate.state()[ipar] << std::endl;
+//        retval = -1;
+//      }
+//      for(size_t jpar=0; jpar < NParams(); jpar++){
+//        auto dc = fabs(pstate.stateCovariance()[ipar][jpar]-dbpstate.stateCovariance()[ipar][jpar])/sqrt(pstate.stateCovariance()[ipar][ipar]*pstate.stateCovariance()[jpar][jpar]);
+//        if( dc > 1.0e2) { // temporarily disable FIXME!
+//          std::cout << "State Covariance mismatch par " << ipar << " , " << jpar << " diff " <<  dc << " covs " << pstate.stateCovariance()[ipar][jpar] << " " << dbpstate.stateCovariance()[ipar][jpar] << std::endl;
+//          retval = -1;
+//        }
+//      }
+//    }
+//  }
+
   TCanvas* dbgcan = new TCanvas("dbgcan","DB Gap",800,800);
   dbgcan->Divide(2,2);
   for(int idir=0;idir<3;++idir){

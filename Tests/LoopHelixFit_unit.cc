@@ -20,5 +20,5 @@ int main(int argc, char **argv) {
     myargv.push_back(nullptr);
     return FitTest<LoopHelix>(myargv.size()-1,myargv.data(),sigmas);
   } else
-  return FitTest<LoopHelix>(argc,argv,sigmas);
+    return FitTest<LoopHelix>(argc,argv,sigmas);
 }

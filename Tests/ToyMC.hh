@@ -277,10 +277,14 @@ namespace KKTest {
     double tsint = sqrt(1.0-tcost*tcost);
     MOM4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
     double tmax = fabs(zrange_/(CLHEP::c_light*tcost));
-    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
+    double tbeg = tr_.Uniform(t0off_-tmax,t0off_+tmax);
+    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tbeg);
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
-    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
-    ptraj = PTRAJ(ktraj);
+    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(tbeg,tbeg+tmax));
+    // set initial range
+    double tend = tbeg + bfield_.rangeInTolerance(ktraj,tbeg,tol_);
+    ktraj.setRange(TimeRange(tbeg,tend));
+    ptraj.append(ktraj);
   }
 }
 #endif

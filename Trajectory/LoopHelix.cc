@@ -65,7 +65,9 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& newbnom) {
     auto db = newbnom - bnom_;
+//    PSMAT dpdpdb =ROOT::Math::SMatrixIdentity();
 //    PSMAT dpdpdb = dPardPardB(time,db);
+//    std::cout << "dpdpdb = " << dpdpdb << std::endl;
 //    pars_.covariance() = ROOT::Math::Similarity(dpdpdb,pars_.covariance());
     pars_.parameters() += dPardB(time,db);
     // rotate covariance: for now, just for the magnitude change.  Rotation is still TODO
@@ -266,7 +268,7 @@ namespace KinKal {
     DVEC dpdpdb_cx; dpdpdb_cx[cx_] = 1.0; dpdpdb_cx[rad_] = sphi*(1-bfrac);
     DVEC dpdpdb_cy; dpdpdb_cy[cy_] = 1.0; dpdpdb_cy[rad_] = -cphi*(1-bfrac);
     DVEC dpdpdb_phi0; dpdpdb_phi0[phi0_] = 1.0;  dpdpdb_phi0[lam_] = -xvec.Z()*(1-1.0/bfrac)/(lam()*lam());
-    DVEC dpdpdb_t0; dpdpdb_t0[t0_] = 0.0;
+    DVEC dpdpdb_t0; dpdpdb_t0[t0_] = 1.0;
     // build the matrix from these rows
     PSMAT dpdpdb;
     dpdpdb.Place_in_row(dpdpdb_rad,rad_,0);

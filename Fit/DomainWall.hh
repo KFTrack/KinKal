@@ -6,9 +6,10 @@
 //
 #include "KinKal/Fit/Effect.hh"
 #include "KinKal/Fit/Domain.hh"
+#include "KinKal/Fit/Config.hh"
+#include "KinKal/Fit/FitState.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "KinKal/General/BFieldMap.hh"
-#include "KinKal/Fit/Config.hh"
 #include <iostream>
 #include <stdexcept>
 #include <array>
@@ -45,7 +46,9 @@ namespace KinKal {
       BFieldMap const& bfield_; // bfield
       DOMAINPTR prev_, next_; // pointers to previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
-      Weights nextwt_; // cache of weight forwards of this effect.
+      Weights prevwt_, nextwt_; // cache of weights
+      PSMAT dpdpdb_; // forward rotation of covariance matrix going in the forwards direction
+
   };
 
   template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,
@@ -54,20 +57,24 @@ namespace KinKal {
       updateReference(ptraj);
     }
 
-  template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
+  template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& fstate,TimeDir tdir) {
     if(tdir == TimeDir::forwards) {
-      kkdata.append(dpfwd_,tdir);
-      nextwt_ += kkdata.wData();
+      prevwt_ += fstate.wData();
+      fstate.append(dpfwd_,tdir);
+      // fstate.pData().covariance() = ROOT::Math::Similarity(dpdpdb_,fstate.pData().covariance());
+      nextwt_ += fstate.wData();
     } else {
-      nextwt_ += kkdata.wData();
-      kkdata.append(dpfwd_,tdir);
+      nextwt_ += fstate.wData();
+      fstate.append(dpfwd_,tdir);
+      // fstate.pData().covariance() = ROOT::Math::SimilarityT(dpdpdb_,fstate.pData().covariance());
+      prevwt_ += fstate.wData();
     }
     // rotate the covariance matrix for the change in reference BField.  TODO
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
     // reset the cached weights
-    nextwt_ = Weights();
+    prevwt_ = nextwt_ = Weights();
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
@@ -75,6 +82,7 @@ namespace KinKal {
     auto const& refpiece = ptraj.nearestPiece(time()-1e-5); // disambiguate derivativates
     auto db = next_->bnom() - prev_->bnom();
     dpfwd_ = refpiece.dPardB(this->time(),db);
+    dpdpdb_ = refpiece.dPardPardB(this->time(),db);
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -88,13 +96,14 @@ namespace KinKal {
     if( tdir == TimeDir::forwards){
       newpiece.range() = TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end()));
       newpiece.params() = Parameters(nextwt_);
-      newpiece.setBNom(time(),next_->bnom());
+//      newpiece.setBNom(time(),next_->bnom());
+      newpiece.resetBNom(next_->bnom());
       ptraj.append(newpiece);
     } else {
       newpiece.range() = TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
-      newpiece.params() = Parameters(nextwt_);
-      newpiece.params().parameters() -= dpfwd_; // reverse effect going backwards
-      newpiece.setBNom(time(),prev_->bnom());
+      newpiece.params() = Parameters(prevwt_);
+//      newpiece.setBNom(time(),prev_->bnom());
+      newpiece.resetBNom(prev_->bnom());
       ptraj.prepend(newpiece);
     }
   }
