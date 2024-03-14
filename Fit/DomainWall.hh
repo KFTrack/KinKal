@@ -61,7 +61,7 @@ namespace KinKal {
     if(tdir == TimeDir::forwards) {
       prevwt_ += fstate.wData();
       fstate.append(dpfwd_,tdir);
-      // fstate.pData().covariance() = ROOT::Math::Similarity(dpdpdb_,fstate.pData().covariance());
+      // fstate.pData().covariance() = ROOT::Math::Similarity(dpdpdb_,fstate.pData().covariance());  Not tested TODO
       nextwt_ += fstate.wData();
     } else {
       nextwt_ += fstate.wData();
@@ -69,7 +69,6 @@ namespace KinKal {
       // fstate.pData().covariance() = ROOT::Math::SimilarityT(dpdpdb_,fstate.pData().covariance());
       prevwt_ += fstate.wData();
     }
-    // rotate the covariance matrix for the change in reference BField.  TODO
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
@@ -96,13 +95,11 @@ namespace KinKal {
     if( tdir == TimeDir::forwards){
       newpiece.range() = TimeRange(next_->begin(),std::max(ptraj.range().end(),next_->end()));
       newpiece.params() = Parameters(nextwt_);
-//      newpiece.setBNom(time(),next_->bnom());
       newpiece.resetBNom(next_->bnom());
       ptraj.append(newpiece);
     } else {
       newpiece.range() = TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
       newpiece.params() = Parameters(prevwt_);
-//      newpiece.setBNom(time(),prev_->bnom());
       newpiece.resetBNom(prev_->bnom());
       ptraj.prepend(newpiece);
     }
