@@ -1,7 +1,7 @@
 //
 // test basic functions of ClosestApproach using KTraj and Line
 //
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Trajectory/PointClosestApproach.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
@@ -40,8 +40,6 @@
 
 using namespace KinKal;
 using namespace std;
-// avoid confusion with root
-using KinKal::Line;
 
 void print_usage() {
   printf("Usage: ClosestApproachTest --charge i--gap f --tmin f --tmax f --vprop f --delta f \n");
@@ -51,9 +49,9 @@ template <class KTRAJ>
 int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
   gROOT->SetBatch(kTRUE);
   gStyle->SetOptFit(1);
-  using TCA = ClosestApproach<KTRAJ,Line>;
+  using TCA = ClosestApproach<KTRAJ,SensorLine>;
   using TCAP = PointClosestApproach<KTRAJ>;
-  using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+  using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
   using PTRAJ = ParticleTrajectory<KTRAJ>;
   int opt;
   int status(0);
@@ -142,7 +140,7 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
       double gap = tr_.Uniform(0.01,maxgap);
       VEC3 spos = ppos + gap*docadir;
       // create the Line
-      Line tline(spos, time, svel, wlen);
+      SensorLine tline(spos, time, svel, wlen);
       // create ClosestApproach from these
       CAHint tphint(time,time);
       TCA tp(ktraj,tline,tphint,1e-8);

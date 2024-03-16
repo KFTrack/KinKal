@@ -8,6 +8,7 @@
 #include "Math/AxisAngle.h"
 #include "Math/VectorUtil.h"
 #include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;
@@ -94,6 +95,13 @@ namespace KinKal {
     }
 
   KinematicLine::KinematicLine(KinematicLine const& other, VEC3 const& bnom, double trot) : KinematicLine(other) {
+  }
+
+  void KinematicLine::syncPhi0(KinematicLine const& other) {
+// adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    static double twopi = 2*M_PI;
+    int nloop = static_cast<int>(std::round( (other.phi0() - phi0())/twopi));
+    if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
   }
 
   VEC3 KinematicLine::position3(double time) const {

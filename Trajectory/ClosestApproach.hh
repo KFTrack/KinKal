@@ -10,6 +10,7 @@
 #include <memory>
 #include <iostream>
 #include <ostream>
+#include <cmath>
 
 namespace KinKal {
   // Hint class for TCA calculation. TCA search will start at these TOCA values.  This allows to
@@ -130,9 +131,13 @@ namespace KinKal {
       VEC3 delta = sensorPoca().Vect()-particlePoca().Vect();
       double ddot = sensorDirection().Dot(particleDirection());
       double denom = 1.0 - ddot*ddot;
-      // check for parallel)
+      // check for error conditions
       if(denom<1.0e-5){
-        tpdata_.status_ = ClosestApproachData::pocafailed;
+        tpdata_.status_ = ClosestApproachData::parallel;
+        break;
+      }
+      if(std::isnan(denom)){
+        tpdata_.status_ = ClosestApproachData::failed;
         break;
       }
       double pdd = delta.Dot(particleDirection());
@@ -143,17 +148,12 @@ namespace KinKal {
       // update the TOCA estimates
       setParticleTOCA(particleToca()+dptoca);
       setSensorTOCA(sensorToca()+dstoca);
-    }
-    if(tpdata_.status_ != ClosestApproachData::pocafailed){
-      if(niter < maxiter)
-        tpdata_.status_ = ClosestApproachData::converged;
-      else
-        tpdata_.status_ = ClosestApproachData::unconverged;
       // need to add divergence and oscillation tests TODO
     }
     // fill the rest of the state
     if(usable()){
-      // sign doca by angular momentum projected onto difference vector.  This is just a convention
+      if(fabs(dptoca) < precision() && fabs(dstoca) < precision() )tpdata_.status_ = ClosestApproachData::converged;
+     // sign doca by angular momentum projected onto difference vector.  This is just a convention
       VEC3 dvec = delta().Vect();
       VEC3 pdir = particleDirection();
       tpdata_.lsign_ = copysign(1.0,sensorDirection().Cross(pdir).Dot(dvec));

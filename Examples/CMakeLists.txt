@@ -5,7 +5,7 @@
 ROOT_GENERATE_DICTIONARY(ExamplesDict
     # headers to include in ROOT dictionary
     HitInfo.hh
-    BFieldInfo.hh
+    DomainWallInfo.hh
     ParticleTrajectoryInfo.hh
     MaterialInfo.hh
     LINKDEF LinkDef.h

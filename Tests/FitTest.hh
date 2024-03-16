@@ -3,7 +3,6 @@
 //
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/Detector/StrawXing.hh"
@@ -14,12 +13,12 @@
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/Fit/Measurement.hh"
 #include "KinKal/Fit/Material.hh"
-#include "KinKal/Fit/BField.hh"
+#include "KinKal/Fit/DomainWall.hh"
 #include "KinKal/Fit/Track.hh"
 #include "KinKal/Tests/ToyMC.hh"
 #include "KinKal/Examples/HitInfo.hh"
 #include "KinKal/Examples/MaterialInfo.hh"
-#include "KinKal/Examples/BFieldInfo.hh"
+#include "KinKal/Examples/DomainWallInfo.hh"
 #include "KinKal/Examples/ParticleTrajectoryInfo.hh"
 #include "KinKal/Examples/DOCAWireHitUpdater.hh"
 #include "KinKal/General/PhysicalConstants.h"
@@ -66,7 +65,6 @@ using namespace MatEnv;
 using namespace KinKal;
 using namespace std;
 // avoid confusion with root
-using KinKal::Line;
 void print_usage() {
   printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i\n");
 }
@@ -93,6 +91,60 @@ double dTraj(KTRAJ const& kt1, KTRAJ const& kt2, double t1, double& t2) {
   }
   //  if(niter >= maxniter) cout << "traj iteration not converged, dt = " << dt << endl;
   return ((pos2-pos1).Cross(dir1)).R();
+}
+
+template <class KTRAJ>
+int testState(KinKal::Track<KTRAJ> const& kktrk,DVEC sigmas) {
+  // test parameterstate
+  int retval(0);
+  auto const& traj = kktrk.fitTraj().nearestPiece(kktrk.fitTraj().range().mid());
+  auto pstate = traj.stateEstimate(traj.t0());
+  auto pos1 = traj.position3(traj.t0());
+  auto pos2 = pstate.position3();
+  if(fabs(pos1.Dot(pos2) - pos1.Mag2()) >1e-10){
+    std::cout << "Position difference " << pos1 << " " << pos2 << std::endl;
+    retval = -1;
+  }
+  auto mom1 = traj.momentum3(traj.t0());
+  auto mom2 = pstate.momentum3();
+  if(fabs(mom1.Dot(mom2)-mom1.Mag2())>1e-10){
+    std::cout << "Momentum difference " << mom1 << " " << mom2 << std::endl;
+    retval = -1;
+  }
+  double momvar1 = traj.momentumVariance(traj.t0());
+  double momvar2 = pstate.momentumVariance();
+  if(fabs(momvar1-momvar2)>1e-10){
+    std::cout << "Momentum variance differencer " << momvar1 << " " << momvar2 << std::endl;
+    retval = -1;
+  }
+  // test reversibility
+  KTRAJ testtraj(pstate,traj.bnom(),traj.range());
+  testtraj.syncPhi0(traj);
+
+  for(size_t ipar=0; ipar < NParams(); ipar++){
+    auto dp = fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))/sigmas(ipar);
+    if( dp > 1.0e-10){
+      if(ipar == KTRAJ::phi0Index()){
+        if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar))-2*M_PI > 1.0e-8){
+          std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+          retval = -1;
+        }
+        // allow phi0 to be off by 2pi
+      } else {
+        std::cout << "Parameter mismatch, par " << ipar << " diff " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
+        retval = -1;
+      }
+    }
+    for(size_t jpar=0; jpar < NParams(); jpar++){
+      auto dc = fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar))/sigmas(ipar)*sigmas(jpar);
+      if(dc > 1.0e-8){
+        std::cout << "Covariance mismatch par " << ipar << " , " << jpar << " diff " <<  traj.params().covariance()(ipar,jpar) << " " << testtraj.params().covariance()(ipar,jpar) << std::endl;
+        retval = -1;
+      }
+    }
+  }
+
+  return retval;
 }
 
 int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) {
@@ -167,7 +219,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   using KKEFF = Effect<KTRAJ>;
   using KKMEAS = Measurement<KTRAJ>;
   using KKMAT = Material<KTRAJ>;
-  using KKBFIELD = BField<KTRAJ>;
+  using KKDW = DomainWall<KTRAJ>;
   using PTRAJ = ParticleTrajectory<KTRAJ>;
   using MEAS = Hit<KTRAJ>;
   using MEASPTR = std::shared_ptr<MEAS>;
@@ -213,7 +265,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   unsigned nhits(40);
   unsigned nsteps(200); // steps for traj comparison
   double seedsmear(10.0);
-  double momsigma(0.2);
+  double momsigma(0.3);
   double ineff(0.05);
   bool simmat(true), scinthit(true);
   int retval(EXIT_SUCCESS);
@@ -420,35 +472,14 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   KTRAJPars ftpars_, mtpars_, btpars_, spars_, ffitpars_, ffiterrs_, mfitpars_, mfiterrs_, bfitpars_, bfiterrs_;
   float chisq_, btmom_, mtmom_, ftmom_, ffmom_, mfmom_, bfmom_, ffmomerr_, mfmomerr_, bfmomerr_, chiprob_;
   float fft_,mft_, bft_;
-  int ndof_, niter_, status_, igap_, nmeta_, nkkbf_, nkkhit_, nkkmat_;
+  int ndof_, niter_, status_, igap_, nmeta_, nkkdw_, nkkhit_, nkkmat_;
   int nactivehit_, nstrawhit_, nscinthit_, nnull_;
   float sbeg_, send_, fbeg_, fend_;
   float maxgap_, avgap_;
+  int ts = testState(kktrk,sigmas);
+//  if(ts != 0)return ts;
+  if(ts != 0)std::cout << "state test failed" << std::endl;
 
-  // test parameterstate
-  auto const& traj = kktrk.fitTraj().front();
-  auto pstate = traj.stateEstimate(traj.t0());
-  double momvar1 = traj.momentumVariance(traj.t0());
-  double momvar2 = pstate.momentumVariance();
-  if(fabs(momvar1-momvar2)>1e-10){
-    std::cout << "Momentum variance error " << momvar1 << " " << momvar2 << std::endl;
-    return -3;
-  }
-  // full reversibility
-  KTRAJ testtraj(pstate,traj.bnom(),traj.range());
-  for(size_t ipar=0; ipar < NParams(); ipar++){
-    if(fabs(traj.paramVal(ipar)-testtraj.paramVal(ipar)) > 1.0e-10){
-      std::cout << "Parameter error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
-      return -3;
-    }
-    for(size_t jpar=0; jpar < NParams(); jpar++){
-      if(fabs(traj.params().covariance()(ipar,jpar)-testtraj.params().covariance()(ipar,jpar)) > 1.0e-6){
-        std::cout << "Covariance error " <<  traj.paramVal(ipar) << " " << testtraj.paramVal(ipar) << std::endl;
-        return -3;
-      }
-    }
-  }
-  std::cout << "Passed ParameterState tests" << std::endl;
   if(nevents ==0 ){
     // draw the fit result
     TCanvas* pttcan = new TCanvas("pttcan","PieceKTRAJ",1000,1000);
@@ -487,8 +518,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
         auto const& tline = shptr->wire();
-        plow = tline.startPosition();
-        phigh = tline.endPosition();
+        plow = tline.start();
+        phigh = tline.end();
         line->SetLineColor(kRed);
         auto hitpos = tline.position3(shptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(shptr->closestApproach().particleToca());
@@ -498,8 +529,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         tpos->SetMarkerColor(kGreen);
       } else if (lhptr.use_count() > 0){
         auto const& tline = lhptr->sensorAxis();
-        plow = tline.startPosition();
-        phigh = tline.endPosition();
+        plow = tline.start();
+        phigh = tline.end();
         line->SetLineColor(kCyan);
         auto hitpos = tline.position3(lhptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(lhptr->closestApproach().particleToca());
@@ -547,7 +578,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ftree->Branch("bferrs.", &bfiterrs_,KTRAJPars::leafnames().c_str());
       ftree->Branch("chisq", &chisq_,"chisq/F");
       ftree->Branch("ndof", &ndof_,"ndof/I");
-      ftree->Branch("nkkbf", &nkkbf_,"nkkbf/I");
+      ftree->Branch("nkkdw", &nkkdw_,"nkkdw/I");
       ftree->Branch("nkkmat", &nkkmat_,"nkkmat/I");
       ftree->Branch("nkkhit", &nkkhit_,"nkkhit/I");
       ftree->Branch("nactivehit", &nactivehit_,"nactivehit/I");
@@ -714,7 +745,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       maxgap_ = avgap_ = -1;
       igap_ = -1;
       // fill effect information
-      nkkbf_ = 0; nkkhit_ = 0; nkkmat_ = 0;
+      nkkdw_ = 0; nkkhit_ = 0; nkkmat_ = 0;
       // accumulate chisquared info
       chisq_ = fstat.chisq_.chisq();
       ndof_ = fstat.chisq_.nDOF();
@@ -756,8 +787,17 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       ffmomerr_ = -1.0;
       mfmomerr_ = -1.0;
       bfmomerr_ = -1.0;
+      // gaps
+      double maxgap, avgap;
+      size_t igap;
+      kktrk.fitTraj().gaps(maxgap, igap, avgap);
+      maxgap_ = maxgap;
+      avgap_ = avgap;
+      igap_ = igap;
 
       if(fstat.usable()){
+        int ts = testState(kktrk,sigmas);
+        if(ts != 0)std::cout << "state test failed" << std::endl;
         // basic info
         auto const& fptraj = kktrk.fitTraj();
         // compare parameters at the first traj of both true and fit
@@ -819,11 +859,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         fmompull->Fill((ffmom_-ftmom_)/ffmomerr_);
         mmompull->Fill((mfmom_-mtmom_)/mfmomerr_);
         bmompull->Fill((bfmom_-btmom_)/bfmomerr_);
-        // state space parameter difference and errors
-        //      ParticleStateEstimate tslow = tptraj.state(tlow);
-        //      ParticleStateEstimate tshigh = tptraj.state(thigh);
-        //      ParticleStateEstimate slow = fptraj.stateEstimate(tlow);
-        //      ParticleStateEstimate shigh = fptraj.stateEstimate(thigh);
+       //
         if(ttree && fstat.usable()){
           fbeg_ = fptraj.range().begin();
           fend_ = fptraj.range().end();
@@ -831,7 +867,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
           nactivehit_ = nstrawhit_ = nnull_ = nscinthit_ = 0;
           for(auto const& eff: kktrk.effects()) {
             const KKMEAS* kkhit = dynamic_cast<const KKMEAS*>(eff.get());
-            const KKBFIELD* kkbf = dynamic_cast<const KKBFIELD*>(eff.get());
+            const KKDW* kkdw = dynamic_cast<const KKDW*>(eff.get());
             const KKMAT* kkmat = dynamic_cast<const KKMAT*>(eff.get());
             if(kkhit != 0){
               nkkhit_++;
@@ -914,7 +950,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               minfo.active_ = kkmat->active();
               minfo.nxing_ = kkmat->elementXing().matXings().size();
               std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-              kkmat->elementXing().materialEffects(TimeDir::forwards, dmom, momvar);
+              kkmat->elementXing().materialEffects(dmom, momvar);
               minfo.dmomf_ = dmom[MomBasis::momdir_];
               minfo.momvar_ = momvar[MomBasis::momdir_];
               minfo.perpvar_ = momvar[MomBasis::perpdir_];
@@ -926,12 +962,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               }
               minfovec.push_back(minfo);
             }
-            if(kkbf != 0){
-              nkkbf_++;
-              BFieldInfo bfinfo;
-              bfinfo.active_ = kkbf->active();
-              bfinfo.time_ = kkbf->time();
-              bfinfo.range_ = kkbf->range().range();
+            if(kkdw != 0){
+              nkkdw_++;
+              DomainWallInfo bfinfo;
+              bfinfo.active_ = kkdw->active();
+              bfinfo.time_ = kkdw->time();
+              bfinfo.range_ = kkdw->nextDomain().mid()-kkdw->prevDomain().mid();
               bfinfovec.push_back(bfinfo);
             }
           }
@@ -961,12 +997,6 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
             ktinfo.dt_= tstep-ttrue;
             tinfovec.push_back(ktinfo);
           }
-          double maxgap, avgap;
-          size_t igap;
-          fptraj.gaps(maxgap, igap, avgap);
-          maxgap_ = maxgap;
-          avgap_ = avgap;
-          igap_ = igap;
         }
       } else if(printbad){
         cout << "Bad Fit event " << ievent << " status " << kktrk.fitStatus() << endl;

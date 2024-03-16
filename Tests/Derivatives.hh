@@ -431,16 +431,17 @@ int test(int argc, char **argv) {
       << dPdM << endl;
   }
 
-  // test changes due to BFieldMap
+  // test changing bnom
   TCanvas* dbcan[3]; // 3 directions
   std::vector<TGraph*> bgraphs[3];
   std::array<VEC3,3> basis;
   basis[0] = reftraj.bnom().Unit();
   basis[1] = reftraj.direction(MomBasis::phidir_);
   basis[2] = VEC3(basis[1].Y(),-basis[1].X(), 0.0); //perp
-  std::array<std::string,3> bnames{"BDirection", "PhiDirection", "MomPerpendicular"};
+  std::array<std::string,3> bnames{"BDir", "PhiDir", "PerpDir"};
   // gaps
   TGraph* bgapgraph[3];
+  auto state = reftraj.stateEstimate(ttest);
   for(size_t idir =0; idir<3;idir++){
     bgraphs[idir] = std::vector<TGraph*>(NParams(),0);
     for(size_t ipar = 0; ipar < NParams(); ipar++){
@@ -457,24 +458,33 @@ int test(int argc, char **argv) {
     for(int id=0;id<ndel;++id){
       // construct exact helix for this field and the corresponding exact parameter change
       double dval = dmin + del*id;
-      VEC3 bf = bnom + basis[idir]*dval/10.0;
-      auto state = reftraj.stateEstimate(ttest);
+      VEC3 bf = bnom + basis[idir]*dval;
       // exact traj given the full state
-      KTRAJ newbfhel(state,bf);
-      auto newstate = newbfhel.stateEstimate(ttest);
-      for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
-        if(fabs(state.state()[ipar] - newstate.state()[ipar])>1.0e-6) cout << "State vector " << ipar << " doesn't match: original "
-          << state.state()[ipar] << " rotated " << newstate.state()[ipar]  << endl;
-      }
-      dpx = newbfhel.params().parameters() - reftraj.params().parameters();
-      // 1st order change trajectory
-      KTRAJ dbtraj(reftraj,bf,ttest);
+      KTRAJ xdbtraj(state,bf);
+      dpx = xdbtraj.params().parameters() - reftraj.params().parameters();
+      // test 1st order change
+      auto dbtraj = reftraj;
+      dbtraj.setBNom(ttest, bf);
       dpdb = dbtraj.params().parameters() - reftraj.params().parameters();
       for(size_t ipar = 0; ipar < NParams(); ipar++){
         bgraphs[idir][ipar]->SetPoint(id,dpx[ipar], dpdb[ipar]);
       }
-      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-newbfhel.position3(ttest)).R());
-      // BField derivatives
+      bgapgraph[idir]->SetPoint(id,dval,(dbtraj.position3(ttest)-reftraj.position3(ttest)).R());
+      // test state
+      if(id==0){
+        // exact state test
+        auto xdbstate = xdbtraj.stateEstimate(ttest);
+        for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
+          if(fabs(state.state()[ipar] - xdbstate.state()[ipar])>1.0e-6) cout << "Exact State vector " << ipar << " doesn't match: dir "
+            << idir << " original " << state.state()[ipar] << " changed " << xdbstate.state()[ipar]  << endl;
+        }
+        // 1st order state test
+        auto dbstate = dbtraj.stateEstimate(ttest);
+        for(size_t ipar=0;ipar < ParticleState::dimension(); ipar++){
+          if(fabs(state.state()[ipar] - dbstate.state()[ipar])>1.0e-6) cout << "1st order State vector " << ipar << " doesn't match: dir "
+            << idir << " original " << state.state()[ipar] << " changed " << dbstate.state()[ipar]  << endl;
+        }
+      }
 
     }
     char gtitle[80];
@@ -504,6 +514,33 @@ int test(int argc, char **argv) {
     dbcan[idir]->Draw();
     dbcan[idir]->Write();
   }
+
+// test covariance rotation
+//    double db = 0.001;
+//    //  PSMAT dpdbdp = traj.dPardBdPar(traj.t0());
+//    KTRAJ dbtraj(traj);
+////    DVEC dpdb = traj.dPardB(traj.t0());
+//    auto bnomp = (1.0+db)*traj.bnom();
+//    dbtraj.setBNom(traj.t0(),bnomp);
+////    dbtraj.resetBNom(bnomp);
+////    dbtraj.params().parameters() += dpdb*db/(1.0+db);
+//    auto dbpstate = dbtraj.stateEstimate(traj.t0());
+//    for(size_t ipar=0; ipar < NParams(); ipar++){
+//      auto dp = fabs(pstate.state()[ipar]-dbpstate.state()[ipar])/db;
+//      if(dp > 1.0e-8){
+//        std::cout << "State mismatch, par " << ipar << " diff " <<  dp << " pars " << pstate.state()[ipar] << " " << dbpstate.state()[ipar] << std::endl;
+//        retval = -1;
+//      }
+//      for(size_t jpar=0; jpar < NParams(); jpar++){
+//        auto dc = fabs(pstate.stateCovariance()[ipar][jpar]-dbpstate.stateCovariance()[ipar][jpar])/sqrt(pstate.stateCovariance()[ipar][ipar]*pstate.stateCovariance()[jpar][jpar]);
+//        if( dc > 1.0e2) { // temporarily disable FIXME!
+//          std::cout << "State Covariance mismatch par " << ipar << " , " << jpar << " diff " <<  dc << " covs " << pstate.stateCovariance()[ipar][jpar] << " " << dbpstate.stateCovariance()[ipar][jpar] << std::endl;
+//          retval = -1;
+//        }
+//      }
+//    }
+//  }
+
   TCanvas* dbgcan = new TCanvas("dbgcan","DB Gap",800,800);
   dbgcan->Divide(2,2);
   for(int idir=0;idir<3;++idir){

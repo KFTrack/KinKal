@@ -13,6 +13,7 @@ add_library(Geometry SHARED
   Intersection.cc
   Plane.cc
   Ray.cc
+  LineSegment.cc
   Rectangle.cc
   ThinSolid.cc
 )

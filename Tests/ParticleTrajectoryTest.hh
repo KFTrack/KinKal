@@ -2,7 +2,7 @@
 // test basic functions of the ParticleTrajectory, using the LoopHelix class
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/PhysicalConstants.h"
@@ -37,7 +37,7 @@
 using namespace KinKal;
 using namespace std;
 // avoid confusion with root
-using KinKal::Line;
+using KinKal::SensorLine;
 
 void print_usage() {
   printf("Usage: ParticleTrajectoryTest --changedir i --delta f --tstep f --nsteps i \n");
@@ -46,7 +46,7 @@ void print_usage() {
 template <class KTRAJ>
 int ParticleTrajectoryTest(int argc, char **argv) {
   using PTRAJ = ParticleTrajectory<KTRAJ>;
-  using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+  using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
   double mom(105.0), cost(0.7), phi(0.5);
   unsigned npts(50);
   int icharge(-1);
@@ -225,7 +225,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   // shift the position
   VEC3 lpos = midpos + gap*rdir;
   double wlen(1000.0);
-  Line tline(lpos, ptraj.range().mid(), pvel, wlen);
+  SensorLine tline(lpos, ptraj.range().mid(), pvel, wlen);
   // create ClosestApproach from these
   CAHint tphint(ptraj.range().mid(),0.0);
   PCA pca(ptraj,tline, tphint,1e-8);
@@ -240,8 +240,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    plow = tline.startPosition();
-    phigh = tline.endPosition();
+    plow = tline.start();
+    phigh = tline.end();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);

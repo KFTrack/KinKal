@@ -34,6 +34,7 @@ namespace KinKal {
       double halfAngle() const { return atan2(sint_,cost_); }
       // front and rear boundaries of this cylinder as disks.  U direction is arbitrary
       Disk frontDisk() const;
+      Disk midDisk() const;
       Disk backDisk() const;
     private:
       VEC3 axis_; // symmetry axis of the cylinder

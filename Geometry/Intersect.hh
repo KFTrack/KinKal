@@ -34,7 +34,7 @@ namespace KinKal {
       stepinside = surf.isInside(pos);
     } while (startinside == stepinside && trange.inRange(ttest));
     if(startinside != stepinside){
-      // we crossed the cylinder: backup and do a linear search.
+      // we crossed the surface: backup and do a linear search.
       ttest -= tstep;
       double dist;
       IntersectFlag rayinter;
@@ -142,8 +142,9 @@ namespace KinKal {
     auto axis = helix.axis(trange.begin());
     // test for the helix being circular or tangent to the plane
     double vz = helix.axisSpeed();  // speed along the helix axis
-    double ddot = fabs(axis.dir_.Dot(plane.normal()));
-    if(fabs(vz*trange.range()) > tol && ddot > tol ){
+    double ddot = fabs(axis.direction().Dot(plane.normal()));
+    double zrange = fabs(vz*trange.range());
+    if(zrange > tol && ddot > tol/zrange ){
       // Find the intersection time of the  helix axis (along bnom) with the plane
       double dist(0.0);
       auto pinter = plane.intersect(axis,dist,true,tol);
@@ -271,12 +272,12 @@ namespace KinKal {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
+    auto plane = dynamic_cast<const Plane*>(surfp);
+    if(plane)return intersect(ktraj,*plane,trange,tol);
     auto cyl = dynamic_cast<const Cylinder*>(surfp);
     if(cyl)return intersect(ktraj,*cyl,trange,tol);
     auto fru = dynamic_cast<const Frustrum*>(surfp);
     if(fru)return intersect(ktraj,*fru,trange,tol);
-    auto plane = dynamic_cast<const Plane*>(surfp);
-    if(plane)return intersect(ktraj,*plane,trange,tol);
     // unknown surface subclass; return failure
     return Intersection();
   }

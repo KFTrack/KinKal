@@ -29,6 +29,7 @@ namespace KinKal {
       // classes implementing the Kalman fit
       // define the indices and names of the parameters
       enum ParamIndex {rad_=0,lam_=1,cx_=2,cy_=3,phi0_=4,t0_=5,npars_=6};
+      constexpr static ParamIndex phi0Index() { return phi0_; }
       constexpr static ParamIndex t0Index() { return t0_; }
 
       static std::vector<std::string> const& paramNames();
@@ -55,6 +56,8 @@ namespace KinKal {
       LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
       // copy payload and override the parameters; Is this used?
       LoopHelix(Parameters const& pdata, LoopHelix const& other);
+      // synchronize phi0, which has a 2pi wrapping
+      void syncPhi0(LoopHelix const& other);
       VEC4 position4(double time) const;
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
@@ -67,6 +70,8 @@ namespace KinKal {
       void setRange(TimeRange const& trange) { trange_ = trange; }
       // allow resetting the BField.  Note this is time-dependent
       void setBNom(double time, VEC3 const& bnom);
+      // change the BField.  This also resets the transforms
+      void resetBNom(VEC3 const& bnom);
       bool inRange(double time) const { return trange_.inRange(time); }
       VEC3 momentum3(double time) const;
       MOM4 momentum4(double time) const;
@@ -127,9 +132,8 @@ namespace KinKal {
       PSMAT dStatedPar(double time) const; // derivative of global state WRT parameters
       DVEC momDeriv(double time, MomBasis::Direction mdir) const; // projection of M derivatives onto direction basis
       // package the above for full (global) state
-      // Parameter derivatives given a change in BField
-      DVEC dPardB(double time) const; // parameter derivative WRT change in BField magnitude
-      DVEC dPardB(double time, VEC3 const& BPrime) const; // parameter change given a new BField vector
+      DVEC dPardB(double time, VEC3 const& db) const; // parameter change given a change in BField vector; this includes the magnitude and direction changes
+      PSMAT dPardPardB(double time,VEC3 const& db) const; // Parameter covariance rotation for a change in BField
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
@@ -143,6 +147,7 @@ namespace KinKal {
       DPDV dPardXLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) position vector
       DPDV dPardMLoc(double time) const; // return the derivative of the parameters WRT the local (unrotated) momentum vector
       PSMAT dPardStateLoc(double time) const; // derivative of parameters WRT local state
+      void setTransforms(); // define global to local and local to global given BNom
 
       TimeRange trange_;
       Parameters pars_; // parameters

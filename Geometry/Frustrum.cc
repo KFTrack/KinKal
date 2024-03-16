@@ -79,6 +79,10 @@ namespace KinKal {
     return Disk(axis_,uDirection(),center_-halflen_*axis_,radius(-halflen_));
   }
 
+  Disk Frustrum::midDisk() const {
+    return Disk(axis_,uDirection(),center_,radius(0.0));
+  }
+
   Disk Frustrum::backDisk() const {
     return Disk(axis_,uDirection(),center_+halflen_*axis_,radius(halflen_));
   }
@@ -100,10 +104,10 @@ namespace KinKal {
     // exact solution
     IntersectFlag retval;
     // displace the ray start to be WRT the base of the cone
-    auto spos = ray.start_ - center_ + halflen_*axis_;
-    double z1 = ray.dir_.Dot(axis_);
+    auto spos = ray.start() - center_ + halflen_*axis_;
+    double z1 = ray.direction().Dot(axis_);
     double z0 = spos.Dot(axis_);
-    auto pvec = ray.dir_ - z1*axis_;
+    auto pvec = ray.direction() - z1*axis_;
     auto qvec = spos - z0*axis_;
     double b2 = pvec.Mag2() - z1*z1*drda_*drda_;
     double b1 = z1*drda_*(drda_*z0 + r0_) - pvec.Dot(qvec);

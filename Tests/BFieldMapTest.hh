@@ -2,7 +2,6 @@
 // test basic functions of BFieldMap class
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Trajectory/Line.hh"
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
@@ -52,7 +51,7 @@ int BFieldMapTest(int argc, char **argv) {
   double pmass(0.511);
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0);
-  double tol(0.1);
+  double tol(1e-4), simtol(1e-5);
   double zrange(3000.0); // tracker dimension
 
   static struct option long_options[] = {
@@ -63,6 +62,7 @@ int BFieldMapTest(int argc, char **argv) {
     {"dBz",     required_argument, 0, 'Z'  },
     {"Bgrad",     required_argument, 0, 'g'  },
     {"Tol",     required_argument, 0, 't'  },
+    {"SimTol",     required_argument, 0, 's'  },
     {NULL, 0,0,0}
   };
   int opt;
@@ -82,6 +82,8 @@ int BFieldMapTest(int argc, char **argv) {
                  break;
       case 't' : tol = atof(optarg);
                  break;
+      case 's' : simtol = atof(optarg);
+                 break;
       case 'q' : icharge = atoi(optarg);
                  break;
       default: print_usage();
@@ -100,11 +102,16 @@ int BFieldMapTest(int argc, char **argv) {
   }
   // first, create a traj based on the actual field at this point
   KKTest::ToyMC<KTRAJ> toy(*BF, mom, icharge, zrange, iseed, 0, false, false, -1.0, pmass );
-  toy.setTolerance(tol);
+  toy.setTolerance(simtol);
   PTRAJ tptraj;
-  HITCOL thits;
-  EXINGCOL dxings;
-  toy.simulateParticle(tptraj, thits, dxings);
+//  HITCOL thits;
+//  EXINGCOL dxings;
+//  toy.simulateParticle(tptraj, thits, dxings);
+  toy.createTraj(tptraj);
+  double tbeg = tptraj.range().begin();
+  auto vel = tptraj.velocity(tbeg);
+  double tend = tbeg + zrange/vel.Z();
+  toy.extendTraj(tptraj,tend);
   // then, create a piecetraj around the nominal field with corrections,
   auto pos = tptraj.position4(tptraj.range().begin());
   auto momv = tptraj.momentum4(pos.T());
@@ -115,7 +122,7 @@ int BFieldMapTest(int argc, char **argv) {
   TimeRange prange = start.range();
   do {
     auto const& piece = xptraj.back();
-    prange = TimeRange(prange.begin(),BF->rangeInTolerance(piece,prange.begin(), tol));
+    prange = TimeRange(prange.begin(),prange.begin() + BF->rangeInTolerance(piece,prange.begin(), tol));
     // integrate the momentum change over this range
     VEC3 dp = BF->integrate(piece,prange);
     // approximate change in position
@@ -154,9 +161,9 @@ int BFieldMapTest(int argc, char **argv) {
   xdp = BF->integrate( xptraj, xptraj.range());
   ldp = BF->integrate( lptraj, lptraj.range());
   ndp = BF->integrate( start, start.range());
-  cout << "TTraj " << tptraj << " integral " << tdp << endl;
-  cout << "XTraj " << xptraj << " integral " << xdp << endl;
-  cout << "LTraj " << lptraj << " integral " << ldp << endl;
+  cout << "Simulated Traj " << tptraj << " integral " << tdp << endl;
+  cout << "Extract Traj " << xptraj << " integral " << xdp << endl;
+  cout << "Linear Traj " << lptraj << " integral " << ldp << endl;
   cout << "Nominal " << start << " integral " << ndp << endl;
 
   // setup histograms

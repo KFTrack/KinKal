@@ -9,7 +9,7 @@
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/MatEnv/SimpleFileFinder.hh"
 #include "KinKal/Examples/CaloDistanceToTime.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
@@ -37,7 +37,7 @@ namespace KKTest {
       using SCINTHITPTR = std::shared_ptr<SCINTHIT>;
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
-      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool scinthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
@@ -52,7 +52,7 @@ namespace KKTest {
         }
 
       // generate a straw at the given time.  direction and drift distance are random
-      Line generateStraw(PTRAJ const& traj, double htime);
+      SensorLine generateStraw(PTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PTRAJ& ptraj,double htime);
@@ -99,19 +99,19 @@ namespace KKTest {
 
   };
 
-  template <class KTRAJ> Line ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
+  template <class KTRAJ> SensorLine ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
-    auto hdir = traj.direction(htime);
-    // generate a random direction for the straw
-    double eta = tr_.Uniform(-M_PI,M_PI);
-    VEC3 sdir(cos(eta),sin(eta),0.0);
+    auto tdir = traj.direction(htime);
+    // generate a random azimuth direction for the straw
+    double azimuth = tr_.Uniform(-M_PI,M_PI);
+    VEC3 sdir(cos(azimuth),sin(azimuth),0.0);
     // generate a random drift perp to this and the trajectory
     double rdrift = tr_.Uniform(-rstraw_,rstraw_);
-    VEC3 drift = (sdir.Cross(hdir)).Unit();
-    VEC3 dpos = hpos.Vect() + rdrift*drift;
+    VEC3 driftdir = (sdir.Cross(tdir)).Unit();
+    VEC3 dpos = hpos.Vect() + rdrift*driftdir;
     //  cout << "Generating hit at position " << dpos << endl;
-    double dprop = tr_.Uniform(0.0,0.5*wlen_);
+    double dprop = tr_.Uniform(0.0,wlen_);
     VEC3 mpos = dpos + sdir*dprop;
     VEC3 vprop = sdir*sprop_;
     // measured time is after propagation and drift
@@ -119,7 +119,7 @@ namespace KKTest {
     // smear measurement time
     tmeas = tr_.Gaus(tmeas,sigt_);
     // construct the trajectory for this hit
-    return Line(mpos,tmeas,vprop,wlen_);
+    return SensorLine(mpos,tmeas,vprop,wlen_);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
@@ -175,7 +175,7 @@ namespace KKTest {
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
     std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing->materialEffects(TimeDir::forwards, dmom, momvar);
+    sxing->materialEffects(dmom, momvar);
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
       auto mdir = static_cast<MomBasis::Direction>(idir);
       double momsig = sqrt(momvar[idir]);
@@ -206,8 +206,8 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
     // create a ScintHit at the end, axis parallel to z
-    // first, find the position at showermax_.
-    VEC3 shmaxTrue,shmaxMeas;
+    // first, find the position at showermax.
+    VEC3 shmax,shmeas;
     double tend = thits.back()->time();
     // extend to the calorimeter z
     VEC3 pvel = ptraj.velocity(tend);
@@ -218,27 +218,17 @@ namespace KKTest {
     pvel = ptraj.velocity(shstart);
     // compute time at showermax
     double shmaxtime = shstart + shmax_/pvel.R();
-    auto endpos = ptraj.position4(shstart);
-    shmaxTrue = ptraj.position3(shmaxtime); // true position at shower-max
-                                            // smear the x-y position by the transverse variance.
-    shmaxMeas.SetX(tr_.Gaus(shmaxTrue.X(),shPosSig_));
-    shmaxMeas.SetY(tr_.Gaus(shmaxTrue.Y(),shPosSig_));
-    // set the z position to the sensor plane (end of the crystal)
-    shmaxMeas.SetZ(endpos.Z()+clen_);
-    // set the measurement time to correspond to the light propagation from showermax_, smeared by the resolution
-    //double tmeas = tr_.Gaus(shmaxtime+(shmaxMeas.Z()-shmaxTrue.Z())/cprop_,scitsig_);
+    shmax = ptraj.position3(shmaxtime); // true position at shower-max
+    // Compute measurement position: smear the x-y position by the transverse variance.
+    shmeas.SetX(tr_.Gaus(shmax.X(),shPosSig_));
+    shmeas.SetY(tr_.Gaus(shmax.Y(),shPosSig_));
+    // set the z position to the sensor plane (forward end of the crystal)
+    shmeas.SetZ(cz_+clen_);
+    // set the measurement time to correspond to the light propagation from showermax_, smeared by the time resolution
+    double tmeas = tr_.Gaus(shmaxtime+(shmeas.Z() - shmax.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-
-    // put in manual values
-    //std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(85.76, clen_-27.47);
-    std::shared_ptr calod2t = std::make_shared<CaloDistanceToTime>(cprop_, clen_-27.47, 0.001);
-    //CaloDistanceToTime calod2t(tmeas, 85.76, 27.47);
-    double tmeas = shmaxtime + calod2t->time(shmaxMeas.Z() - shmaxTrue.Z());
-    Line lline(shmaxMeas, tmeas, lvel, clen_, calod2t);
-    
-    // original
-    //Line lline(shmaxMeas,tmeas,lvel,clen_);
+    SensorLine lline(shmeas, tmeas, lvel, clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
     PCA pca(ptraj,lline,tphint,tprec_);
@@ -257,7 +247,6 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::extendTraj(PTRAJ& ptraj,double htime) {
     if(htime > ptraj.range().end()){
-      ROOT::Math::SMatrix<double,3> bgrad;
       VEC3 pos,vel, dBdt;
       pos = ptraj.position3(htime);
       vel = ptraj.velocity(htime);
@@ -266,13 +255,15 @@ namespace KKTest {
       if(dBdt.R() != 0.0){
         double tbeg = ptraj.range().end();
         while(tbeg < htime) {
-          double tend = bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_);
+          double tend = std::min(tbeg + bfield_.rangeInTolerance(ptraj.back(),tbeg,tol_),htime);
           double tmid = 0.5*(tbeg+tend);
           auto bf = bfield_.fieldVect(ptraj.position3(tmid));
-          auto pos = ptraj.position4(tmid);
-          auto mom =  ptraj.momentum4(tmid);
+          auto pos = ptraj.position4(tend);
+          auto mom =  ptraj.momentum4(tend);
           TimeRange prange(tbeg,tend);
           KTRAJ newend(pos,mom,ptraj.charge(),bf,prange);
+          // make sure phi0 stays continuous
+          newend.syncPhi0(ptraj.back());
           ptraj.append(newend);
           tbeg = tend;
         }
@@ -287,10 +278,14 @@ namespace KKTest {
     double tsint = sqrt(1.0-tcost*tcost);
     MOM4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
     double tmax = fabs(zrange_/(CLHEP::c_light*tcost));
-    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tr_.Uniform(t0off_-tmax,t0off_+tmax));
+    double tbeg = tr_.Uniform(t0off_-tmax,t0off_+tmax);
+    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tbeg);
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
-    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(torigin.T(),torigin.T()+tmax));
-    ptraj = PTRAJ(ktraj);
+    KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(tbeg,tbeg+tmax));
+    // set initial range
+    double tend = tbeg + bfield_.rangeInTolerance(ktraj,tbeg,tol_);
+    ktraj.setRange(TimeRange(tbeg,tend));
+    ptraj.append(ktraj);
   }
 }
 #endif

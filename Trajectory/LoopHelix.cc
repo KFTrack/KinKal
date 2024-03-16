@@ -28,55 +28,62 @@ namespace KinKal {
   string const& LoopHelix::trajName() { return trajName_; }
 
   LoopHelix::LoopHelix() : mass_(0.0), charge_(0) {}
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, double bnom, TimeRange const& range) : LoopHelix(pos0,mom0,charge,VEC3(0.0,0.0,bnom),range) {}
-  LoopHelix::LoopHelix( VEC4 const& pos0, MOM4 const& mom0, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(mom0.M()), charge_(charge), bnom_(bnom) {
+  LoopHelix::LoopHelix( VEC4 const& gpos, MOM4 const& gmom, int charge, double bnom, TimeRange const& range) : LoopHelix(gpos,gmom,charge,VEC3(0.0,0.0,bnom),range) {}
+  LoopHelix::LoopHelix( VEC4 const& gpos, MOM4 const& gmom, int charge, VEC3 const& bnom, TimeRange const& trange) : trange_(trange), mass_(gmom.M()), charge_(charge), bnom_(bnom) {
     static double twopi = 2*M_PI;
-    // Transform into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
-    // The transform is a pure rotation about the origin
-    VEC4 pos(pos0);
-    MOM4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
-    // to convert global vectors into parameters they must first be rotated into the local system.
-    pos = g2l_(pos);
-    mom = g2l_(mom);
-    // create inverse rotation; this moves back into the global coordinate system
-    l2g_ = g2l_.Inverse();
+    // Transform position and momentum into the system where Z is along the Bfield, which is the implicit coordinate system of the parameterization.
+    // This is a pure rotation about the origin
+    setTransforms();
+    auto lpos = g2l_(gpos);
+    auto lmom = g2l_(gmom);
     // compute some simple useful parameters
-    double pt = mom.Pt();
-    double phibar = mom.Phi();
+    double pt = lmom.Pt();
+    double lmomphi = lmom.Phi();
     // translation factor from MeV/c to curvature radius in mm, B in Tesla; signed by the charge!!!
-    double momToRad = 1.0/Q();
+    double invq = 1.0/Q();
     // transverse radius of the helix
-    param(rad_) = pt*momToRad;
+    param(rad_) = pt*invq;
     // longitudinal wavelength
-    param(lam_) = mom.Z()*momToRad;
-    // time at z=0
-    double om = omega();
-    param(t0_) = pos.T() - pos.Z()/(om*lam());
+    param(lam_) = lmom.Z()*invq;
+    // time when particle reaches local z=0
+    double zbar = lpos.Z()/lam();
+    param(t0_) = lpos.T() - zbar/omega();
     // compute winding that puts phi0 in the range -pi,pi
-    double nwind = rint((pos.Z()/lam() - phibar)/twopi);
-    //  cout << "winding number = " << nwind << endl;
-    // azimuth at z=0
-    param(phi0_) = phibar - om*(pos.T()-t0()) + twopi*nwind;
+    double nwind = round((zbar - lmomphi)/twopi);
+    // particle momentum azimuth at z=0
+    param(phi0_) = lmomphi - zbar + twopi*nwind;
     // circle center
-    param(cx_) = pos.X() - mom.Y()*momToRad;
-    param(cy_) = pos.Y() + mom.X()*momToRad;
-     // test
-//    auto testpos = position3(pos0.T());
-//    auto testmom = momentum3(pos0.T());
-//    auto dp = testpos - pos0.Vect();
-//    auto dm = testmom - mom0.Vect();
-//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
- }
+    param(cx_) = lpos.X() - lmom.Y()*invq;
+    param(cy_) = lpos.Y() + lmom.X()*invq;
+  }
 
-  void LoopHelix::setBNom(double time, VEC3 const& bnom) {
-    // adjust the parameters for the change in bnom
-    pars_.parameters() += dPardB(time,bnom);
-    bnom_ = bnom;
+  void LoopHelix::syncPhi0(LoopHelix const& other) {
+// adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    static double twopi = 2*M_PI;
+    int nloop = static_cast<int>(round( (other.phi0() - phi0())/twopi));
+    if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
+  }
+
+  void LoopHelix::setTransforms() {
     // adjust rotations to global space
     g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
     l2g_ = g2l_.Inverse();
+  }
+
+  void LoopHelix::setBNom(double time, VEC3 const& newbnom) {
+    auto db = newbnom - bnom_;
+//    PSMAT dpdpdb =ROOT::Math::SMatrixIdentity();
+//    PSMAT dpdpdb = dPardPardB(time,db);
+//    std::cout << "dpdpdb = " << dpdpdb << std::endl;
+//    pars_.covariance() = ROOT::Math::Similarity(dpdpdb,pars_.covariance());
+    pars_.parameters() += dPardB(time,db);
+    // rotate covariance: for now, just for the magnitude change.  Rotation is still TODO
+    resetBNom(newbnom);
+  }
+
+  void LoopHelix::resetBNom(VEC3 const& newbnom) {
+    bnom_ = newbnom;
+    setTransforms();
   }
 
   LoopHelix::LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref) : LoopHelix(other) {
@@ -89,10 +96,8 @@ namespace KinKal {
 
   LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
     trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
-      // set the transforms
-      g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-      l2g_ = g2l_.Inverse();
-    }
+    setTransforms();
+  }
 
   LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
     LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range)
@@ -257,33 +262,60 @@ namespace KinKal {
     return dPardMLoc(time)*g2lmat;
   }
 
-  DVEC LoopHelix::dPardB(double time) const {
+  PSMAT LoopHelix::dPardPardB(double time,VEC3 const& db) const {
+    auto newbnom = bnom_ + db;
+    double bfrac = bnom_.R()/newbnom.R();
+    auto xvec = localPosition(time);
     double phival = phi(time);
-    DVEC retval;
-    retval[rad_] = -rad();
-    retval[lam_] = -lam();
-    retval[cx_] = rad()*sin(phival);
-    retval[cy_] = -rad()*cos(phival);
-    retval[phi0_] = -dphi(time);
-    retval[t0_] = 0.0;
-    return (1.0/bnom_.R())*retval;
+    double cphi = cos(phival);
+    double sphi = sin(phival);
+    // compute the rows
+    DVEC dpdpdb_rad; dpdpdb_rad[rad_] = bfrac;
+    DVEC dpdpdb_lam; dpdpdb_lam[lam_] = bfrac;
+    DVEC dpdpdb_cx; dpdpdb_cx[cx_] = 1.0; dpdpdb_cx[rad_] = sphi*(1-bfrac);
+    DVEC dpdpdb_cy; dpdpdb_cy[cy_] = 1.0; dpdpdb_cy[rad_] = -cphi*(1-bfrac);
+    DVEC dpdpdb_phi0; dpdpdb_phi0[phi0_] = 1.0;  dpdpdb_phi0[lam_] = -xvec.Z()*(1-1.0/bfrac)/(lam()*lam());
+    DVEC dpdpdb_t0; dpdpdb_t0[t0_] = 1.0;
+    // build the matrix from these rows
+    PSMAT dpdpdb;
+    dpdpdb.Place_in_row(dpdpdb_rad,rad_,0);
+    dpdpdb.Place_in_row(dpdpdb_lam,lam_,0);
+    dpdpdb.Place_in_row(dpdpdb_cx,cx_,0);
+    dpdpdb.Place_in_row(dpdpdb_cy,cy_,0);
+    dpdpdb.Place_in_row(dpdpdb_phi0,phi0_,0);
+    dpdpdb.Place_in_row(dpdpdb_t0,t0_,0);
+    return dpdpdb;
   }
 
-  DVEC LoopHelix::dPardB(double time, VEC3 const& BPrime) const {
-    // rotate new B field difference into local coordinate system
-    VEC3 dB = g2l_(BPrime-bnom_);
-    // find the parameter change due to BField magnitude change usng component parallel to the local nominal Bfield (always along z)
-    DVEC retval = dPardB(time)*dB.Z();
-    // find the change in (local) position and momentum due to the rotation implied by the B direction change
-    // work in local coordinate system to avoid additional matrix mulitplications
+  DVEC LoopHelix::dPardB(double time, VEC3 const& db) const {
+    // record position and momentum in local coordinates; these are constant
     auto xvec = localPosition(time);
     auto mvec = localMomentum(time);
-    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    // translate newbnom to local coordinates
+    VEC3 dbloc = g2l_(db);
+    // find the parameter change due to bnom magnitude change.  These are exact
+    double br = bnom_.R();
+    auto zhat = VEC3(0.0,0.0,1.0);
+    auto bloc = br*zhat;
+    auto newbloc = dbloc + bloc;
+    double nbr = newbloc.R();
+    DVEC retval;
+    double dbf  = (br - nbr)/nbr;
+    retval[rad_] = rad()*dbf;
+    retval[lam_] = lam()*dbf;
+    retval[phi0_] = xvec.Z()*(br -nbr)/br/lam();
+    retval[t0_] = 0.0;
+    retval[cx_] = -sin(mvec.Phi())*retval[rad_];
+    retval[cy_] = cos(mvec.Phi())*retval[rad_];
+
+    // find the change in local position and momentum due to the rotation implied by the B direction change
+    // work in local coordinate system to avoid additional matrix mulitplications
+    VEC3 BxdB = zhat.Cross(dbloc)/br;
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
-    // convert these to a full state vector change
+    // convert these to the state vector change
     ParticleState dstate(dx,dm,time,mass(),charge());
-    // convert the change in (local) state due to rotation to parameter space
+    // convert the (local) state due to rotation to parameter space
     retval += dPardStateLoc(time)*dstate.state();
     return retval;
   }

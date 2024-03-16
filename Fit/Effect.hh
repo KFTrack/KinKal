@@ -20,7 +20,6 @@ namespace KinKal {
     public:
       // type of the data payload used for processing the fit
       using PTRAJ = ParticleTrajectory<KTRAJ>;
-      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       Effect() {}
       virtual ~Effect(){}
       // Effect interface
@@ -35,7 +34,7 @@ namespace KinKal {
       // add this effect to a trajectory in the given direction
       virtual void append(PTRAJ& fit,TimeDir tdir) =0;
       // update the reference trajectory for this effect
-      virtual void updateReference(KTRAJPTR const& ltraj) =0;
+      virtual void updateReference(PTRAJ const& ptraj) =0;
       // chisquared WRT a given local parameter set, assumed uncorrelatedd  This is used for convergence testing
       virtual Chisq chisq(Parameters const& pdata) const  = 0;
       // diagnostic printout

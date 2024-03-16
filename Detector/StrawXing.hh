@@ -7,7 +7,7 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Detector/StrawMaterial.hh"
 #include "KinKal/Detector/StrawXingConfig.hh"
-#include "KinKal/Trajectory/Line.hh"
+#include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
 namespace KinKal {
@@ -16,15 +16,15 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using EXING = ElementXing<KTRAJ>;
-      using PCA = PiecewiseClosestApproach<KTRAJ,Line>;
-      using CA = ClosestApproach<KTRAJ,Line>;
+      using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
+      using CA = ClosestApproach<KTRAJ,SensorLine>;
       // construct from PCA and material
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
       // ElementXing interface
       void updateReference(KTRAJPTR const& ktrajptr) override;
       void updateState(MetaIterConfig const& config,bool first) override;
-      Parameters parameters(TimeDir tdir) const override;
+      Parameters params() const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
       double transitTime() const override; // time to cross this element
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
@@ -36,7 +36,7 @@ namespace KinKal {
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
     private:
-      Line axis_; // straw axis, expressed as a timeline
+      SensorLine axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
       CA tpca_; // result of most recent TPOCA
       double toff_; // small time offset
@@ -78,7 +78,7 @@ namespace KinKal {
     if(mxings_.size() > 0){
       // compute the parameter effect for forwards time
       std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      this->materialEffects(TimeDir::forwards, dmom, momvar);
+      this->materialEffects(dmom, momvar);
       // get the parameter derivative WRT momentum
       DPDV dPdM = referenceTrajectory().dPardM(time());
       double mommag = referenceTrajectory().momentum(time());
@@ -101,11 +101,8 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> Parameters StrawXing<KTRAJ>::parameters(TimeDir tdir) const {
-    if(tdir == TimeDir::forwards)
-      return fparams_;
-    else
-      return Parameters(-fparams_.parameters(),fparams_.covariance());
+  template <class KTRAJ> Parameters StrawXing<KTRAJ>::params() const {
+    return fparams_;
   }
 
   template <class KTRAJ> double StrawXing<KTRAJ>::transitTime() const {

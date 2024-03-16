@@ -39,6 +39,7 @@ class KinematicLine {
     static std::string const &paramUnit(ParamIndex index);
 
     constexpr static ParamIndex t0Index() { return t0_; }
+    constexpr static ParamIndex phi0Index() { return phi0_; }
     static std::string const &trajName();
 
     // This also requires the nominal BField, which can be a vector (3d) or a
@@ -54,6 +55,7 @@ class KinematicLine {
     KinematicLine(Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange=TimeRange() );
 
     KinematicLine(Parameters const& pars);
+    void syncPhi0(KinematicLine const& other);
 
     explicit KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
@@ -100,7 +102,8 @@ class KinematicLine {
     TimeRange const &range() const { return trange_; }
     TimeRange &range() {return trange_; }
     virtual void setRange(TimeRange const &trange) { trange_ = trange; }
-    void setBNom(double time, VEC3 const& bnom) { bnom_ = bnom; }
+    void setBNom(double time, VEC3 const& bnom) { resetBNom(bnom); }
+    void resetBNom(VEC3 const& bnom) { bnom_ = bnom; }
     bool inRange(double time) const { return trange_.inRange(time); }
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
@@ -139,6 +142,7 @@ class KinematicLine {
     // Parameter derivatives given a change in BField.  These return null for KinematicLine
     DVEC dPardB(double time) const { return DVEC(); }
     DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
+    PSMAT dPardPardB(double time,VEC3 const& db) const { return ROOT::Math::SMatrixIdentity(); }
     // implement 'helix' interface.  This has a physically valid interpretion even for a line
     Ray axis(double time) const; // helix axis in global coordinates
     double bendRadius() const { return 0.0; }

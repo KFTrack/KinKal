@@ -1,6 +1,7 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "Math/AxisAngle.h"
 #include <math.h>
+#include <cmath>
 #include <stdexcept>
 
 using namespace std;
@@ -34,18 +35,14 @@ namespace KinKal {
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
     MOM4 mom(mom0);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    if(fabs(g2l_(bnom_).Theta()) > 1.0e-6)throw invalid_argument("Rotation Error");
+    setTransforms();
     pos = g2l_(pos);
     mom = g2l_(mom);
-    // create inverse rotation; this moves back into the original coordinate system
-    l2g_ = g2l_.Inverse();
     // kinematic to geometric conversion
     double radToMom = BFieldMap::cbar()*charge*bnom_.R();
     double momToRad = 1.0/radToMom;
     abscharge_ = abs(charge);
     double mbar = -mass_ * momToRad;
-    absmbar_ = fabs(mbar);
     // caches
     double pt = sqrt(mom.perp2());
     double radius = fabs(pt*momToRad);
@@ -77,51 +74,27 @@ namespace KinKal {
     param(z0_) = z0 - nwind*deltaz;
     // t0, also correcting for winding
     param(t0_) = pos.T() -(dphi + 2*M_PI*nwind)/Omega();
-    // test
-//    auto testpos = position3(pos0.T());
-//    auto testmom = momentum3(pos0.T());
-//    auto dp = testpos - pos0.Vect();
-//    auto dm = testmom - mom0.Vect();
-//    if(dp.R() > 1.0e-5 || dm.R() > 1.0e-5)throw invalid_argument("Construction Test Failure");
-//    // check
-//    auto lmom = localMomentum(pos0.T());
-//    auto tcent = center();
-//    if(fabs(lcent.phi()-tcent.phi())>1e-5 || fabs(lcent.perp2()-tcent.perp2()) > 1e-5){
-//      cout << "center " << lcent << " test center " << tcent << endl;
-//    }
-//    if(fabs(tan(phi0()) +1.0/tan(lcent.phi())) > 1e-5){
-//      cout << "phi0 " << phi0() << " test phi0 " << -1.0/tan(lcent.phi()) << endl;
-//    }
-//    double d0t = sign()*sqrt(lcent.perp2())-sqrt(lmom.perp2())/Q();
-//    if(fabs(d0t - d0()) > 1e-5){
-//      cout  << " d0 " << d0() << " d0 test " << d0t << endl;
-//    }
   }
 
   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
-    // adjust the parameters for the change in bnom
-    absmbar_ *= bnom_.R()/bnom.R();
-    pars_.parameters() += dPardB(time,bnom);
+    // adjust the parameters for the change in bnom holding the state constant
+    VEC3 db = bnom-bnom_;
+    pars_.parameters() += dPardB(time,db);
+    resetBNom(bnom);
+    // rotate covariance TODO
+  }
+
+  void CentralHelix::resetBNom(VEC3 const& bnom) {
     bnom_ = bnom;
-    // adjust rotations to global space
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    l2g_ = g2l_.Inverse();
+    setTransforms();
   }
 
   CentralHelix::CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot) : CentralHelix(other) {
-    absmbar_ *= bnom_.R()/bnom.R();
-    bnom_ = bnom;
-    pars_.parameters() += other.dPardB(trot,bnom);
-    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
-    l2g_ = g2l_.Inverse();
+    setBNom(trot,bnom);
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
     //FIXME for now just ignore sign
-    // if(abscharge < 0) throw invalid_argument("Central helix charge sign should be defined by omega");
-    // compute kinematic cache
-    double momToRad = 1.0/(BFieldMap::cbar()*charge*bnom);
-    absmbar_ = fabs(-mass_ * momToRad);
     abscharge_ = abs(charge);
   }
 
@@ -139,6 +112,19 @@ namespace KinKal {
       PSMAT dpds = dPardState(pstate.time());
       pars_.covariance() = ROOT::Math::Similarity(dpds,pstate.stateCovariance());
     }
+
+  void CentralHelix::syncPhi0(CentralHelix const& other) {
+    // adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    static double twopi = 2*M_PI;
+    int nloop = static_cast<int>(std::round( (other.phi0() - phi0())/twopi));
+    if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
+  }
+
+  void CentralHelix::setTransforms() {
+    // adjust rotations to global space
+    g2l_ = Rotation3D(AxisAngle(VEC3(sin(bnom_.Phi()),-cos(bnom_.Phi()),0.0),bnom_.Theta()));
+    l2g_ = g2l_.Inverse();
+  }
 
   double CentralHelix::momentumVariance(double time) const {
     DVEC dMomdP(0.0,  0.0, -1.0/omega() , 0.0 , sinDip()*cosDip() , 0.0);
@@ -437,14 +423,21 @@ namespace KinKal {
     retval[phi0_] = -sign()*rad*cent.Dot(mperp)/(rcval*rcval);
     retval[z0_] = lpos.Z()-z0() + tanDip()*retval[phi0_]/omega();
     retval[t0_] = time-t0() + retval[phi0_]/Omega();
-    return (1.0/bnom_.R())*retval;
+    return retval;
   }
 
-  DVEC CentralHelix::dPardB(double time, VEC3 const& BPrime) const {
+  PSMAT CentralHelix::dPardPardB(double time,VEC3 const& db) const {
+    PSMAT dpdpdb = ROOT::Math::SMatrixIdentity();
+    return dpdpdb;
+  }
+
+
+  DVEC CentralHelix::dPardB(double time, VEC3 const& dB) const {
     // rotate Bfield difference into local coordinate system
-    VEC3 dB = g2l_(BPrime-bnom_);
+    VEC3 dBloc = g2l_(dB);
     // find the parameter change due to BField magnitude change using component parallel to the local nominal Bfield (always along z)
-    DVEC retval = dPardB(time)*dB.Z();
+    double bfrac = dBloc.Z()/bnom_.R();
+    DVEC retval = dPardB(time)*bfrac/(1.0 + bfrac);
     // find the change in (local) position and momentum due to the rotation implied by the B direction change
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);
