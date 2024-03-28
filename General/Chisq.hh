@@ -9,7 +9,7 @@ namespace KinKal {
   class Chisq {
     public:
       // default constructor
-      Chisq() : chisq_(0.0), ndof_(0) {}
+      Chisq(int nparams=0) : chisq_(0.0), ndof_(-nparams) {}
       Chisq(double chisq, unsigned ndof) : chisq_(chisq), ndof_(ndof) {}
       double chisq() const { return chisq_; }
       int nDOF() const { return ndof_; }
