@@ -143,7 +143,7 @@ namespace KinKal {
       void addDomain(Domain const& domain,TimeDir const& tdir);
       auto& status() { return history_.back(); } // most recent status
       // divide the range into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
-      void createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
+      bool createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
       // payload
       CONFIGCOL config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
@@ -172,9 +172,18 @@ namespace KinKal {
     // set the seed time based on the min and max time from the inputs
     TimeRange refrange = getRange(hits,exings);
     seedtraj_.setRange(refrange);
-    // if correcting for DomainWall effects, define the domains
+    // if correcting for magnetic field effects, define the domains
     DOMAINCOL domains;
-    if(config().bfcorr_ ) createDomains(seedtraj_, refrange, domains, config().tol_);
+    if(config().bfcorr_ ) {
+      bool dok = createDomains(seedtraj_, refrange, domains, config().tol_);
+      if(!dok){
+        // failed initialization
+        history_.push_back(Status(0));
+        status().status_ = Status::outsidemap;
+        status().comment_ = std::string("Initialization error");
+        return;
+      }
+    }
     // Create the initial reference trajectory from the seed trajectory
     createTraj(seedtraj_,refrange,domains);
     // create all the other effects
@@ -201,11 +210,12 @@ namespace KinKal {
       exrange.combine(newrange);
     }
     DOMAINCOL domains;
+    bool dok(true);
     if(config().bfcorr_ ) {
       // if the previous configuration didn't have domains, then create them for the full reference range
       if(!oldconfig.bfcorr_ || oldconfig.tol_ != config().tol_){
         // create domains for the whole range
-        createDomains(*fittraj_, exrange, domains, config().tol_);
+        dok &= createDomains(*fittraj_, exrange, domains, config().tol_);
         // replace the domains.  This also replace the trajectory, as that must reference the new domains
         replaceDomains(domains);
       } else {
@@ -213,16 +223,23 @@ namespace KinKal {
         TimeRange exlow(exrange.begin(),fittraj_->range().begin());
         if(exlow.range()>0.0) {
           DOMAINCOL lowdomains;
-          createDomains(*fittraj_, exlow, lowdomains, config().tol_);
+          dok &= createDomains(*fittraj_, exlow, lowdomains, config().tol_);
           domains.insert(lowdomains.begin(),lowdomains.end());
         }
         TimeRange exhigh(fittraj_->range().end(),exrange.end());
         if(exhigh.range()>0.0){
           DOMAINCOL highdomains;
-          createDomains(*fittraj_, exhigh, highdomains, config().tol_);
+          dok &= createDomains(*fittraj_, exhigh, highdomains, config().tol_);
           domains.insert(highdomains.begin(),highdomains.end());
         }
       }
+    }
+    if(!dok){
+      // domain calculation failed: abort the fit
+      history_.push_back(Status(0));
+      status().status_ = Status::outsidemap;
+      status().comment_ = std::string("Extension error");
+     return;
     }
     // Extend the traj and create the effects for the new info and the new domains
     extendTraj(domains);
@@ -393,6 +410,10 @@ namespace KinKal {
     }
     // update the domains
     TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
+    if(fitrange.range() == 0){
+      status().status_ = Status::lowNDOF;
+      return;
+    }
     if(config().bfcorr_){
     // update the limits if new DW effects were added
       if(extendDomains(fitrange,config().tol_))setBounds(fwdbnds,revbnds);
@@ -648,20 +669,27 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the DomainWall corrections
-  template<class KTRAJ> void Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const {
+  template<class KTRAJ> bool Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const {
+    bool retval(true);
     auto const& ktraj = ptraj.nearestPiece(range.begin());
-    double trange = bfield_.rangeInTolerance(ktraj,range.begin(),tol);
-    // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
-    double tstart = range.begin() - 0.5*trange;
-    do {
-      // see how far we can go on the current traj before the DomainWall change causes the momentum estimate to go out of tolerance
-      // note this assumes the trajectory is accurate (geometric extrapolation only)
-      auto const& ktraj = ptraj.nearestPiece(tstart);
-      trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
-      domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange)),tol));
-      // start the next domain at the end of this one
-      tstart += trange;
-    } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
+    // catch exceptions if the fit extends beyond the range of the field map
+    try {
+      double trange = bfield_.rangeInTolerance(ktraj,range.begin(),tol);
+      // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
+      double tstart = range.begin() - 0.5*trange;
+      do {
+        // see how far we can go on the current traj before the DomainWall change causes the momentum estimate to go out of tolerance
+        // note this assumes the trajectory is accurate (geometric extrapolation only)
+        auto const& ktraj = ptraj.nearestPiece(tstart);
+        trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
+        domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange)),tol));
+        // start the next domain at the end of this one
+        tstart += trange;
+      } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
+    } catch (std::exception const& error) {
+      retval = false;
+    }
+    return retval;
   }
 
   template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {
@@ -682,22 +710,30 @@ namespace KinKal {
     bool retval(false);
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
-        // iterate until the extrapolation condition is met
-        double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
-        double tstart = time;
-        while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
-          // create a domain for this extrapolation
-          auto const& ktraj = fittraj_->nearestPiece(time);
-          double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
-          TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-          Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xconfig.tol_);
-          addDomain(domain,xconfig.xdir_);
-          time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
+        // test for extrapolation outside the bfield map range
+        try {
+          // iterate until the extrapolation condition is met
+          double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
+          double tstart = time;
+          while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
+            // create a domain for this extrapolation
+            auto const& ktraj = fittraj_->nearestPiece(time);
+            double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
+            TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xconfig.tol_);
+            addDomain(domain,xconfig.xdir_);
+            time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
+          }
+        } catch (std::exception const& error) {
+          history_.push_back(Status(0));
+          status().status_ = Status::outsidemap;
+          status().comment_ = std::string("Extrapolation error");
+          retval = false;
         }
         retval = true;
+      } else {
+        retval = true;
       }
-    } else {
-      retval = true;
     }
     return retval;
   }
