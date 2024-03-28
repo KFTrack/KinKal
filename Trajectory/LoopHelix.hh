@@ -137,6 +137,10 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
+      // convenience accessors
+      VEC2 center() const { return VEC2(cx(),cy()); }
+      double minAxisDist() const { return fabs(center().R()-fabs(rad())); } // minimum distance to the axis
+      double maxAxisDist() const { return center().R()+fabs(rad()); } // maximum distance to the axis
       double axisSpeed() const; // speed along the axis direction (always positive)
       double bendRadius() const { return fabs(rad());}
     private :

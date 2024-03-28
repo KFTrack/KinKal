@@ -17,6 +17,8 @@ namespace KinKal {
         return "GapDiverged ";
       case Status::lowNDOF:
         return "LowNDOF ";
+      case Status::outsidemap:
+        return "OutsideBFieldMap ";
       case Status::failed:
         return "Failed ";
     }
