@@ -217,20 +217,20 @@ namespace KinKal {
         // create domains for the whole range
         dok &= createDomains(*fittraj_, exrange, domains, config().tol_);
         // replace the domains.  This also replace the trajectory, as that must reference the new domains
-        replaceDomains(domains);
+        if(dok)replaceDomains(domains);
       } else {
         // create domains just for the extensions
         TimeRange exlow(exrange.begin(),fittraj_->range().begin());
         if(exlow.range()>0.0) {
           DOMAINCOL lowdomains;
           dok &= createDomains(*fittraj_, exlow, lowdomains, config().tol_);
-          domains.insert(lowdomains.begin(),lowdomains.end());
+          if(dok)domains.insert(lowdomains.begin(),lowdomains.end());
         }
         TimeRange exhigh(fittraj_->range().end(),exrange.end());
         if(exhigh.range()>0.0){
           DOMAINCOL highdomains;
           dok &= createDomains(*fittraj_, exhigh, highdomains, config().tol_);
-          domains.insert(highdomains.begin(),highdomains.end());
+          if(dok)domains.insert(highdomains.begin(),highdomains.end());
         }
       }
     }
