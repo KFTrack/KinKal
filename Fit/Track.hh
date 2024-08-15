@@ -42,7 +42,6 @@
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/DomainWall.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/ExtraConfig.hh"
 #include "KinKal/Fit/Status.hh"
 #include "KinKal/Fit/Domain.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -105,7 +104,7 @@ namespace KinKal {
       // extrapolate the fit with the given config until the given predicate is satisfied. This function requires
       // the fit be valid, otherwise the return code is false.  If successful the status, domains, and trajectory of the fit are updated
       // Note that the actual fit itself is unchanged
-      template <class XTEST> bool extrapolate(ExtraConfig const& xconfig, XTEST const& XTest);
+      template <class XTEST> bool extrapolate(XTEST const& XTest);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -706,23 +705,23 @@ namespace KinKal {
     return TimeRange(tmin,tmax);
   }
 
-  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(ExtraConfig const& xconfig, XTEST const& xtest) {
+  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(XTEST const& xtest) {
     bool retval(false);
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
         // test for extrapolation outside the bfield map range
         try {
           // iterate until the extrapolation condition is met
-          double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
+          double time = xtest.timeDirection() == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
           double tstart = time;
-          while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
+          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*this,time) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
-            double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
-            TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xconfig.tol_);
-            addDomain(domain,xconfig.xdir_);
-            time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
+            double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
+            TimeRange range = xtest.timeDirection() == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.tolerance());
+            addDomain(domain,xtest.timeDirection());
+            time = xtest.timeDirection() == TimeDir::forwards ? domain.end() : domain.begin();
           }
         } catch (std::exception const& error) {
           history_.push_back(Status(0));
