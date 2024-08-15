@@ -104,7 +104,7 @@ namespace KinKal {
       // extrapolate the fit with the given config until the given predicate is satisfied. This function requires
       // the fit be valid, otherwise the return code is false.  If successful the status, domains, and trajectory of the fit are updated
       // Note that the actual fit itself is unchanged
-      template <class XTEST> bool extrapolate(XTEST const& XTest);
+      template <class XTEST> bool extrapolate(TimeDir tdir, XTEST const& XTest);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -118,6 +118,7 @@ namespace KinKal {
       EXINGCOL const& exings() const { return exings_; }
       DOMAINCOL const& domains() const { return domains_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
+      TimeRange activeRange() const; // time range of active hits
     protected:
       Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
       void fit(HITCOL& hits, EXINGCOL& exings );
@@ -694,6 +695,7 @@ namespace KinKal {
   template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
+    // can't assume effects are sorted
     for(auto const& hit : hits){
       tmin = std::min(tmin,hit->time());
       tmax = std::max(tmax,hit->time());
@@ -705,23 +707,23 @@ namespace KinKal {
     return TimeRange(tmin,tmax);
   }
 
-  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(XTEST const& xtest) {
+  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(TimeDir tdir, XTEST const& xtest) {
     bool retval(false);
     if(this->fitStatus().usable()){
       if(config().bfcorr_){
         // test for extrapolation outside the bfield map range
         try {
           // iterate until the extrapolation condition is met
-          double time = xtest.timeDirection() == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
+          double time = tdir == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
           double tstart = time;
-          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*this,time) ){
+          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*this,tdir,time) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
             double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
-            TimeRange range = xtest.timeDirection() == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+            TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
             Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.tolerance());
-            addDomain(domain,xtest.timeDirection());
-            time = xtest.timeDirection() == TimeDir::forwards ? domain.end() : domain.begin();
+            addDomain(domain,tdir);
+            time = tdir == TimeDir::forwards ? domain.end() : domain.begin();
           }
         } catch (std::exception const& error) {
           history_.push_back(Status(0));
@@ -756,5 +758,15 @@ namespace KinKal {
     }
     domains_.insert(dptr);
  }
+  template<class KTRAJ> TimeRange Track<KTRAJ>::activeRange() const {
+    double tmin = std::numeric_limits<double>::max();
+    double tmax = -std::numeric_limits<double>::max();
+    // can't assume effects are sorted
+    for(auto const& hit : hits_){
+      tmin = std::min(tmin,hit->time());
+      tmax = std::max(tmax,hit->time());
+    }
+    return TimeRange(tmin,tmax);
+  }
 }
 #endif

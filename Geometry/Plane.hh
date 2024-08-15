@@ -25,7 +25,7 @@ namespace KinKal {
       auto const& vDirection() const { return vdir_; }
       auto const& normal() const { return norm_; }
       Plane tangentPlane(VEC3 const& ) const override { return *this; }
-      // plane interfac3
+      // plane interface
       auto const& center() const { return center_; }
     private:
       // note that UVW forms a right-handed orthonormal coordinate system
