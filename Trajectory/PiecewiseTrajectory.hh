@@ -209,13 +209,13 @@ namespace KinKal {
   template <class KTRAJ> double PiecewiseTrajectory<KTRAJ>::t0() const {
   // find a self-consistent t0
     if(pieces_.empty())throw std::length_error("Empty PiecewiseTrajectory!");
-    double t0 = pieces_.front().t0();
+    double t0 = pieces_.front()->t0();
     auto index = nearestIndex(t0);
     int oldindex = -1;
     unsigned niter(0);
     while(static_cast<int>(index) != oldindex && niter < 10){
       ++niter;
-      t0 = pieces_[index].t0();
+      t0 = pieces_[index]->t0();
       oldindex = index;
       index = nearestIndex(t0);
     }
