@@ -25,6 +25,7 @@ namespace KinKal {
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
       void append(PTRAJ& fit,TimeDir tdir) override;
+      void appendExact(PTRAJ& fit,TimeDir tdir) override;
       void updateReference(PTRAJ const& ptraj) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -88,6 +89,11 @@ namespace KinKal {
         ptraj.prepend(newpiece);
       }
     }
+  }
+
+  template<class KTRAJ> void Material<KTRAJ>::appendExact(PTRAJ& ptraj,TimeDir tdir) {
+    // for now, use 1st order approx. TODO
+    append(ptraj,tdir);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj) {

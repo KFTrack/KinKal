@@ -1,7 +1,8 @@
 #ifndef KinKal_Domain_hh
 #define KinKal_Domain_hh
 //
-//  domain used in computing magnetic field corrections: just a time range and the tolerance used to define it
+//  domain used to compute magnetic field corrections. Magnetic bending not described by the intrinsic parameterization is assumed
+//  to be negligible over the domain
 //
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"

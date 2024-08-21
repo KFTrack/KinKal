@@ -140,7 +140,7 @@ namespace KinKal {
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
       // add a single domain within the tolerance and extend the fit in the specified direction.
-      void addDomain(Domain const& domain,TimeDir const& tdir);
+      void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
       auto& status() { return history_.back(); } // most recent status
       // divide the range into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
       bool createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
@@ -722,7 +722,7 @@ namespace KinKal {
             double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
             TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
             Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.tolerance());
-            addDomain(domain,tdir);
+            addDomain(domain,tdir,true); // use exact transport
             time = tdir == TimeDir::forwards ? domain.end() : domain.begin();
           }
         } catch (std::exception const& error) {
@@ -739,25 +739,33 @@ namespace KinKal {
     return retval;
   }
 
-  template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
+  template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir,bool exact) {
     auto dptr = std::make_shared<Domain>(domain);
     if(tdir == TimeDir::forwards){
       auto const& prevdom = *domains_.crbegin();
       auto const& ktraj = fittraj_->nearestPiece(prevdom->end());
-      FitState fstate(ktraj.params());
-      effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
-      effects_.back()->process(fstate,tdir);
-      effects_.back()->append(*fittraj_,tdir);
+      auto& dw = effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
+      if(exact){
+        dw->appendExact(*fittraj_,tdir);
+      } else {
+        FitState fstate(ktraj.params());
+        effects_.back()->process(fstate,tdir);
+        effects_.back()->append(*fittraj_,tdir);
+      }
     } else {
       auto const& nextdom = *domains_.cbegin();
       auto const& ktraj = fittraj_->nearestPiece(nextdom->begin());
-      FitState fstate(ktraj.params());
-      effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
-      effects_.front()->process(fstate,tdir);
-      effects_.front()->append(*fittraj_,tdir);
+      auto& dw = effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
+      if(exact){
+        dw->appendExact(*fittraj_,tdir);
+      } else {
+        FitState fstate(ktraj.params());
+        effects_.front()->process(fstate,tdir);
+        effects_.front()->append(*fittraj_,tdir);
+      }
     }
     domains_.insert(dptr);
- }
+  }
   template<class KTRAJ> TimeRange Track<KTRAJ>::activeRange() const {
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
