@@ -110,7 +110,6 @@ namespace KinKal {
     if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
         (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
       throw std::invalid_argument("DomainWall: Can't append piece");
-    auto const& oldpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
     // sample the particle state at this domain wall
     auto pstate = ptraj.stateEstimate(time());
     if( tdir == TimeDir::forwards){
