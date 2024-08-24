@@ -21,7 +21,7 @@ namespace KinKal {
       ShellXing(SURFPTR surface, MatEnv::DetMaterial const& mat, Intersection inter, double thickness)
       virtual ~ShellXing() {}
       // ElementXing interface
-      void updateReference(KTRAJPTR const& ktrajptr) override;
+      void updateReference(PTRAJ const& ptraj) override;
       void updateState(MetaIterConfig const& config,bool first) override;
       Parameters params() const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
@@ -45,7 +45,7 @@ namespace KinKal {
     varscale_(1.0)
   {}
 
-  template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // need a ptraj to re-compute the intersection, not clear what to do here FIXME
   }
 

@@ -169,7 +169,7 @@ namespace KKTest {
     double tstraw = sxing->time();
     auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
-    sxing->updateReference(endtraj);
+    sxing->updateReference(ptraj);
     sxing->updateState(miconfig_,true);
     double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);

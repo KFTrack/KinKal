@@ -272,7 +272,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           PTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
-          thit->updateReference(modtptraj.backPtr());// refer to moded helix
+          thit->updateReference(modtptraj);// refer to moded helix
           thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){

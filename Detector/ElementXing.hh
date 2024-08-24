@@ -19,7 +19,7 @@ namespace KinKal {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}
-      virtual void updateReference(KTRAJPTR const& ktrajptr) = 0; // update the trajectory reference
+      virtual void updateReference(PTRAJ const& ptraj) = 0; // update the trajectory reference
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
       virtual Parameters params() const =0; // parameter change induced by this element crossing WRT the reference parameters going forwards in time
       virtual double time() const=0; // time the particle crosses thie element

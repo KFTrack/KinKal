@@ -60,7 +60,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    hit_->updateReference(ptraj.nearestTraj(hit_->time()));
+    hit_->updateReference(ptraj);
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

@@ -97,7 +97,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    exing_->updateReference(ptraj.nearestTraj(exing_->time()));
+    exing_->updateReference(ptraj);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {
