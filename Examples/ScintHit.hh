@@ -55,8 +55,8 @@ namespace KinKal {
   template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // use previous hint, or initialize from the sensor time
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(saxis_.measurementTime(), saxis_.measurementTime());
-    auto ktrajptr = ptraj.nearestTraj(time()); // use piecewise TDCA TODO
-    tpca_ = CA(ktrajptr,saxis_,tphint,precision());
+    PCA pca(ptraj,saxis_,tphint,precision());
+    tpca_ = pca.localClosestApproach();
     if(!tpca_.usable())throw std::runtime_error("ScintHit TPOCA failure");
   }
 
