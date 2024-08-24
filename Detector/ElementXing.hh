@@ -7,12 +7,9 @@
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/Detector/MaterialXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
-#include "KinKal/Detector/Hit.hh"
 #include "KinKal/Fit/MetaIterConfig.hh"
 #include <vector>
-#include <stdexcept>
 #include <array>
-#include <limits>
 #include <ostream>
 
 namespace KinKal {
