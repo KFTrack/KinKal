@@ -29,7 +29,7 @@ namespace KinKal {
       void updateReference(PTRAJ const& ptraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PTRAJ& fit,TimeDir tdir) override;
-      void appendExact(PTRAJ& fit,TimeDir tdir) override;
+      void extrapolate(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();} // no information added
       auto const& parameterChange() const { return dpfwd_; }
       virtual ~DomainWall(){}
@@ -105,7 +105,7 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void DomainWall<KTRAJ>::appendExact(PTRAJ& ptraj,TimeDir tdir) {
+  template<class KTRAJ> void DomainWall<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
   // make sure the piece is appendable
     if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
         (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )

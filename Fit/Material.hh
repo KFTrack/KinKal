@@ -25,7 +25,7 @@ namespace KinKal {
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
       void append(PTRAJ& fit,TimeDir tdir) override;
-      void appendExact(PTRAJ& fit,TimeDir tdir) override;
+      void extrapolate(PTRAJ& fit,TimeDir tdir) override;
       void updateReference(PTRAJ const& ptraj) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -91,13 +91,38 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::appendExact(PTRAJ& ptraj,TimeDir tdir) {
-    // work in momentum space
-//    auto pstate = ptraj.stateEstimate(time());
-    // first, adjust the momentum magnitude to account for enery loss
-
-    // for now, use 1st order approx. TODO
-    append(ptraj,tdir);
+  template<class KTRAJ> void Material<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
+  // make sure the traj can be extrapolated
+    if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
+        (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
+      throw std::invalid_argument("DomainWall: Can't append piece");
+    auto ktrajptr = ptraj.nearestTraj(time());
+    // convert parameters at this material to momentum space representation
+    auto pstate = ktrajptr->stateEstimate(time());
+    auto bnom = ktrajptr->bnom();
+    // change in momentum due to the associated element Xing
+    SVEC3 dmom;
+    SMAT dmomvar;
+    exing_->momentumChange(dmom,dmomvar);
+    // expand these to the full particle state, with null position and cross-covariance
+    DMAT dstatevar; dstatevar.Place_at(dmomvar,3,3); // lower right corner for momentum
+    auto psvar = pstate.stateCovariance() + dstatevar;
+    SVEC6 dstate; dstate.Place_at(dmom,3);
+    // update the pstate accordingly. momentum vector change depends on the time direction, but not the covariance
+    if( tdir == TimeDir::forwards){
+      // add the material effect
+      auto psvec = pstate.state() + dstate;
+      ParticleStateEstimate newpstate(psvec,psvar,time(),pstate.mass(),pstate.charge());
+      TimeRange range(time(),ptraj.range().end());
+      KTRAJ newpiece(newpstate, bnom, range);
+      ptraj.append(newpiece);
+    } else {
+      auto psvec = pstate.state() - dstate;
+      ParticleStateEstimate newpstate(psvec,psvar,time(),pstate.mass(),pstate.charge());
+      TimeRange range(ptraj.range().begin(),time());
+      KTRAJ newpiece(newpstate, bnom, range);
+      ptraj.prepend(newpiece);
+    }
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj) {

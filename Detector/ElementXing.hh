@@ -29,41 +29,51 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
       // crossings  without material are inactive
       bool active() const { return matXings().size() > 0; }
-      // calculate the cumulative material effect from all the materials in this element crossing going forwards in time
-      // absolute change in momentum, and variances on momentum due to energy loss and scaterring
-      void materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const;
-      // compute the parameter change associated with crossing this element forwards in time
+      // momentum change and variance increase associated with crossing this element forwards in time, in spatial basis
+      void momentumChange(SVEC3& dmom, SMAT& dmomvar) const;
+      // parameter change associated with crossing this element forwards in time
       Parameters parameterChange(double varscale=1.0) const;
+      // cumulative material effect from all the materials in this element crossing going forwards in time, expressed as scalars
+      void materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const;
       // sum radiation fraction
       double radiationFraction() const;
     private:
   };
 
-  template <class KTRAJ> Parameters ElementXing<KTRAJ>::parameterChange(double varscale) const {
+  template <class KTRAJ> void ElementXing<KTRAJ>::momentumChange(SVEC3& dmom, SMAT& dmomvar) const {
     // compute the parameter effect for forwards time
     double dm, paramomvar, perpmomvar;
     materialEffects(dm, paramomvar,perpmomvar);
-    // correct for energy loss; this is along the momentum
+    // momentum change due to energy loss; this is along the momentum
     auto momdir = referenceTrajectory().direction(time());
-    DPDV dPdM = referenceTrajectory().dPardM(time());
-    DVEC pder = dPdM*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
-    auto pvec = pder*dm;
+    dmom = dm*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
     // now update the covariance; this includes smearing from energy straggling and multiple scattering
     // move variances into a matrix
-    ROOT::Math::SVector<double, 6>  varvec(paramomvar*varscale, 0, perpmomvar*varscale, 0, 0, perpmomvar*varscale);
+    ROOT::Math::SVector<double, 6>  varvec(paramomvar, 0, perpmomvar, 0, 0, perpmomvar);
     SMAT mmvar(varvec);
-    // transform that to global cartesian basis
-    // loop over the momentum change basis directions and create the transform matrix between that and global cartesian basis
-    SSMAT dmdxyz; // momentum -> cartesian conversion matrix
+    // loop over the momentum change basis directions and create the transform matrix between that and global Cartesian basis
+    SSMAT dmdxyz; // momentum basis -> Cartesian conversion matrix
     for(int idir=0;idir<MomBasis::ndir; idir++) {
       auto mdir = referenceTrajectory().direction(time(),static_cast<MomBasis::Direction>(idir));
       SVEC3 vmdir(mdir.X(), mdir.Y(), mdir.Z());
       dmdxyz.Place_in_col(vmdir,0,idir);
     }
-    SMAT mxyzvar = ROOT::Math::Similarity(dmdxyz,mmvar);
-    // finaly, convert that into parameter space, and add it to the covariance
-    auto pmat = ROOT::Math::Similarity(dPdM,mxyzvar);
-    return Parameters(pvec,pmat);
+    // return variance in global Cartesian coordinates
+    dmomvar = ROOT::Math::Similarity(dmdxyz,mmvar);
+  }
+
+  template <class KTRAJ> Parameters ElementXing<KTRAJ>::parameterChange(double varscale) const {
+    // compute this xing's effect on momentum in global Cartesian
+    SVEC3 dmom;
+    SMAT dmomvar;
+    momentumChange(dmom,dmomvar);
+    // convert that to parameter space
+    DPDV dPdM = referenceTrajectory().dPardM(time());
+    auto dmomp = dPdM*dmom;
+    // scale covariance as needed
+    dmomvar*= varscale;
+    auto dmompvar = ROOT::Math::Similarity(dPdM,dmomvar);
+    return Parameters(dmomp,dmompvar);
   }
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const {

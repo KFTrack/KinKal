@@ -746,7 +746,7 @@ namespace KinKal {
       auto const& ktraj = fittraj_->nearestPiece(prevdom->end());
       auto& dw = effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
       if(exact){
-        dw->appendExact(*fittraj_,tdir);
+        dw->extrapolate(*fittraj_,tdir);
       } else {
         FitState fstate(ktraj.params());
         effects_.back()->process(fstate,tdir);
@@ -757,7 +757,7 @@ namespace KinKal {
       auto const& ktraj = fittraj_->nearestPiece(nextdom->begin());
       auto& dw = effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
       if(exact){
-        dw->appendExact(*fittraj_,tdir);
+        dw->extrapolate(*fittraj_,tdir);
       } else {
         FitState fstate(ktraj.params());
         effects_.front()->process(fstate,tdir);
