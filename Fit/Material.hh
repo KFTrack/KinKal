@@ -93,7 +93,7 @@ namespace KinKal {
 
   template<class KTRAJ> void Material<KTRAJ>::appendExact(PTRAJ& ptraj,TimeDir tdir) {
     // work in momentum space
-    auto pstate = ptraj.stateEstimate(time());
+//    auto pstate = ptraj.stateEstimate(time());
     // first, adjust the momentum magnitude to account for enery loss
 
     // for now, use 1st order approx. TODO

@@ -25,8 +25,7 @@ namespace KinKal {
       void updateReference(PTRAJ const& ptraj) override;
       void updateState(MetaIterConfig const& config,bool first) override;
       Parameters params() const override;
-      double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
-      double transitTime() const override; // time to cross this element
+      double time() const override { return inter_.time(); }
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
       std::vector<MaterialXing>const&  matXings() const override { return mxings_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -70,28 +69,6 @@ namespace KinKal {
     // reset
     fparams_ = Parameters();
     if(mxings_.size() > 0){
-      // compute the parameter effect for forwards time
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      this->materialEffects(dmom, momvar);
-      // get the parameter derivative WRT momentum
-      DPDV dPdM = referenceTrajectory().dPardM(time());
-      double mommag = referenceTrajectory().momentum(time());
-      // loop over the momentum change basis directions, adding up the effects on parameters from each
-      for(int idir=0;idir<MomBasis::ndir; idir++) {
-        auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = referenceTrajectory().direction(time(),mdir);
-        // project the momentum derivatives onto this direction
-        DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
-        // convert derivative vector to a Nx1 matrix
-        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-        dPdm.Place_in_col(pder,0,0);
-        // update the transport for this effect; Forward time propagation corresponds to energy loss
-        fparams_.parameters() += pder*dmom[idir];
-        // now the variance: this doesn't depend on time direction
-        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-        MVar(0,0) = momvar[idir]*varscale_;
-        fparams_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
-      }
     }
   }
 
@@ -99,21 +76,8 @@ namespace KinKal {
     return fparams_;
   }
 
-  template <class KTRAJ> double ShellXing<KTRAJ>::transitTime() const {
-    return smat_.transitLength(tpca_.tpData())/tpca_.particleTraj().speed(tpca_.particleToca());
-  }
-
   template <class KTRAJ> void ShellXing<KTRAJ>::print(std::ostream& ost,int detail) const {
-    ost <<"Straw Xing time " << this->time();
-    if(detail > 0){
-      for(auto const& mxing : mxings_){
-        ost << " " << mxing.dmat_.name() << " pathLen " << mxing.plen_;
-      }
-    }
-    if(detail > 1){
-      ost << " Axis ";
-      axis_.print(ost,0);
-    }
+    ost <<"Shell Xing time " << this->time();
     ost << std::endl;
   }
 

@@ -949,11 +949,9 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
               minfo.time_ = kkmat->time();
               minfo.active_ = kkmat->active();
               minfo.nxing_ = kkmat->elementXing().matXings().size();
-              std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-              kkmat->elementXing().materialEffects(dmom, momvar);
-              minfo.dmomf_ = dmom[MomBasis::momdir_];
-              minfo.momvar_ = momvar[MomBasis::momdir_];
-              minfo.perpvar_ = momvar[MomBasis::perpdir_];
+              double dmomf, momvar, perpvar;
+              kkmat->elementXing().materialEffects(dmomf, momvar, perpvar);
+              minfo.dmomf_ = dmomf; minfo.momvar_ = momvar; minfo.perpvar_ = perpvar;
               STRAWXING* sxing = dynamic_cast<STRAWXING*>(kkmat->elementXingPtr().get());
               if(sxing != 0){
                 minfo.doca_ = sxing->closestApproach().doca();

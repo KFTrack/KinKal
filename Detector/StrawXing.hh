@@ -9,6 +9,7 @@
 #include "KinKal/Detector/StrawXingConfig.hh"
 #include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
+#include "KinKal/Trajectory/TrajUtils.hh"
 
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public ElementXing<KTRAJ> {
@@ -77,27 +78,24 @@ namespace KinKal {
     // reset
     fparams_ = Parameters();
     if(mxings_.size() > 0){
-      // compute the parameter effect for forwards time
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      this->materialEffects(dmom, momvar);
-      // get the parameter derivative WRT momentum
+      // compute the material effects for forwards time (energy loss)
+      double dm, paramomvar, perpmomvar;
+      this->materialEffects(dm, paramomvar,perpmomvar);
+      // correct for energy loss; this is along the momentum
+      auto momdir = referenceTrajectory().direction(time());
       DPDV dPdM = referenceTrajectory().dPardM(time());
-      // loop over the momentum change basis directions, adding up the effects on parameters from each
-      for(int idir=0;idir<MomBasis::ndir; idir++) {
-        auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = referenceTrajectory().direction(time(),mdir);
-        // project the momentum derivatives onto this direction
-        DVEC pder = dPdM*SVEC3(dir.X(), dir.Y(), dir.Z());
-        // convert derivative vector to a Nx1 matrix
-        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-        dPdm.Place_in_col(pder,0,0);
-        // update the transport for this effect; Forward time propagation corresponds to energy loss
-        fparams_.parameters() += pder*dmom[idir];
-        // now the variance: this doesn't depend on time direction
-        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-        MVar(0,0) = momvar[idir]*varscale_;
-        fparams_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
-      }
+      DVEC pder = dPdM*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
+      fparams_.parameters() += pder*dm;
+      // now update the covariance; this includes smearing from energy straggling and multiple scattering
+      // move variances into a matrix
+      ROOT::Math::SVector<double, 6>  varvec(paramomvar, 0, perpmomvar, 0, 0, perpmomvar);
+      SMAT mmvar(varvec);
+      // transform that to global cartesian basis
+      SSMAT dmdxyz = momToGlobal(referenceTrajectory(),time()); // momentum -> cartesian cvonersion matrix
+      // use that to rotate the covariance into cartesian coordinates
+      SMAT mxyzvar = ROOT::Math::Similarity(dmdxyz,mmvar);
+      // finaly, convert that into parameter space, and add it to the covariance
+      fparams_.covariance() += ROOT::Math::Similarity(dPdM,mxyzvar);
     }
   }
 

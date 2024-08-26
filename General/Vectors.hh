@@ -20,10 +20,10 @@ namespace KinKal {
   using POL2 = ROOT::Math::Polar2D<double>; // 2D polar vector.  Context-dependent z axis definition
   using VEC2 = ROOT::Math::XYVector; // 2D cartesian vector
   // Algebraic representations of spatial vectors: these are not miscible with the above
-  using VMAT = ROOT::Math::SMatrix<double,NDim(),NDim(),ROOT::Math::MatRepSym<double,NDim()>>;  // matrix type for spatial vector covariance
   using DPDV = ROOT::Math::SMatrix<double,NParams(),NDim(),ROOT::Math::MatRepStd<double,NParams(),NDim()>>; // parameter derivatives WRT space dimension type
   using DVDP = ROOT::Math::SMatrix<double,NDim(),NParams(),ROOT::Math::MatRepStd<double,NDim(),NParams()>>; // space dimension derivatives WRT parameter type
   using SMAT = ROOT::Math::SMatrix<double,NDim(),NDim(),ROOT::Math::MatRepSym<double,NDim()>>;  // Spatial covariance matrix
+  using SSMAT = ROOT::Math::SMatrix<double,NDim(),NDim(),ROOT::Math::MatRepStd<double,NDim()>>;  // Spatial matrix
   using SVEC3 = ROOT::Math::SVector<double,NDim()>; // spatial (algebraic) vector
   using PMAT = ROOT::Math::SMatrix<double,2,2,ROOT::Math::MatRepSym<double,2>>;  // Planar covariance matrix
   using PPMAT = ROOT::Math::SMatrix<double,2,NParams(),ROOT::Math::MatRepStd<double,2,NParams()>>; // Planar projection matrix

@@ -31,17 +31,18 @@ namespace KinKal {
       bool active() const { return matXings().size() > 0; }
       // calculate the cumulative material effect from all the materials in this element crossing going forwards in time
       // absolute change in momentum, and variances on momentum due to energy loss and scaterring
-      void materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const;
+      void materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const;
       // sum radiation fraction
       double radiationFraction() const;
     private:
   };
 
-  template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const {
+  template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const {
     // accumulate the change in energy and scattering angle variance from the material components
     double E = referenceTrajectory().energy();
     double mom = referenceTrajectory().momentum();
     double mass = referenceTrajectory().mass();
+    // loop over individual materials and accumulate their effects
     double dE(0.0), dEVar(0.0), scatvar(0.0);
     for(auto const& mxing : matXings()){
       dE += mxing.dmat_.energyLoss(mom,mxing.plen_,mass);
@@ -50,12 +51,10 @@ namespace KinKal {
     }
     // convert energy change to change in momentum
     double dmdE = E/mom;
-    dmom [MomBasis::momdir_] = dE*dmdE;
-    momvar[MomBasis::momdir_] = dEVar*dmdE*dmdE;
-    double perpmomvar = scatvar*mom*mom;
-    // scattering variance is the same in each perp direction
-    momvar[MomBasis::perpdir_] = perpmomvar;
-    momvar[MomBasis::phidir_] = perpmomvar;
+    dmom = dE*dmdE;
+    paramomvar = dEVar*dmdE*dmdE;
+    // scattering applies directly to momentum (1st order)
+    perpmomvar = scatvar*mom*mom;
   }
 
   template <class KTRAJ> double ElementXing<KTRAJ>::radiationFraction() const {

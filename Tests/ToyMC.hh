@@ -125,6 +125,7 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
     createTraj(ptraj);
+    double mom = ptraj.momentum(0.0);
     // divide time range
     double dt(0.0);
     if(nhits_ > 0) dt = (ptraj.range().range())/(nhits_);
@@ -152,9 +153,9 @@ namespace KKTest {
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
       if(addmat) dxings.push_back(xing);
       if(simmat_){
-        double defrac = createStrawMaterial(ptraj, xing.get());
+        double de = createStrawMaterial(ptraj, xing.get());
         // terminate if there is catastrophic energy loss
-        if(fabs(defrac) > 0.1)break;
+        if(fabs(de/mom) > 0.1)break;
       }
     }
     if(scinthit_ && tr_.Uniform(0.0,1.0) > ineff_){
@@ -165,43 +166,30 @@ namespace KKTest {
   }
 
   template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& ptraj, EXING* sxing) {
-    double desum = 0.0;
     double tstraw = sxing->time();
     auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
     sxing->updateReference(ptraj);
     sxing->updateState(miconfig_,true);
-    double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
-    std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing->materialEffects(dmom, momvar);
+    double dm, paramomvar, perpmomvar;
+    sxing->materialEffects(dm, paramomvar,perpmomvar);
+    // compute the momentum change; start with energy loss
+    VEC3 dmvec = dm*endmom.Vect().Unit();
+    // randomize momentum change with Gaussian
+    SVEC3 momsig(sqrt(paramomvar),sqrt(perpmomvar), sqrt(perpmomvar));
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
       auto mdir = static_cast<MomBasis::Direction>(idir);
-      double momsig = sqrt(momvar[idir]);
-      double dm;
-      // generate a random effect given this variance and mean
-      switch( mdir ) {
-        case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
-          dm = tr_.Gaus(dmom[idir],momsig);
-          break;
-        case KinKal::MomBasis::momdir_ :
-          dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-          desum += dm;
-          break;
-        default:
-          throw std::invalid_argument("Invalid direction");
-      }
-      auto dmvec = endpiece.direction(tstraw,mdir);
-      dmvec *= dm*mom;
-      endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+      dmvec += tr_.Gaus(0.0,momsig[idir])*endpiece.direction(tstraw,mdir);
     }
-    // generate a new piece and append
+    endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+    // generate a new piece with this momentumand append
     VEC3 bnom = bfield_.fieldVect(endpos.Vect());
     KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,ptraj.range().end()));
     //      newend.print(cout,1);
     ptraj.append(newend);
-    return desum/mom;
+    return dm;
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
