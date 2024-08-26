@@ -9,7 +9,6 @@
 #include "KinKal/Examples/StrawXingConfig.hh"
 #include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
-#include "KinKal/Trajectory/TrajUtils.hh"
 
 namespace KinKal {
   template <class KTRAJ> class StrawXing : public ElementXing<KTRAJ> {
@@ -75,26 +74,11 @@ namespace KinKal {
         varscale_ = 1.0;
     }
     smat_.findXings(tpca_.tpData(),sxconfig_,mxings_);
-    // reset
-    fparams_ = Parameters();
     if(mxings_.size() > 0){
-      // compute the material effects for forwards time (energy loss)
-      double dm, paramomvar, perpmomvar;
-      this->materialEffects(dm, paramomvar,perpmomvar);
-      // correct for energy loss; this is along the momentum
-      auto momdir = referenceTrajectory().direction(time());
-      DPDV dPdM = referenceTrajectory().dPardM(time());
-      DVEC pder = dPdM*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
-      fparams_.parameters() += pder*dm;
-      // now update the covariance; this includes smearing from energy straggling and multiple scattering
-      // move variances into a matrix
-      ROOT::Math::SVector<double, 6>  varvec(paramomvar*varscale_, 0, perpmomvar*varscale_, 0, 0, perpmomvar*varscale_);
-      SMAT mmvar(varvec);
-      // transform that to global cartesian basis
-      SSMAT dmdxyz = momToGlobal(referenceTrajectory(),time()); // momentum -> cartesian cvonersion matrix
-      SMAT mxyzvar = ROOT::Math::Similarity(dmdxyz,mmvar);
-      // finaly, convert that into parameter space, and add it to the covariance
-      fparams_.covariance() += ROOT::Math::Similarity(dPdM,mxyzvar);
+      fparams_ = this->parameterChange(varscale_);
+    } else {
+      // reset
+      fparams_ = Parameters();
     }
   }
 

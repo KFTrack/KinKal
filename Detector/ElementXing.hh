@@ -32,10 +32,39 @@ namespace KinKal {
       // calculate the cumulative material effect from all the materials in this element crossing going forwards in time
       // absolute change in momentum, and variances on momentum due to energy loss and scaterring
       void materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const;
+      // compute the parameter change associated with crossing this element forwards in time
+      Parameters parameterChange(double varscale=1.0) const;
       // sum radiation fraction
       double radiationFraction() const;
     private:
   };
+
+  template <class KTRAJ> Parameters ElementXing<KTRAJ>::parameterChange(double varscale) const {
+    // compute the parameter effect for forwards time
+    double dm, paramomvar, perpmomvar;
+    materialEffects(dm, paramomvar,perpmomvar);
+    // correct for energy loss; this is along the momentum
+    auto momdir = referenceTrajectory().direction(time());
+    DPDV dPdM = referenceTrajectory().dPardM(time());
+    DVEC pder = dPdM*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
+    auto pvec = pder*dm;
+    // now update the covariance; this includes smearing from energy straggling and multiple scattering
+    // move variances into a matrix
+    ROOT::Math::SVector<double, 6>  varvec(paramomvar*varscale, 0, perpmomvar*varscale, 0, 0, perpmomvar*varscale);
+    SMAT mmvar(varvec);
+    // transform that to global cartesian basis
+    // loop over the momentum change basis directions and create the transform matrix between that and global cartesian basis
+    SSMAT dmdxyz; // momentum -> cartesian conversion matrix
+    for(int idir=0;idir<MomBasis::ndir; idir++) {
+      auto mdir = referenceTrajectory().direction(time(),static_cast<MomBasis::Direction>(idir));
+      SVEC3 vmdir(mdir.X(), mdir.Y(), mdir.Z());
+      dmdxyz.Place_in_col(vmdir,0,idir);
+    }
+    SMAT mxyzvar = ROOT::Math::Similarity(dmdxyz,mmvar);
+    // finaly, convert that into parameter space, and add it to the covariance
+    auto pmat = ROOT::Math::Similarity(dPdM,mxyzvar);
+    return Parameters(pvec,pmat);
+  }
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(double& dmom, double& paramomvar, double& perpmomvar) const {
     // accumulate the change in energy and scattering angle variance from the material components
