@@ -30,6 +30,7 @@ namespace KinKal {
       // crossings  without material are inactive
       bool active() const { return matXings().size() > 0; }
       // calculate the cumulative material effect from all the materials in this element crossing going forwards in time
+      // absolute change in momentum, and variances on momentum due to energy loss and scaterring
       void materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const;
       // sum radiation fraction
       double radiationFraction() const;
@@ -37,20 +38,24 @@ namespace KinKal {
   };
 
   template <class KTRAJ> void ElementXing<KTRAJ>::materialEffects(std::array<double,3>& dmom, std::array<double,3>& momvar) const {
-    // compute the derivative of momentum to energy, at the reference trajectory
-    double mom = referenceTrajectory().momentum(time());
+    // accumulate the change in energy and scattering angle variance from the material components
+    double E = referenceTrajectory().energy();
+    double mom = referenceTrajectory().momentum();
     double mass = referenceTrajectory().mass();
-    double dmFdE = sqrt(mom*mom+mass*mass)/(mom*mom); // dimension of 1/E
-    // loop over crossings for this detector piece
+    double dE(0.0), dEVar(0.0), scatvar(0.0);
     for(auto const& mxing : matXings()){
-      // compute FRACTIONAL momentum change and variance on that in the given direction
-      momvar[MomBasis::momdir_] += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass)*dmFdE*dmFdE;
-      dmom [MomBasis::momdir_]+= mxing.dmat_.energyLoss(mom,mxing.plen_,mass)*dmFdE;
-      double scatvar = mxing.dmat_.scatterAngleVar(mom,mxing.plen_,mass);
-      // scattering is the same in each direction and has no net effect, it only adds noise
-      momvar[MomBasis::perpdir_] += scatvar;
-      momvar[MomBasis::phidir_] += scatvar;
+      dE += mxing.dmat_.energyLoss(mom,mxing.plen_,mass);
+      dEVar += mxing.dmat_.energyLossVar(mom,mxing.plen_,mass);
+      scatvar += mxing.dmat_.scatterAngleVar(mom,mxing.plen_,mass);
     }
+    // convert energy change to change in momentum
+    double dmdE = E/mom;
+    dmom [MomBasis::momdir_] = dE*dmdE;
+    momvar[MomBasis::momdir_] = dEVar*dmdE*dmdE;
+    double perpmomvar = scatvar*mom*mom;
+    // scattering variance is the same in each perp direction
+    momvar[MomBasis::perpdir_] = perpmomvar;
+    momvar[MomBasis::phidir_] = perpmomvar;
   }
 
   template <class KTRAJ> double ElementXing<KTRAJ>::radiationFraction() const {

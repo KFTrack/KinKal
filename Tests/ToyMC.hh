@@ -180,14 +180,14 @@ namespace KKTest {
       auto mdir = static_cast<MomBasis::Direction>(idir);
       double momsig = sqrt(momvar[idir]);
       double dm;
-      // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
+      // generate a random effect given this variance and mean
       switch( mdir ) {
         case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
           dm = tr_.Gaus(dmom[idir],momsig);
           break;
         case KinKal::MomBasis::momdir_ :
           dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-          desum += dm*mom;
+          desum += dm;
           break;
         default:
           throw std::invalid_argument("Invalid direction");

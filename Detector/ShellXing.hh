@@ -6,6 +6,7 @@
 //
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Geometry/Surface.hh"
+#include "KinKal/Geometry/ParticleTrajectoryIntersect.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
 
 namespace KinKal {
@@ -36,17 +37,21 @@ namespace KinKal {
       Intersection inter_; // most recent intersection
       std::vector<MaterialXing> mxings_; // material xing
       double thick_; // shell thickness
+      double tol_; // tolerance for intersection
       double varscale_; // variance scale, for annealing
       Parameters fparams_; // 1st-order parameter change for forwards time
   };
 
-  template <class KTRAJ> ShellXing<KTRAJ>::ShellXing(SURFPTR surface, MatEnv::DetMaterial const& mat, Intersection inter, double thickness) :
-    surf_(surface), mat_(mat), inter_(inter),thick_(thick),
+  template <class KTRAJ> ShellXing<KTRAJ>::ShellXing(SURFPTR surface, MatEnv::DetMaterial const& mat, Intersection inter, double thickness, double tol) :
+    surf_(surface), mat_(mat), inter_(inter),thick_(thick),tol_(tol),
     varscale_(1.0)
   {}
 
   template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    // need a ptraj to re-compute the intersection, not clear what to do here FIXME
+
+    // re-intersect with the surface, taking the current time as start and range from the current piece (symmetrized)
+    TimeRange irange(
+    //
   }
 
   template <class KTRAJ> void ShellXing<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {

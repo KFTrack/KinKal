@@ -69,7 +69,7 @@ class KinematicLine {
     VEC3 momentum3(double time) const;
 
     // scalar momentum and energy in MeV/c units --> Needed for KKTrk:
-    double momentum(double time) const { return mom(); }
+    double momentum(double time=0.0) const { return mom(); }
 
     double momentumVariance(double time) const { return pars_.covariance()(mom_,mom_); }
     double positionVariance(double time,MomBasis::Direction dir) const;
