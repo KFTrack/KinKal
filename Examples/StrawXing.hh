@@ -5,8 +5,8 @@
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/Detector/ElementXing.hh"
-#include "KinKal/Detector/StrawMaterial.hh"
-#include "KinKal/Detector/StrawXingConfig.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
+#include "KinKal/Examples/StrawXingConfig.hh"
 #include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Trajectory/TrajUtils.hh"
@@ -88,11 +88,10 @@ namespace KinKal {
       fparams_.parameters() += pder*dm;
       // now update the covariance; this includes smearing from energy straggling and multiple scattering
       // move variances into a matrix
-      ROOT::Math::SVector<double, 6>  varvec(paramomvar, 0, perpmomvar, 0, 0, perpmomvar);
+      ROOT::Math::SVector<double, 6>  varvec(paramomvar*varscale_, 0, perpmomvar*varscale_, 0, 0, perpmomvar*varscale_);
       SMAT mmvar(varvec);
       // transform that to global cartesian basis
       SSMAT dmdxyz = momToGlobal(referenceTrajectory(),time()); // momentum -> cartesian cvonersion matrix
-      // use that to rotate the covariance into cartesian coordinates
       SMAT mxyzvar = ROOT::Math::Similarity(dmdxyz,mmvar);
       // finaly, convert that into parameter space, and add it to the covariance
       fparams_.covariance() += ROOT::Math::Similarity(dPdM,mxyzvar);

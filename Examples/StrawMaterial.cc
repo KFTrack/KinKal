@@ -1,4 +1,4 @@
-#include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
 #include <cmath>
 #include <algorithm>
 #include <stdexcept>

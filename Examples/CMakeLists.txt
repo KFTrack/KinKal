@@ -14,6 +14,7 @@ ROOT_GENERATE_DICTIONARY(ExamplesDict
 # create shared library with ROOT dict
 add_library(Examples SHARED
   CaloDistanceToTime.cc
+  StrawMaterial.cc
   ExamplesDict
 )
 target_include_directories(Examples PRIVATE ${PROJECT_SOURCE_DIR}/..)

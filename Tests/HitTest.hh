@@ -6,7 +6,7 @@
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Examples/ScintHit.hh"
-#include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"

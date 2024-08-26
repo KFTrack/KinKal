@@ -6,7 +6,7 @@
 //
 #include "KinKal/MatEnv/DetMaterial.hh"
 #include "KinKal/Detector/MaterialXing.hh"
-#include "KinKal/Detector/StrawXingConfig.hh"
+#include "KinKal/Examples/StrawXingConfig.hh"
 #include "KinKal/MatEnv/MatDBInfo.hh"
 #include "KinKal/Trajectory/ClosestApproachData.hh"
 
