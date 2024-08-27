@@ -7,6 +7,7 @@
 #include "KinKal/Detector/ElementXing.hh"
 #include "KinKal/Geometry/Surface.hh"
 #include "KinKal/Geometry/ParticleTrajectoryIntersect.hh"
+#include "Offline/Mu2eKinKal/inc/ShellXingUpdater.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
 
 namespace KinKal {
@@ -38,30 +39,49 @@ namespace KinKal {
       std::vector<MaterialXing> mxings_; // material xing
       double thick_; // shell thickness
       double tol_; // tolerance for intersection
-      double varscale_; // variance scale, for annealing
       Parameters fparams_; // 1st-order parameter change for forwards time
+      ShellXingUpdater sxconfig_; // note this must come from an updater during processing
+      double varscale_; // cache
   };
 
   template <class KTRAJ> ShellXing<KTRAJ>::ShellXing(SURFPTR surface, MatEnv::DetMaterial const& mat, Intersection inter,
       KTTRAJPTR reftrajptr, double thickness, double tol) :
-    surf_(surface), mat_(mat), inter_(inter), reftrajptr_(reftrajptr), thick_(thick),tol_(tol),
-    varscale_(1.0)
+    surf_(surface), mat_(mat), inter_(inter), reftrajptr_(reftrajptr), thick_(thick),tol_(tol), varscale_(1.0)
   {}
 
   template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // re-intersect with the surface, taking the current time as start and range from the current piece (symmetrized)
-    double delta = 0.5*reftraj->range().range();
+    double delta = 0.5*reftraj->range().range(); // this factor may need tuning: too small and it may miss the intersection, too large and it may jump to a different intersection TODO
     TimeRange irange(inter_.time_-delta, inter_.time_+delta);
     inter_ = intersect(ptraj, &surf_, irange,tol_);
-    reftrajptr_ = ptraj.nearestTraj(inter_.time_);
+    reftrajptr_ = ptraj.nearestTraj(inter_.time_); // I may need to protect against the case the time is crazy (failed intersection) TODO
   }
 
   template <class KTRAJ> void ShellXing<KTRAJ>::updateState(MetaIterConfig const& miconfig,bool first) {
-    // reset. This assumes we're off the surface
-    fparams_ = Parameters();
-    mxings_.clear();
-    // check if we are on the surface
-    if(inter_.onsurface_ && inter_.inbounds_){
+    if(first) {
+      // search for an update to the xing configuration among this meta-iteration payload
+      auto sxconfig = miconfig.findUpdater<ShellXingUpdater>();
+      if(sxconfig != 0) sxconfig_ = *sxconfig;
+      if(sxconfig_.scalevar_) varscale_ = miconfig.varianceScale();
+      // find the material xings from gas, straw wall, and wire
+      auto cad = ca_.tpData();
+      if(shptr_ && shptr_->hitState().active()){
+        // if we have an associated hit, overwrite the DOCA and DOCAVAR using the drift info, which is much more accurate
+        auto dinfo = shptr_->fillDriftInfo();
+        cad.doca_ = dinfo.rDrift_;
+        cad.docavar_ = dinfo.unsignedDriftVar();
+      }
+      mxings_.clear();
+      // check if we are on the surface
+      if(inter_.onsurface_ && inter_.inbounds_){
+        // compute the material
+      }
+    }
+    if(mxings_.size() > 0){
+      fparams_ = this->parameterChange(varscale_);
+    } else {
+      // reset
+      fparams_ = Parameters();
     }
   }
 
