@@ -4,9 +4,10 @@
 //  Define directions of time
 //
 #include <ostream>
-namespace KinKal { 
+namespace KinKal {
   enum struct TimeDir{forwards=0,backwards, end}; // time direction; forwards = increasing time, backwards = decreasing time
   TimeDir& operator ++ (TimeDir& tdir);
   std::ostream& operator <<(std::ostream& ost, TimeDir const& tdir);
+  double timeDirSign(TimeDir& tdir);
 }
 #endif
