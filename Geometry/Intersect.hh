@@ -140,7 +140,8 @@ namespace KinKal {
   //
   template <class HELIX> Intersection hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
-    auto axis = helix.axis(trange.begin());
+    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+    auto axis = helix.axis(tstart);
     if(tdir == TimeDir::backwards)axis.reverse();
     // test for the helix being circular or tangent to the plane
     double vz = helix.axisSpeed();  // speed along the helix axis
@@ -152,7 +153,7 @@ namespace KinKal {
       auto pinter = plane.intersect(axis,dist,true,tol);
       if(pinter.onsurface_){
         // translate the axis intersection to a time
-        double tmid = trange.begin() + dist/vz;
+        double tmid = tstart + timeDirSign(tdir)*dist/vz;
         // bound the range of intersections by the extrema of the cylinder-plane intersection
         double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
         double dt = std::max(tol/vz,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
