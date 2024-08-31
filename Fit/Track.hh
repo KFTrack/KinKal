@@ -101,12 +101,12 @@ namespace KinKal {
       Track(Config const& config, BFieldMap const& bfield, PTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
-      // extrapolate the fit with the given config until the given predicate is satisfied. This function requires
+      // extrapolate the fit through the magnetic field with the given config until the given predicate is satisfied. This function requires
       // the fit be valid, otherwise the return code is false.  If successful the status, domains, and trajectory of the fit are updated
       // Note that the actual fit itself is unchanged
       template <class XTEST> bool extrapolate(TimeDir tdir, XTEST const& XTest);
-      // add a single material xing and extrapolate the fit through it. Can only be used after a valid fit, at one end of the fit trajectory
-      void addEXing(EXINGPTR const& exing,TimeDir const& tdir);
+      // extrapolate the fit through a material xing. Return value is true if the effect is added and fit updated.
+      bool extrapolate(EXINGPTR const& exing,TimeDir const& tdir);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -710,8 +710,8 @@ namespace KinKal {
   }
 
   template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(TimeDir tdir, XTEST const& xtest) {
-    bool retval(false);
-    if(this->fitStatus().usable()){
+    bool retval = this->fitStatus().usable();
+    if(retval){
       if(config().bfcorr_){
         // test for extrapolation outside the bfield map range
         try {
@@ -769,14 +769,25 @@ namespace KinKal {
     domains_.insert(dptr);
   }
 
-  template<class KTRAJ> void Track<KTRAJ>::addEXing(EXINGPTR const& exingptr,TimeDir const& tdir) {
-    if(tdir == TimeDir::forwards){
-      auto& exmat = effects_.emplace_back(std::make_unique<KKMAT>(exingptr,*fittraj_));
-      exmat->extrapolate(*fittraj_,tdir);
-    } else {
-      auto& exmat = effects_.emplace_front(std::make_unique<KKMAT>(exingptr,*fittraj_));
-      exmat->extrapolate(*fittraj_,tdir);
+  template<class KTRAJ> bool Track<KTRAJ>::extrapolate(EXINGPTR const& exingptr,TimeDir const& tdir) {
+    bool retval = this->fitStatus().usable();
+    if(retval){
+      if(tdir == TimeDir::forwards){
+        // make sure the time is legal
+        retval = fittraj_->back().range().inRange(exingptr->time());
+        if(retval){
+          auto& exmat = effects_.emplace_back(std::make_unique<KKMAT>(exingptr,*fittraj_));
+          exmat->extrapolate(*fittraj_,tdir);
+        }
+      } else {
+        retval = fittraj_->front().range().inRange(exingptr->time());
+        if(retval){
+          auto& exmat = effects_.emplace_front(std::make_unique<KKMAT>(exingptr,*fittraj_));
+          exmat->extrapolate(*fittraj_,tdir);
+        }
+      }
     }
+    return retval;
   }
 
 

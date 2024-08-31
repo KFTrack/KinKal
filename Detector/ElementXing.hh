@@ -44,7 +44,7 @@ namespace KinKal {
     // compute the parameter effect for forwards time
     double dm, paramomvar, perpmomvar;
     materialEffects(dm, paramomvar,perpmomvar);
-    // momentum change due to energy loss; this is along the momentum
+    // momentum change in forward time direction /mdue to energy loss; this is along the momentum
     auto momdir = referenceTrajectory().direction(time());
     dmom = dm*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
     // now update the covariance; this includes smearing from energy straggling and multiple scattering

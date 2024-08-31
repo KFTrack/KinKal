@@ -104,7 +104,6 @@ namespace KinKal {
     SVEC3 dmom;
     SMAT dmomvar;
     exingptr_->momentumChange(dmom,dmomvar);
-    dmom*= timeDirSign(tdir); // momentum change is time direction-dependent
     // expand these to the full particle state, with null position and cross-covariance
     DMAT dstatevar; dstatevar.Place_at(dmomvar,3,3); // lower right corner for momentum
     auto psvar = pstate.stateCovariance() + dstatevar;
