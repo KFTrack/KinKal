@@ -60,6 +60,8 @@ namespace KinKal {
         retval.norm_ = surf.normal(retval.pos_);
      }
     }
+    // check the final time to be in range; if we're out of range, negate the intersection
+    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
     return retval;
   }
   //
