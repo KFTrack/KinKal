@@ -4,7 +4,7 @@
 
 # Kinematic Kalman filter track fit code package
 
-  KinKal implements a kinematic Kalman filter track fit (future ref to CTD/pub).
+  KinKal implements a kinematic Kalman filter track fit, as described in https://www.epj-conferences.org/articles/epjconf/abs/2024/05/epjconf_chep2024_06001/epjconf_chep2024_06001.html.
   The primary class of KinKal is Track, which shares the state describing
   the fit inputs (hits, material interactions, BField corrections, etc), and owns the result of the fit,
   and the methods for computing it.  The fit result is expressed as a piecewise kinematic covariant
@@ -42,7 +42,9 @@
   uncertainties, convergence critera, and flags to specify which physical effects (like material interactions) should be updated
   based on the current complete kinematic trajectory estimate.  KinKal iterates each meta-iteration to algebraic convergence,
   by re-evaluating the extended Kalman filter derivatives, holding the physical paramters of the fit fixed.
-  The fit is performed on construction.
+  
+  The fit is performed on construction. After a fit, the track may be extrapolated by dead-reckoning through a magnetic field map and additional materials to make
+  predictions.
 
   KinKal uses the root SVector and SMatrix classes for algebraic manipulation, and GenVector classes to represent geometric and
   kinematic vectors, both part of the root Math package.  These are described on the [root website](https://root.cern.ch/root/html608/namespaceROOT_1_1Math.html)
