@@ -21,7 +21,7 @@ namespace KinKal {
       unsigned nResid() const override { return 1; } // 1 time residual
       Residual const& refResidual(unsigned ires=0) const override;
       double time() const override { return tpca_.particleToca(); }
-      void updateReference(KTRAJPTR const& ktrajptr) override;
+      void updateReference(PTRAJ const& ptraj) override;
       KTRAJPTR const& refTrajPtr() const override { return tpca_.particleTrajPtr(); }
       void updateState(MetaIterConfig const& config,bool first) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
@@ -52,10 +52,11 @@ namespace KinKal {
     return rresid_;
   }
 
-  template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void ScintHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // use previous hint, or initialize from the sensor time
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(saxis_.measurementTime(), saxis_.measurementTime());
-    tpca_ = CA(ktrajptr,saxis_,tphint,precision());
+    PCA pca(ptraj,saxis_,tphint,precision());
+    tpca_ = pca.localClosestApproach();
     if(!tpca_.usable())throw std::runtime_error("ScintHit TPOCA failure");
   }
 

@@ -7,3 +7,5 @@ debug/*
 .DS_Store
 .vscode/*
 .*.swp
+spack-*
+.spack*

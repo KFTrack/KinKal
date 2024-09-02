@@ -13,20 +13,21 @@
 #include "KinKal/Trajectory/CentralHelix.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/KinematicLine.hh"
+#include "KinKal/General/TimeDir.hh"
 #include "Math/VectorUtil.h"
 namespace KinKal {
   //
-  // generic intersection implementation based on stepping across the surface within a given range
+  // generic intersection implementation based on stepping across the surface within a given range in the given time direction
   //
-  template <class KTRAJ, class SURF> Intersection stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol) {
+  template <class KTRAJ, class SURF> Intersection stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
-    double ttest = trange.begin();
+    double ttest = tdir == TimeDir::forwards ? trange.begin() : trange.end();
     auto pos = ktraj.position3(ttest);
     double speed = ktraj.speed(ttest); // speed is constant
     bool startinside = surf.isInside(pos);
     bool stepinside;
     // set the step according to the range and tolerance.  The maximum range division is arbitrary, it should be set to a physical value TODO
-    double tstep = std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
+    double tstep = timeDirSign(tdir)*std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
     // step until we cross the surface or the time is out of range
     do {
       ttest += tstep;
@@ -59,6 +60,8 @@ namespace KinKal {
         retval.norm_ = surf.normal(retval.pos_);
      }
     }
+    // check the final time to be in range; if we're out of range, negate the intersection
+    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
     return retval;
   }
   //
@@ -90,7 +93,7 @@ namespace KinKal {
     return dradbeg*dradend < 0.0 || (dbeg > fabs(dradbeg)  -tol && dend > fabs(dradend) -tol);
   }
 
-  template < class HELIX> Intersection hcIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
+  template < class HELIX> Intersection hcIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
     // compare directions and divide into cases
     double ddot = fabs(helix.bnom().Unit().Dot(cyl.axis()));
@@ -102,7 +105,7 @@ namespace KinKal {
       if(binb && einb) {
         // both in bounds: use this range
         if(canIntersect(helix,cyl,trange,tol)){
-          retval = stepIntersect(helix,cyl,trange,tol);
+          retval = stepIntersect(helix,cyl,trange,tol,tdir);
         }
       } else {
         // create a list of times to select the most restrictive range
@@ -113,15 +116,15 @@ namespace KinKal {
         // note we don't know the orientation of the trajectory WRT the axis so we have to try both
         auto frontdisk = cyl.frontDisk();
         auto backdisk = cyl.backDisk();
-        auto frontinter = hpIntersect(helix,frontdisk,trange,tol);
-        auto backinter = hpIntersect(helix,backdisk,trange,tol);
+        auto frontinter = hpIntersect(helix,frontdisk,trange,tol,tdir);
+        auto backinter = hpIntersect(helix,backdisk,trange,tol,tdir);
         if(trange.inRange(frontinter.time_))times.push_back(frontinter.time_);
         if(trange.inRange(backinter.time_))times.push_back(backinter.time_);
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
 // intersection is possible: step within the restricted range
           if(canIntersect(helix,cyl,srange,tol)){
-            retval = stepIntersect(helix,cyl,srange,tol);
+            retval = stepIntersect(helix,cyl,srange,tol,tdir);
           }
         }
       }
@@ -130,16 +133,18 @@ namespace KinKal {
       //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
     } else {
     // intermediate case: use step intersection
-      retval = stepIntersect(helix,cyl,trange,tol);
+      retval = stepIntersect(helix,cyl,trange,tol,tdir);
     }
     return retval;
   }
   //
   // Helix and planar surfaces
   //
-  template <class HELIX> Intersection hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
+  template <class HELIX> Intersection hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
-    auto axis = helix.axis(trange.begin());
+    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+    auto axis = helix.axis(tstart);
+    if(tdir == TimeDir::backwards)axis.reverse();
     // test for the helix being circular or tangent to the plane
     double vz = helix.axisSpeed();  // speed along the helix axis
     double ddot = fabs(axis.direction().Dot(plane.normal()));
@@ -150,7 +155,7 @@ namespace KinKal {
       auto pinter = plane.intersect(axis,dist,true,tol);
       if(pinter.onsurface_){
         // translate the axis intersection to a time
-        double tmid = trange.begin() + dist/vz;
+        double tmid = tstart + timeDirSign(tdir)*dist/vz;
         // bound the range of intersections by the extrema of the cylinder-plane intersection
         double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
         double dt = std::max(tol/vz,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
@@ -167,20 +172,20 @@ namespace KinKal {
           if(srange.restrict(trange)){
             // step to the intersection in the restricted range.  Use a separate intersection object as the
             // range is different
-            retval = stepIntersect(helix,plane,srange,tol);
+            retval = stepIntersect(helix,plane,srange,tol,tdir);
           }
         }
       }
     } else {
       // simply step to intersection
-      retval = stepIntersect(helix,plane,trange,tol);
+      retval = stepIntersect(helix,plane,trange,tol,tdir);
     }
     return retval;
   }
   //
   //  Helix and frustrum
   //
-  template < class HELIX> Intersection hfIntersect( HELIX const& helix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
+  template < class HELIX> Intersection hfIntersect( HELIX const& helix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
     double ddot = fabs(helix.bnom().Unit().Dot(fru.axis()));
     if (ddot > 0.9) { // I need a more physical co-linear test TODO
@@ -191,7 +196,7 @@ namespace KinKal {
       if(binb && einb) {
         // both in bounds: use this range
         if(canIntersect(helix,fru,trange,tol)) {
-          retval  = stepIntersect(helix,fru,trange,tol);
+          retval  = stepIntersect(helix,fru,trange,tol,tdir);
         }
       } else {
         // create a list of times to select the most restrictive range
@@ -210,7 +215,7 @@ namespace KinKal {
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
 // intersection is possible: step within the restricted range
           if(canIntersect(helix,fru,srange,tol) ) {
-            retval = stepIntersect(helix,fru,srange,tol);
+            retval = stepIntersect(helix,fru,srange,tol,tdir);
           }
         }
       }
@@ -219,39 +224,39 @@ namespace KinKal {
       //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the frustrum, then invoke POCA.
     } else {
     // intermediate case: use step intersection
-      retval  = stepIntersect(helix,fru,trange,tol);
+      retval  = stepIntersect(helix,fru,trange,tol,tdir);
     }
     return retval;
   }
   //
   // Tie intersect to the explicit helix implementations
   //
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
-    return hcIntersect(lhelix,cyl,trange,tol);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hcIntersect(lhelix,cyl,trange,tol,tdir);
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol) {
-    return hcIntersect(chelix,cyl,trange,tol);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hcIntersect(chelix,cyl,trange,tol,tdir);
   }
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
-    return hpIntersect(lhelix,plane,trange,tol);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hpIntersect(lhelix,plane,trange,tol,tdir);
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Plane const& plane, TimeRange trange ,double tol) {
-    return hpIntersect(chelix,plane,trange,tol);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hpIntersect(chelix,plane,trange,tol,tdir);
   }
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
-    return hfIntersect(lhelix,fru,trange,tol);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hfIntersect(lhelix,fru,trange,tol,tdir);
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol) {
-    return hfIntersect(chelix,fru,trange,tol);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hfIntersect(chelix,fru,trange,tol,tdir);
   }
   //
-  // Line trajectory with generic surfaces; no specialization needed
+  // Line trajectory with generic surfaces; no specialization needed since all surfaces provide a ray intersection implementation
   //
-  Intersection intersect(KinKal::KinematicLine const& kkline, KinKal::Surface const& surf, TimeRange trange,double tol) {
+  Intersection intersect(KinKal::KinematicLine const& kkline, KinKal::Surface const& surf, TimeRange trange,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
-    auto tstart = trange.begin();
+    auto tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
     auto pos = kkline.position3(tstart);
-    auto dir = kkline.direction(tstart);
+    auto dir = kkline.direction(tstart)*timeDirSign(tdir);
     Ray ray(dir,pos);
     double dist;
     auto rayinter = surf.intersect(ray,dist,true,tol);
@@ -268,25 +273,25 @@ namespace KinKal {
   }
   // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine
   // is already complete
-  template <class KTRAJ> Intersection hsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol) {
+  template <class KTRAJ> Intersection hsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
     auto plane = dynamic_cast<const Plane*>(surfp);
-    if(plane)return intersect(ktraj,*plane,trange,tol);
+    if(plane)return intersect(ktraj,*plane,trange,tol,tdir);
     auto cyl = dynamic_cast<const Cylinder*>(surfp);
-    if(cyl)return intersect(ktraj,*cyl,trange,tol);
+    if(cyl)return intersect(ktraj,*cyl,trange,tol,tdir);
     auto fru = dynamic_cast<const Frustrum*>(surfp);
-    if(fru)return intersect(ktraj,*fru,trange,tol);
+    if(fru)return intersect(ktraj,*fru,trange,tol,tdir);
     // unknown surface subclass; return failure
     return Intersection();
   }
   // now provide the explicit generic interface
-  Intersection intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return hsIntersect(ploophelix,surf,trange,tol);
+  Intersection intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hsIntersect(ploophelix,surf,trange,tol,tdir);
   }
-  Intersection intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol) {
-    return hsIntersect(pcentralhelix,surf,trange,tol);
+  Intersection intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
+    return hsIntersect(pcentralhelix,surf,trange,tol,tdir);
   }
 
 }

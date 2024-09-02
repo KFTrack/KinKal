@@ -14,4 +14,10 @@ namespace KinKal {
       ost <<"Unknown";
     return ost;
   }
+  double timeDirSign(TimeDir& tdir) {
+    if(tdir == TimeDir::forwards)
+      return 1.0;
+    else
+      return -1.0;
+  }
 }

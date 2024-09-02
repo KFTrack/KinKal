@@ -29,6 +29,7 @@ namespace KinKal {
       void updateReference(PTRAJ const& ptraj) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PTRAJ& fit,TimeDir tdir) override;
+      void extrapolate(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();} // no information added
       auto const& parameterChange() const { return dpfwd_; }
       virtual ~DomainWall(){}
@@ -85,10 +86,9 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
-    double etime = time();
     // make sure the piece is appendable
-    if((tdir == TimeDir::forwards && ptraj.back().range().begin() > etime) ||
-        (tdir == TimeDir::backwards && ptraj.front().range().end() < etime) )
+    if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
+        (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
       throw std::invalid_argument("DomainWall: Can't append piece");
     auto const& oldpiece = (tdir == TimeDir::forwards) ? ptraj.back() : ptraj.front();
     KTRAJ newpiece(oldpiece);
@@ -101,6 +101,24 @@ namespace KinKal {
       newpiece.range() = TimeRange(std::min(ptraj.range().begin(),prev_->begin()),prev_->end());
       newpiece.params() = Parameters(prevwt_);
       newpiece.resetBNom(prev_->bnom());
+      ptraj.prepend(newpiece);
+    }
+  }
+
+  template<class KTRAJ> void DomainWall<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
+  // make sure the piece is appendable
+    if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
+        (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
+      throw std::invalid_argument("DomainWall: Can't append piece");
+    // sample the particle state at this domain wall
+    auto pstate = ptraj.stateEstimate(time());
+    if( tdir == TimeDir::forwards){
+      // re-intepret that as a trajectory, using the next domain's magnetic field. This gives exact continuity in position and momentum
+      KTRAJ newpiece(pstate, nextDomain().bnom(),nextDomain().range());
+      ptraj.append(newpiece);
+    } else {
+      // same as above, in the opposite direction
+      KTRAJ newpiece(pstate, prevDomain().bnom(),prevDomain().range());
       ptraj.prepend(newpiece);
     }
   }

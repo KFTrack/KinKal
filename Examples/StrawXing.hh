@@ -5,8 +5,8 @@
 //  Used in the kinematic Kalman fit
 //
 #include "KinKal/Detector/ElementXing.hh"
-#include "KinKal/Detector/StrawMaterial.hh"
-#include "KinKal/Detector/StrawXingConfig.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
+#include "KinKal/Examples/StrawXingConfig.hh"
 #include "KinKal/Trajectory/SensorLine.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 
@@ -22,7 +22,7 @@ namespace KinKal {
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
       // ElementXing interface
-      void updateReference(KTRAJPTR const& ktrajptr) override;
+      void updateReference(PTRAJ const& ptraj) override;
       void updateState(MetaIterConfig const& config,bool first) override;
       Parameters params() const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
@@ -54,9 +54,10 @@ namespace KinKal {
     varscale_(1.0)
   {}
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.timeAtMidpoint(),axis_.timeAtMidpoint());
-    tpca_ = CA(ktrajptr,axis_,tphint,precision());
+    PCA pca(ptraj,axis_,tphint,precision());
+    tpca_ = pca.localClosestApproach();
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
   }
 
@@ -73,31 +74,11 @@ namespace KinKal {
         varscale_ = 1.0;
     }
     smat_.findXings(tpca_.tpData(),sxconfig_,mxings_);
-    // reset
-    fparams_ = Parameters();
     if(mxings_.size() > 0){
-      // compute the parameter effect for forwards time
-      std::array<double,3> dmom = {0.0,0.0,0.0}, momvar = {0.0,0.0,0.0};
-      this->materialEffects(dmom, momvar);
-      // get the parameter derivative WRT momentum
-      DPDV dPdM = referenceTrajectory().dPardM(time());
-      double mommag = referenceTrajectory().momentum(time());
-      // loop over the momentum change basis directions, adding up the effects on parameters from each
-      for(int idir=0;idir<MomBasis::ndir; idir++) {
-        auto mdir = static_cast<MomBasis::Direction>(idir);
-        auto dir = referenceTrajectory().direction(time(),mdir);
-        // project the momentum derivatives onto this direction
-        DVEC pder = mommag*(dPdM*SVEC3(dir.X(), dir.Y(), dir.Z()));
-        // convert derivative vector to a Nx1 matrix
-        ROOT::Math::SMatrix<double,NParams(),1> dPdm;
-        dPdm.Place_in_col(pder,0,0);
-        // update the transport for this effect; Forward time propagation corresponds to energy loss
-        fparams_.parameters() += pder*dmom[idir];
-        // now the variance: this doesn't depend on time direction
-        ROOT::Math::SMatrix<double, 1,1, ROOT::Math::MatRepSym<double,1>> MVar;
-        MVar(0,0) = momvar[idir]*varscale_;
-        fparams_.covariance() += ROOT::Math::Similarity(dPdm,MVar);
-      }
+      fparams_ = this->parameterChange(varscale_);
+    } else {
+      // reset
+      fparams_ = Parameters();
     }
   }
 

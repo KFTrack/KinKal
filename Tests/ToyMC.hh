@@ -13,12 +13,13 @@
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/Trajectory/PiecewiseClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
-#include "KinKal/Detector/StrawXing.hh"
-#include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Examples/StrawXing.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
 #include "KinKal/Examples/ScintHit.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/PhysicalConstants.h"
+#include "KinKal/Geometry/Cylinder.hh"
 
 namespace KKTest {
   using namespace KinKal;
@@ -45,9 +46,11 @@ namespace KKTest {
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
         zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
-        scitsig_(0.5), shPosSig_(10.0), shmax_(40.0), cz_(0.5*zrange_+50), clen_(200.0), cprop_(0.8*CLHEP::c_light),
+        scitsig_(0.5), shPosSig_(10.0), shmax_(40.0), cz_(zrange_+50), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
-        smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_), miconfig_(0.0) {
+        smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_),
+        ipacyl_(VEC3(0.0,0.0,1.0), VEC3(0.0,0.0,-0.75*zrange),400.0, zrange/4.0), ipathick_(0.5), ipamat_(matdb_.findDetMaterial("HDPE")),
+        miconfig_(0.0) {
           miconfig_.addUpdater(std::any(StrawXingConfig(1.0e6,1.0e6,1.0e6,false))); // updater to force exact straw xing material calculation
         }
 
@@ -70,6 +73,9 @@ namespace KKTest {
       double zRange() const { return zrange_; }
       double strawRadius() const { return rstraw_; }
       StrawMaterial const& strawMaterial() const { return smat_; }
+      auto const& IPACyl() { return ipacyl_; }
+      auto const& IPAMat() { return ipamat_; }
+      auto const& IPAThick() { return ipathick_; }
 
     private:
       BFieldMap const& bfield_;
@@ -95,8 +101,10 @@ namespace KKTest {
       double tprec_; // time precision on TCA
       double t0off_; // t0 offset
       StrawMaterial smat_; // straw material
-      MetaIterConfig miconfig_; // configuration used when calculating initial effects
-
+      Cylinder ipacyl_;
+      double ipathick_;
+      const MatEnv::DetMaterial* ipamat_;
+      MetaIterConfig miconfig_; // configuration used when calculating initial effect
   };
 
   template <class KTRAJ> SensorLine ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
@@ -125,6 +133,7 @@ namespace KKTest {
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
     createTraj(ptraj);
+    double mom = ptraj.momentum(0.0);
     // divide time range
     double dt(0.0);
     if(nhits_ > 0) dt = (ptraj.range().range())/(nhits_);
@@ -152,9 +161,9 @@ namespace KKTest {
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
       if(addmat) dxings.push_back(xing);
       if(simmat_){
-        double defrac = createStrawMaterial(ptraj, xing.get());
+        double de = createStrawMaterial(ptraj, xing.get());
         // terminate if there is catastrophic energy loss
-        if(fabs(defrac) > 0.1)break;
+        if(fabs(de/mom) > 0.1)break;
       }
     }
     if(scinthit_ && tr_.Uniform(0.0,1.0) > ineff_){
@@ -165,43 +174,30 @@ namespace KKTest {
   }
 
   template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& ptraj, EXING* sxing) {
-    double desum = 0.0;
     double tstraw = sxing->time();
     auto const& endtraj = ptraj.nearestTraj(tstraw);
     auto const& endpiece = *endtraj;
-    sxing->updateReference(endtraj);
+    sxing->updateReference(ptraj);
     sxing->updateState(miconfig_,true);
-    double mom = endpiece.momentum(tstraw);
     auto endmom = endpiece.momentum4(tstraw);
     auto endpos = endpiece.position4(tstraw);
-    std::array<double,3> dmom {0.0,0.0,0.0}, momvar {0.0,0.0,0.0};
-    sxing->materialEffects(dmom, momvar);
+    double dm, paramomvar, perpmomvar;
+    sxing->materialEffects(dm, paramomvar,perpmomvar);
+    // compute the momentum change; start with energy loss
+    VEC3 dmvec = dm*endmom.Vect().Unit();
+    // randomize momentum change with Gaussian
+    SVEC3 momsig(sqrt(paramomvar),sqrt(perpmomvar), sqrt(perpmomvar));
     for(int idir=0;idir<=MomBasis::phidir_; idir++) {
       auto mdir = static_cast<MomBasis::Direction>(idir);
-      double momsig = sqrt(momvar[idir]);
-      double dm;
-      // generate a random effect given this variance and mean.  Note momEffect is scaled to momentum
-      switch( mdir ) {
-        case KinKal::MomBasis::perpdir_: case KinKal::MomBasis::phidir_ :
-          dm = tr_.Gaus(dmom[idir],momsig);
-          break;
-        case KinKal::MomBasis::momdir_ :
-          dm = std::min(0.0,tr_.Gaus(dmom[idir],momsig));
-          desum += dm*mom;
-          break;
-        default:
-          throw std::invalid_argument("Invalid direction");
-      }
-      auto dmvec = endpiece.direction(tstraw,mdir);
-      dmvec *= dm*mom;
-      endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+      dmvec += tr_.Gaus(0.0,momsig[idir])*endpiece.direction(tstraw,mdir);
     }
-    // generate a new piece and append
+    endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
+    // generate a new piece with this momentumand append
     VEC3 bnom = bfield_.fieldVect(endpos.Vect());
     KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,ptraj.range().end()));
     //      newend.print(cout,1);
     ptraj.append(newend);
-    return desum/mom;
+    return dm;
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::createScintHit(PTRAJ& ptraj, HITCOL& thits) {
@@ -279,7 +275,7 @@ namespace KKTest {
     MOM4 tmomv(mom_*tsint*cos(tphi),mom_*tsint*sin(tphi),mom_*tcost,simmass_);
     double tmax = fabs(zrange_/(CLHEP::c_light*tcost));
     double tbeg = tr_.Uniform(t0off_-tmax,t0off_+tmax);
-    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-0.5*zrange_,osig_),tbeg);
+    VEC4 torigin(tr_.Gaus(0.0,osig_), tr_.Gaus(0.0,osig_), tr_.Gaus(-zrange_,osig_),tbeg);
     VEC3 bsim = bfield_.fieldVect(torigin.Vect());
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(tbeg,tbeg+tmax));
     // set initial range

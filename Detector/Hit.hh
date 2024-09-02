@@ -15,6 +15,7 @@
 namespace KinKal {
   template <class KTRAJ> class Hit {
     public:
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       Hit() {}
       virtual ~Hit(){}
@@ -28,7 +29,7 @@ namespace KinKal {
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // update to a new reference, without changing internal state
-      virtual void updateReference(KTRAJPTR const& ktrajptr) = 0;
+      virtual void updateReference(PTRAJ const& ptraj) = 0;
       virtual KTRAJPTR const& refTrajPtr() const = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void updateState(MetaIterConfig const& config,bool first) = 0;

@@ -17,6 +17,7 @@
 
 using VEC3 = ROOT::Math::XYZVectorD;
 using KinKal::Ray;
+using KinKal::Surface;
 using KinKal::Cylinder;
 using KinKal::Annulus;
 using KinKal::Frustrum;
@@ -25,6 +26,10 @@ using KinKal::Disk;
 using KinKal::IntersectFlag;
 using KinKal::ParticleState;
 using KinKal::TimeRange;
+using KinKal::TimeDir;
+using KinKal::LoopHelix;
+using KinKal::CentralHelix;
+using KinKal::KinematicLine;
 static struct option long_options[] = {
   {"scost",      required_argument, 0, 'c'  },
   {"sphi",       required_argument, 0, 'p'  },
@@ -37,11 +42,12 @@ static struct option long_options[] = {
   {"zpos",         required_argument, 0, 'z'  },
   {"ypos",         required_argument, 0, 'y'  },
   {"xpos",         required_argument, 0, 'x'  },
+  {"tdir",         required_argument, 0, 't'  },
   {NULL, 0,0,0}
 };
 
 void print_usage() {
-  printf("Usage: IntersectionTest  --slen1 --slen2 -(cylinder radius, half length, disk u, v 1/2 size, or Annulus inner/outer radius), -scost --sphi (surface axis direction)  --pmom, --pcost, --pphi  --zpos (particle momentum in MeV/c, direction angles, z position) ");
+  printf("Usage: IntersectionTest  --slen1 --slen2 -(cylinder radius, half length, disk u, v 1/2 size, or Annulus inner/outer radius), -scost --sphi (surface axis direction)  --pmom, --pcost, --pphi  --zpos (particle momentum in MeV/c, direction angles, z position) --tdir (0=forwards, 1=backwards)");
 }
 
 int main(int argc, char** argv) {
@@ -51,7 +57,8 @@ int main(int argc, char** argv) {
   VEC3 point(0.0,0.0,0.0);
   double scost(1.0), sphi(0.0), slen1(400), slen2(1000), slen3(500);
   double pcost(0.5), pphi(1.0), pmom(100);
-  VEC3 ppos(0.0,0.0,0.0);
+  VEC3 ppos(0.0,0.0,-1.0);
+  TimeDir tdir(TimeDir::forwards);
   while ((opt = getopt_long_only(argc, argv,"",
           long_options, &long_index )) != -1) {
     switch (opt) {
@@ -77,6 +84,8 @@ int main(int argc, char** argv) {
                  break;
       case 'z' : ppos.SetZ(atof(optarg));
                  break;
+      case 't' : tdir = TimeDir(atoi(optarg));
+                 break;
       default: print_usage();
                exit(EXIT_FAILURE);
     }
@@ -93,17 +102,24 @@ int main(int argc, char** argv) {
   ParticleState pstate(ppos,momvec,0.0,0.5,-1);
 //  std::cout << "Test " << pstate << std::endl;
   std::cout << "Test particle position " << ppos << " momentum " << pstate.momentum3() << std::endl;
-  double speed = pstate.speed();
-  double tmax = 2*sqrt(slen1*slen1 + slen2*slen2)/speed;
+  double speed = pstate.velocity().Dot(axis);
+  double tmax = 10*sqrt(slen1*slen1 + slen2*slen2)/speed;
 
   double tol(1.0e-8);
   VEC3 bnom(0.0,0.0,1.0);
-  TimeRange trange(0.0,tmax);
-  KinKal::KinematicLine ktraj(pstate,bnom,trange);
+  TimeRange trange;
+  if(tdir == TimeDir::forwards){
+    trange = TimeRange(0.0,tmax);
+    std::cout << "Forwards Time Intersection Test, range " << trange << std::endl;
+  } else{
+    trange = TimeRange(-tmax, 0.0);
+    std::cout << "Backwards Time Intersection Test, range " << trange << std::endl;
+  }
+  KinematicLine ktraj(pstate,bnom,trange);
   // intersect with various surfaces
   Cylinder cyl(axis,origin,slen1,slen2);
   std::cout << "Test " << cyl << std::endl;
-  auto kc_inter = intersect(ktraj,cyl, trange, tol);
+  auto kc_inter = intersect(ktraj,cyl, trange, tol, tdir);
   std::cout << "KinematicLine Cylinder Intersection status " << kc_inter << std::endl;
   if(kc_inter.inbounds_){
     auto iplane = cyl.tangentPlane(kc_inter.pos_);
@@ -114,7 +130,7 @@ int main(int argc, char** argv) {
 
   Frustrum fru(axis,origin,slen1,slen3,slen2);
   std::cout << "Test " << fru << std::endl;
-  auto kf_inter = intersect(ktraj,fru, trange, tol);
+  auto kf_inter = intersect(ktraj,fru, trange, tol, tdir);
   std::cout << "KinematicLine Frustrum Intersection status " << kf_inter << std::endl;
   if(kf_inter.inbounds_){
     auto iplane = fru.tangentPlane(kf_inter.pos_);
@@ -126,43 +142,43 @@ int main(int argc, char** argv) {
   Disk disk(axis,udir,origin,slen1);
   std::cout << "Test " << disk << std::endl;
 
-  auto kd_inter = intersect(ktraj,disk, trange, tol);
+  auto kd_inter = intersect(ktraj,disk, trange, tol, tdir);
   std::cout << "KinematicLine Disk Intersection status " << kd_inter << std::endl;
 
   Annulus ann(axis,udir,origin,slen1, slen2);
   std::cout << "Test " << ann << std::endl;
 
-  auto ka_inter = intersect(ktraj,ann, trange, tol);
+  auto ka_inter = intersect(ktraj,ann, trange, tol, tdir);
   std::cout << "KinematicLine Annulus Intersection status " << ka_inter << std::endl;
 
   Rectangle rect(axis, udir, origin, slen1, slen2);
   std::cout << "Test " << rect << std::endl;
 
-  auto kr_inter = intersect(ktraj,rect, trange, tol);
+  auto kr_inter = intersect(ktraj,rect, trange, tol, tdir);
   std::cout << "KinematicLine Rectangle Intersection status " << kr_inter << std::endl;
 
   // now try with helices
-  KinKal::LoopHelix lhelix(pstate,bnom,trange);
-  auto ld_inter = intersect(lhelix,disk, trange, tol);
+  LoopHelix lhelix(pstate,bnom,trange);
+  auto ld_inter = intersect(lhelix,disk, trange, tol, tdir);
   std::cout << "LoopHelix Disk Intersection status " << ld_inter << std::endl;
 
-  auto lc_inter = intersect(lhelix,cyl, trange, tol);
+  auto lc_inter = intersect(lhelix,cyl, trange, tol, tdir);
   std::cout << "loophelix cylinder intersection status " << lc_inter << std::endl;
 
-  auto lf_inter = intersect(lhelix,fru, trange, tol);
+  auto lf_inter = intersect(lhelix,fru, trange, tol, tdir);
   std::cout << "loophelix frustrum intersection status " << lf_inter << std::endl;
 
   // test generic surface intersection
-  KinKal::Surface const& psurf = static_cast<KinKal::Surface const&>(disk);
-  auto ls_inter = intersect(lhelix,psurf,trange,tol);
+  Surface const& psurf = static_cast<Surface const&>(disk);
+  auto ls_inter = intersect(lhelix,psurf,trange,tol, tdir);
    std::cout << "loophelix surface (plane) intersection status " << ls_inter << std::endl;
  if(ls_inter.onsurface_ != ld_inter.onsurface_ || (ls_inter.pos_-ld_inter.pos_).R() > tol){
     std::cout << "Generic plane intersection failed" << std::endl;
     return -1;
   }
   // test generic surface intersection
-  KinKal::Surface const& csurf = static_cast<KinKal::Surface const&>(cyl);
-  auto ls2_inter = intersect(lhelix,csurf,trange,tol);
+  Surface const& csurf = static_cast<Surface const&>(cyl);
+  auto ls2_inter = intersect(lhelix,csurf,trange,tol, tdir);
    std::cout << "loophelix surface (cylinder) intersection status " << ls2_inter << std::endl;
  if(ls2_inter.onsurface_ != lc_inter.onsurface_ || (ls2_inter.pos_-lc_inter.pos_).R() > tol){
     std::cout << "Generic cylinder intersection failed" << std::endl;

@@ -6,7 +6,7 @@
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Examples/SimpleWireHit.hh"
 #include "KinKal/Examples/ScintHit.hh"
-#include "KinKal/Detector/StrawMaterial.hh"
+#include "KinKal/Examples/StrawMaterial.hh"
 #include "KinKal/Detector/Residual.hh"
 #include "KinKal/General/BFieldMap.hh"
 #include "KinKal/General/Vectors.hh"
@@ -272,7 +272,7 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
           PTRAJ modtptraj(modktraj);
           KinKal::DVEC dpvec;
           dpvec[ipar] = dpar;
-          thit->updateReference(modtptraj.backPtr());// refer to moded helix
+          thit->updateReference(modtptraj);// refer to moded helix
           thit->updateState(miconfig,false);
           Residual mres;
           if(strawhit){

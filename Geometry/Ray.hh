@@ -16,6 +16,7 @@ namespace KinKal {
       VEC3 const& start() const { return start_; }
       // Distance along the the ray to the point of Closest Approach to a point
       double distanceTo(VEC3 const& point) const { return (point - start_).Dot(dir_); }
+      void reverse() { dir_ *= -1.0; } // reverse direction
     private:
       VEC3 dir_; // direction
       VEC3 start_; // starting position

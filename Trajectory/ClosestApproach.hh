@@ -71,7 +71,7 @@ namespace KinKal {
     private:
       double precision_; // precision used to define convergence
       KTRAJPTR ktrajptr_; // kinematic particle trajectory
-      STRAJ const& straj_; // sensor trajectory
+      STRAJ const& straj_; // sensor trajectory This should be a shared ptr TODO
     protected:
       // calculate CA given the hint, and fill the state
       void findTCA(CAHint const& hint);

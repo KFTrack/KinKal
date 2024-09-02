@@ -6,7 +6,6 @@
 
 # you can regenerate this list easily by running in this directory: ls -1 *.cc
 add_library(Detector SHARED
-    StrawMaterial.cc
     Residual.cc
 )
 

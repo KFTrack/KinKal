@@ -25,6 +25,7 @@ namespace KinKal {
       void updateConfig(Config const& config) override {}
       void updateReference(PTRAJ const& ptraj) override;
       void append(PTRAJ& fit,TimeDir tdir) override;
+      void extrapolate(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Measurement(){}
@@ -52,10 +53,14 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
+    // measurements do not change the trajectory
+  }
+
+  template<class KTRAJ> void Measurement<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    hit_->updateReference(ptraj.nearestTraj(hit_->time()));
+    hit_->updateReference(ptraj);
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

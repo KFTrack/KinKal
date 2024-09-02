@@ -31,8 +31,10 @@ namespace KinKal {
       virtual void updateState(MetaIterConfig const& miconfig,bool first) = 0;
       // update this effect for a new configuration
       virtual void updateConfig(Config const& config) =0;
-      // add this effect to a trajectory in the given direction
+      // add this effect to a trajectory in the given direction. This uses 1st order approximations
       virtual void append(PTRAJ& fit,TimeDir tdir) =0;
+      // extrapolate a trajectory in the given direction through this effect, using dead-reckoning calculation (not a fit!)
+      virtual void extrapolate(PTRAJ& fit,TimeDir tdir) =0;
       // update the reference trajectory for this effect
       virtual void updateReference(PTRAJ const& ptraj) =0;
       // chisquared WRT a given local parameter set, assumed uncorrelatedd  This is used for convergence testing

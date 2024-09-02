@@ -21,6 +21,7 @@ namespace KinKal {
       using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
       using CA = ClosestApproach<KTRAJ,SensorLine>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      using PTRAJ = ParticleTrajectory<KTRAJ>;
       enum Dimension { dresid=0, tresid=1};  // residual dimensions
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
@@ -28,7 +29,7 @@ namespace KinKal {
       unsigned nResid() const override { return 2; } // 2 residuals
       double time() const override { return ca_.particleToca(); }
       Residual const& refResidual(unsigned ires=dresid) const override;
-      void updateReference(KTRAJPTR const& ktrajptr) override;
+      void updateReference(PTRAJ const& ptraj) override;
       KTRAJPTR const& refTrajPtr() const override { return ca_.particleTrajPtr(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // Use dedicated updater
@@ -75,15 +76,16 @@ namespace KinKal {
       double mindoca, double driftspeed, double tvar, double tot, double totvar, double rcell, int id) :
     bfield_(bfield),
     whstate_(whstate), wire_(pca.sensorTraj()),
-    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
+    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()), // must be explicit to get the right sensor traj reference
     mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
     }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(KTRAJPTR const& ktrajptr) {
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     // otherwise use the time at the center of the wire
     CAHint tphint = ca_.usable() ?  ca_.hint() : CAHint(wire_.timeAtMidpoint(),wire_.timeAtMidpoint());
-    ca_ = CA(ktrajptr,wire_,tphint,precision());
+    PCA pca(ptraj,wire_,tphint,precision());
+    ca_ = pca.localClosestApproach();
     if(!ca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
 

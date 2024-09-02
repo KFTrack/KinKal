@@ -42,7 +42,6 @@
 #include "KinKal/Fit/Material.hh"
 #include "KinKal/Fit/DomainWall.hh"
 #include "KinKal/Fit/Config.hh"
-#include "KinKal/Fit/ExtraConfig.hh"
 #include "KinKal/Fit/Status.hh"
 #include "KinKal/Fit/Domain.hh"
 #include "KinKal/General/BFieldMap.hh"
@@ -102,10 +101,12 @@ namespace KinKal {
       Track(Config const& config, BFieldMap const& bfield, PTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
-      // extrapolate the fit with the given config until the given predicate is satisfied. This function requires
+      // extrapolate the fit through the magnetic field with the given config until the given predicate is satisfied. This function requires
       // the fit be valid, otherwise the return code is false.  If successful the status, domains, and trajectory of the fit are updated
       // Note that the actual fit itself is unchanged
-      template <class XTEST> bool extrapolate(ExtraConfig const& xconfig, XTEST const& XTest);
+      template <class XTEST> bool extrapolate(TimeDir tdir, XTEST const& XTest);
+      // extrapolate the fit through a material xing. Return value is true if the effect is added and fit updated.
+      bool extrapolate(EXINGPTR const& exing,TimeDir const& tdir);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -119,6 +120,7 @@ namespace KinKal {
       EXINGCOL const& exings() const { return exings_; }
       DOMAINCOL const& domains() const { return domains_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
+      TimeRange activeRange() const; // time range of active hits
     protected:
       Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
       void fit(HITCOL& hits, EXINGCOL& exings );
@@ -140,7 +142,7 @@ namespace KinKal {
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
       // add a single domain within the tolerance and extend the fit in the specified direction.
-      void addDomain(Domain const& domain,TimeDir const& tdir);
+      void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
       auto& status() { return history_.back(); } // most recent status
       // divide the range into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
       bool createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
@@ -695,6 +697,7 @@ namespace KinKal {
   template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
+    // can't assume effects are sorted
     for(auto const& hit : hits){
       tmin = std::min(tmin,hit->time());
       tmax = std::max(tmax,hit->time());
@@ -706,23 +709,23 @@ namespace KinKal {
     return TimeRange(tmin,tmax);
   }
 
-  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(ExtraConfig const& xconfig, XTEST const& xtest) {
-    bool retval(false);
-    if(this->fitStatus().usable()){
+  template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(TimeDir tdir, XTEST const& xtest) {
+    bool retval = this->fitStatus().usable();
+    if(retval){
       if(config().bfcorr_){
         // test for extrapolation outside the bfield map range
         try {
           // iterate until the extrapolation condition is met
-          double time = xconfig.xdir_ == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
+          double time = tdir == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
           double tstart = time;
-          while(fabs(time-tstart) < xconfig.maxdt_ && xtest.needsExtrapolation(time) ){
+          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*this,tdir,time) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
-            double dt = bfield_.rangeInTolerance(ktraj,time,xconfig.tol_); // always positive
-            TimeRange range = xconfig.xdir_ == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xconfig.tol_);
-            addDomain(domain,xconfig.xdir_);
-            time = xconfig.xdir_ == TimeDir::forwards ? domain.end() : domain.begin();
+            double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
+            TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
+            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.tolerance());
+            addDomain(domain,tdir,true); // use exact transport
+            time = tdir == TimeDir::forwards ? domain.end() : domain.begin();
           }
         } catch (std::exception const& error) {
           history_.push_back(Status(0));
@@ -738,24 +741,65 @@ namespace KinKal {
     return retval;
   }
 
-  template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir) {
+  template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir,bool exact) {
     auto dptr = std::make_shared<Domain>(domain);
     if(tdir == TimeDir::forwards){
       auto const& prevdom = *domains_.crbegin();
       auto const& ktraj = fittraj_->nearestPiece(prevdom->end());
-      FitState fstate(ktraj.params());
-      effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
-      effects_.back()->process(fstate,tdir);
-      effects_.back()->append(*fittraj_,tdir);
+      auto& dw = effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
+      if(exact){
+        dw->extrapolate(*fittraj_,tdir);
+      } else {
+        FitState fstate(ktraj.params());
+        effects_.back()->process(fstate,tdir);
+        effects_.back()->append(*fittraj_,tdir);
+      }
     } else {
       auto const& nextdom = *domains_.cbegin();
       auto const& ktraj = fittraj_->nearestPiece(nextdom->begin());
-      FitState fstate(ktraj.params());
-      effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
-      effects_.front()->process(fstate,tdir);
-      effects_.front()->append(*fittraj_,tdir);
+      auto& dw = effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
+      if(exact){
+        dw->extrapolate(*fittraj_,tdir);
+      } else {
+        FitState fstate(ktraj.params());
+        effects_.front()->process(fstate,tdir);
+        effects_.front()->append(*fittraj_,tdir);
+      }
     }
     domains_.insert(dptr);
- }
+  }
+
+  template<class KTRAJ> bool Track<KTRAJ>::extrapolate(EXINGPTR const& exingptr,TimeDir const& tdir) {
+    bool retval = this->fitStatus().usable();
+    if(retval){
+      if(tdir == TimeDir::forwards){
+        // make sure the time is legal
+        retval = fittraj_->back().range().inRange(exingptr->time());
+        if(retval){
+          auto& exmat = effects_.emplace_back(std::make_unique<KKMAT>(exingptr,*fittraj_));
+          exmat->extrapolate(*fittraj_,tdir);
+        }
+      } else {
+        retval = fittraj_->front().range().inRange(exingptr->time());
+        if(retval){
+          auto& exmat = effects_.emplace_front(std::make_unique<KKMAT>(exingptr,*fittraj_));
+          exmat->extrapolate(*fittraj_,tdir);
+        }
+      }
+    }
+    return retval;
+  }
+
+
+  template<class KTRAJ> TimeRange Track<KTRAJ>::activeRange() const {
+    double tmin = std::numeric_limits<double>::max();
+    double tmax = -std::numeric_limits<double>::max();
+    // can't assume effects are sorted
+    for(auto const& hit : hits_){
+      tmin = std::min(tmin,hit->time());
+      tmax = std::max(tmax,hit->time());
+    }
+    return TimeRange(tmin,tmax);
+  }
 }
 #endif
