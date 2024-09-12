@@ -99,7 +99,7 @@ namespace KinKal {
   template <class KTRAJ> double ElementXing<KTRAJ>::radiationFraction() const {
     double retval(0.0);
     for(auto const& mxing : matXings())
-      retval += mxing.dmat_.radiationFraction(mxing.plen_/10.0); // Ugly conversion to cm FIXME!!
+      retval += mxing.dmat_.radiationFraction(mxing.plen_);
     return retval;
   }
 
