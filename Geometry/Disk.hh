@@ -1,5 +1,5 @@
 //
-//  Description of an annular planar section
+//  Description of a disk
 //  original author: David Brown (LBN) 2023
 //
 #ifndef KinKal_Disk_hh
