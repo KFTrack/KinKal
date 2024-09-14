@@ -718,7 +718,7 @@ namespace KinKal {
           // iterate until the extrapolation condition is met
           double time = tdir == TimeDir::forwards ? domains_.crbegin()->get()->end() : domains_.cbegin()->get()->begin();
           double tstart = time;
-          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*this,tdir,time) ){
+          while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*fittraj_,tdir) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
             double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
