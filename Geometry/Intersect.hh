@@ -37,8 +37,11 @@ namespace KinKal {
     if(startinside != stepinside){
       // we crossed the surface: backup and do a linear search.
       ttest -= tstep;
-      double dist;
+      double dist = std::numeric_limits<float>::max();
       IntersectFlag rayinter;
+      unsigned niter(0);
+      static const unsigned nconv(10); // when to start worrying about non-convergence
+      double sumdist[2] = {0.0,0.0}; // sum of absolute distance for convergence testing
       do {
         retval.pos_ = ktraj.position3(ttest);
         retval.pdir_ = ktraj.direction(ttest);
@@ -49,10 +52,24 @@ namespace KinKal {
         } else {
           break;
         }
+        ++niter;
+        unsigned iconv = niter/nconv; // count convergence cycles
+        if(iconv > 0){ // start testing for non-convergence
+          unsigned icur = iconv % 2; // current cycle average indicator (0 or 1)
+          int irem = niter - iconv*nconv;
+          if( irem == 0){
+            // new cycle
+            if(iconv > 2){ //if we're past the 3rd cycle, test
+              unsigned iprev = (iconv + 1) % 2; // previous cycle (that we just finished)
+              if(sumdist[iprev]/sumdist[icur] > 0.5) break; // claim non-convergence if the sum distance hasn't decreased by at least a factor of 2 between cycles
+            }
+            sumdist[icur] = 0.0; // reset the average counter
+          }
+          sumdist[icur] += fabs(dist); // increatement the sum
+        }
       } while (fabs(dist) > tol);
       if(rayinter.onsurface_){
         retval.onsurface_ = rayinter.onsurface_;
-        retval.inbounds_ = rayinter.inbounds_;
         retval.time_ = ttest;
         retval.pos_ = ktraj.position3(retval.time_);
         retval.pdir_ = ktraj.direction(retval.time_);
