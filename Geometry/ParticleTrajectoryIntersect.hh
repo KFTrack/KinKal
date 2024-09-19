@@ -8,7 +8,7 @@
 #include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Intersect.hh"
 namespace KinKal {
-//  Find first intersection of a particle trajectory in the specified range.  This is a generic implementation
+  //  Find first intersection of a particle trajectory in the specified range.  This is a generic implementation
   template <class KTRAJ, class SURF> Intersection pIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tstart, double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
     // loop over pieces, and test the ones in range
@@ -41,7 +41,7 @@ namespace KinKal {
 
   // Helix-based particle trajectory intersect implementation with a plane
   template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+    double tstart = trange.mid();
     auto const& midhelix = phelix.nearestPiece(tstart);
     auto axis = midhelix.axis(midhelix.range().mid());
     if(tdir == TimeDir::backwards)axis.reverse();
@@ -56,7 +56,7 @@ namespace KinKal {
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+    double tstart = trange.mid();
     auto const& midhelix = phelix.nearestPiece(tstart);
     auto axis = midhelix.axis(midhelix.range().mid());
     double dist; // distance to the midplane
@@ -70,7 +70,7 @@ namespace KinKal {
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+    double tstart = trange.mid();
     auto const& midhelix = phelix.nearestPiece(tstart);
     auto axis = midhelix.axis(midhelix.range().mid());
     double dist; // distance to the midplane

@@ -64,7 +64,7 @@ namespace KinKal {
               unsigned iprev = (iconv + 1) % 2; // previous cycle (that we just finished)
               if(sumdist[iprev]/sumdist[icur] > 0.5) {
                 // claim non-convergence if the sum distance hasn't decreased by at least a factor of 2 between cycles
-                std::cout << "Non-converged step intersection ray inter dist " << dist << " avg " << sumdist[iprev] << " prev avg " << sumdist[icur] << std::endl;
+                // std::cout << "Non-converged step intersection ray inter dist " << dist << " avg " << sumdist[iprev] << " prev avg " << sumdist[icur] << std::endl;
                 return retval; // failed
               }
             }
