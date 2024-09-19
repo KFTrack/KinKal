@@ -15,6 +15,7 @@
 #include "KinKal/Trajectory/KinematicLine.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "Math/VectorUtil.h"
+#include <iostream>
 namespace KinKal {
   //
   // generic intersection implementation based on stepping across the surface within a given range in the given time direction
@@ -28,6 +29,7 @@ namespace KinKal {
     bool stepinside;
     // set the step according to the range and tolerance.  The maximum range division is arbitrary, it should be set to a physical value TODO
     double tstep = timeDirSign(tdir)*std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
+    unsigned niter(0);
     // step until we cross the surface or the time is out of range
     do {
       ttest += tstep;
@@ -37,8 +39,10 @@ namespace KinKal {
     if(startinside != stepinside){
       // we crossed the surface: backup and do a linear search.
       ttest -= tstep;
-      double dist;
+      double dist = std::numeric_limits<float>::max();
       IntersectFlag rayinter;
+      static const unsigned nconv(5); // when to start worrying about non-convergence
+      double sumdist[2] = {0.0,0.0}; // sum of absolute distance for convergence testing
       do {
         retval.pos_ = ktraj.position3(ttest);
         retval.pdir_ = ktraj.direction(ttest);
@@ -49,16 +53,34 @@ namespace KinKal {
         } else {
           break;
         }
+        ++niter;
+        unsigned iconv = niter/nconv; // count convergence cycles
+        if(iconv > 0){ // start testing for non-convergence
+          unsigned icur = iconv % 2; // current cycle average indicator (0 or 1)
+          int irem = niter - iconv*nconv;
+          if( irem == 0){
+            // new cycle
+            if(iconv > 2){ //if we're past the 3rd cycle, test
+              unsigned iprev = (iconv + 1) % 2; // previous cycle (that we just finished)
+              if(sumdist[iprev]/sumdist[icur] > 0.5) {
+                // claim non-convergence if the sum distance hasn't decreased by at least a factor of 2 between cycles
+                // std::cout << "Non-converged step intersection ray inter dist " << dist << " avg " << sumdist[iprev] << " prev avg " << sumdist[icur] << std::endl;
+                return retval; // failed
+              }
+            }
+            sumdist[icur] = 0.0; // reset the average counter
+          }
+          sumdist[icur] += fabs(dist); // increatement the sum
+        }
       } while (fabs(dist) > tol);
       if(rayinter.onsurface_){
         retval.onsurface_ = rayinter.onsurface_;
-        retval.inbounds_ = rayinter.inbounds_;
         retval.time_ = ttest;
         retval.pos_ = ktraj.position3(retval.time_);
         retval.pdir_ = ktraj.direction(retval.time_);
         retval.inbounds_ = surf.inBounds(retval.pos_,tol);
         retval.norm_ = surf.normal(retval.pos_);
-     }
+      }
     }
     // check the final time to be in range; if we're out of range, negate the intersection
     if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
@@ -122,7 +144,7 @@ namespace KinKal {
         if(trange.inRange(backinter.time_))times.push_back(backinter.time_);
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
-// intersection is possible: step within the restricted range
+          // intersection is possible: step within the restricted range
           if(canIntersect(helix,cyl,srange,tol)){
             retval = stepIntersect(helix,cyl,srange,tol,tdir);
           }
@@ -131,11 +153,11 @@ namespace KinKal {
       //    } else if (ddot < 0.1) {
       //      // the helix and cylinder are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
       //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
-    } else {
+  } else {
     // intermediate case: use step intersection
-      retval = stepIntersect(helix,cyl,trange,tol,tdir);
-    }
-    return retval;
+    retval = stepIntersect(helix,cyl,trange,tol,tdir);
+  }
+  return retval;
   }
   //
   // Helix and planar surfaces
@@ -213,7 +235,7 @@ namespace KinKal {
         if(trange.inRange(backinter.time_))times.push_back(backinter.time_);
         if(times.size() >=2){
           TimeRange srange(*std::min_element(times.begin(),times.end()),*std::max_element(times.begin(),times.end()));
-// intersection is possible: step within the restricted range
+          // intersection is possible: step within the restricted range
           if(canIntersect(helix,fru,srange,tol) ) {
             retval = stepIntersect(helix,fru,srange,tol,tdir);
           }
@@ -222,11 +244,11 @@ namespace KinKal {
       //    } else if (ddot < 0.1) {
       //      // the helix and frustrum are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
       //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the frustrum, then invoke POCA.
-    } else {
+  } else {
     // intermediate case: use step intersection
-      retval  = stepIntersect(helix,fru,trange,tol,tdir);
-    }
-    return retval;
+    retval  = stepIntersect(helix,fru,trange,tol,tdir);
+  }
+  return retval;
   }
   //
   // Tie intersect to the explicit helix implementations
