@@ -66,7 +66,7 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i --uselong i\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -147,7 +147,7 @@ int testState(KinKal::Track<KTRAJ> const& kktrk,DVEC sigmas) {
   return retval;
 }
 
-int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) {
+int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true, bool uselong=false) {
   string fullfile;
   if(strncmp(cfile.c_str(),"/",1) == 0) {
     fullfile = string(cfile);
@@ -181,6 +181,8 @@ int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) 
         ss >> temp >> utype;
         MetaIterConfig miconfig(temp);
         miconfig.addUpdater(StrawXingConfig(0.3,5.0,10.0,mvarscale)); // hardcoded values, should come from outside, FIXME
+        if(uselong)
+          miconfig.addUpdater(std::any(LongWireHitUpdater()));
         if(utype == 0 ){
           cout << "NullWireHitUpdater for iteration " << nmiter << endl;
           miconfig.addUpdater(std::any(NullWireHitUpdater()));
@@ -255,6 +257,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool fitmat(true);
   bool extend(false);
   bool mvarscale(true);
+  bool uselong(false);
   string exfile;
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -302,6 +305,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"extend",     required_argument, 0, 'X'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {"MatVarScale",     required_argument, 0, 'v'  },
+    {"uselong", required_argument, 0, 'l' },
     {NULL, 0,0,0}
   };
 
@@ -368,6 +372,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       case 'X' : exfile = optarg;
                  extend = true;
                  break;
+      case 'l' : uselong = atoi(optarg);
+                 break;
       default: print_usage();
                exit(EXIT_FAILURE);
     }
@@ -392,12 +398,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
-  makeConfig(sfile,config,mvarscale);
+  makeConfig(sfile,config,mvarscale,uselong);
   cout << "Main fit " << config << endl;
   // read the schedule from the file
   Config exconfig;
   if(extend){
-    makeConfig(exfile,exconfig,mvarscale);
+    makeConfig(exfile,exconfig,mvarscale,uselong);
     cout << "Extension " << exconfig << endl;
   }
   // generate hits

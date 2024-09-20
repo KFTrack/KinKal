@@ -22,11 +22,11 @@ namespace KinKal {
       using CA = ClosestApproach<KTRAJ,SensorLine>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;
-      enum Dimension { dresid=0, tresid=1};  // residual dimensions
+      enum Dimension { dresid=0, tresid=1, lresid=2};  // residual dimensions
 
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
-          double driftspeed, double tvar, double tot, double totvar, double rcell,int id);
-      unsigned nResid() const override { return 2; } // 2 residuals
+          double driftspeed, double tvar, double tot, double totvar, double longval, double longvar, double rcell,int id);
+      unsigned nResid() const override { return 3; } // 2 residuals
       double time() const override { return ca_.particleToca(); }
       Residual const& refResidual(unsigned ires=dresid) const override;
       void updateReference(PTRAJ const& ptraj) override;
@@ -56,11 +56,12 @@ namespace KinKal {
                   // is the effective signal propagation velocity along the wire, and the time range describes the active wire length
                   // (when multiplied by the propagation velocity).
       CA ca_; // reference time and position of closest approach to the wire; this is generally biased by the hit
-      std::array<Residual,2> rresid_; // residuals WRT most recent reference
+      std::array<Residual,3> rresid_; // residuals WRT most recent reference
       double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
       double tot_, totvar_; // TimeOverThreshold and variance
+      double longval_, longvar_; // longitudinal value and variance
       double rcell_; // straw radius
       int id_; // id
       void updateResiduals();
@@ -69,15 +70,20 @@ namespace KinKal {
   //trivial 'updater' that sets the wire hit state to null
   class NullWireHitUpdater {
     public:
-      WireHitState wireHitState() const { return WireHitState(WireHitState::null); }
+      void updateWireHitState(WireHitState &state) const { state.state_ = WireHitState::null; }
+  };
+  //trivial 'updater' that enables longitudinal measurement
+  class LongWireHitUpdater {
+    public:
+      void updateWireHitState(WireHitState &state) const {state.lstate_ = WireHitState::longactive; }
   };
 
   template <class KTRAJ> SimpleWireHit<KTRAJ>::SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate,
-      double mindoca, double driftspeed, double tvar, double tot, double totvar, double rcell, int id) :
+      double mindoca, double driftspeed, double tvar, double tot, double totvar, double longval, double longvar, double rcell, int id) :
     bfield_(bfield),
     whstate_(whstate), wire_(pca.sensorTraj()),
-    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()), // must be explicit to get the right sensor traj reference
-    mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
+    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP(),pca.dXdP(),pca.dDirdP()), // must be explicit to get the right sensor traj reference
+    mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), longval_(longval), longvar_(longvar), rcell_(rcell), id_(id) {
     }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
@@ -93,11 +99,15 @@ namespace KinKal {
     if(first){
       // look for an updater; if found, use it to update the state
       auto nwhu = miconfig.findUpdater<NullWireHitUpdater>();
+      auto twhu = miconfig.findUpdater<LongWireHitUpdater>();
       auto dwhu = miconfig.findUpdater<DOCAWireHitUpdater>();
       if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
+      if(twhu != 0){
+        twhu->updateWireHitState(whstate_);
+      }
       if(nwhu != 0){
         mindoca_ = cellRadius();
-        whstate_ = nwhu->wireHitState();
+        nwhu->updateWireHitState(whstate_);
         // set the residuals based on this state
       } else if(dwhu != 0){
         // update minDoca (for null ambiguity error estimate)
@@ -105,10 +115,13 @@ namespace KinKal {
         // compute the unbiased closest approach.  This is brute-force
         // a more clever solution is to linearly correct the residuals for the change in parameters
         auto uca = this->unbiasedClosestApproach();
-        whstate_ = uca.usable() ? dwhu->wireHitState(uca.doca()) : WireHitState(WireHitState::inactive);
+        if (uca.usable())
+          dwhu->updateWireHitState(whstate_,uca.doca());
+        else
+          whstate_ = WireHitState(WireHitState::inactive);
       }
     }
-    rresid_[tresid] = rresid_[dresid] = Residual();
+    rresid_[tresid] = rresid_[dresid] = rresid_[lresid] = Residual();
     if(whstate_.active()){
       rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
       if(whstate_.useDrift()){
@@ -127,7 +140,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
-    if(ires >tresid)throw std::invalid_argument("Invalid residual");
+    if(ires >lresid)throw std::invalid_argument("Invalid residual");
     return rresid_[ires];
   }
 
@@ -155,11 +168,21 @@ namespace KinKal {
         ost << "null";
         break;
     }
+    switch(whstate_.lstate_) {
+      case WireHitState::longinactive:
+        ost << " longinactive";
+        break;
+      case WireHitState::longactive:
+        ost << " longactive";
+        break;
+    }
     if(detail > 0){
       if(rresid_[tresid].active())
         ost << " Active Time Residual " << rresid_[tresid];
       if(rresid_[dresid].active())
         ost << " Active Distance Residual " << rresid_[dresid];
+      if(rresid_[lresid].active())
+        ost << " Active Long Residual " << rresid_[lresid];
       ost << std::endl;
     }
     if(detail > 1) {

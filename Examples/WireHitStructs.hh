@@ -13,11 +13,16 @@ namespace KinKal {
   // struct describing wire hit internal state
   struct WireHitState {
     enum State { inactive=-2, left=-1, null=0, right=1};  // state description
+    enum LState { longinactive=0, longactive=1}; // use longitudinal measurement 
     State state_; // left-right ambiguity
+    LState lstate_; // time division
     bool useDrift() const { return state_ == left || state_ == right; }
+    bool useLong() const { return lstate_ == longactive; }
     bool active() const { return state_ != inactive; }
     bool operator == (WireHitState::State state) const { return state_ == state; }
     bool operator != (WireHitState::State state) const { return state_ != state; }
+    bool operator == (WireHitState::LState state) const { return lstate_ == state; }
+    bool operator != (WireHitState::LState state) const { return lstate_ != state; }
     double lrSign() const {
       switch (state_) {
         case left:
@@ -28,7 +33,7 @@ namespace KinKal {
           return 0.0;
       }
     }
-    WireHitState(State state = inactive) : state_(state) {}
+    WireHitState(State state = inactive, LState lstate = longinactive) : state_(state), lstate_(lstate) {}
   };
 }
 #endif
