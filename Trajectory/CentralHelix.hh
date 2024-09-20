@@ -46,6 +46,7 @@ namespace KinKal {
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, VEC3 const& bnom, TimeRange const& range=TimeRange());
       CentralHelix(VEC4 const& pos, MOM4 const& mom, int charge, double bnom, TimeRange const& range=TimeRange());
       // construct from explicit parametric and kinematic info
+      CentralHelix(Parameters const &pdata, double mass, int charge, VEC3 const& bnom, TimeRange const& range);
       CentralHelix(Parameters const &pdata, double mass, int abscharge, double bnom, TimeRange const& range);
       // copy payload and adjust for a different BFieldMap and range
       CentralHelix(CentralHelix const& other, VEC3 const& bnom, double trot);
