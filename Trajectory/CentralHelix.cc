@@ -93,9 +93,11 @@ namespace KinKal {
     setBNom(trot,bnom);
   }
 
-  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(VEC3(0.0,0.0,bnom)){
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, double bnom, TimeRange const& range) : CentralHelix(pdata, mass, charge, VEC3(0.0,0.0,bnom), range) {}
+  CentralHelix::CentralHelix(Parameters const &pdata, double mass, int charge, VEC3 const& bnom, TimeRange const& range) : trange_(range),  pars_(pdata), mass_(mass), bnom_(bnom){
     //FIXME for now just ignore sign
     abscharge_ = abs(charge);
+    setTransforms();
   }
 
   CentralHelix::CentralHelix(Parameters const &pdata, CentralHelix const& other) : CentralHelix(other) {
@@ -442,7 +444,7 @@ namespace KinKal {
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);
     auto mvec = localMomentum(time);
-    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dBloc)/bnomR();
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
