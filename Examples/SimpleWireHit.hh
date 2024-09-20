@@ -82,7 +82,7 @@ namespace KinKal {
       double mindoca, double driftspeed, double tvar, double tot, double totvar, double longval, double longvar, double rcell, int id) :
     bfield_(bfield),
     whstate_(whstate), wire_(pca.sensorTraj()),
-    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP(),pca.dXdP(),pca.dDirdP()), // must be explicit to get the right sensor traj reference
+    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP(),pca.dLdP()), // must be explicit to get the right sensor traj reference
     mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), longval_(longval), longvar_(longvar), rcell_(rcell), id_(id) {
     }
 
@@ -133,6 +133,11 @@ namespace KinKal {
         // interpret DOCA against the wire directly as a residuals
         double nulldvar = dvel_*dvel_*(ca_.deltaT()*ca_.deltaT()+0.8);
         rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,true,ca_.dDdP());
+      }
+      if(whstate_.useLong()){
+        double calong = (ca_.sensorPoca().Vect() - wire_.middle()).Dot(ca_.sensorDirection());
+        double lr = calong - longval_;
+        rresid_[lresid] = Residual(lr,longvar_,0.0,true,ca_.dLdP());
       }
     }
     // now update the weight

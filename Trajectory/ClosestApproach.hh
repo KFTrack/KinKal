@@ -35,7 +35,7 @@ namespace KinKal {
       ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision);
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision,
-          ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP, DVDP const& dXdP, DVDP const& dDirdP);
+          ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP, DVEC const& dLdP);
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return *ktrajptr_; }
@@ -44,8 +44,7 @@ namespace KinKal {
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       DVEC const& dDdP() const { return dDdP_; }
       DVEC const& dTdP() const { return dTdP_; }
-      DVDP const& dXdP() const { return dXdP_; }
-      DVDP const& dDirdP() const { return dDirdP_; }
+      DVEC const& dLdP() const { return dLdP_; }
       bool inRange() const { return particleTraj().inRange(particleToca()) && sensorTraj().inRange(sensorToca()); }
       double precision() const { return precision_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
@@ -80,8 +79,7 @@ namespace KinKal {
       ClosestApproachData tpdata_; // data payload of CA calculation
       DVEC dDdP_; // derivative of DOCA WRT Parameters
       DVEC dTdP_; // derivative of TOCA WRT Parameters
-      DVDP dXdP_; // derivative of pos at particle TOCA
-      DVDP dDirdP_; // derivative of dir at particle TOCA
+      DVEC dLdP_; // derivative of dist along sensor WRT Parameters
       void setParticleTOCA( double ptoca);
       void setSensorTOCA( double stoca);
   };
@@ -93,8 +91,8 @@ namespace KinKal {
     precision_(prec),ktrajptr_(ktrajptr), straj_(straj) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double prec,
-    ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP, DVDP const& dXdP, DVDP const& dDirdP) :
-   precision_(prec),ktrajptr_(ktrajptr), straj_(straj), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP), dXdP_(dXdP), dDirdP_(dDirdP) {}
+    ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP, DVEC const& dLdP) :
+   precision_(prec),ktrajptr_(ktrajptr), straj_(straj), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP), dLdP_(dLdP) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
       double prec) : ClosestApproach(ktraj,straj,prec) {
@@ -111,8 +109,7 @@ namespace KinKal {
     tpdata_ = other. tpData();
     dDdP_ = other.dDdP();
     dTdP_ = other.dTdP();
-    dXdP_ = other.dXdP();
-    dDirdP_ = other.dDirdP();
+    dLdP_ = other.dLdP();
     ktrajptr_ = other.ktrajptr_;
     // make sure the sensor traj is the same
     if(&straj_ != &other.sensorTraj()) throw std::invalid_argument("Inconsistent ClosestApproach SensorTraj");
@@ -166,15 +163,15 @@ namespace KinKal {
       tpdata_.doca_ = dvec.R()*tpdata_.lsign_;
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
-      dXdP_ = ktrajptr_->dXdPar(particleToca()); // position change WRT parameters
+      DVDP dxdp = ktrajptr_->dXdPar(particleToca()); // position change WRT parameters
       // change in DOCA WRT parameters; this is straight forwards
       VEC3 dvechat = dvec.Unit();
       SVEC3 dvh(dvechat.X(),dvechat.Y(),dvechat.Z());
-      dDdP_ = tpdata_.lsign_*dvh*dXdP_;
+      dDdP_ = tpdata_.lsign_*dvh*dxdp;
       // change in particle DeltaT WRT parameters; both PTOCA and STOCA terms are important.
       // The dependendence on the momentum direction change is an order of magnitude smaller but
       // might be included someday TODO
-      dDirdP_ = ktrajptr_->dMdPar(particleToca())/ktrajptr_->momentum(particleToca());
+      DVDP ddirdp = ktrajptr_->dMdPar(particleToca())/ktrajptr_->momentum(particleToca());
 
       double dd = sensorDirection().Dot(particleDirection());
       double denom = (1.0-dd*dd);
@@ -184,9 +181,17 @@ namespace KinKal {
       double sfactor = 1.0/(sspeed*denom);
       VEC3 gamma = sfactor*(sensorDirection() - dd*particleDirection());
       SVEC3 sgamma(gamma.X(),gamma.Y(),gamma.Z());
-      dTdP_ = (sbeta - sgamma)*dXdP_;
+      dTdP_ = (sbeta - sgamma)*dxdp;
       tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
       tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());
+
+      SVEC3 sdirs(sensorDirection().X(),sensorDirection().Y(),sensorDirection().Z());
+      SVEC3 pdirs(pdir.X(),pdir.Y(),pdir.Z());
+      SVEC3 dvecs(dvec.X(),dvec.Y(),dvec.Z());
+      DVEC dxdsdir = sdirs*dxdp;
+      DVEC dxdpdir = pdirs*dxdp;
+      DVEC dddm = dvecs*ddirdp; 
+      dLdP_ = -dxdsdir - (dxdsdir*dd - dxdpdir - dddm)/denom*dd;
     }
   }
 

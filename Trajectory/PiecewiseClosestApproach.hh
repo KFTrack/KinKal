@@ -18,7 +18,7 @@ namespace KinKal {
       size_t particleTrajIndex() const { return pindex_; }
       KTRAJ const& localParticleTraj() const { return this->particleTraj().piece(pindex_); }
       KTRAJPTR const& localTraj() const { return this->particleTraj().indexTraj(pindex_); }
-      KTCA localClosestApproach() const { return KTCA(localTraj(),this->sensorTraj(),this->precision(),this->tpData(),this->dDdP(),this->dTdP(),this->dXdP(),this->dDirdP()); }
+      KTCA localClosestApproach() const { return KTCA(localTraj(),this->sensorTraj(),this->precision(),this->tpData(),this->dDdP(),this->dTdP(),this->dLdP()); }
     private:
       size_t pindex_; // indices to the local traj used in TCA calculation
   };
@@ -38,8 +38,7 @@ namespace KinKal {
       this->tpdata_ = tpoca.tpData();
       this->dDdP_ = tpoca.dDdP();
       this->dTdP_ = tpoca.dTdP();
-      this->dXdP_ = tpoca.dXdP();
-      this->dDirdP_ = tpoca.dDirdP();
+      this->dLdP_ = tpoca.dLdP();
       //      inrange = tpoca.inRange();
       // update the hint
       phint.particleToca_ = tpoca.particleToca();

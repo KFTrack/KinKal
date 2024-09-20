@@ -44,7 +44,7 @@ namespace KinKal {
 
   template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar) :
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar),
-    tpca_(pca.localTraj(),saxis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP(),pca.dXdP(),pca.dDirdP())
+    tpca_(pca.localTraj(),saxis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP(),pca.dLdP())
   {}
 
   template <class KTRAJ> Residual const& ScintHit<KTRAJ>::refResidual(unsigned ires) const {
