@@ -20,12 +20,12 @@ namespace KinKal {
       //  append and prepend to check mass and charge consistency
       void append(KTRAJ const& newpiece, bool allowremove=false)  {
         if(PTTRAJ::pieces().size() > 0){
-          if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+          if(fabs(newpiece.mass()-mass())>1e-6) throw std::invalid_argument("Invalid particle parameters");
         }
         PTTRAJ::append(newpiece,allowremove);
       }
       void prepend(KTRAJ const& newpiece, bool allowremove=false)  {
-        if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+        if(fabs(newpiece.mass()-mass())>1e-6) throw std::invalid_argument("Invalid particle parameters");
         PTTRAJ::prepend(newpiece,allowremove);
       }
       // kinematic interface
