@@ -121,6 +121,7 @@ namespace KinKal {
       DOMAINCOL const& domains() const { return domains_; }
       void print(std::ostream& ost=std::cout,int detail=0) const;
       TimeRange activeRange() const; // time range of active hits
+      void extendTraj(TimeRange const& newrange);
     protected:
       Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
       void fit(HITCOL& hits, EXINGCOL& exings );
@@ -306,6 +307,12 @@ namespace KinKal {
           std::max(fittraj_->range().end(),domains.rbegin()->get()->end()));
       fittraj_->setRange(newrange);
     }
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::extendTraj(TimeRange const& newrange){
+      TimeRange temprange(std::min(fittraj_->range().begin(),newrange.begin()),
+          std::max(fittraj_->range().end(),newrange.end()));
+      fittraj_->setRange(temprange);
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createTraj(PTRAJ const& seedtraj , TimeRange const& range, DOMAINCOL const& domains ) {

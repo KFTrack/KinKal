@@ -289,8 +289,10 @@ namespace KinKal {
       retval.norm_ = surf.normal(retval.pos_);
       retval.pdir_ = dir;
       // calculate the time
-      retval.time_ = tstart + dist/kkline.speed(tstart);
+      retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
     }
+    // check the final time to be in range; if we're out of range, negate the intersection
+    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
     return retval;
   }
   // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine
