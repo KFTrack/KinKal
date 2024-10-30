@@ -24,17 +24,20 @@ jobs:
         with:
           fetch-depth: 0
       - name: Install conda environment with micromamba
-        uses: mamba-org/provision-with-micromamba@main
+        uses: mamba-org/setup-micromamba@v1
         with:
-          environment-file: false
+          micromamba-version: 'latest'
           environment-name: "kinkal-test-env"
-          channels: conda-forge,defaults
-          channel-priority: strict
-          extra-specs: |
+          create-args: >-
             python=${{ matrix.python-version }}
             root=${{ matrix.root-version }}
             cxx-compiler
             cmake
+          condarc : |
+            channels:
+              - conda-forge
+              - defaults
+            channel-priority: strict
       - name: CMake (${{ matrix.build-type }})
         run: |
           cd ..
