@@ -20,7 +20,7 @@ namespace KinKal {
       bool inRange(double t) const {return t >= begin() && t < end(); }
       bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
-        return (end() > other.begin() || begin() < other.end()); }
+        return inRange(other.begin()) || inRange(other.end()) || contains(other) || other.contains(*this); }
       bool contains(TimeRange const& other) const {
         return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range
@@ -30,8 +30,8 @@ namespace KinKal {
         range_[0] = std::min(begin(),other.begin());
         range_[1] = std::max(end(),other.end());
       }
-      // restrict the range to the overlap with another range.  Note that a null range is illegal,
-      // so null overlap leaves the object unchanged and returns 'false'
+      // restrict the range to the overlap with another range. If there is no overlap
+      // leave the object unchanged and return 'false'
       bool restrict(TimeRange const& other ) {
         bool retval = overlaps(other);
         if(retval){
