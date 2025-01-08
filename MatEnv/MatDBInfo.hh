@@ -39,17 +39,17 @@ namespace MatEnv {
       MatDBInfo(FileFinderInterface const& interface, DetMaterial::energylossmode elossmode);
       virtual ~MatDBInfo();
       //  Find the material, given the name
-      const DetMaterial* findDetMaterial( const std::string& matName ) const override;
+      const std::shared_ptr<DetMaterial> findDetMaterial( const std::string& matName ) const override;
       // utility functions
     private:
-      DetMaterial* createDetMaterial( const std::string& dbName,
+      std::shared_ptr<DetMaterial> createDetMaterial( const std::string& dbName,
           const std::string& detMatName ) const;
       void declareMaterial( const std::string& dbName,
           const std::string& detMatName );
       // Cache of RecoMatFactory pointer
       RecoMatFactory* _genMatFactory;
       // Cache of list of materials for DetectorModel
-      std::map< std::string*, DetMaterial*, PtrLess > _matList;
+      std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess > _matList;
       // Map for reco- and DB material names
       std::map< std::string, std::string > _matNameMap;
       // function to cast-off const

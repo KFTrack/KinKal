@@ -15,7 +15,7 @@ namespace KinKal {
     public:
       // explicit constructor from geometry and materials
       StrawMaterial(double srad, double thick, double sradsig, double wrad,
-          const MatEnv::DetMaterial *wallmat, const MatEnv::DetMaterial *gasmat, const MatEnv::DetMaterial *wiremat) :
+          const std::shared_ptr<MatEnv::DetMaterial> wallmat, const std::shared_ptr<MatEnv::DetMaterial> gasmat, const std::shared_ptr<MatEnv::DetMaterial> wiremat) :
         srad_(srad), thick_(thick), sradsig_(sradsig), wrad_(wrad), wallmat_(wallmat), gasmat_(gasmat), wiremat_(wiremat) {
           srad2_ = srad_*srad_;
           grad_ = srad_-sradsig_; // count the gas volume inside 1 sigma.  This smooths discontinuities at the edge
@@ -47,9 +47,9 @@ namespace KinKal {
       double grad_; // effective gas volume radius
       double grad2_; // effective gas volume radius squared
       double wrad_; // transverse radius of the wire
-      const MatEnv::DetMaterial* wallmat_; // material of the straw wall
-      const MatEnv::DetMaterial* gasmat_; // material of the straw gas
-      const MatEnv::DetMaterial* wiremat_; // material of the wire
+      const std::shared_ptr<MatEnv::DetMaterial> wallmat_; // material of the straw wall
+      const std::shared_ptr<MatEnv::DetMaterial> gasmat_; // material of the straw gas
+      const std::shared_ptr<MatEnv::DetMaterial> wiremat_; // material of the wire
       // utility to calculate material factor given the cosine of the angle of the particle WRT the straw
       double angleFactor(double dirdot) const;
       // maximum DOCA given straw irregularities
