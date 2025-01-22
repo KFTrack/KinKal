@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <iostream>
 #include <getopt.h>
+#include <memory>
 
 #include "TH1F.h"
 #include "TSystem.h"
