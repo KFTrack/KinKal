@@ -30,7 +30,6 @@ namespace MatEnv {
       iter = _matList.begin();
     for (; iter != _matList.end(); ++iter) {
       delete iter->first;
-      //delete iter->second;
     }
     _matList.clear();
   }
