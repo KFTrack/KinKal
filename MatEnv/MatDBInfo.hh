@@ -28,6 +28,7 @@
 #include "KinKal/MatEnv/FileFinderInterface.hh"
 #include <string>
 #include <map>
+#include <memory>
 
 namespace MatEnv {
 
