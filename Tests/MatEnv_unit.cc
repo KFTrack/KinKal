@@ -9,6 +9,7 @@
 #include <cstdio>
 #include <iostream>
 #include <getopt.h>
+#include <memory>
 
 #include "TH1F.h"
 #include "TSystem.h"
@@ -85,7 +86,7 @@ int main(int argc, char **argv) {
   cout << "Searching for material " << matname << endl;
   MatEnv::SimpleFileFinder sfinder;
   MatDBInfo matdbinfo(sfinder,MatEnv::DetMaterial::moyalmean);
-  const DetMaterial* dmat = matdbinfo.findDetMaterial(matname);
+  const std::shared_ptr<DetMaterial> dmat = matdbinfo.findDetMaterial(matname);
   if(dmat != 0){
     cout << "Found DetMaterial " << dmat->name() << endl;
     unsigned nstep(100);

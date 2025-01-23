@@ -23,6 +23,7 @@
 #include <vector>
 #include <math.h>
 #include <algorithm>
+#include <memory>
 
 namespace MatEnv {
   class DetMaterial{

@@ -26,11 +26,10 @@ namespace MatEnv {
 
   MatDBInfo::~MatDBInfo() {
     // delete the materials
-    std::map< std::string*, DetMaterial*, PtrLess >::iterator
+    std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess >::iterator
       iter = _matList.begin();
     for (; iter != _matList.end(); ++iter) {
       delete iter->first;
-      delete iter->second;
     }
     _matList.clear();
   }
@@ -44,10 +43,10 @@ namespace MatEnv {
       return;
     }
 
-  const DetMaterial* MatDBInfo::findDetMaterial( const std::string& matName ) const
+  const std::shared_ptr<DetMaterial> MatDBInfo::findDetMaterial( const std::string& matName ) const
   {
-    DetMaterial* theMat;
-    std::map< std::string*, DetMaterial*, PtrLess >::const_iterator pos;
+    std::shared_ptr<DetMaterial> theMat;
+    std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess >::const_iterator pos;
     if ((pos = _matList.find((std::string*)&matName)) != _matList.end()) {
       theMat = pos->second;
     } else {
@@ -71,20 +70,20 @@ namespace MatEnv {
     return theMat;
   }
 
-  DetMaterial* MatDBInfo::createDetMaterial( const std::string& db_name,
+  std::shared_ptr<DetMaterial> MatDBInfo::createDetMaterial( const std::string& db_name,
       const std::string& detMatName ) const
   {
     MtrPropObj* genMtrProp;
-    DetMaterial* theMat;
+    std::shared_ptr<DetMaterial> theMat;
 
     genMtrProp = _genMatFactory->GetMtrProperties(db_name);
     if(genMtrProp != 0){
-      theMat = new DetMaterial( detMatName.c_str(), genMtrProp ) ;
+      theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp ) ;
       theMat->setEnergyLossMode(_elossmode);
       that()->_matList[new std::string( detMatName )] = theMat;
       return theMat;
     } else {
-      return 0;
+      return nullptr;
     }
   }
 }

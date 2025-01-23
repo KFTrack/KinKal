@@ -103,7 +103,7 @@ namespace KKTest {
       StrawMaterial smat_; // straw material
       Cylinder ipacyl_;
       double ipathick_;
-      const MatEnv::DetMaterial* ipamat_;
+      const std::shared_ptr<MatEnv::DetMaterial> ipamat_;
       MetaIterConfig miconfig_; // configuration used when calculating initial effect
   };
 

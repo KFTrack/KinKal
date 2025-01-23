@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 namespace MatEnv {
   class DetMaterial;
 
@@ -29,7 +30,7 @@ namespace MatEnv {
       MaterialInfo(){;}
       virtual ~MaterialInfo(){;}
       //  Find the material, given the name
-      virtual const DetMaterial* findDetMaterial( const std::string& matName ) const = 0;
+      virtual const std::shared_ptr<DetMaterial> findDetMaterial( const std::string& matName ) const = 0;
       const std::vector< std::string >& materialNames() const {
         return _matNameList; }
       std::vector< std::string >& materialNames() {
