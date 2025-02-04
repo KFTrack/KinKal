@@ -50,7 +50,7 @@ namespace MatEnv {
       // Cache of RecoMatFactory pointer
       RecoMatFactory* _genMatFactory;
       // Cache of list of materials for DetectorModel
-      std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess > _matList;
+      std::map< std::string, std::shared_ptr<DetMaterial> > _matList;
       // Map for reco- and DB material names
       std::map< std::string, std::string > _matNameMap;
       // function to cast-off const
