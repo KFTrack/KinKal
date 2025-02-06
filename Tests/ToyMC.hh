@@ -45,7 +45,7 @@ namespace KKTest {
         mom_(mom), icharge_(icharge),
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
-        zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), ineff_(0.05),
+        zrange_(zrange), rstraw_(2.5), rwire_(0.025), wthick_(0.015), wlen_(1000.0), sigt_(3.0), sigtot_(7.0), siglong_(40.0), ineff_(0.05),
         scitsig_(0.5), shPosSig_(10.0), shmax_(40.0), cz_(zrange_+50), clen_(200.0), cprop_(0.8*CLHEP::c_light),
         osig_(10.0), ctmin_(0.5), ctmax_(0.8), tol_(1e-5), tprec_(1e-8), t0off_(700.0),
         smat_(matdb_,rstraw_, wthick_, 3*wthick_, rwire_),
@@ -93,6 +93,7 @@ namespace KKTest {
       double rwire_, wthick_, wlen_; // wire radius, thickness, length
       double sigt_; // drift time resolution in ns
       double sigtot_; // TOT drift time resolution (ns)
+      double siglong_; // Longitudinal pos resolution (mm)
       double ineff_; // hit inefficiency
                      // time hit parameters
       double scitsig_, shPosSig_, shmax_, cz_, clen_, cprop_;
@@ -155,7 +156,9 @@ namespace KKTest {
         double mindoca = std::min(ambigdoca_,rstraw_);
         // true TOT is the drift time
         double tot = tr_.Gaus(tp.deltaT(),sigtot_);
-        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, tot, sigtot_*sigtot_,  rstraw_, ihit));
+        double longpos = (tp.sensorPoca().Vect()-tline.middle()).Dot(tp.sensorDirection());
+        double longval = tr_.Gaus(longpos,siglong_);
+        thits.push_back(std::make_shared<WIREHIT>(bfield_, tp, whstate, mindoca, sdrift_, sigt_*sigt_, tot, sigtot_*sigtot_, longval, siglong_*siglong_, rstraw_, ihit));
       }
       // compute material effects and change trajectory accordingly
       auto xing = std::make_shared<STRAWXING>(tp,smat_);
