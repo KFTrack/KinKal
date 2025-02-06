@@ -24,15 +24,7 @@ namespace MatEnv {
     _genMatFactory(RecoMatFactory::getInstance(interface)), _elossmode(elossmode)
   {;}
 
-  MatDBInfo::~MatDBInfo() {
-    // delete the materials
-    std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess >::iterator
-      iter = _matList.begin();
-    for (; iter != _matList.end(); ++iter) {
-      delete iter->first;
-    }
-    _matList.clear();
-  }
+  MatDBInfo::~MatDBInfo() {;}
 
   void
     MatDBInfo::declareMaterial( const std::string& db_name,
@@ -46,8 +38,8 @@ namespace MatEnv {
   const std::shared_ptr<DetMaterial> MatDBInfo::findDetMaterial( const std::string& matName ) const
   {
     std::shared_ptr<DetMaterial> theMat;
-    std::map< std::string*, std::shared_ptr<DetMaterial>, PtrLess >::const_iterator pos;
-    if ((pos = _matList.find((std::string*)&matName)) != _matList.end()) {
+    std::map< std::string, std::shared_ptr<DetMaterial> >::const_iterator pos;
+    if ((pos = _matList.find(matName)) != _matList.end()) {
       theMat = pos->second;
     } else {
       // first, look for aliases
@@ -80,7 +72,7 @@ namespace MatEnv {
     if(genMtrProp != 0){
       theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp ) ;
       theMat->setEnergyLossMode(_elossmode);
-      that()->_matList[new std::string( detMatName )] = theMat;
+      that()->_matList[ detMatName ] = theMat;
       return theMat;
     } else {
       return nullptr;
