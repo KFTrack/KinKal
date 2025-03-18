@@ -44,7 +44,7 @@ namespace KinKal {
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     double pvar = ROOT::Math::Similarity(resid.dRdP(),params.covariance());
     if(pvar<0) throw std::runtime_error("Covariance projection inconsistency");
-    return Residual(uresid,resid.variance(),pvar,resid.active(),resid.dRdP());
+    return Residual(uresid,resid.variance(),pvar,resid.active(),resid.dRdP(),resid.dRdX());
 
   }
 
