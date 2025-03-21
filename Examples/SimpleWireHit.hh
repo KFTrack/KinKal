@@ -28,6 +28,7 @@ namespace KinKal {
           double driftspeed, double tvar, double tot, double totvar, double rcell,int id);
       unsigned nResid() const override { return 2; } // 2 residuals
       double time() const override { return ca_.particleToca(); }
+      VEC3 dRdX(unsigned ires) const;
       Residual const& refResidual(unsigned ires=dresid) const override;
       void updateReference(PTRAJ const& ptraj) override;
       KTRAJPTR const& refTrajPtr() const override { return ca_.particleTrajPtr(); }
@@ -124,6 +125,19 @@ namespace KinKal {
     }
     // now update the weight
     this->updateWeight(miconfig);
+  }
+
+  template <class KTRAJ> VEC3 SimpleWireHit<KTRAJ>::dRdX(unsigned ires) const {
+    if (whstate_.active()){
+      if (ires == dresid){
+        if (whstate_.useDrift()){
+          return ca_.lSign()*ca_.delta().Vect().Unit();
+        }else{
+          return -1*ca_.lSign()*ca_.delta().Vect().Unit();
+        }
+      }
+    }
+    return VEC3(0,0,0);
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
