@@ -28,6 +28,7 @@ namespace KinKal {
           double driftspeed, double tvar, double tot, double totvar, double rcell,int id);
       unsigned nResid() const override { return 2; } // 2 residuals
       double time() const override { return ca_.particleToca(); }
+      VEC3 dRdX(unsigned ires) const;
       Residual const& refResidual(unsigned ires=dresid) const override;
       void updateReference(PTRAJ const& ptraj) override;
       KTRAJPTR const& refTrajPtr() const override { return ca_.particleTrajPtr(); }
@@ -110,22 +111,33 @@ namespace KinKal {
     }
     rresid_[tresid] = rresid_[dresid] = Residual();
     if(whstate_.active()){
-      rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP(),VEC3(0,0,0)); // always constrain to TOT; this stabilizes the fit
+      rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
       if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
         double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
         DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
-        VEC3 dRdX = ca_.lSign()*ca_.delta().Vect().Unit();
-        rresid_[dresid] = Residual(dr,tvar_*dvel_*dvel_,0.0,true,dRdP,dRdX);
+        rresid_[dresid] = Residual(dr,tvar_*dvel_*dvel_,0.0,true,dRdP);
       } else {
         // interpret DOCA against the wire directly as a residuals
         double nulldvar = dvel_*dvel_*(ca_.deltaT()*ca_.deltaT()+0.8);
-        VEC3 dRdX = -1*ca_.lSign()*ca_.delta().Vect().Unit();
-        rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,true,ca_.dDdP(),dRdX);
+        rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,true,ca_.dDdP());
       }
     }
     // now update the weight
     this->updateWeight(miconfig);
+  }
+
+  template <class KTRAJ> VEC3 SimpleWireHit<KTRAJ>::dRdX(unsigned ires) const {
+    if (whstate_.active()){
+      if (ires == dresid){
+        if (whstate_.useDrift()){
+          return ca_.lSign()*ca_.delta().Vect().Unit();
+        }else{
+          return -1*ca_.lSign()*ca_.delta().Vect().Unit();
+        }
+      }
+    }
+    return VEC3(0,0,0);
   }
 
   template <class KTRAJ> Residual const& SimpleWireHit<KTRAJ>::refResidual(unsigned ires) const {
