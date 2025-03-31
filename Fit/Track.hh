@@ -274,17 +274,15 @@ namespace KinKal {
     auto newtraj = std::make_unique<PTRAJ>();
     // loop over domains
     for(auto const& domain : domains) {
-      double dtime = domain->begin();
-      // Set the DomainWall to the start of this domain
-      auto bf = bfield_.fieldVect(fittraj_->position3(dtime));
       // loop until we're either out of this domain or the piece is out of this domain
+      double dtime = domain->begin();
       while(dtime < domain->end()){
         // find the nearest piece of the traj
         static double epsilon(1e-10);
-        auto index = fittraj_->nearestIndex(dtime+epsilon); // make sure step to the next segment
+        auto index = fittraj_->nearestIndex(dtime+epsilon); // make sure step to the next segment at boundaries
         auto const& oldpiece = *fittraj_->pieces()[index];
         // create a new piece
-        KTRAJ newpiece(oldpiece,bf,dtime);
+        KTRAJ newpiece(oldpiece,domain->bnom(),dtime);
         // set the range for this piece, making sure it is non-zero
         double endtime = (index < fittraj_->pieces().size()-1) ? std::max(std::min(domain->end(),oldpiece.range().end()),dtime+epsilon) : domain->end();
         newpiece.range() = TimeRange(dtime,endtime);
