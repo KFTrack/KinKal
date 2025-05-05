@@ -49,8 +49,9 @@ namespace KinKal {
     auto ainter = plane.intersect(axis,dist,false,tol);
     // backup if the following fails due to pathological geometry
     if(ainter.onsurface_){
-      double vz = midhelix.axisSpeed();  // speed along the helix axis
-      tstart = trange.mid() + dist/vz;
+      auto velo = midhelix.velocity(tstart);
+      double va = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/va;
     }
     return pIntersect(phelix,plane,trange,tstart,tol,tdir);
   }
@@ -59,12 +60,14 @@ namespace KinKal {
     double tstart = trange.mid();
     auto const& midhelix = phelix.nearestPiece(tstart);
     auto axis = midhelix.axis(midhelix.range().mid());
+    if(tdir == TimeDir::backwards)axis.reverse();
     double dist; // distance to the midplane
     auto mdisk = cyl.midDisk();
     auto ainter = mdisk.intersect(axis,dist,false,tol);
     if(ainter.onsurface_ ){
-      double vz = midhelix.axisSpeed();  // speed along the helix axis
-      tstart = trange.mid() + dist/vz; // time the axis reaches the midplane
+      auto velo = midhelix.velocity(tstart);
+      double va = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/va; // time the axis reaches the midplane
     }
     return pIntersect(phelix,cyl,trange,tstart,tol,tdir);
   }
@@ -73,12 +76,14 @@ namespace KinKal {
     double tstart = trange.mid();
     auto const& midhelix = phelix.nearestPiece(tstart);
     auto axis = midhelix.axis(midhelix.range().mid());
+    if(tdir == TimeDir::backwards)axis.reverse();
     double dist; // distance to the midplane
     auto mdisk = fru.midDisk();
     auto ainter = mdisk.intersect(axis,dist,false,tol);
     if(ainter.onsurface_ ){
-      double vz = midhelix.axisSpeed();  // speed along the helix axis
-      tstart = trange.mid() + dist/vz; // time the axis reaches the midplane
+      auto velo = midhelix.velocity(tstart);
+      double va = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/va; // time the axis reaches the midplane
     }
     return pIntersect(phelix,fru,trange,tstart,tol,tdir);
   }

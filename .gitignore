@@ -8,4 +8,5 @@ debug/*
 .vscode/*
 .*.swp
 spack-*
+build-*
 .spack*
