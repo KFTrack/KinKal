@@ -428,12 +428,8 @@ namespace KinKal {
     // direction is along Bnom, signed by pz.  Note Bnom is in global coordinates
     VEC3 adir = bnom_.Unit();
     auto pzsign = -lam()*sign();
-    if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
+    if(pzsign*adir.Z() < 0) adir*= -1.0;
     return Ray(adir,center(time));
-  }
-
-  double LoopHelix::axisSpeed() const {
-    return fabs(speed()*lam()/pbar());
   }
 
   void LoopHelix::print(ostream& ost, int detail) const {

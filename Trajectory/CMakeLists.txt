@@ -12,6 +12,7 @@ add_library(Trajectory SHARED
     LoopHelix.cc
     POCAUtil.cc
     ConstantDistanceToTime.cc
+    ParticleTrajectory.cc
     )
 # make the library names unique
 set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")

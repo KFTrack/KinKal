@@ -8,7 +8,8 @@
 #include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Intersect.hh"
 namespace KinKal {
-  //  Find first intersection of a particle trajectory in the specified range.  This is a generic implementation
+  //  Find first intersection of a particle trajectory in the specified range.  This is a generic implementation, dependent on a
+  //  reasonable estimate of the time.
   template <class KTRAJ, class SURF> Intersection pIntersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tstart, double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
     // loop over pieces, and test the ones in range
@@ -34,6 +35,25 @@ namespace KinKal {
     }
     return retval;
   }
+
+  // estimate starting time for ptraj-plane intersections. This helps localize which piece to use.
+  template <class KTRAJ> double startTime(ParticleTrajectory<KTRAJ> const& pktraj, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir) {
+    // initialize starting time. This is a bootstrap, no precision needed
+    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
+    auto ttraj = pktraj.nearestTraj(tstart);
+    // linear approximation to the trajectory at that end
+    auto ray = ttraj->linearize(tstart);
+    if(tdir == TimeDir::backwards)ray.reverse();
+    double dist; // signed distance from ray start to the plane
+    auto ainter = plane.intersect(ray,dist,false,tol);
+    if(ainter.onsurface_){
+      auto velo = ttraj->velocity(tstart);
+      double vax = velo.Dot(ray.direction());
+      tstart += dist/vax;
+    }
+    return tstart;
+  }
+
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
   Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     return pIntersect(kklptraj,surf,trange,trange.begin(),tol,tdir);
@@ -41,50 +61,19 @@ namespace KinKal {
 
   // Helix-based particle trajectory intersect implementation with a plane
   template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    double tstart = trange.mid();
-    auto const& midhelix = phelix.nearestPiece(tstart);
-    auto axis = midhelix.axis(midhelix.range().mid());
-    if(tdir == TimeDir::backwards)axis.reverse();
-    double dist; // distance from ray start to the plane
-    auto ainter = plane.intersect(axis,dist,false,tol);
-    // backup if the following fails due to pathological geometry
-    if(ainter.onsurface_){
-      auto velo = midhelix.velocity(tstart);
-      double vax = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/vax;
-    }
+    auto tstart = startTime(phelix,plane,trange,tol,tdir);
     return pIntersect(phelix,plane,trange,tstart,tol,tdir);
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    double tstart = trange.mid();
-    auto const& midhelix = phelix.nearestPiece(tstart);
-    auto axis = midhelix.axis(midhelix.range().mid());
-    if(tdir == TimeDir::backwards)axis.reverse();
-    double dist; // distance to the midplane
-    auto mdisk = cyl.midDisk();
-    auto ainter = mdisk.intersect(axis,dist,false,tol);
-    if(ainter.onsurface_ ){
-      auto velo = midhelix.velocity(tstart);
-      double vax = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/vax; // time the axis reaches the midplane
-    }
+    auto plane = cyl.midDisk();
+    auto tstart = startTime(phelix,plane,trange,tol,tdir);
     return pIntersect(phelix,cyl,trange,tstart,tol,tdir);
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    double tstart = trange.mid();
-    auto const& midhelix = phelix.nearestPiece(tstart);
-    auto axis = midhelix.axis(midhelix.range().mid());
-    if(tdir == TimeDir::backwards)axis.reverse();
-    double dist; // distance to the midplane
-    auto mdisk = fru.midDisk();
-    auto ainter = mdisk.intersect(axis,dist,false,tol);
-    if(ainter.onsurface_ ){
-      auto velo = midhelix.velocity(tstart);
-      double vax = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/vax; // time the axis reaches the midplane
-    }
+    auto plane = fru.midDisk();
+    auto tstart = startTime(phelix,plane,trange,tol,tdir);
     return pIntersect(phelix,fru,trange,tstart,tol,tdir);
   }
   // explicit 'specializations' for the different helix types

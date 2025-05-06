@@ -165,19 +165,19 @@ namespace KinKal {
   template <class HELIX> Intersection hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
     double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
-    auto axis = helix.axis(tstart);
+    auto ray = helix.linearize(tstart);
     auto velo = helix.velocity(tstart);
-    if(tdir == TimeDir::backwards) axis.reverse(); // reverse if going backwards in time
-    double vax = velo.Dot(axis.direction()); // physical velocity
+    if(tdir == TimeDir::backwards) ray.reverse(); // reverse if going backwards in time
+    double vax = velo.Dot(ray.direction()); // physical velocity
     // test for the helix being circular or tangent to the plane
-    double ddot = fabs(axis.direction().Dot(plane.normal()));
+    double ddot = fabs(ray.direction().Dot(plane.normal()));
     double zrange = fabs(vax*trange.range());
     if(zrange > tol && ddot > tol/zrange ){
-      // Find the intersection time of the  helix axis (along bnom) with the plane
+      // Find the intersection time of the  helix ray (along bnom) with the plane
       double dist(0.0);
-      auto pinter = plane.intersect(axis,dist,true,tol);
+      auto pinter = plane.intersect(ray,dist,true,tol);
       if(pinter.onsurface_){
-        // translate the axis intersection to a time
+        // translate the ray intersection to a time
         double tmid = tstart + dist/vax;
         // bound the range of intersections by the extrema of the cylinder-plane intersection
         double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;

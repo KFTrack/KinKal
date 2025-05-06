@@ -346,7 +346,7 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   }
 
   // test axis
-  auto axis = ktraj.axis(ltime);
+  auto axis = ktraj.linearize(ltime);
   auto bdir = ktraj.bnom().Unit();
   auto rtest = (axis.start()-ktraj.position3(ltime)).R();
   if( fabs(axis.direction().Dot(acc)) > 1e-9 || fabs(rtest-ktraj.bendRadius()) > 1e-9 ||

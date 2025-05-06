@@ -461,16 +461,8 @@ namespace KinKal {
     return gcpos;
   }
 
-  Ray CentralHelix::axis(double time) const {
-    // direction is along Bnom, signed by pz
-    VEC3 adir = bnom_.Unit();
-    auto pzsign = sinDip();
-    if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
-    return Ray(adir,center(time));
-  }
-
-  double CentralHelix::axisSpeed() const {
-    return fabs(speed()*sinDip());
+  Ray CentralHelix::tangent(double time) const {
+    return Ray(direction(time),position3(time));
   }
 
   void CentralHelix::print(std::ostream& ost, int detail) const {

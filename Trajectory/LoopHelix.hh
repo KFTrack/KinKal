@@ -137,6 +137,8 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
+      // linear approximation
+      Ray linearize(double time) const { return axis(time); }
       // convenience accessors
       VEC2 center() const { return VEC2(cx(),cy()); }
       double minAxisDist() const { return fabs(center().R()-fabs(rad())); } // minimum distance to the axis

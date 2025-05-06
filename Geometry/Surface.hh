@@ -24,7 +24,7 @@ namespace KinKal {
       virtual bool inBounds(VEC3 const& point, double tol) const = 0;
       // perpindicular distance to a point from the surface, signed by the normal direction
       virtual double distance(VEC3 const& point) const = 0;
-      // distance along a ray where it would intersect this surface; Returned flag describes what happened
+      // signed distance along a ray where it would intersect this surface; Returned flag describes what happened
       virtual IntersectFlag intersect(Ray const& ray,double& dist, bool forwards, double tol) const = 0;
       // normal to the surface at the given point.  Direction convention is surface-dependent
       virtual VEC3 normal(VEC3 const& point) const  = 0;
