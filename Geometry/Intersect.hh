@@ -167,23 +167,23 @@ namespace KinKal {
     double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
     auto axis = helix.axis(tstart);
     auto velo = helix.velocity(tstart);
-    if(tdir == TimeDir::backwards)axis.reverse(); // reverse if going backwards in time
-    double va = velo.Dot(axis.direction());
+    if(tdir == TimeDir::backwards) axis.reverse(); // reverse if going backwards in time
+    double vax = velo.Dot(axis.direction()); // physical velocity
     // test for the helix being circular or tangent to the plane
     double ddot = fabs(axis.direction().Dot(plane.normal()));
-    double zrange = fabs(va*trange.range());
+    double zrange = fabs(vax*trange.range());
     if(zrange > tol && ddot > tol/zrange ){
       // Find the intersection time of the  helix axis (along bnom) with the plane
       double dist(0.0);
       auto pinter = plane.intersect(axis,dist,true,tol);
       if(pinter.onsurface_){
         // translate the axis intersection to a time
-        double tmid = tstart + timeDirSign(tdir)*dist/va;
+        double tmid = tstart + dist/vax;
         // bound the range of intersections by the extrema of the cylinder-plane intersection
         double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
-        double dt = std::max(tol/va,helix.bendRadius()*tantheta/va); // make range finite in case the helix is exactly co-linear with the plane normal
+        double dd = std::max(0.5*tol,fabs(helix.bendRadius()*tantheta)); // make range finite in case the helix is exactly co-linear with the plane normal
         // if we're already in tolerance, finish
-        if(dt*va/ddot < tol){
+        if(fabs(dd/ddot) < tol){ // test perpendicular distance
           retval.onsurface_ = pinter.onsurface_;
           retval.inbounds_ = pinter.inbounds_;
           retval.time_ = tmid;
@@ -191,6 +191,7 @@ namespace KinKal {
           retval.pdir_ = helix.direction(tmid);
           retval.norm_ = plane.normal(retval.pos_);
         } else {
+          auto dt = fabs(dd/vax);
           TimeRange srange(tmid-dt,tmid+dt);
           if(srange.restrict(trange)){
             // step to the intersection in the restricted range.  Use a separate intersection object as the

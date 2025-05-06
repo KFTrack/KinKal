@@ -50,8 +50,8 @@ namespace KinKal {
     // backup if the following fails due to pathological geometry
     if(ainter.onsurface_){
       auto velo = midhelix.velocity(tstart);
-      double va = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/va;
+      double vax = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/vax;
     }
     return pIntersect(phelix,plane,trange,tstart,tol,tdir);
   }
@@ -66,8 +66,8 @@ namespace KinKal {
     auto ainter = mdisk.intersect(axis,dist,false,tol);
     if(ainter.onsurface_ ){
       auto velo = midhelix.velocity(tstart);
-      double va = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/va; // time the axis reaches the midplane
+      double vax = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/vax; // time the axis reaches the midplane
     }
     return pIntersect(phelix,cyl,trange,tstart,tol,tdir);
   }
@@ -82,8 +82,8 @@ namespace KinKal {
     auto ainter = mdisk.intersect(axis,dist,false,tol);
     if(ainter.onsurface_ ){
       auto velo = midhelix.velocity(tstart);
-      double va = velo.Dot(axis.direction());
-      tstart = trange.mid() + dist/va; // time the axis reaches the midplane
+      double vax = velo.Dot(axis.direction());
+      tstart = trange.mid() + dist/vax; // time the axis reaches the midplane
     }
     return pIntersect(phelix,fru,trange,tstart,tol,tdir);
   }
