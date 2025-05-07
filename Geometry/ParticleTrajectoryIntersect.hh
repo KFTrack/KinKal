@@ -54,6 +54,23 @@ namespace KinKal {
     return tstart;
   }
 
+  template <class KTRAJ, class SURF> KinKal::Disk startDisk(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir) {
+    auto fplane = surf.frontDisk();
+    auto bplane = surf.backDisk();
+    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
+    KinKal::Ray ray = (tdir == TimeDir::forwards) ?  ptraj.front().linearize(tstart) : ptraj.back().linearize(tstart);
+    if(tdir != TimeDir::forwards)ray.reverse();
+    auto fdist = (ray.start() - fplane.center()).Dot(ray.direction());
+    auto bdist = (ray.start() - bplane.center()).Dot(ray.direction());
+    // choose the closest positive
+    if(fdist < bdist && fdist > 0.0)
+      return fplane;
+    else if(bdist < fdist && bdist > 0.0)
+      return bplane;
+    else
+      return surf.midDisk();
+  }
+
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
   Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     return pIntersect(kklptraj,surf,trange,trange.begin(),tol,tdir);
@@ -66,14 +83,14 @@ namespace KinKal {
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    auto plane = cyl.midDisk();
-    auto tstart = startTime(phelix,plane,trange,tol,tdir);
+    auto disk = startDisk(phelix,cyl,trange,tol,tdir);
+    double tstart = startTime(phelix,disk,trange,tol,tdir);
     return pIntersect(phelix,cyl,trange,tstart,tol,tdir);
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    auto plane = fru.midDisk();
-    auto tstart = startTime(phelix,plane,trange,tol,tdir);
+    auto disk = startDisk(phelix,fru,trange,tol,tdir);
+    double tstart = startTime(phelix,disk,trange,tol,tdir);
     return pIntersect(phelix,fru,trange,tstart,tol,tdir);
   }
   // explicit 'specializations' for the different helix types
