@@ -60,13 +60,15 @@ namespace KinKal {
     double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
     KinKal::Ray ray = (tdir == TimeDir::forwards) ?  ptraj.front().linearize(tstart) : ptraj.back().linearize(tstart);
     if(tdir != TimeDir::forwards)ray.reverse();
-    auto fdist = (ray.start() - fplane.center()).Dot(ray.direction());
-    auto bdist = (ray.start() - bplane.center()).Dot(ray.direction());
+    auto fdist = ( fplane.center() - ray.start() ).Dot(ray.direction());
+    auto bdist = ( bplane.center() - ray.start() ).Dot(ray.direction());
     // choose the closest positive
-    if(fdist < bdist && fdist > 0.0)
-      return fplane;
-    else if(bdist < fdist && bdist > 0.0)
+    if(fdist > 0.0 && bdist > 0.0)
+      return (fdist < bdist) ? fplane : bplane;
+    else if(bdist > 0.0)
       return bplane;
+    else if (fdist > 0.0)
+      return fplane;
     else
       return surf.midDisk();
   }
