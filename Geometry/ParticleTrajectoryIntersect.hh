@@ -36,43 +36,6 @@ namespace KinKal {
     return retval;
   }
 
-  // estimate starting time for ptraj-plane intersections. This helps localize which piece to use.
-  template <class KTRAJ> double startTime(ParticleTrajectory<KTRAJ> const& pktraj, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir) {
-    // initialize starting time. This is a bootstrap, no precision needed
-    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
-    auto ttraj = pktraj.nearestTraj(tstart);
-    // linear approximation to the trajectory at that end
-    auto ray = ttraj->linearize(tstart);
-    if(tdir == TimeDir::backwards)ray.reverse();
-    double dist; // signed distance from ray start to the plane
-    auto ainter = plane.intersect(ray,dist,false,tol);
-    if(ainter.onsurface_){
-      auto velo = ttraj->velocity(tstart);
-      double vax = velo.Dot(ray.direction());
-      tstart += dist/vax;
-    }
-    return tstart;
-  }
-
-  template <class KTRAJ, class SURF> KinKal::Disk startDisk(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir) {
-    auto fplane = surf.frontDisk();
-    auto bplane = surf.backDisk();
-    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
-    KinKal::Ray ray = (tdir == TimeDir::forwards) ?  ptraj.front().linearize(tstart) : ptraj.back().linearize(tstart);
-    if(tdir != TimeDir::forwards)ray.reverse();
-    auto fdist = ( fplane.center() - ray.start() ).Dot(ray.direction());
-    auto bdist = ( bplane.center() - ray.start() ).Dot(ray.direction());
-    // choose the closest positive
-    if(fdist > 0.0 && bdist > 0.0)
-      return (fdist < bdist) ? fplane : bplane;
-    else if(bdist > 0.0)
-      return bplane;
-    else if (fdist > 0.0)
-      return fplane;
-    else
-      return surf.midDisk();
-  }
-
   // KinematicLine-based particle trajectory intersect implementation can always use the generic function
   Intersection intersect(ParticleTrajectory<KinKal::KinematicLine> const& kklptraj, KinKal::Surface const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     return pIntersect(kklptraj,surf,trange,trange.begin(),tol,tdir);
@@ -80,19 +43,17 @@ namespace KinKal {
 
   // Helix-based particle trajectory intersect implementation with a plane
   template <class HELIX> Intersection phpIntersect(ParticleTrajectory<HELIX> const& phelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    auto tstart = startTime(phelix,plane,trange,tol,tdir);
+    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
     return pIntersect(phelix,plane,trange,tstart,tol,tdir);
   }
 
   template < class HELIX> Intersection phcIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    auto disk = startDisk(phelix,cyl,trange,tol,tdir);
-    double tstart = startTime(phelix,disk,trange,tol,tdir);
+    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
     return pIntersect(phelix,cyl,trange,tstart,tol,tdir);
   }
 
   template < class HELIX> Intersection phfIntersect( ParticleTrajectory<HELIX> const& phelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol, TimeDir tdir = TimeDir::forwards) {
-    auto disk = startDisk(phelix,fru,trange,tol,tdir);
-    double tstart = startTime(phelix,disk,trange,tol,tdir);
+    double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
     return pIntersect(phelix,fru,trange,tstart,tol,tdir);
   }
   // explicit 'specializations' for the different helix types
