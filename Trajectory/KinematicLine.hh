@@ -108,6 +108,7 @@ class KinematicLine {
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
     double speed(double t) const { return speed(); }
+    double transverseSpeed() const { return 0.0; }
 
     VEC3 position3(double time) const;
     VEC4 position4(double time) const;
@@ -147,6 +148,7 @@ class KinematicLine {
     Ray linearize(double time) const;
 
     double bendRadius() const { return 0.0; }
+    double sagitta(double) const { return 0.0; }
 
     void invertCT() {
       charge_ *= -1;

@@ -465,6 +465,16 @@ namespace KinKal {
     return Ray(direction(time),position3(time));
   }
 
+  double CentralHelix::sagitta(double trange) const {
+    double tlen = trange*transverseSpeed();
+    double brad = bendRadius();
+    if(tlen < M_PI*brad){
+      double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
+      return 0.125*brad*drunit*drunit;
+    }
+    return brad;
+  }
+
   void CentralHelix::print(std::ostream& ost, int detail) const {
     ost << " CentralHelix parameters: ";
     for(size_t ipar=0;ipar < CentralHelix::npars_;ipar++){

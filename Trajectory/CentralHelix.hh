@@ -63,6 +63,7 @@ namespace KinKal {
       VEC3 momentum3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time=0) const  { return CLHEP::c_light * beta(); }
+      double transverseSpeed() const  { return CLHEP::c_light * beta()*cosDip(); }
       double acceleration() const { return CLHEP::c_light*CLHEP::c_light/(omega()*ebar2()); }
       VEC3 acceleration(double time) const;
       VEC3 direction(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
@@ -148,6 +149,7 @@ namespace KinKal {
       // linear approximation
       Ray linearize(double time) const { return tangent(time); }
       double bendRadius() const { return fabs(1.0/omega()); }
+      double sagitta(double range) const; // compute maximum sagitta over a time range
     private :
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;
       VEC3 localMomentum(double time) const;

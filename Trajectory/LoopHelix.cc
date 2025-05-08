@@ -432,6 +432,16 @@ namespace KinKal {
     return Ray(adir,center(time));
   }
 
+  double LoopHelix::sagitta(double trange) const {
+    double tlen = fabs(trange*transverseSpeed());
+    double brad = bendRadius();
+    if(tlen < M_PI*brad){
+      double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
+      return 0.125*brad*drunit*drunit;
+    }
+    return brad; // maximum possible sagitta
+  }
+
   void LoopHelix::print(ostream& ost, int detail) const {
     auto pvar = params().covariance().Diagonal();
     ost << " LoopHelix " << range() << " parameters: ";
