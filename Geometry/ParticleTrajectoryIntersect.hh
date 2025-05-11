@@ -20,7 +20,8 @@ namespace KinKal {
     } else {
       int istep = (tdir == TimeDir::forwards) ? 1 : -1;
       do {
-        // if we can approximate this piece as a line, simply test at the endpoints
+        // if we can approximate this piece as a line, simply test at the endpoints. Time order doesn't matter
+        bool testinter(true);
         auto ttraj = ptraj.indexTraj(istart);
         double sag = ttraj->sagitta(ttraj->range().range());
         if(sag < tol){
@@ -28,25 +29,24 @@ namespace KinKal {
           bool sinside = surf.isInside(spos);
           auto epos = ttraj->position3(ttraj->range().end());
           bool einside = surf.isInside(epos);
-          if(sinside != einside){
-            auto srange = ttraj->range();
-            srange.restrict(trange);
-            retval = intersect(*ttraj,surf,srange,tol,tdir);
-            if(retval.good())break;
-          }
-        } else {
-          // try to intersect. these needs a temporary
+          testinter = sinside != einside;
+        }
+        if(testinter){
+          // try to intersect. use a temporary
           auto srange = ttraj->range();
-          srange.restrict(trange);
-          auto tinter = intersect(*ttraj,surf,srange,tol,tdir);
-          if(tinter.good()){
-            retval = tinter;
-            break;
+          if(srange.restrict(trange)){
+            auto tinter = intersect(*ttraj,surf,srange,tol,tdir);
+            if(tinter.good()){
+              retval = tinter;
+              break;
+            }
           }
         }
         // update
         istart += istep;
       } while( istart != iend);
+      // final test of last piece
+      if(!retval.onsurface_)retval = intersect(ptraj.piece(istart),surf,trange,tol,tdir);
     }
     return retval;
   }

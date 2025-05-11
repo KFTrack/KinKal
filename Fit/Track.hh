@@ -725,9 +725,9 @@ namespace KinKal {
           while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*fittraj_,tdir) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
-            double dt = bfield_.rangeInTolerance(ktraj,time,xtest.tolerance()); // always positive
+            double dt = bfield_.rangeInTolerance(ktraj,time,xtest.dpTolerance()); // always positive
             TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.tolerance());
+            Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())),xtest.dpTolerance());
             addDomain(domain,tdir,true); // use exact transport
             time = tdir == TimeDir::forwards ? domain.end() : domain.begin();
           }
