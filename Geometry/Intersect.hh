@@ -31,7 +31,7 @@ namespace KinKal {
     if(rbend > 0.0){
       double tlenmax = 2.0*sqrt(2.0*rbend*tol); // maximum transverse length keeping the sagitta within tolerance
       double tspeed = ktraj.transverseSpeed();
-      tstep = std::min(tstep,std::max(tlenmax/tspeed,tol/speed));  // trajectory range defines maximum step
+      tstep = std::min(tstep,(tlenmax+tol)/tspeed);  // trajectory range defines maximum step
     }
     // sign!
     tstep *= timeDirSign(tdir);
@@ -90,8 +90,8 @@ namespace KinKal {
         retval.norm_ = surf.normal(retval.pos_);
       }
     }
-    // check the final time to be in range; if we're out of range, negate the intersection
-    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
+    // check the final time to be in range
+    retval.inrange_ = trange.inRange(retval.time_);
     return retval;
   }
   //
@@ -301,8 +301,8 @@ namespace KinKal {
       // calculate the time
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
     }
-    // check the final time to be in range; if we're out of range, negate the intersection
-    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
+    // check the final time to be in range;
+    retval.inrange_ = trange.inRange(retval.time_);
     return retval;
   }
   // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine

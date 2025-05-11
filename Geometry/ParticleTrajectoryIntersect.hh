@@ -32,14 +32,14 @@ namespace KinKal {
             auto srange = ttraj->range();
             srange.restrict(trange);
             retval = intersect(*ttraj,surf,srange,tol,tdir);
-            if(retval.onsurface_ && retval.inbounds_)break;
+            if(retval.good())break;
           }
         } else {
           // try to intersect. these needs a temporary
           auto srange = ttraj->range();
           srange.restrict(trange);
           auto tinter = intersect(*ttraj,surf,srange,tol,tdir);
-          if(tinter.onsurface_ && tinter.inbounds_){
+          if(tinter.good()){
             retval = tinter;
             break;
           }

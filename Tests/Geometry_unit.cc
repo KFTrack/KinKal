@@ -96,7 +96,7 @@ int main(int argc, char** argv) {
   double dist;
   auto iflag = ann.intersect(ray,dist,forwards,tol);
   if(iflag.onsurface_){
-    std::cout << "Annulus intersect " << iflag << " at distance " << dist << " point " << ray.position(dist) << std::endl;
+    std::cout << "Annulus intersect " << iflag.inbounds_ << " at distance " << dist << " point " << ray.position(dist) << std::endl;
     if(!ann.onSurface(ray.position(dist),tol)){
       std::cout << "Intersection point not on surface " << std::endl;
       return -2;
@@ -106,13 +106,13 @@ int main(int argc, char** argv) {
 
   iflag = rect.intersect(ray,dist,forwards,tol);
   if(iflag.onsurface_)
-    std::cout << "Rectangle intersect " << iflag << " at distance " << dist << " point " << ray.position(dist) << std::endl;
+    std::cout << "Rectangle intersect " << iflag.inbounds_ << " at distance " << dist << " point " << ray.position(dist) << std::endl;
   else
     std::cout << "No Rectangle intersection" << std::endl;
 
   iflag = cyl.intersect(ray,dist,forwards,tol);
   if(iflag.onsurface_){
-    std::cout << "Cylinder intersect " << iflag << " at distance " << dist << " point " << ray.position(dist) << std::endl;
+    std::cout << "Cylinder intersect " << iflag.inbounds_ << " at distance " << dist << " point " << ray.position(dist) << std::endl;
     if(!cyl.onSurface(ray.position(dist),tol)){
       std::cout << "Intersection point not on surface " << std::endl;
       return -2;
@@ -124,7 +124,7 @@ int main(int argc, char** argv) {
 
   iflag = fru.intersect(ray,dist,forwards,tol);
   if(iflag.onsurface_){
-    std::cout << "Frustrum intersect " << iflag << " at distance " << dist << " point " << ray.position(dist) << std::endl;
+    std::cout << "Frustrum intersect " << iflag.inbounds_ << " at distance " << dist << " point " << ray.position(dist) << std::endl;
     if(!fru.onSurface(ray.position(dist),tol)){
       std::cout << "Intersection point not on surface " << std::endl;
       return -2;
