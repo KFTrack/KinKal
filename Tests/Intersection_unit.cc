@@ -121,7 +121,7 @@ int main(int argc, char** argv) {
   std::cout << "Test " << cyl << std::endl;
   auto kc_inter = intersect(ktraj,cyl, trange, tol, tdir);
   std::cout << "KinematicLine Cylinder Intersection status " << kc_inter << std::endl;
-  if(kc_inter.inbounds_){
+  if(kc_inter.good()){
     auto iplane = cyl.tangentPlane(kc_inter.pos_);
     auto dist = cyl.distance(kc_inter.pos_);
     std::cout << "distance " << dist  << " tangent plane at intersection " << iplane << std::endl;
@@ -132,7 +132,7 @@ int main(int argc, char** argv) {
   std::cout << "Test " << fru << std::endl;
   auto kf_inter = intersect(ktraj,fru, trange, tol, tdir);
   std::cout << "KinematicLine Frustrum Intersection status " << kf_inter << std::endl;
-  if(kf_inter.inbounds_){
+  if(kf_inter.good()){
     auto iplane = fru.tangentPlane(kf_inter.pos_);
     auto dist = fru.distance(kf_inter.pos_);
     std::cout << "distance " << dist  << " tangent plane at intersection " << iplane << std::endl;

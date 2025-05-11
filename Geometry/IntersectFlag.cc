@@ -6,9 +6,8 @@
 std::ostream& operator <<(std::ostream& ost, KinKal::IntersectFlag const& iflag) {
   if(iflag.onsurface_){
     ost << "On surface ";
-    if(iflag.inbounds_){
-      ost << " and in bounds ";
-    }
+    if(iflag.inbounds_)ost << " in bounds ";
+    if(iflag.inrange_)ost << " in range ";
   }else {
     ost << "No Intersection";
   }

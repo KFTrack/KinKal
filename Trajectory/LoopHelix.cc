@@ -428,12 +428,18 @@ namespace KinKal {
     // direction is along Bnom, signed by pz.  Note Bnom is in global coordinates
     VEC3 adir = bnom_.Unit();
     auto pzsign = -lam()*sign();
-    if(pzsign*adir.Z() < 0) adir.SetZ(-adir.Z());
+    if(pzsign*adir.Z() < 0) adir*= -1.0;
     return Ray(adir,center(time));
   }
 
-  double LoopHelix::axisSpeed() const {
-    return fabs(speed()*lam()/pbar());
+  double LoopHelix::sagitta(double trange) const {
+    double tlen = fabs(trange*transverseSpeed());
+    double brad = bendRadius();
+    if(tlen < M_PI*brad){
+      double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
+      return 0.125*brad*drunit*drunit;
+    }
+    return brad; // maximum possible sagitta
   }
 
   void LoopHelix::print(ostream& ost, int detail) const {

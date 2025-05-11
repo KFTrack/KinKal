@@ -19,7 +19,7 @@ namespace KinKal {
     double time_ = 0.0; // time at intersection (from particle)
     bool gap_ = false; // intersection is in a piecewise-trajectory gap
     Ray ray() const { return Ray(pdir_,pos_); } // linear particle trajectory at intersection
+    friend std::ostream& operator << (std::ostream& ost, KinKal::Intersection const& inter);
   };
 }
-std::ostream& operator <<(std::ostream& ost, KinKal::Intersection const& inter);
 #endif

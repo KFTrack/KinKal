@@ -108,6 +108,7 @@ class KinematicLine {
 
     double speed() const {  return ( mom()/ energy()) * CLHEP::c_light; }
     double speed(double t) const { return speed(); }
+    double transverseSpeed() const { return 0.0; }
 
     VEC3 position3(double time) const;
     VEC4 position4(double time) const;
@@ -143,9 +144,11 @@ class KinematicLine {
     DVEC dPardB(double time) const { return DVEC(); }
     DVEC dPardB(double time, VEC3 const& BPrime) const { return DVEC(); }
     PSMAT dPardPardB(double time,VEC3 const& db) const { return ROOT::Math::SMatrixIdentity(); }
-    // implement 'helix' interface.  This has a physically valid interpretion even for a line
-    Ray axis(double time) const; // helix axis in global coordinates
+    // linear approximation
+    Ray linearize(double time) const;
+
     double bendRadius() const { return 0.0; }
+    double sagitta(double) const { return 0.0; }
 
     void invertCT() {
       charge_ *= -1;

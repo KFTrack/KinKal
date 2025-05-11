@@ -62,6 +62,7 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time=0.0) const  {  return CLHEP::c_light*beta(); }
+      double transverseSpeed() const {  return fabs(CLHEP::c_light*lam()/ebar()); } // speed perpendicular to the axis
       double acceleration() const { return rad()*CLHEP::c_light*CLHEP::c_light/ebar2(); }
       VEC3 acceleration(double time) const;
       void print(std::ostream& ost, int detail) const;
@@ -137,12 +138,15 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray axis(double time) const; // helix axis in global coordinates
+      // linear approximation
+      Ray linearize(double time) const { return axis(time); }
       // convenience accessors
       VEC2 center() const { return VEC2(cx(),cy()); }
       double minAxisDist() const { return fabs(center().R()-fabs(rad())); } // minimum distance to the axis
       double maxAxisDist() const { return center().R()+fabs(rad()); } // maximum distance to the axis
       double axisSpeed() const; // speed along the axis direction (always positive)
       double bendRadius() const { return fabs(rad());}
+      double sagitta(double range) const; // compute maximum sagitta over a time range
     private :
       // local coordinate system functions, used internally
       VEC3 localDirection(double time, MomBasis::Direction mdir= MomBasis::momdir_) const;

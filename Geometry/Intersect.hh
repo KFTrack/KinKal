@@ -24,11 +24,19 @@ namespace KinKal {
     Intersection retval;
     double ttest = tdir == TimeDir::forwards ? trange.begin() : trange.end();
     auto pos = ktraj.position3(ttest);
-    double speed = ktraj.speed(ttest); // speed is constant
+    double rbend = ktraj.bendRadius();
+    double tstep = trange.range();
+    double speed = ktraj.speed();
+    // if there's curvature, take smaller steps
+    if(rbend > 0.0){
+      double tlenmax = 2.0*sqrt(2.0*rbend*tol); // maximum transverse length keeping the sagitta within tolerance
+      double tspeed = ktraj.transverseSpeed();
+      tstep = std::min(tstep,(tlenmax+tol)/tspeed);  // trajectory range defines maximum step
+    }
+    // sign!
+    tstep *= timeDirSign(tdir);
     bool startinside = surf.isInside(pos);
     bool stepinside;
-    // set the step according to the range and tolerance.  The maximum range division is arbitrary, it should be set to a physical value TODO
-    double tstep = timeDirSign(tdir)*std::max(0.05*trange.range(),tol/speed);  // trajectory range defines maximum step
     unsigned niter(0);
     // step until we cross the surface or the time is out of range
     do {
@@ -82,8 +90,8 @@ namespace KinKal {
         retval.norm_ = surf.normal(retval.pos_);
       }
     }
-    // check the final time to be in range; if we're out of range, negate the intersection
-    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
+    // check the final time to be in range
+    retval.inrange_ = trange.inRange(retval.time_);
     return retval;
   }
   //
@@ -117,10 +125,13 @@ namespace KinKal {
 
   template < class HELIX> Intersection hcIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
+    // test if the range is lnger than the radius. If so, make an axial approximation
+    double rbend = fabs(helix.bendRadius());
     // compare directions and divide into cases
     double ddot = fabs(helix.bnom().Unit().Dot(cyl.axis()));
-    if (ddot > 0.9) { // I need a more physical co-linear test TODO
-      // the helix and cylinder are roughly co-linear.
+    if(rbend < trange.range()*helix.transverseSpeed() && ddot > 0.9) { // mostly co-linear
+      // the helix and cylinder are roughly co-linear, and the helix loops within this range
+      // first try to limit the range using disk-axis intersections
       // see if the range is in bounds
       auto binb = cyl.inBounds(helix.position3(trange.begin()),tol);
       auto einb = cyl.inBounds(helix.position3(trange.end()),tol);
@@ -150,57 +161,56 @@ namespace KinKal {
           }
         }
       }
-      //    } else if (ddot < 0.1) {
-      //      // the helix and cylinder are mostly orthogonal, use POCA to the axis to find an initial estimate, then do a linear search
-      //      // TODO. Construct a KinematicLine object from the helix axis, and a GeometricLine from the cylinder, then invoke POCA.
-  } else {
-    // intermediate case: use step intersection
-    retval = stepIntersect(helix,cyl,trange,tol,tdir);
-  }
-  return retval;
+    } else {
+      // intermediate case: use step intersection
+      retval = stepIntersect(helix,cyl,trange,tol,tdir);
+    }
+    return retval;
   }
   //
   // Helix and planar surfaces
   //
   template <class HELIX> Intersection hpIntersect( HELIX const& helix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
-    double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
-    auto axis = helix.axis(tstart);
-    if(tdir == TimeDir::backwards)axis.reverse();
-    // test for the helix being circular or tangent to the plane
-    double vz = helix.axisSpeed();  // speed along the helix axis
-    double ddot = fabs(axis.direction().Dot(plane.normal()));
-    double zrange = fabs(vz*trange.range());
-    if(zrange > tol && ddot > tol/zrange ){
-      // Find the intersection time of the  helix axis (along bnom) with the plane
-      double dist(0.0);
-      auto pinter = plane.intersect(axis,dist,true,tol);
-      if(pinter.onsurface_){
-        // translate the axis intersection to a time
-        double tmid = tstart + timeDirSign(tdir)*dist/vz;
-        // bound the range of intersections by the extrema of the cylinder-plane intersection
-        double tantheta = sqrt(std::max(0.0,1.0 -ddot*ddot))/ddot;
-        double dt = std::max(tol/vz,helix.bendRadius()*tantheta/vz); // make range finite in case the helix is exactly co-linear with the plane normal
-        // if we're already in tolerance, finish
-        if(dt*vz/ddot < tol){
-          retval.onsurface_ = pinter.onsurface_;
-          retval.inbounds_ = pinter.inbounds_;
-          retval.time_ = tmid;
-          retval.pos_ = helix.position3(tmid);
-          retval.pdir_ = helix.direction(tmid);
-          retval.norm_ = plane.normal(retval.pos_);
-        } else {
+    // test if the range is lnger than the radius. If so, make an axial approximation
+    double rbend = fabs(helix.bendRadius());
+    if(rbend > trange.range()*helix.transverseSpeed()){
+      retval = stepIntersect(helix,plane,trange,tol,tdir);
+    } else {
+      // the trajectory curves macroscopically over this range: see if the axis is normal
+      double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
+      auto ray = helix.linearize(tstart);
+      auto velo = helix.velocity(tstart);
+      if(tdir == TimeDir::backwards) ray.reverse(); // reverse if going backwards in time
+      double vax = velo.Dot(ray.direction()); // speed along axis
+      // test for the helix being circular or tangent to the plane
+      double ddot = fabs(ray.direction().Dot(plane.normal()));
+      double zrange = fabs(vax*trange.range());
+      if(zrange > tol && ddot > tol/zrange ){
+        // Find the intersection time of the  helix ray (along bnom) with the plane to reduce the range
+        double dist(0.0);
+        auto pinter = plane.intersect(ray,dist,true,tol);
+        if(pinter.onsurface_){
+          // translate the ray intersection distance to a time
+          double tmid = tstart + dist/vax;
+          // bound the range of intersections by the extrema of the cylinder-plane intersection
+          double tantheta = sqrt(std::max(1.0 -ddot*ddot,0.0))/ddot;
+          // distance along axis to the surface to bound the reduced range; add tolerance
+          double dd = tol+rbend*tantheta;
+          // intersection should be bounded by the
+          auto dt = fabs(dd/vax);
           TimeRange srange(tmid-dt,tmid+dt);
+          // if this range overlaps with the original, compute the intersection
           if(srange.restrict(trange)){
             // step to the intersection in the restricted range.  Use a separate intersection object as the
             // range is different
             retval = stepIntersect(helix,plane,srange,tol,tdir);
           }
         }
+      } else {
+        // simply step to intersection
+        retval = stepIntersect(helix,plane,trange,tol,tdir);
       }
-    } else {
-      // simply step to intersection
-      retval = stepIntersect(helix,plane,trange,tol,tdir);
     }
     return retval;
   }
@@ -291,8 +301,8 @@ namespace KinKal {
       // calculate the time
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
     }
-    // check the final time to be in range; if we're out of range, negate the intersection
-    if(!trange.inRange(retval.time_))retval.inbounds_ = false; // I should make a separate flag for time bounds TODO
+    // check the final time to be in range;
+    retval.inrange_ = trange.inRange(retval.time_);
     return retval;
   }
   // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine

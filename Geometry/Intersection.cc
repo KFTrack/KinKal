@@ -2,15 +2,18 @@
 #include <stdexcept>
 #include <iostream>
 #include <cstdio>
-
-std::ostream& operator <<(std::ostream& ost, KinKal::Intersection const& inter) {
-  if(inter.onsurface_){
-    ost << "Intersection at time  " << inter.time_ << " position " << inter.pos_ << " surface normal " << inter.norm_;
-    if(inter.inbounds_){
-      ost << " in bounds ";
+namespace KinKal {
+  std::ostream& operator <<(std::ostream& ost, KinKal::Intersection const& inter) {
+    if(inter.onsurface_){
+      ost << "Intersection on surface ";
+      if(inter.inbounds_) ost << " in bounds ";
+      if(inter.inrange_) ost << " in time range ";
+    } else {
+      ost << "No Intersection";
     }
-  }else {
-    ost << "No Intersection";
+    if(inter.good()){
+      ost << " at time  " << inter.time_ << " position " << inter.pos_ << " surface normal " << inter.norm_;
+    }
+    return ost;
   }
-  return ost;
 }

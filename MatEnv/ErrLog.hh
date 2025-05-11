@@ -22,7 +22,7 @@ namespace MatEnv {
 
     public:
       explicit ErrMsg(Severity severity)
-	//  : _severity(severity)
+        //  : _severity(severity)
       {
       }
 
@@ -33,25 +33,25 @@ namespace MatEnv {
       operator std::ostream&() { return std::cout; }
 
       template< class T >
-	ErrMsg &  operator<< ( T const & t )
-	{
-	  std::cout << t;
-	  return *this;
-	}
+        ErrMsg &  operator<< ( T const & t )
+        {
+          std::cout << t;
+          return *this;
+        }
 
       ErrMsg &  operator<< ( std::ostream & f(std::ostream &) )
       {
-	std::cout << f;
-	return *this;
+        std::cout << f;
+        return *this;
       }
       ErrMsg &  operator<< ( std::ios_base & f(std::ios_base &) )
       {
-	std::cout << f;
-	return *this;
+        std::cout << f;
+        return *this;
       }
       void  operator<< ( void f(ErrMsg &) )
       {
-	f(*this);
+        f(*this);
       }
 
       static Severity ErrLoggingLevel;
@@ -60,11 +60,11 @@ namespace MatEnv {
   };
 
   // Implementation of the global operator<< that allows "endmsg" to be used
-  // with a plain ostream as a manipulator.  
+  // with a plain ostream as a manipulator.
   inline std::ostream& operator<<( std::ostream& os, void (* fp)(ErrMsg&) )
   {
     os<<std::endl;
-    return os; 
+    return os;
   }
 
   inline void endmsg( ErrMsg & err )

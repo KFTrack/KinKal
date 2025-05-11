@@ -345,16 +345,6 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
     return -2;
   }
 
-  // test axis
-  auto axis = ktraj.axis(ltime);
-  auto bdir = ktraj.bnom().Unit();
-  auto rtest = (axis.start()-ktraj.position3(ltime)).R();
-  if( fabs(axis.direction().Dot(acc)) > 1e-9 || fabs(rtest-ktraj.bendRadius()) > 1e-9 ||
-      (acc.R() != 0 && fabs(fabs(axis.direction().Dot(bdir))-1.0)>1e-9) ){
-    cout << "Axis check failed " << endl;
-    return -2;
-  }
-
   if(fabs(pmvar-tmvar)>1e-9 ) {
     cout << "Momentum covariance check failed " << endl;
     return -2;

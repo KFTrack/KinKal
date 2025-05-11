@@ -11,6 +11,7 @@ namespace KinKal {
 
   template <class KTRAJ> class ParticleTrajectory : public PiecewiseTrajectory<KTRAJ> {
     public:
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using PTTRAJ = PiecewiseTrajectory<KTRAJ>;
 
       // base class implementation
@@ -41,7 +42,14 @@ namespace KinKal {
       VEC3 const& bnom(double time) const { return PTTRAJ::nearestPiece(time).bnom(); }
       ParticleState state(double time) const { return PTTRAJ::nearestPiece(time).state(time); }
       ParticleStateEstimate stateEstimate(double time) const { return PTTRAJ::nearestPiece(time).stateEstimate(time); }
+      // search for and return the piece just following a reflection
+      KTRAJPTR reflection(double time) const;
   };
+
+ // generic implemetnation; just return a null ptr
+  template<class KTRAJ> std::shared_ptr<KTRAJ> ParticleTrajectory<KTRAJ>::reflection(double time) const {
+    return std::shared_ptr<KTRAJ>();
+  }
 }
 #endif
 
