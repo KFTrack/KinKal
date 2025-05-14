@@ -44,9 +44,7 @@ namespace KinKal {
         }
         // update
         istart += istep;
-      } while( istart != iend);
-      // final test of last piece
-      if(!retval.onsurface_)retval = intersect(ptraj.piece(istart),surf,trange,tol,tdir);
+      } while( istart != iend+istep); // include the last piece in the test
     }
     return retval;
   }
