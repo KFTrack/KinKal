@@ -4,6 +4,7 @@
 //  Describe the material effects of a particle crossing a detector element (piece of the detector)
 //  Used in the kinematic Kalman fit
 //
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/Detector/MaterialXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
@@ -19,6 +20,9 @@ namespace KinKal {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}
+      // clone op for reinstantiation
+      ElementXing(ElementXing const& rhs) = default;
+      virtual std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext&) const = 0;
       virtual void updateReference(PTRAJ const& ptraj) = 0; // update the trajectory reference
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
       virtual Parameters params() const =0; // parameter change induced by this element crossing WRT the reference parameters going forwards in time

@@ -7,6 +7,7 @@
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/General/Chisq.hh"
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/General/TimeRange.hh"
@@ -22,6 +23,8 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       Effect() {}
       virtual ~Effect(){}
+      // clone op for reinstantiation
+      virtual std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const = 0;
       // Effect interface
       virtual double time() const = 0; // time of this effect
       virtual bool active() const = 0; // whether this effect is/was used in the fit

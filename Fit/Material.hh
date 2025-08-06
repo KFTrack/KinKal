@@ -32,10 +32,16 @@ namespace KinKal {
       virtual ~Material(){}
       // create from the material and a trajectory
       Material(EXINGPTR const& exingptr, PTRAJ const& ptraj);
+      // clone op for reinstantiation
+      Material(Material const&);
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
       // accessors
       auto const& elementXing() const { return *exingptr_; }
       auto const& elementXingPtr() const { return exingptr_; }
       auto const& referenceTrajectory() const { return exingptr_->referenceTrajectory(); }
+      // other accessors
+      auto const& weights() const { return nextwt_; }
+      void setElementXingPtr(EXINGPTR const& ptr){ exingptr_ = ptr; }
     private:
       EXINGPTR exingptr_; // element crossing for this effect
       Weights nextwt_; // cache of weight forwards of this effect.
@@ -142,6 +148,23 @@ namespace KinKal {
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Material<KTRAJ> const& kkmat) {
     kkmat.print(ost,0);
     return ost;
+  }
+
+  // clone op for reinstantiation
+  template <class KTRAJ>
+  Material<KTRAJ>::Material(Material const& rhs):
+    nextwt_(rhs.weights()){
+    /**/
+  }
+
+  template <class KTRAJ>
+  std::unique_ptr< Effect<KTRAJ> > Material<KTRAJ>::clone(CloneContext& context) const{
+    auto casted = std::make_unique< Material<KTRAJ> >(*this);
+    EXINGPTR ptr = context.get(exingptr_);
+    casted->setElementXingPtr(ptr);
+    //auto rv = std::make_unique< Effect<KTRAJ> >(casted);
+    auto rv = std::move(casted);
+    return rv;
   }
 }
 #endif

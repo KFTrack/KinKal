@@ -34,14 +34,27 @@ namespace KinKal {
       auto const& parameterChange() const { return dpfwd_; }
       virtual ~DomainWall(){}
       // disallow copy and equivalence
-      DomainWall(DomainWall const& ) = delete;
+//    DomainWall(DomainWall const& ) = delete;
       DomainWall& operator =(DomainWall const& ) = delete;
+      // clone op for reinstantiation
+      DomainWall(DomainWall const&);
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
       // specific DomainWall interface
       // create from the domain and BField
       DomainWall(BFieldMap const& bfield,DOMAINPTR const& prevdomain,DOMAINPTR const& nextdomain, PTRAJ const& ptraj);
       // previous and next domains
       auto const& prevDomain() const { return *prev_; }
       auto const& nextDomain() const { return *next_; }
+      // other accessors
+      auto const& bfield() const { return bfield_; }
+      auto const& prevPtr() const { return prev_; }
+      auto const& nextPtr() const { return next_; }
+      auto const& fwdChange() const { return dpfwd_; }
+      auto const& prevWeight() const { return prevwt_; }
+      auto const& nextWeight() const { return nextwt_; }
+      auto const& fwdCovarianceRotation() const { return dpdpdb_; }
+      void setPrevPtr(DOMAINPTR const& ptr){ prev_ = ptr; }
+      void setNextPtr(DOMAINPTR const& ptr){ next_ = ptr; }
 
     private:
       BFieldMap const& bfield_; // bfield
@@ -134,5 +147,27 @@ namespace KinKal {
     return ost;
   }
 
+  // clone op for reinstantiation
+  template <class KTRAJ>
+  DomainWall<KTRAJ>::DomainWall(DomainWall const& rhs):
+      bfield_(rhs.bfield()),
+      dpfwd_(rhs.fwdChange()),
+      prevwt_(rhs.prevWeight()),
+      nextwt_(rhs.nextWeight()),
+      dpdpdb_(rhs.fwdCovarianceRotation()){
+    /**/
+  }
+
+  template <class KTRAJ>
+  std::unique_ptr< Effect<KTRAJ> > DomainWall<KTRAJ>::clone(CloneContext& context) const{
+    auto casted = std::make_unique< DomainWall<KTRAJ> >(*this);
+    DOMAINPTR prev = context.get(prev_);
+    casted->setPrevPtr(prev);
+    DOMAINPTR next = context.get(next_);
+    casted->setNextPtr(next);
+    //auto rv = std::make_unique< Effect<KTRAJ> >(casted);
+    auto rv = std::move(casted);
+    return rv;
+  }
 }
 #endif

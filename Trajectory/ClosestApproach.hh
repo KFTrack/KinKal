@@ -68,6 +68,8 @@ namespace KinKal {
       CAHint hint() const { return CAHint(particleToca(),sensorToca()); }
       // equivalence
       ClosestApproach& operator = (ClosestApproach const& other);
+      // other accessors
+      void setTrajectory(KTRAJPTR ktrajptr){ ktrajptr_ = ktrajptr; }
     private:
       double precision_; // precision used to define convergence
       KTRAJPTR ktrajptr_; // kinematic particle trajectory

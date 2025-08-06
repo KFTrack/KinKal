@@ -4,6 +4,7 @@
 //  Base class to describe a measurement that constrains some aspect of the track fit
 //  The constraint is expressed as a weight WRT a set of reference parameters.
 //
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/Weights.hh"
 #include "KinKal/General/Parameters.hh"
 #include "KinKal/General/Chisq.hh"
@@ -22,6 +23,8 @@ namespace KinKal {
       // disallow copy and equivalence
       Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
+      // clone op for reinstantiation
+      virtual std::shared_ptr< Hit<KTRAJ> > clone(CloneContext&) const = 0;
      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual unsigned nDOF() const=0;

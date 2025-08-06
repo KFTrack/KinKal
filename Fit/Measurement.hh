@@ -32,8 +32,13 @@ namespace KinKal {
       // local functions
       // construct from a hit and reference trajectory
       Measurement(HITPTR const& hit,PTRAJ const& ptraj);
+      // clone op for reinstantiation
+      Measurement(Measurement const&);
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
+      // other accessors
+      void setHitPtr(HITPTR const& ptr){ hit_ = ptr; }
     private:
       HITPTR hit_ ; // hit used for this measurement
   };
@@ -79,5 +84,20 @@ namespace KinKal {
     return ost;
   }
 
+  // clone op for reinstantiation
+  template <class KTRAJ>
+  Measurement<KTRAJ>::Measurement(Measurement const& rhs){
+    /**/
+  }
+
+  template <class KTRAJ>
+  std::unique_ptr< Effect<KTRAJ> > Measurement<KTRAJ>::clone(CloneContext& context) const{
+    auto casted = std::make_unique< Measurement<KTRAJ> >(*this);
+    HITPTR ptr = context.get(hit_);
+    casted->setHitPtr(ptr);
+    //auto rv = std::make_unique< Effect<KTRAJ> >(casted);
+    auto rv = std::move(casted);
+    return rv;
+  }
 }
 #endif

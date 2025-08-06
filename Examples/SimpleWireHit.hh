@@ -27,6 +27,36 @@ namespace KinKal {
       SimpleWireHit(BFieldMap const& bfield, PCA const& pca, WireHitState const& whstate, double mindoca,
           double driftspeed, double tvar, double tot, double totvar, double rcell,int id);
       unsigned nResid() const override { return 2; } // 2 residuals
+      // clone op for reinstantiation
+      SimpleWireHit(SimpleWireHit<KTRAJ> const& rhs):
+          ResidualHit<KTRAJ>(rhs),
+          bfield_(rhs.bfield()),
+          whstate_(rhs.hitState()),
+          wire_(rhs.wire()),
+          ca_(
+            rhs.closestApproach().particleTraj(),
+            wire_,
+            rhs.closestApproach().hint(),
+            rhs.closestApproach().precision()
+          ),
+          rresid_(rhs.residuals()),
+          mindoca_(rhs.minDOCA()),
+          dvel_(driftVelocity()),
+          tvar_(timeVariance()),
+          tot_(rhs.tot()),
+          totvar_(rhs.totVariance()),
+          rcell_(rhs.cellRadius()),
+          id_(rhs.id()){
+        /**/
+      };
+      std::shared_ptr< Hit<KTRAJ> > clone(CloneContext& context) const override{
+        auto rv = std::make_shared< SimpleWireHit<KTRAJ> >(*this);
+        auto ca = rv->closestApproach();
+        auto trajectory = std::make_shared<KTRAJ>(ca.particleTraj());
+        ca.setTrajectory(trajectory);
+        rv->setClosestApproach(ca);
+        return rv;
+      };
       double time() const override { return ca_.particleToca(); }
       VEC3 dRdX(unsigned ires) const;
       Residual const& refResidual(unsigned ires=dresid) const override;
@@ -48,6 +78,11 @@ namespace KinKal {
       auto const& wire() const { return wire_; }
       auto const& bfield() const { return bfield_; }
       auto precision() const { return ca_.precision(); }
+      auto const& residuals() const { return rresid_; }
+      double tot() const { return tot_; }
+      double totVariance() const { return totvar_; }
+      // other accessors
+      void setClosestApproach(const CA& ca){ ca_ = ca; }
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       WireHitState whstate_; // current state
