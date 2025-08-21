@@ -12,6 +12,8 @@
 #include "KinKal/Fit/MetaIterConfig.hh"
 #include <memory>
 #include <ostream>
+#include <stdexcept>
+#include <string>
 
 namespace KinKal {
   template <class KTRAJ> class Hit {
@@ -24,7 +26,7 @@ namespace KinKal {
       Hit(Hit const& ) = delete;
       Hit& operator =(Hit const& ) = delete;
       // clone op for reinstantiation
-      virtual std::shared_ptr< Hit<KTRAJ> > clone(CloneContext&) const = 0;
+      virtual std::shared_ptr< Hit<KTRAJ> > clone(CloneContext&) const;
      // hits may be active (used in the fit) or inactive; this is a pattern recognition feature
       virtual bool active() const =0;
       virtual unsigned nDOF() const=0;
@@ -47,6 +49,14 @@ namespace KinKal {
       // unbiased least-squares distance to reference parameters
       Chisq chisquared() const;
   };
+
+  // cloning requires domain knowledge of pointer members of the cloned object,
+  // which must be reassigned explicitly; the default action is thus to throw
+  // an error if a clone routine has not been explicitly provided.
+  template<class KTRAJ> std::shared_ptr< Hit<KTRAJ> > Hit<KTRAJ>::clone(CloneContext& context) const{
+    std::string msg = "Attempt to clone KinKal::Hit subclass with no clone() implementation";
+    throw std::runtime_error(msg);
+  }
 
   template<class KTRAJ> Parameters Hit<KTRAJ>::unbiasedParameters() const {
     if(active()){
