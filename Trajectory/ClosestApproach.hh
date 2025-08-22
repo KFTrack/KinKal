@@ -36,6 +36,8 @@ namespace KinKal {
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision,
           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
+      // copy constructor
+      ClosestApproach(ClosestApproach<KTRAJ,STRAJ> const&) = default;
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return *ktrajptr_; }

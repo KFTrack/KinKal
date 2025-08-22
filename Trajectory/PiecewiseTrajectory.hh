@@ -34,8 +34,9 @@ namespace KinKal {
       // construct from an initial piece
       PiecewiseTrajectory(KTRAJ const& piece);
       // clone op for reinstantiation
-      PiecewiseTrajectory(PiecewiseTrajectory<KTRAJ> const&rhs);
+      PiecewiseTrajectory(PiecewiseTrajectory<KTRAJ> const&);
       std::shared_ptr< PiecewiseTrajectory<KTRAJ> > clone(CloneContext&) const;
+      PiecewiseTrajectory<KTRAJ>& operator=(PiecewiseTrajectory<KTRAJ> const&) = default;
       // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last
       // piece will be shortened or extended as necessary to keep time contiguous.
       // Optionally allow truncate existing pieces to accomodate this piece.
