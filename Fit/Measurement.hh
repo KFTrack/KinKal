@@ -34,7 +34,7 @@ namespace KinKal {
       Measurement(HITPTR const& hit,PTRAJ const& ptraj);
       // clone op for reinstantiation
       Measurement(Measurement const&);
-      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
       // other accessors

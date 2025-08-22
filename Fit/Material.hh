@@ -34,7 +34,7 @@ namespace KinKal {
       Material(EXINGPTR const& exingptr, PTRAJ const& ptraj);
       // clone op for reinstantiation
       Material(Material const&);
-      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
       // accessors
       auto const& elementXing() const { return *exingptr_; }
       auto const& elementXingPtr() const { return exingptr_; }

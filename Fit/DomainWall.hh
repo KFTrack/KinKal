@@ -38,7 +38,7 @@ namespace KinKal {
       DomainWall& operator =(DomainWall const& ) = delete;
       // clone op for reinstantiation
       DomainWall(DomainWall const&);
-      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
+      std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
       // specific DomainWall interface
       // create from the domain and BField
       DomainWall(BFieldMap const& bfield,DOMAINPTR const& prevdomain,DOMAINPTR const& nextdomain, PTRAJ const& ptraj);
