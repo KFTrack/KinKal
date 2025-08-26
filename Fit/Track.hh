@@ -126,7 +126,7 @@ namespace KinKal {
       TimeRange activeRange() const; // time range of active hits
       void extendTraj(TimeRange const& newrange);
     protected:
-      CloneContext context_;
+      std::unique_ptr<CloneContext> context_;
       Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
       void fit(HITCOL& hits, EXINGCOL& exings );
     private:
@@ -207,8 +207,9 @@ namespace KinKal {
       history_(rhs.history()),
       seedtraj_(rhs.seedTraj())
   {
-    context_.clear();
-    CloneContext& context = context_;
+    context_ = std::make_unique<CloneContext>();
+    context_->clear();
+    CloneContext& context = *context_;
     fittraj_ = std::make_unique<PTRAJ>(rhs.fitTraj());
     hits_.reserve(rhs.hits().size());
     for (const auto& ptr: rhs.hits()){
