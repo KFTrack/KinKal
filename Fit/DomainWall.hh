@@ -45,7 +45,6 @@ namespace KinKal {
       auto const& prevDomain() const { return *prev_; }
       auto const& nextDomain() const { return *next_; }
       // other accessors
-      auto const& bfield() const { return bfield_; }
       auto const& prevPtr() const { return prev_; }
       auto const& nextPtr() const { return next_; }
       auto const& fwdChange() const { return dpfwd_; }
@@ -148,7 +147,6 @@ namespace KinKal {
   // clone op for reinstantiation
   template <class KTRAJ>
   DomainWall<KTRAJ>::DomainWall(DomainWall const& rhs):
-      bfield_(rhs.bfield()),
       dpfwd_(rhs.fwdChange()),
       prevwt_(rhs.prevWeight()),
       nextwt_(rhs.nextWeight()),
