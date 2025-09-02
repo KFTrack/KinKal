@@ -267,7 +267,7 @@ namespace KinKal {
     auto rv = std::make_shared< PiecewiseTrajectory<KTRAJ> >();
     for (auto const& ptr : pieces_){
       auto piece = context.get(ptr);
-      rv->append(*piece);
+      rv.pieces_.push_back(*piece);
     }
     return rv;
   }
