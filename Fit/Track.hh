@@ -389,8 +389,7 @@ namespace KinKal {
       ++nextdom;
       while( nextdom != domains.cend() ){
         if(fabs(prevdom->get()->end()-nextdom->get()->begin())>1e-10)throw std::invalid_argument("Invalid domains");
-
-        effects_.emplace_back(std::make_unique<KKDW>(bfield_,*prevdom,*nextdom ,*fittraj_));
+        effects_.emplace_back(std::make_unique<KKDW>(*prevdom,*nextdom ,*fittraj_));
         prevdom = nextdom;
         ++nextdom;
       }
@@ -785,7 +784,7 @@ namespace KinKal {
     if(tdir == TimeDir::forwards){
       auto const& prevdom = *domains_.crbegin();
       auto const& ktraj = fittraj_->nearestPiece(prevdom->end());
-      auto& dw = effects_.emplace_back(std::make_unique<KKDW>(bfield_,prevdom,dptr,ktraj));
+      auto& dw = effects_.emplace_back(std::make_unique<KKDW>(prevdom,dptr,ktraj));
       if(exact){
         dw->extrapolate(*fittraj_,tdir);
       } else {
@@ -796,7 +795,7 @@ namespace KinKal {
     } else {
       auto const& nextdom = *domains_.cbegin();
       auto const& ktraj = fittraj_->nearestPiece(nextdom->begin());
-      auto& dw = effects_.emplace_front(std::make_unique<KKDW>(bfield_,dptr,nextdom,ktraj));
+      auto& dw = effects_.emplace_front(std::make_unique<KKDW>(dptr,nextdom,ktraj));
       if(exact){
         dw->extrapolate(*fittraj_,tdir);
       } else {

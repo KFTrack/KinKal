@@ -24,14 +24,14 @@
 
 using namespace std;
 
-TGraph* graph(int numIter, double start, double stepSize, DistanceToTime* d, function<double(double, DistanceToTime*)> fn) {
-    double x[numIter];
-    double y[numIter];
-    for (int i = 0; i < numIter; i++) {
+TGraph* graph(size_t numIter, double start, double stepSize, DistanceToTime* d, function<double(double, DistanceToTime*)> fn) {
+    std::vector<double> x(numIter,0);
+    std::vector<double> y(numIter,0);
+    for (size_t i = 0; i < numIter; i++) {
         x[i] = i * stepSize + start;
         y[i] = fn(x[i], d);
     }
-    return new TGraph(numIter, x, y);
+    return new TGraph(numIter, x.data(), y.data());
 }
 
 double timeWrapper(double x, DistanceToTime* d) {
