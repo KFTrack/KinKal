@@ -97,8 +97,10 @@ namespace KinKal {
       using DOMAINCOL = std::set<DOMAINPTR>;
       using CONFIGCOL = std::vector<Config>;
       using FitStateArray = std::array<FitState,2>;
-      // construct from a set of hits and passive material crossings
-      Track(Config const& config, BFieldMap const& bfield, PTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
+      // construct from a set of hits and passive material crossings. This will compute the magnetic domains implicitly from the configuration
+      Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
+      // construct from all effects plus a fit trajectory. This is a reconstitution construction
+      Track(Config const& config, BFieldMap const& bfield, PTRAJ const& fittraj, HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains );
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
       // extrapolate the fit through the magnetic field with the given config until the given predicate is satisfied. This function requires
@@ -110,7 +112,6 @@ namespace KinKal {
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
-      PTRAJ const& seedTraj() const { return seedtraj_; }
       PTRAJ const& fitTraj() const { return *fittraj_; }
       KKEFFCOL const& effects() const { return effects_; }
       Config const& config() const { return config_.back(); }
@@ -123,12 +124,14 @@ namespace KinKal {
       TimeRange activeRange() const; // time range of active hits
       void extendTraj(TimeRange const& newrange);
     protected:
-      Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
-      void fit(HITCOL& hits, EXINGCOL& exings );
+      Track(Config const& cfg, BFieldMap const& bfield);
+      void fit(HITCOL& hits, EXINGCOL& exings, KTRAJ const& seedtraj);
     private:
-      // helper functions
-      TimeRange getRange(HITCOL& hits, EXINGCOL& exings) const;
+      void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
+      void convertSeed(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL& domains);
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
+      static TimeRange getRange(HITCOL& hits, EXINGCOL& exings);
+      bool createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains) const;
       bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds); // set the bounds.  Returns false if the bounds are empty
       bool extendDomains(TimeRange const& fitrange,double tol); // extend domains if the fit range changes.  Return value says if domains were added
       void updateDomains(PTRAJ const& ptraj); // Update domains between iterations
@@ -137,75 +140,65 @@ namespace KinKal {
       void initFitState(FitStateArray& states, TimeRange const& fitrange, double dwt=1.0);
       PTRAJPTR initTraj(FitState& state, TimeRange const& fitrange);
       bool canIterate() const;
-      void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
-      void createTraj(PTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL const& domains);
       void replaceDomains(DOMAINCOL const& domains);
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
       auto& status() { return history_.back(); } // most recent status
-      // divide the range into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
-      bool createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const;
+      // divide a trajectory into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
       // payload
       CONFIGCOL config_; // configuration
       BFieldMap const& bfield_; // magnetic field map
       std::vector<Status> history_; // fit status history; records the current iteration
-      PTRAJ seedtraj_; // seed for the fit
       PTRAJPTR fittraj_; // result of the current fit
       KKEFFCOL effects_; // effects used in this fit, sorted by time
       HITCOL hits_; // hits used in this fit
       EXINGCOL exings_; // material xings used in this fit
       DOMAINCOL domains_; // DomainWall domains used in this fit, contiguous and sorted by time
-
   };
-  // sub-class constructor, based just on the seed.  It requires added hits to create a functional track
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj ) :
-    bfield_(bfield), seedtraj_(seedtraj)
+  // minimal constructor for subclasses. The resulting object has no fit.
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield) :
+    config_{cfg}, bfield_(bfield)
   {
-    config_.push_back(cfg);
     if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+    history_.push_back(Status(0,0,Status::unfit, "Construction"));
   }
 
-  // construct from configuration, reference (seed) fit, hits,and materials specific to this fit.
-  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj,  HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield,seedtraj) {
-    fit(hits,exings);
+  // construct from configuration, reference (seed) fit, hits,and materials specific to this fit. This will compute the domains according to the configuration before fitting.
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings) : Track(cfg,bfield) {
+    fit(hits,exings, seedtraj);
   }
-  template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings) {
-    // set the seed time based on the min and max time from the inputs
-    TimeRange refrange = getRange(hits,exings);
-    seedtraj_.setRange(refrange);
-    // if correcting for magnetic field effects, define the domains
+
+  template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, KTRAJ const& seedtraj) {
+    auto herange = this->getRange(hits,exings);
+    // convert the seed traj to a piecewaise traj. This creates the domains
     DOMAINCOL domains;
-    if(config().bfcorr_ ) {
-      bool dok = createDomains(seedtraj_, refrange, domains, config().tol_);
-      if(!dok){
-        // failed initialization
-        history_.push_back(Status(0));
-        status().status_ = Status::outsidemap;
-        status().comment_ = std::string("Initialization error");
-        return;
-      }
-    }
-    // Create the initial reference trajectory from the seed trajectory
-    createTraj(seedtraj_,refrange,domains);
-    // create all the other effects
-//    effects_.reserve(hits.size()+exings.size()+domains.size());
-    createEffects(hits,exings,domains);
-    // now fit the track
-    fit();
+    convertSeed(seedtraj,herange,domains);
+    // convert all the primary info to fit effects
+    this->createEffects(hits,  exings, domains);
+    // now fit
+    this->fit();
   }
+
+  template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& fittraj, HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains) :
+    Track(cfg,bfield) {
+      fittraj_ = std::make_unique<PTRAJ>(fittraj);
+      // check consistency of domains and initial fittraj TODO
+      createEffects(hits,exings,domains);
+      fit();
+    }
 
   // extend an existing track
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {
+    // require the existing fit to be usable
+    if(!fitStatus().usable())return;
     // remember the previous config
     auto const& oldconfig = config_.back();
     // update the configuration
     config_.push_back(cfg);
     // configuation check
     if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-    // require the existing fit to be usable
-    if(!fitStatus().usable())throw std::invalid_argument("Cannot extend unusable fit");
     // find the range of the added information, and extend as needed
     TimeRange exrange = fittraj_->range();
     if(hits.size() >0 || exings.size() > 0){
@@ -218,21 +211,21 @@ namespace KinKal {
       // if the previous configuration didn't have domains, then create them for the full reference range
       if(!oldconfig.bfcorr_ || oldconfig.tol_ != config().tol_){
         // create domains for the whole range
-        dok &= createDomains(*fittraj_, exrange, domains, config().tol_);
-        // replace the domains.  This also replace the trajectory, as that must reference the new domains
+        dok &= createDomains(*fittraj_,exrange, domains);
+        // replace previous  domains with these.  This replaces the trajectory and bfield-related effects
         if(dok)replaceDomains(domains);
       } else {
         // create domains just for the extensions
         TimeRange exlow(exrange.begin(),fittraj_->range().begin());
         if(exlow.range()>0.0) {
           DOMAINCOL lowdomains;
-          dok &= createDomains(*fittraj_, exlow, lowdomains, config().tol_);
+          dok &= createDomains(*fittraj_,exlow, lowdomains);
           if(dok)domains.insert(lowdomains.begin(),lowdomains.end());
         }
         TimeRange exhigh(fittraj_->range().end(),exrange.end());
         if(exhigh.range()>0.0){
           DOMAINCOL highdomains;
-          dok &= createDomains(*fittraj_, exhigh, highdomains, config().tol_);
+          dok &= createDomains(*fittraj_,exhigh, highdomains);
           if(dok)domains.insert(highdomains.begin(),highdomains.end());
         }
       }
@@ -242,7 +235,7 @@ namespace KinKal {
       history_.push_back(Status(0));
       status().status_ = Status::outsidemap;
       status().comment_ = std::string("Extension error");
-     return;
+      return;
     }
     // Extend the traj and create the effects for the new info and the new domains
     extendTraj(domains);
@@ -270,31 +263,35 @@ namespace KinKal {
         }
       }
     }
-    // create new traj
     auto newtraj = std::make_unique<PTRAJ>();
     // loop over domains
     for(auto const& domain : domains) {
-      // loop until we're either out of this domain or the piece is out of this domain
-      double dtime = domain->begin();
-      while(dtime < domain->end()){
-        // find the nearest piece of the traj
-        static double epsilon(1e-10);
-        auto index = fittraj_->nearestIndex(dtime+epsilon); // make sure step to the next segment at boundaries
-        auto const& oldpiece = *fittraj_->pieces()[index];
-        // create a new piece
-        KTRAJ newpiece(oldpiece,domain->bnom(),dtime);
+      // find the range of existing ptraj pieces that overlaps with this domain's range
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      using DKTRAJ = std::deque<KTRAJPTR>;
+      using DKTRAJCITER = DKTRAJ::const_iterator;
+      DKTRAJCITER first,last;
+      fittraj_->pieceRange(domain->range(),first,last);
+      // loop over these pieces
+      auto olditer = first;
+      while(olditer != last){
+        auto const& oldpiece = **olditer;
+        // copy this piece, translating bnom to this domain's field
+        KTRAJ newpiece(oldpiece,domain->bnom(),domain->range().mid());
         // set the range for this piece, making sure it is non-zero
-        double endtime = (index < fittraj_->pieces().size()-1) ? std::max(std::min(domain->end(),oldpiece.range().end()),dtime+epsilon) : domain->end();
-        newpiece.range() = TimeRange(dtime,endtime);
-        newtraj->append(newpiece);
-        dtime = newpiece.range().end();
+        double tstart = std::max(domain->begin(), oldpiece.range().begin());
+        double tend = std::min(domain->end(),oldpiece.range().end());
+        if(tstart < tend){
+          newpiece.range() = TimeRange(tstart,tend);
+          newtraj->append(newpiece);
+        }
       }
     }
-    // update all effects to reference this trajectory
+    // switch over any existing effects to reference this traj (could be none)
     for (auto& eff : effects_) {
       eff->updateReference(*newtraj);
     }
-    // swap
+    // swap out the fit
     fittraj_.swap(newtraj);
   }
 
@@ -307,31 +304,38 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::extendTraj(TimeRange const& newrange){
-      TimeRange temprange(std::min(fittraj_->range().begin(),newrange.begin()),
-          std::max(fittraj_->range().end(),newrange.end()));
-      fittraj_->setRange(temprange);
+    TimeRange temprange(std::min(fittraj_->range().begin(),newrange.begin()),
+        std::max(fittraj_->range().end(),newrange.end()));
+    fittraj_->setRange(temprange);
   }
 
-  template <class KTRAJ> void Track<KTRAJ>::createTraj(PTRAJ const& seedtraj , TimeRange const& range, DOMAINCOL const& domains ) {
+  template <class KTRAJ> void Track<KTRAJ>::convertSeed(KTRAJ const& seedtraj,TimeRange const& range, DOMAINCOL& domains) {
     // if we're making local DomainWall corrections, divide the trajectory into domain pieces.  Each will have equivalent parameters, but relative
     // to the local field
     if(config().bfcorr_ ) {
-      if(fittraj_)throw std::invalid_argument("Initial reference trajectory must be empty");
-      if(domains.size() == 0)throw std::invalid_argument("Empty domain collection");
+      // convert the seedtraj to a PTRAJ
+      PTRAJ straj(seedtraj);
+      bool dok = createDomains(straj, range, domains);
+      if(!dok){
+        // failed initialization
+        history_.emplace_back(0,0,Status::outsidemap, "Domain initialization error");
+        return;
+      }
+      // create the initial fittraj from the seed. Each piece will have 'the same' physical trajectory as the seed, but reference the local domain BField
       fittraj_ = std::make_unique<PTRAJ>();
       for(auto const& domain : domains) {
         // Set the DomainWall to the start of this domain
-        auto bf = bfield_.fieldVect(seedtraj.position3(domain->begin()));
-        KTRAJ newpiece(seedtraj.nearestPiece(domain->begin()),bf,domain->begin());
+        auto bf = bfield_.fieldVect(seedtraj.position3(domain->mid()));
+        KTRAJ newpiece(seedtraj,bf,domain->mid());
         newpiece.range() = domain->range();
         fittraj_->append(newpiece);
       }
     } else {
-      // use the middle of the range as the nominal DomainWall for this fit:
+      // use the middle of the range as the nominal BField for this fit:
       double tref = range.mid();
       VEC3 bf = bfield_.fieldVect(seedtraj.position3(tref));
       // create the first piece.  Note this constructor adjusts the parameters according to the local field
-      KTRAJ firstpiece(seedtraj.nearestPiece(tref),bf,tref);
+      KTRAJ firstpiece(seedtraj,bf,tref);
       firstpiece.range() = range;
       // create the piecewise trajectory from this
       fittraj_ = std::make_unique<PTRAJ>(firstpiece);
@@ -420,7 +424,7 @@ namespace KinKal {
       return;
     }
     if(config().bfcorr_){
-    // update the limits if new DW effects were added
+      // update the limits if new DW effects were added
       if(extendDomains(fitrange,config().tol_))setBounds(fwdbnds,revbnds);
     }
     FitStateArray states;
@@ -674,30 +678,32 @@ namespace KinKal {
     }
   }
   // divide a trajectory into magnetic 'domains' used to apply the DomainWall corrections
-  template<class KTRAJ> bool Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains, double tol) const {
+  template<class KTRAJ> bool Track<KTRAJ>::createDomains(PTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains) const {
     bool retval(true);
-    auto const& ktraj = ptraj.nearestPiece(range.begin());
-    // catch exceptions if the fit extends beyond the range of the field map
-    try {
-      double trange = bfield_.rangeInTolerance(ktraj,range.begin(),tol);
-      // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
-      double tstart = range.begin() - 0.5*trange;
-      do {
-        // see how far we can go on the current traj before the DomainWall change causes the momentum estimate to go out of tolerance
-        // note this assumes the trajectory is accurate (geometric extrapolation only)
-        auto const& ktraj = ptraj.nearestPiece(tstart);
-        trange = bfield_.rangeInTolerance(ktraj,tstart,tol);
-        domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange)),tol));
-        // start the next domain at the end of this one
-        tstart += trange;
-      } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
-    } catch (std::exception const& error) {
-      retval = false;
+    if(config().bfcorr_ ) {
+      auto const& ktraj = ptraj.nearestPiece(range.begin());
+      // catch exceptions if the fit extends beyond the range of the field map
+      try {
+        double trange = bfield_.rangeInTolerance(ktraj,range.begin(),config().tol_);
+        // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
+        double tstart = range.begin() - 0.5*trange;
+        do {
+          // see how far we can go on the current traj before the DomainWall change causes the momentum estimate to go out of tolerance
+          // note this assumes the trajectory is accurate (geometric extrapolation only)
+          auto const& ktraj = ptraj.nearestPiece(tstart);
+          trange = bfield_.rangeInTolerance(ktraj,tstart,config().tol_);
+          domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange)),config().tol_));
+          // start the next domain at the end of this one
+          tstart += trange;
+        } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
+      } catch (std::exception const& error) {
+        retval = false;
+      }
     }
     return retval;
   }
 
-  template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) const {
+  template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) {
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
     // can't assume effects are sorted
@@ -805,4 +811,5 @@ namespace KinKal {
     return TimeRange(tmin,tmax);
   }
 }
+
 #endif

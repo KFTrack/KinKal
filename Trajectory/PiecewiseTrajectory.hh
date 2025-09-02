@@ -9,6 +9,7 @@
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/TimeRange.hh"
 #include <deque>
+#include <array>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
@@ -19,6 +20,8 @@ namespace KinKal {
     public:
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using DKTRAJ = std::deque<KTRAJPTR>;
+      using DKTRAJITER = DKTRAJ::iterator;
+      using DKTRAJCITER = DKTRAJ::const_iterator;
       // forward calls to the pieces
       VEC3 position3(double time) const { return nearestPiece(time).position3(time); }
       VEC3 velocity(double time) const { return nearestPiece(time).velocity(time); }
@@ -50,6 +53,8 @@ namespace KinKal {
       KTRAJ& back() { return *pieces_.back(); }
       KTRAJPTR const& frontPtr() const { return pieces_.front(); }
       KTRAJPTR const& backPtr() const { return pieces_.back(); }
+      void pieceRange(TimeRange const& range, DKTRAJCITER& first, DKTRAJCITER& last  ) const;
+      void pieceRange(TimeRange const& range,DKTRAJITER& first, DKTRAJITER& last );
       size_t nearestIndex(double time) const;
       DKTRAJ const& pieces() const { return pieces_; }
       // test for spatial gaps
@@ -246,6 +251,27 @@ namespace KinKal {
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, PiecewiseTrajectory<KTRAJ> const& pttraj) {
     pttraj.print(ost,0);
     return ost;
+  }
+
+  template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
+      std::deque<std::shared_ptr<KTRAJ>>::const_iterator& first,
+      std::deque<std::shared_ptr<KTRAJ>>::const_iterator& last ) const {
+    // find the first and last pieces which overlap with the range. They can be the same piece.
+    first = pieces_.cbegin();
+    while(first != pieces_.cend() && !((*first)->range().overlaps(range))) ++first;
+    auto rlast = pieces_.crbegin();
+    while(rlast != pieces_.crend() && !((*rlast)->range().overlaps(range))) ++rlast;
+    last = (rlast+1).base(); // convert back to forwards-iterator
+  }
+
+  template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
+      std::deque<std::shared_ptr<KTRAJ>>::iterator& first,
+      std::deque<std::shared_ptr<KTRAJ>>::iterator& last) {
+    first = pieces_.begin();
+    while(first != pieces_.end() && !((*first)->range().overlaps(range))) ++first;
+    auto rlast = pieces_.rbegin();
+    while(rlast != pieces_.rend() && !((*rlast)->range().overlaps(range))) ++rlast;
+    last= (rlast+1).base();
   }
 
 }
