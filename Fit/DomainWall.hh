@@ -37,14 +37,12 @@ namespace KinKal {
       DomainWall(DomainWall const& ) = delete;
       DomainWall& operator =(DomainWall const& ) = delete;
       // specific DomainWall interface
-      // create from the domain and BField
-      DomainWall(BFieldMap const& bfield,DOMAINPTR const& prevdomain,DOMAINPTR const& nextdomain, PTRAJ const& ptraj);
+      DomainWall(DOMAINPTR const& prevdomain,DOMAINPTR const& nextdomain, PTRAJ const& ptraj);
       // previous and next domains
       auto const& prevDomain() const { return *prev_; }
       auto const& nextDomain() const { return *next_; }
 
     private:
-      BFieldMap const& bfield_; // bfield
       DOMAINPTR prev_, next_; // pointers to previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
       Weights prevwt_, nextwt_; // cache of weights
@@ -52,9 +50,9 @@ namespace KinKal {
 
   };
 
-  template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(BFieldMap const& bfield,
+  template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(
       DOMAINPTR const& prevdomain, DOMAINPTR const& nextdomain, PTRAJ const& ptraj) :
-    bfield_(bfield), prev_(prevdomain), next_(nextdomain) {
+    prev_(prevdomain), next_(nextdomain) {
       updateReference(ptraj);
     }
 
