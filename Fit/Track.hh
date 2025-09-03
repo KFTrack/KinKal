@@ -100,8 +100,8 @@ namespace KinKal {
       using FitStateArray = std::array<FitState,2>;
       // construct from a set of hits and passive material crossings
       Track(Config const& config, BFieldMap const& bfield, PTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
-      // copy constructor --- woe to you, weary traveler, who need it
-      Track(const Track& rhs);
+      // copy constructor
+      Track(const Track& rhs, CloneContext& context);
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
       // extrapolate the fit through the magnetic field with the given config until the given predicate is satisfied. This function requires
@@ -126,7 +126,6 @@ namespace KinKal {
       TimeRange activeRange() const; // time range of active hits
       void extendTraj(TimeRange const& newrange);
     protected:
-      std::unique_ptr<CloneContext> context_;
       Track(Config const& cfg, BFieldMap const& bfield, PTRAJ const& seedtraj );
       void fit(HITCOL& hits, EXINGCOL& exings );
     private:
@@ -201,15 +200,12 @@ namespace KinKal {
   }
 
   // copy constructor
-  template<class KTRAJ> Track<KTRAJ>::Track(const Track& rhs) :
+  template<class KTRAJ> Track<KTRAJ>::Track(const Track& rhs, CloneContext& context) :
       config_(rhs.configs()),
       bfield_(rhs.bfield()),
       history_(rhs.history()),
       seedtraj_(rhs.seedTraj())
   {
-    context_ = std::make_unique<CloneContext>();
-    context_->clear();
-    CloneContext& context = *context_;
     fittraj_ = std::make_unique<PTRAJ>(rhs.fitTraj());
     hits_.reserve(rhs.hits().size());
     for (const auto& ptr: rhs.hits()){
