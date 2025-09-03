@@ -4,6 +4,7 @@
 //  class describing a piecewise trajectory.  Templated on a simple time-based trajectory
 //  used as part of the kinematic kalman fit
 //
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/MomBasis.hh"
@@ -32,6 +33,10 @@ namespace KinKal {
       PiecewiseTrajectory() {}
       // construct from an initial piece
       PiecewiseTrajectory(KTRAJ const& piece);
+      // clone op for reinstantiation
+      PiecewiseTrajectory(PiecewiseTrajectory<KTRAJ> const&);
+      std::shared_ptr< PiecewiseTrajectory<KTRAJ> > clone(CloneContext&) const;
+      PiecewiseTrajectory<KTRAJ>& operator=(PiecewiseTrajectory<KTRAJ> const&) = default;
       // append or prepend a piece, at the time of the corresponding end of the new trajectory.  The last
       // piece will be shortened or extended as necessary to keep time contiguous.
       // Optionally allow truncate existing pieces to accomodate this piece.
@@ -248,6 +253,24 @@ namespace KinKal {
     return ost;
   }
 
+  // clone op for reinstantiation
+  template<class KTRAJ>
+  PiecewiseTrajectory<KTRAJ>::PiecewiseTrajectory(PiecewiseTrajectory<KTRAJ> const& rhs){
+    for (const auto& ptr: rhs.pieces()){
+      auto piece = std::make_shared<KTRAJ>(*ptr);
+      pieces_.push_back(piece);
+    }
+  }
+
+  template<class KTRAJ>
+  std::shared_ptr< PiecewiseTrajectory<KTRAJ> > PiecewiseTrajectory<KTRAJ>::clone(CloneContext& context) const {
+    auto rv = std::make_shared< PiecewiseTrajectory<KTRAJ> >();
+    for (auto const& ptr : pieces_){
+      auto piece = context.get(ptr);
+      rv.pieces_.push_back(*piece);
+    }
+    return rv;
+  }
 }
 
 #endif

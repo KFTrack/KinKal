@@ -17,6 +17,20 @@ namespace KinKal {
       using RESIDHIT = ResidualHit<KTRAJ>;
       using HIT = Hit<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      // clone op for reinstantiation
+      ScintHit(ScintHit<KTRAJ> const& rhs):
+          ResidualHit<KTRAJ>(rhs),
+          saxis_(rhs.sensorAxis()),
+          tvar_(rhs.timeVariance()),
+          wvar_(rhs.widthVariance()),
+          tpca_(rhs.closestApproach()),
+          rresid_(rhs.refResidual()){
+        /**/
+      };
+      std::shared_ptr< Hit<KTRAJ> > clone(CloneContext& context) const override{
+        auto rv = std::make_shared< ScintHit<KTRAJ> >(*this);
+        return rv;
+      };
       // ResidualHit interface implementation
       unsigned nResid() const override { return 1; } // 1 time residual
       Residual const& refResidual(unsigned ires=0) const override;
