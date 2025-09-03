@@ -71,7 +71,7 @@ namespace KinKal {
       while(pieces_.size() > 1 && trange.begin() > pieces_.front()->range().end() ) pieces_.pop_front();
       while(pieces_.size() > 1 && trange.end() < pieces_.back()->range().begin() ) pieces_.pop_back();
     } else if(trange.begin() > pieces_.front()->range().end() || trange.end() < pieces_.back()->range().begin())
-      throw std::invalid_argument("Invalid Range");
+      throw std::invalid_argument("PiecewiseTrajectory::setRange; Invalid Range");
     // update piece range
     pieces_.front()->setRange(TimeRange(trange.begin(),pieces_.front()->range().end()));
     pieces_.back()->setRange(TimeRange(pieces_.back()->range().begin(),trange.end()));
@@ -89,13 +89,13 @@ namespace KinKal {
         prepend(newpiece,allowremove);
         break;
       default:
-        throw std::invalid_argument("Invalid direction");
+        throw std::invalid_argument("PiecewiseTrajectory::add; Invalid direction");
     }
   }
 
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::prepend(KTRAJ const& newpiece, bool allowremove) {
     // new piece can't have null range
-    if(newpiece.range().null())throw std::invalid_argument("Can't prepend null range traj");
+    if(newpiece.range().null())throw std::invalid_argument("PiecewiseTrajectory::prepend; Can't prepend null range traj");
     if(pieces_.empty()){
       pieces_.push_back(std::make_shared<KTRAJ>(newpiece));
     } else {
@@ -104,7 +104,7 @@ namespace KinKal {
         if(allowremove)
           *this = PiecewiseTrajectory(newpiece);
         else
-          throw std::invalid_argument("range overlap");
+          throw std::invalid_argument("PiecewiseTrajector::prepend; range overlap");
       } else {
         // find the piece that needs to be modified
         size_t ipiece = nearestIndex(newpiece.range().end());
@@ -122,7 +122,7 @@ namespace KinKal {
           pieces_.push_front(std::make_shared<KTRAJ>(newpiece));
           pieces_.front()->range() = TimeRange(tmin,pieces_.front()->range().end());
         } else {
-          throw std::invalid_argument("range error");
+          throw std::invalid_argument("PiecewiseTrajectory::prepend; range error");
         }
       }
     }
@@ -130,7 +130,7 @@ namespace KinKal {
 
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::append(KTRAJ const& newpiece, bool allowremove) {
     // new piece can't have null range
-    if(newpiece.range().null())throw std::invalid_argument("Can't append null range traj");
+    if(newpiece.range().null())throw std::invalid_argument("PiecewiseTrajectory::append; Can't append null range traj");
     if(pieces_.empty()){
       pieces_.push_back(std::make_shared<KTRAJ>(newpiece));
     } else {
@@ -139,7 +139,7 @@ namespace KinKal {
         if(allowremove)
           *this = PiecewiseTrajectory(newpiece);
         else
-          throw std::invalid_argument("range overlap");
+          throw std::invalid_argument("PiecewiseTrajectory::append; range overlap");
       } else {
         // find the piece that needs to be modified
         size_t ipiece = nearestIndex(newpiece.range().begin());
@@ -159,7 +159,7 @@ namespace KinKal {
           pieces_.push_back(std::make_shared<KTRAJ>(newpiece));
           pieces_.back()->range() = TimeRange(pieces_.back()->range().begin(),tmax);
         } else {
-          throw std::invalid_argument("range error");
+          throw std::invalid_argument("PiecewiseTrajectory::append; range error");
         }
       }
     }
@@ -256,22 +256,30 @@ namespace KinKal {
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
       std::deque<std::shared_ptr<KTRAJ>>::const_iterator& first,
       std::deque<std::shared_ptr<KTRAJ>>::const_iterator& last ) const {
-    // find the first and last pieces which overlap with the range. They can be the same piece.
-    first = pieces_.cbegin();
-    while(first != pieces_.cend() && !((*first)->range().overlaps(range))) ++first;
-    auto rlast = pieces_.crbegin();
-    while(rlast != pieces_.crend() && !((*rlast)->range().overlaps(range))) ++rlast;
-    last = (rlast+1).base(); // convert back to forwards-iterator
+    first = last = pieces_.end();
+    // check for no overlap
+    if(this->range().overlaps(range)){
+      // find the first and last pieces which overlap with the range. They can be the same piece.
+      first = pieces_.cbegin();
+      while(first != pieces_.cend() && !((*first)->range().overlaps(range))) ++first;
+      auto rlast = pieces_.crbegin();
+      while(rlast != pieces_.crend() && !((*rlast)->range().overlaps(range))) ++rlast;
+      last = (rlast+1).base(); // convert back to forwards-iterator
+    }
   }
 
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
       std::deque<std::shared_ptr<KTRAJ>>::iterator& first,
       std::deque<std::shared_ptr<KTRAJ>>::iterator& last) {
-    first = pieces_.begin();
-    while(first != pieces_.end() && !((*first)->range().overlaps(range))) ++first;
-    auto rlast = pieces_.rbegin();
-    while(rlast != pieces_.rend() && !((*rlast)->range().overlaps(range))) ++rlast;
-    last= (rlast+1).base();
+    first = last = pieces_.end();
+    // check for no overlap
+    if(this->range().overlaps(range)){
+      first = pieces_.begin();
+      while(first != pieces_.end() && !((*first)->range().overlaps(range))) ++first;
+      auto rlast = pieces_.rbegin();
+      while(rlast != pieces_.rend() && !((*rlast)->range().overlaps(range))) ++rlast;
+      last= (rlast+1).base();
+    }
   }
 
 }

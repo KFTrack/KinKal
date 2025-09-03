@@ -285,6 +285,7 @@ namespace KinKal {
           newpiece.range() = TimeRange(tstart,tend);
           newtraj->append(newpiece);
         }
+        ++olditer;
       }
     }
     // switch over any existing effects to reference this traj (could be none)
