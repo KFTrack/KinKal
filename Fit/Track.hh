@@ -45,6 +45,7 @@
 #include "KinKal/Fit/Status.hh"
 #include "KinKal/Fit/Domain.hh"
 #include "KinKal/General/BFieldMap.hh"
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/TimeDir.hh"
 #include "TMath.h"
@@ -101,6 +102,8 @@ namespace KinKal {
       Track(Config const& config, BFieldMap const& bfield, KTRAJ const& seedtraj, HITCOL& hits, EXINGCOL& exings );
       // reconstitute from a previous track
       Track(Config const& config, BFieldMap const& bfield, PKTRAJPTR& fittraj, HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains);
+      // copy constructor
+      Track(const Track& rhs, CloneContext& context);
       // extend an existing track with either new configuration, new hits, and/or new material xings
       void extend(Config const& config, HITCOL& hits, EXINGCOL& exings );
       // extrapolate the fit through the magnetic field with the given config until the given predicate is satisfied. This function requires
@@ -209,6 +212,34 @@ namespace KinKal {
     createEffects(hits,exings,domains);
     fit();
   }
+
+  // copy constructor
+  template<class KTRAJ> Track<KTRAJ>::Track(const Track& rhs, CloneContext& context) :
+      config_(rhs.configs()),
+      bfield_(rhs.bfield()),
+      history_(rhs.history()),
+      seedtraj_(rhs.seedTraj())
+  {
+    fittraj_ = std::make_unique<PTRAJ>(rhs.fitTraj());
+    hits_.reserve(rhs.hits().size());
+    for (const auto& ptr: rhs.hits()){
+      auto hit = ptr->clone(context);
+      hits_.push_back(hit);
+    }
+    exings_.reserve(rhs.exings().size());
+    for (const auto& ptr: rhs.exings()){
+      auto xng = ptr->clone(context);
+      exings_.push_back(xng);
+    }
+    for (const auto& ptr: rhs.domains()){
+        auto dmn = context.get(ptr);
+        domains_.insert(dmn);
+    }
+    for (const auto& ptr: rhs.effects()){
+        auto eff = ptr->clone(context);
+        effects_.push_back(std::move(eff));
+    }
+  };
 
   // extend an existing track
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {

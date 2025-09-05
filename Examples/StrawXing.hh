@@ -21,6 +21,17 @@ namespace KinKal {
       // construct from PCA and material
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
+      // clone op for reinstantiation
+      // ejc TODO does typeof(tpca_) == ClosestApproach<> need a deeper clone?
+      StrawXing(StrawXing const& rhs) = default;
+      std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext& context) const override{
+        auto rv = std::make_shared< StrawXing<KTRAJ> >(*this);
+        auto ca = rv->closestApproach();
+        auto trajectory = std::make_shared<KTRAJ>(ca.particleTraj());
+        ca.setTrajectory(trajectory);
+        rv->setClosestApproach(ca);
+        return rv;
+      }
       // ElementXing interface
       void updateReference(PTRAJ const& ptraj) override;
       void updateState(MetaIterConfig const& config,bool first) override;
@@ -36,6 +47,8 @@ namespace KinKal {
       auto const& strawMaterial() const { return smat_; }
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
+      // other accessors
+      void setClosestApproach(const CA& ca){ tpca_ = ca; }
     private:
       SensorLine axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
