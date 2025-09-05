@@ -27,8 +27,7 @@ namespace KinKal {
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined
       virtual std::vector<MaterialXing>const&  matXings() const =0; // Effect of each physical material component of this detector element on this trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
-      // crossings  without material are inactive
-      bool active() const { return matXings().size() > 0; }
+      virtual bool active() const =0;
       // momentum change and variance increase associated with crossing this element forwards in time, in spatial basis
       void momentumChange(SVEC3& dmom, SMAT& dmomvar) const;
       // parameter change associated with crossing this element forwards in time

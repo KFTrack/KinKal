@@ -68,13 +68,17 @@ namespace KinKal {
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::setRange(TimeRange const& trange, bool trim) {
     // trim pieces as necessary
     if(trim){
-      while(pieces_.size() > 1 && trange.begin() > pieces_.front()->range().end() ) pieces_.pop_front();
-      while(pieces_.size() > 1 && trange.end() < pieces_.back()->range().begin() ) pieces_.pop_back();
+      auto ipiece = pieces_.begin();
+      while (ipiece != pieces_.end() && !(trange.overlaps((*ipiece)->range())))++ipiece;
+      if(ipiece != pieces_.begin())pieces_.erase(pieces_.begin(),--ipiece);
+      auto jpiece=pieces_.rbegin();
+      while(jpiece != pieces_.rend() && !(trange.overlaps((*jpiece)->range())))++jpiece;
+      pieces_.erase(jpiece.base(),pieces_.end());
     } else if(trange.begin() > pieces_.front()->range().end() || trange.end() < pieces_.back()->range().begin())
       throw std::invalid_argument("PiecewiseTrajectory::setRange; Invalid Range");
     // update piece range
-    pieces_.front()->setRange(TimeRange(trange.begin(),pieces_.front()->range().end()));
-    pieces_.back()->setRange(TimeRange(pieces_.back()->range().begin(),trange.end()));
+    pieces_.front()->range().restrict(trange);
+    pieces_.back()->range().restrict(trange);
   }
 
   template <class KTRAJ> PiecewiseTrajectory<KTRAJ>::PiecewiseTrajectory(KTRAJ const& piece) : pieces_(1,std::make_shared<KTRAJ>(piece))

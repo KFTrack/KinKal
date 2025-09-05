@@ -30,6 +30,7 @@ namespace KinKal {
       KTRAJ const& referenceTrajectory() const override { return tpca_.particleTraj(); }
       std::vector<MaterialXing>const&  matXings() const override { return mxings_; }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
+      bool active() const override { return mxings_.size() > 0; }
       // accessors
       auto const& closestApproach() const { return tpca_; }
       auto const& strawMaterial() const { return smat_; }

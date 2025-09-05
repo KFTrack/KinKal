@@ -123,6 +123,7 @@ namespace KinKal {
       void print(std::ostream& ost=std::cout,int detail=0) const;
       TimeRange activeRange() const; // time range of active hits
       void extendTraj(TimeRange const& newrange);
+      static TimeRange detectorRange(HITCOL& hits, EXINGCOL& exings,bool active=false);
     protected:
       Track(Config const& cfg, BFieldMap const& bfield);
       void fit(HITCOL& hits, EXINGCOL& exings, KTRAJ const& seedtraj);
@@ -131,7 +132,6 @@ namespace KinKal {
       void createEffects( HITCOL& hits, EXINGCOL& exings, DOMAINCOL const& domains);
       void convertSeed(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL& domains);
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
-      static TimeRange getRange(HITCOL& hits, EXINGCOL& exings);
       bool createDomains(PKTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains) const;
       bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds); // set the bounds.  Returns false if the bounds are empty
       bool extendDomains(TimeRange const& fitrange); // extend domains if the fit range changes.  Return value says if domains were added
@@ -181,7 +181,7 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, KTRAJ const& seedtraj) {
-    auto herange = this->getRange(hits,exings);
+    auto herange = this->detectorRange(hits,exings);
     // convert the seed traj to a piecewaise traj. This creates the domains
     DOMAINCOL domains;
     convertSeed(seedtraj,herange,domains);
@@ -193,6 +193,19 @@ namespace KinKal {
 
   template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains, PKTRAJPTR& fittraj) {
     fittraj_ = std::move(fittraj); // steal the underlying object
+    // truncate the domains and fit trajectory to be within the detector range
+    auto detrange = detectorRange(hits,exings,true);
+    auto idom = domains.begin();
+    // stop at the 1st domain overlaping the detector range, and erase all elements up to that point
+    while(idom != domains.end() && !(detrange.overlaps((*idom)->range())))++idom;
+    if(idom != domains.begin())domains.erase(domains.begin(),--idom);// leave the overlapping piece
+    auto jdom= domains.rbegin();
+    while(jdom != domains.rend() && !(detrange.overlaps((*jdom)->range())))++jdom;
+    domains.erase(jdom.base(),domains.end()); // base points 1 past the reverse iterator
+    // extend the range to include the first and last domains themselves, and update the traj accordingly
+    detrange.combine((*domains.begin())->range());
+    detrange.combine((*domains.rbegin())->range());
+    fittraj_->setRange(detrange,true);
     createEffects(hits,exings,domains);
     fit();
   }
@@ -210,7 +223,7 @@ namespace KinKal {
     // find the range of the added information, and extend as needed
     TimeRange exrange = fittraj_->range();
     if(hits.size() >0 || exings.size() > 0){
-      TimeRange newrange = getRange(hits,exings);
+      TimeRange newrange = detectorRange(hits,exings);
       exrange.combine(newrange);
     }
     DOMAINCOL domains;
@@ -712,17 +725,21 @@ namespace KinKal {
     return retval;
   }
 
-  template<class KTRAJ> TimeRange Track<KTRAJ>::getRange(HITCOL& hits, EXINGCOL& exings) {
+  template<class KTRAJ> TimeRange Track<KTRAJ>::detectorRange(HITCOL& hits, EXINGCOL& exings,bool active) {
     double tmin = std::numeric_limits<double>::max();
     double tmax = -std::numeric_limits<double>::max();
     // can't assume effects are sorted
     for(auto const& hit : hits){
-      tmin = std::min(tmin,hit->time());
-      tmax = std::max(tmax,hit->time());
+      if(hit->active() || !active){
+        tmin = std::min(tmin,hit->time());
+        tmax = std::max(tmax,hit->time());
+      }
     }
     for(auto const& exing : exings){
-      tmin = std::min(tmin,exing->time());
-      tmax = std::max(tmax,exing->time());
+      if(exing->active() || !active){
+        tmin = std::min(tmin,exing->time());
+        tmax = std::max(tmax,exing->time());
+      }
     }
     return TimeRange(tmin,tmax);
   }
