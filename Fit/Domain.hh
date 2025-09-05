@@ -32,9 +32,7 @@ namespace KinKal {
   // clone op for reinstantiation
   Domain::Domain(Domain const& rhs):
       range_(rhs.range()),
-      bnom_(rhs.bnom()),
-      tol_(rhs.tolerance()){
-    /**/
+      bnom_(rhs.bnom()){
   }
 
   std::shared_ptr<Domain> Domain::clone(CloneContext& context) const{

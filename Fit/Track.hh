@@ -217,10 +217,9 @@ namespace KinKal {
   template<class KTRAJ> Track<KTRAJ>::Track(const Track& rhs, CloneContext& context) :
       config_(rhs.configs()),
       bfield_(rhs.bfield()),
-      history_(rhs.history()),
-      seedtraj_(rhs.seedTraj())
+      history_(rhs.history())
   {
-    fittraj_ = std::make_unique<PTRAJ>(rhs.fitTraj());
+    fittraj_ = std::make_unique<PKTRAJ>(rhs.fitTraj());
     hits_.reserve(rhs.hits().size());
     for (const auto& ptr: rhs.hits()){
       auto hit = ptr->clone(context);
