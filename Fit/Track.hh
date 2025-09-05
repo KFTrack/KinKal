@@ -181,14 +181,14 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, KTRAJ const& seedtraj) {
-    auto herange = this->detectorRange(hits,exings);
+    auto detrange = detectorRange(hits,exings,true);
     // convert the seed traj to a piecewaise traj. This creates the domains
     DOMAINCOL domains;
-    convertSeed(seedtraj,herange,domains);
+    convertSeed(seedtraj,detrange,domains);
     // convert all the primary info to fit effects
-    this->createEffects(hits,  exings, domains);
+    createEffects(hits,  exings, domains);
     // now fit
-    this->fit();
+    fit();
   }
 
   template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains, PKTRAJPTR& fittraj) {
@@ -202,7 +202,7 @@ namespace KinKal {
     auto jdom= domains.rbegin();
     while(jdom != domains.rend() && !(detrange.overlaps((*jdom)->range())))++jdom;
     domains.erase(jdom.base(),domains.end()); // base points 1 past the reverse iterator
-    // extend the range to include the first and last domains themselves, and update the traj accordingly
+   // trim the trajectory to this range
     detrange.combine((*domains.begin())->range());
     detrange.combine((*domains.rbegin())->range());
     fittraj_->setRange(detrange,true);
@@ -745,7 +745,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> template <class XTEST> bool Track<KTRAJ>::extrapolate(TimeDir tdir, XTEST const& xtest) {
-    bool retval = this->fitStatus().usable();
+    bool retval = fitStatus().usable();
     if(retval){
       if(config().bfcorr_){
         // test for extrapolation outside the bfield map range
@@ -805,7 +805,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> bool Track<KTRAJ>::extrapolate(EXINGPTR const& exingptr,TimeDir const& tdir) {
-    bool retval = this->fitStatus().usable();
+    bool retval = fitStatus().usable();
     if(retval){
       if(tdir == TimeDir::forwards){
         // make sure the time is legal
