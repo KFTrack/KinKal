@@ -7,12 +7,15 @@
 //
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
 #include "KinKal/General/Chisq.hh"
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/Fit/FitState.hh"
 #include "KinKal/Fit/Config.hh"
 #include "KinKal/General/TimeRange.hh"
 #include <array>
 #include <memory>
 #include <ostream>
+#include <stdexcept>
+#include <string>
 
 namespace KinKal {
 
@@ -22,6 +25,8 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       Effect() {}
       virtual ~Effect(){}
+      // clone op for reinstantiation
+      virtual std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const;
       // Effect interface
       virtual double time() const = 0; // time of this effect
       virtual bool active() const = 0; // whether this effect is/was used in the fit
@@ -45,6 +50,14 @@ namespace KinKal {
       Effect(Effect const& ) = delete;
       Effect& operator =(Effect const& ) = delete;
   };
+
+  // cloning requires domain knowledge of pointer members of the cloned object,
+  // which must be reassigned explicitly; the default action is thus to throw
+  // an error if a clone routine has not been explicitly provided.
+  template <class KTRAJ> std::unique_ptr< Effect<KTRAJ> > Effect<KTRAJ>::clone(CloneContext& context) const{
+    std::string msg = "Attempt to clone KinKal::Effect subclass with no clone() implementation";
+    throw std::runtime_error(msg);
+  }
 
   template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, Effect<KTRAJ> const& eff) {
     ost << (eff.active() ? "Active " : "Inactive ") << "time " << eff.time();

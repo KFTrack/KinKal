@@ -464,7 +464,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     }
   }
   // create and fit the track
-  KKTRK kktrk(config,*BF,seedtraj,thits,dxings);
+  KKTRK kktrk(config,*BF,straj,thits,dxings);
   if(extend && kktrk.fitStatus().usable())kktrk.extend(exconfig,exthits, exdxings);
   if(!printbad)kktrk.print(cout,detail);
   TFile fitfile((KTRAJ::trajName() + string("FitTest") + tfname + string(".root")).c_str(),"RECREATE");

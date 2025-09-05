@@ -4,6 +4,7 @@
 //  Describe the material effects of a particle crossing a detector element (piece of the detector)
 //  Used in the kinematic Kalman fit
 //
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/Detector/MaterialXing.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
@@ -11,6 +12,8 @@
 #include <vector>
 #include <array>
 #include <ostream>
+#include <stdexcept>
+#include <string>
 
 namespace KinKal {
   template <class KTRAJ> class ElementXing {
@@ -19,6 +22,9 @@ namespace KinKal {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       ElementXing() {}
       virtual ~ElementXing() {}
+      // clone op for reinstantiation
+      ElementXing(ElementXing const& rhs) = default;
+      virtual std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext&) const;
       virtual void updateReference(PTRAJ const& ptraj) = 0; // update the trajectory reference
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
       virtual Parameters params() const =0; // parameter change induced by this element crossing WRT the reference parameters going forwards in time
@@ -27,8 +33,7 @@ namespace KinKal {
       virtual KTRAJ const& referenceTrajectory() const =0; // trajectory WRT which the xing is defined
       virtual std::vector<MaterialXing>const&  matXings() const =0; // Effect of each physical material component of this detector element on this trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const =0;
-      // crossings  without material are inactive
-      bool active() const { return matXings().size() > 0; }
+      virtual bool active() const =0;
       // momentum change and variance increase associated with crossing this element forwards in time, in spatial basis
       void momentumChange(SVEC3& dmom, SMAT& dmomvar) const;
       // parameter change associated with crossing this element forwards in time
@@ -39,6 +44,14 @@ namespace KinKal {
       double radiationFraction() const;
     private:
   };
+
+  // cloning requires domain knowledge of pointer members of the cloned object,
+  // which must be reassigned explicitly; the default action is thus to throw
+  // an error if a clone routine has not been explicitly provided.
+  template<class KTRAJ> std::shared_ptr< ElementXing<KTRAJ> > ElementXing<KTRAJ>::clone(CloneContext&) const{
+    std::string msg = "Attempt to clone KinKal::Hit subclass with no clone() implementation";
+    throw std::runtime_error(msg);
+  }
 
   template <class KTRAJ> void ElementXing<KTRAJ>::momentumChange(SVEC3& dmom, SMAT& dmomvar) const {
     // compute the parameter effect for forwards time
