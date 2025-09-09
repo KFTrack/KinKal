@@ -10,7 +10,7 @@ namespace KinKal {
 
   template <class KTRAJ> class ResidualHit : public Hit<KTRAJ> {
     public:
-      // clone op for reinstantiation
+      // copy constructor
       ResidualHit(ResidualHit<KTRAJ> const& rhs): weight_(rhs.weight()){
         /**/
       };

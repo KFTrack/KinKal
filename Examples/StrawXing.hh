@@ -21,9 +21,9 @@ namespace KinKal {
       // construct from PCA and material
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
-      // clone op for reinstantiation
-      // ejc TODO does typeof(tpca_) == ClosestApproach<> need a deeper clone?
+      // copy constructor
       StrawXing(StrawXing const& rhs) = default;
+      // clone op for reinstantiation
       std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext& context) const override{
         auto rv = std::make_shared< StrawXing<KTRAJ> >(*this);
         auto ca = rv->closestApproach();
