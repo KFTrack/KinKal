@@ -51,8 +51,6 @@ namespace KinKal {
       auto const& prevWeight() const { return prevwt_; }
       auto const& nextWeight() const { return nextwt_; }
       auto const& fwdCovarianceRotation() const { return dpdpdb_; }
-      void setPrevPtr(DOMAINPTR const& ptr){ prev_ = ptr; }
-      void setNextPtr(DOMAINPTR const& ptr){ next_ = ptr; }
 
     private:
       DOMAINPTR prev_, next_; // pointers to previous and next domains
@@ -60,6 +58,9 @@ namespace KinKal {
       Weights prevwt_, nextwt_; // cache of weights
       PSMAT dpdpdb_; // forward rotation of covariance matrix going in the forwards direction
 
+      // modifiers to support cloning
+      void setPrevPtr(DOMAINPTR const& ptr){ prev_ = ptr; }
+      void setNextPtr(DOMAINPTR const& ptr){ next_ = ptr; }
   };
 
   template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(
