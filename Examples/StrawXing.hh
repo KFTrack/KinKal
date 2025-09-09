@@ -22,7 +22,23 @@ namespace KinKal {
       StrawXing(PCA const& pca, StrawMaterial const& smat);
       virtual ~StrawXing() {}
       // copy constructor
-      StrawXing(StrawXing const& rhs) = default;
+      StrawXing(StrawXing const& rhs):
+          ElementXing<KTRAJ>(rhs),
+          axis_(rhs.axis_),
+          smat_(rhs.smat_),
+          tpca_(
+                rhs.closestApproach().particleTraj(),
+                axis_,
+                rhs.closestApproach().hint(),
+                rhs.closestApproach().precision()
+          ),
+          toff_(rhs.toff_),
+          sxconfig_(rhs.sxconfig_),
+          varscale_(rhs.varscale_),
+          mxings_(rhs.mxings_),
+          fparams_(rhs.fparams_){
+        /**/
+      }
       // clone op for reinstantiation
       std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext& context) const override{
         auto rv = std::make_shared< StrawXing<KTRAJ> >(*this);
@@ -46,8 +62,7 @@ namespace KinKal {
       auto const& strawMaterial() const { return smat_; }
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
-      // other accessors
-      void setClosestApproach(const CA& ca){ tpca_ = ca; }
+
     private:
       SensorLine axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
@@ -57,6 +72,9 @@ namespace KinKal {
       double varscale_; // variance scale
       std::vector<MaterialXing> mxings_;
       Parameters fparams_; // parameter change for forwards time
+
+      // modifiers to support cloning
+      void setClosestApproach(const CA& ca){ tpca_ = ca; }
   };
 
   template <class KTRAJ> StrawXing<KTRAJ>::StrawXing(PCA const& pca, StrawMaterial const& smat) :
