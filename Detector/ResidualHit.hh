@@ -10,6 +10,10 @@ namespace KinKal {
 
   template <class KTRAJ> class ResidualHit : public Hit<KTRAJ> {
     public:
+      // copy constructor
+      ResidualHit(ResidualHit<KTRAJ> const& rhs): weight_(rhs.weight()){
+        /**/
+      };
       // override of some Hit interface.  Subclasses must still implement update and material methods
       using HIT = Hit<KTRAJ>;
       using PTRAJ = ParticleTrajectory<KTRAJ>;

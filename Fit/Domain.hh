@@ -4,6 +4,8 @@
 //  domain used to compute magnetic field corrections. Magnetic bending not described by the intrinsic parameterization is assumed
 //  to be negligible over the domain
 //
+#include <memory>
+#include "KinKal/General/CloneContext.hh"
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
 namespace KinKal {
@@ -11,6 +13,9 @@ namespace KinKal {
     public:
       Domain(double lowtime, double range, VEC3 const& bnom, double tol) : range_(lowtime,lowtime+range), bnom_(bnom), tol_(tol) {}
       Domain(TimeRange const& range, VEC3 const& bnom, double tol) : range_(range), bnom_(bnom), tol_(tol) {}
+      // clone op for reinstantiation
+      Domain(Domain const&);
+      std::shared_ptr< Domain > clone(CloneContext&) const;
       bool operator < (Domain const& other) const {return begin() < other.begin(); }
       auto const& range() const { return range_; }
       // forward range functions
@@ -25,6 +30,19 @@ namespace KinKal {
       VEC3 bnom_; // nominal BField for this domain
       double tol_; // tolerance used to create this domain
   };
+
+  // clone op for reinstantiation
+  Domain::Domain(Domain const& rhs):
+      range_(rhs.range()),
+      bnom_(rhs.bnom()),
+      tol_(rhs.tolerance()){
+    /**/
+  }
+
+  std::shared_ptr<Domain> Domain::clone(CloneContext& context) const{
+    auto rv = std::make_shared<Domain>(*this);
+    return rv;
+  }
 }
 #endif
 

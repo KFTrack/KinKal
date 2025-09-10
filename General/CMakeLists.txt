@@ -16,6 +16,7 @@ add_library(General SHARED
     CylBMap.cc
     CylBFieldMap.cc
     MomBasis.cc
+    CloneContext.cc
 )
 
 # create shared library with ROOT dict

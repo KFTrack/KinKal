@@ -15,6 +15,22 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
 
+      // copy constructor
+      ParameterHit(ParameterHit<KTRAJ> const& rhs):
+          time_(rhs.time()),
+          params_(rhs.constraintParameters()),
+          pweight_(rhs.parameterWeights()),
+          weight_(rhs.weight()),
+          pmask_(rhs.constraintMask()),
+          mask_(rhs.maskMatrix()),
+          ncons_(rhs.numConstrainedParameters()){
+        /**/
+      };
+      // clone op for reinstantiation
+      std::shared_ptr< Hit<KTRAJ> > clone(CloneContext& context) const override{
+        auto rv = std::make_shared< ParameterHit<KTRAJ> >(*this);
+        return rv;
+      };
       // Hit interface overrrides
       bool active() const override { return ncons_ > 0; }
       Chisq chisq(Parameters const& pdata) const override;
@@ -32,6 +48,9 @@ namespace KinKal {
       unsigned nDOF() const override { return ncons_; }
       Parameters const& constraintParameters() const { return params_; }
       PMASK const& constraintMask() const { return pmask_; }
+      Weights parameterWeights() const { return pweight_; };
+      DMAT maskMatrix() const { return mask_; }
+      unsigned numConstrainedParameters() const { return ncons_; };
     private:
       double time_; // time of this constraint: must be supplied on construction and does not change
       KTRAJPTR reftraj_; // reference WRT this hits weight was calculated

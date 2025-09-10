@@ -36,6 +36,8 @@ namespace KinKal {
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision,
           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
+      // copy constructor
+      ClosestApproach(ClosestApproach<KTRAJ,STRAJ> const&) = default;
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return *ktrajptr_; }
@@ -68,6 +70,8 @@ namespace KinKal {
       CAHint hint() const { return CAHint(particleToca(),sensorToca()); }
       // equivalence
       ClosestApproach& operator = (ClosestApproach const& other);
+      // other accessors
+      void setTrajectory(KTRAJPTR ktrajptr){ ktrajptr_ = ktrajptr; }
     private:
       double precision_; // precision used to define convergence
       KTRAJPTR ktrajptr_; // kinematic particle trajectory
