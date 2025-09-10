@@ -81,8 +81,7 @@ namespace KinKal {
       auto const& residuals() const { return rresid_; }
       double tot() const { return tot_; }
       double totVariance() const { return totvar_; }
-      // other accessors
-      void setClosestApproach(const CA& ca){ ca_ = ca; }
+
     private:
       BFieldMap const& bfield_; // drift calculation requires the BField for ExB effects
       WireHitState whstate_; // current state
@@ -100,6 +99,9 @@ namespace KinKal {
       double rcell_; // straw radius
       int id_; // id
       void updateResiduals();
+
+      // modifiers to support cloning
+      void setClosestApproach(const CA& ca){ ca_ = ca; }
   };
 
   //trivial 'updater' that sets the wire hit state to null

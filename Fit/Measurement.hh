@@ -37,10 +37,11 @@ namespace KinKal {
       std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
       // access the underlying hit
       HITPTR const& hit() const { return hit_; }
-      // other accessors
-      void setHitPtr(HITPTR const& ptr){ hit_ = ptr; }
     private:
       HITPTR hit_ ; // hit used for this measurement
+
+      // modifiers to support cloning
+      void setHitPtr(HITPTR const& ptr){ hit_ = ptr; }
   };
 
   template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit,PTRAJ const& ptraj) : hit_(hit) {

@@ -39,12 +39,13 @@ namespace KinKal {
       auto const& elementXing() const { return *exingptr_; }
       auto const& elementXingPtr() const { return exingptr_; }
       auto const& referenceTrajectory() const { return exingptr_->referenceTrajectory(); }
-      // other accessors
       auto const& weights() const { return nextwt_; }
-      void setElementXingPtr(EXINGPTR const& ptr){ exingptr_ = ptr; }
     private:
       EXINGPTR exingptr_; // element crossing for this effect
       Weights nextwt_; // cache of weight forwards of this effect.
+
+      // modifiers to support cloning
+      void setElementXingPtr(EXINGPTR const& ptr){ exingptr_ = ptr; }
   };
 
   template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& exingptr, PTRAJ const& ptraj) : exingptr_(exingptr) {
