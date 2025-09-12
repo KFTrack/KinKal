@@ -760,13 +760,13 @@ namespace KinKal {
     double tmax = -std::numeric_limits<double>::max();
     // can't assume effects are sorted
     for(auto const& hit : hits){
-      if(hit->active() || !active){
+      if((!active) || hit->active()){
         tmin = std::min(tmin,hit->time());
         tmax = std::max(tmax,hit->time());
       }
     }
     for(auto const& exing : exings){
-      if(exing->active() || !active){
+      if((!active) || exing->active() ){
         tmin = std::min(tmin,exing->time());
         tmax = std::max(tmax,exing->time());
       }
