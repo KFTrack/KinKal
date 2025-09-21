@@ -11,8 +11,8 @@
 namespace KinKal {
   class Domain : public TimeRange {
     public:
-      Domain(double lowtime, double range, VEC3 const& bnom, double tol) : range_(lowtime,lowtime+range), bnom_(bnom), tol_(tol) {}
-      Domain(TimeRange const& range, VEC3 const& bnom, double tol) : range_(range), bnom_(bnom), tol_(tol) {}
+      Domain(double lowtime, double range, VEC3 const& bnom) : range_(lowtime,lowtime+range), bnom_(bnom) {}
+      Domain(TimeRange const& range, VEC3 const& bnom) : range_(range), bnom_(bnom) {}
       // clone op for reinstantiation
       Domain(Domain const&);
       std::shared_ptr< Domain > clone(CloneContext&) const;
@@ -22,21 +22,17 @@ namespace KinKal {
       double begin() const { return range_.begin();}
       double end() const { return range_.end();}
       double mid() const { return range_.mid();}
-      double tolerance() const { return tol_; }
       auto const& bnom() const { return bnom_; }
       void updateBNom( VEC3 const& bnom) { bnom_ = bnom; }; // used in DomainWall updating
     private:
       TimeRange range_; // range of this domain
       VEC3 bnom_; // nominal BField for this domain
-      double tol_; // tolerance used to create this domain
   };
 
   // clone op for reinstantiation
   Domain::Domain(Domain const& rhs):
       range_(rhs.range()),
-      bnom_(rhs.bnom()),
-      tol_(rhs.tolerance()){
-    /**/
+      bnom_(rhs.bnom()){
   }
 
   std::shared_ptr<Domain> Domain::clone(CloneContext& context) const{
