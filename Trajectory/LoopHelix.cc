@@ -72,12 +72,12 @@ namespace KinKal {
 
   void LoopHelix::setBNom(double time, VEC3 const& newbnom) {
     auto db = newbnom - bnom_;
-//    PSMAT dpdpdb =ROOT::Math::SMatrixIdentity();
-//    PSMAT dpdpdb = dPardPardB(time,db);
-//    std::cout << "dpdpdb = " << dpdpdb << std::endl;
-//    pars_.covariance() = ROOT::Math::Similarity(dpdpdb,pars_.covariance());
+    // rotate the covariance to this new basis: this is still work in progress TODO
+    //    PSMAT dpdpdb =ROOT::Math::SMatrixIdentity();
+    //    PSMAT dpdpdb = dPardPardB(time,db);
+    //    std::cout << "dpdpdb = " << dpdpdb << std::endl;
+    //    pars_.covariance() = ROOT::Math::Similarity(dpdpdb,pars_.covariance());
     pars_.parameters() += dPardB(time,db);
-    // rotate covariance: for now, just for the magnitude change.  Rotation is still TODO
     resetBNom(newbnom);
   }
 
