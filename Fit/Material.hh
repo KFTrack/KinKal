@@ -99,7 +99,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
-  // make sure the traj can be extrapolated
+  // make sure the traj can be appended
     if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
         (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
       throw std::invalid_argument("Material: Can't append piece");
