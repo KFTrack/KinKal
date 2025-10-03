@@ -48,7 +48,7 @@ namespace KinKal {
       void prepend(KTRAJ const& newpiece, bool allowremove=false);
       void add(KTRAJ const& newpiece, TimeDir tdir=TimeDir::forwards, bool allowremove=false);
       // literally append a piece. This will throw if there's a time gap or overlap outside the given tolerance
-      void add(KTRAJPTR const& pieceptr, double tol, TimeDir tdir=TimeDir::forwards);
+      void add(KTRAJPTR const& pieceptr, TimeDir tdir=TimeDir::forwards);
       // Find the piece associated with a particular time
       KTRAJPTR const& nearestTraj(double time) const { return pieces_[nearestIndex(time)]; }
       KTRAJPTR const& indexTraj(size_t index) const { return pieces_[index]; }
@@ -176,13 +176,10 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::add(KTRAJPTR const& pieceptr,double tol, TimeDir tdir) {
+  template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::add(KTRAJPTR const& pieceptr, TimeDir tdir) {
     if(pieces_.empty()){
       pieces_.push_back(pieceptr);
-    } else {
-      if(pieceptr->range().range() < tol)throw std::invalid_argument("PiecewiseTrajectory::add; piece range too small");
-      double dt = tdir == TimeDir::forwards ? fabs(this->range().end() -pieceptr->range().begin()) : fabs(this->range().begin() -pieceptr->range().end());
-      if(dt > tol)throw std::invalid_argument("PiecewiseTrajectory::add; range error");
+    } else if(!(this->range().contains(pieceptr->range()))){
       if(tdir == TimeDir::forwards){
         // synchronize phase variables
         pieceptr->syncPhi0(*pieces_.back());
