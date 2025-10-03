@@ -686,8 +686,10 @@ namespace KinKal {
     // sort effects in case ends have migrated
     effects_.sort(KKEFFComp());
     // update domains as needed to cover the end effects
-    TimeRange endrange(effects_.front()->time(),effects_.back()->time());
-    extendDomains(endrange);
+    if(config().bfcorr_){
+      TimeRange endrange(effects_.front()->time(),effects_.back()->time());
+      extendDomains(endrange);
+    }
     KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
     setBounds(fwdbnds,revbnds);
