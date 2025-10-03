@@ -47,7 +47,7 @@ namespace KinKal {
       void append(KTRAJ const& newpiece, bool allowremove=false);
       void prepend(KTRAJ const& newpiece, bool allowremove=false);
       void add(KTRAJ const& newpiece, TimeDir tdir=TimeDir::forwards, bool allowremove=false);
-      // literally append a piece. This will throw if there's a time gap or overlap outside the given tolerance
+      // literally append a piece.
       void add(KTRAJPTR const& pieceptr, TimeDir tdir=TimeDir::forwards);
       // Find the piece associated with a particular time
       KTRAJPTR const& nearestTraj(double time) const { return pieces_[nearestIndex(time)]; }
