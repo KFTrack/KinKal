@@ -148,16 +148,16 @@ namespace KinKal {
     }
     rresid_[tresid] = rresid_[dresid] = Residual();
     if(whstate_.active()){
-      rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,true,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
+      rresid_[tresid] = Residual(ca_.deltaT() - tot_, totvar_,0.0,ca_.dTdP()); // always constrain to TOT; this stabilizes the fit
       if(whstate_.useDrift()){
         // translate PCA to residual. Use ambiguity assignment to convert drift time to a drift radius
         double dr = dvel_*whstate_.lrSign()*ca_.deltaT() -ca_.doca();
         DVEC dRdP = dvel_*whstate_.lrSign()*ca_.dTdP() -ca_.dDdP();
-        rresid_[dresid] = Residual(dr,tvar_*dvel_*dvel_,0.0,true,dRdP);
+        rresid_[dresid] = Residual(dr,tvar_*dvel_*dvel_,0.0,dRdP);
       } else {
         // interpret DOCA against the wire directly as a residuals
         double nulldvar = dvel_*dvel_*(ca_.deltaT()*ca_.deltaT()+0.8);
-        rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,true,ca_.dDdP());
+        rresid_[dresid] = Residual(ca_.doca(),nulldvar,0.0,ca_.dDdP());
       }
     }
     // now update the weight
