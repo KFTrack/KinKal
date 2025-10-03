@@ -164,10 +164,10 @@ namespace KinKal {
   // minimal constructor for subclasses. The resulting object has no fit.
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield) :
     config_{cfg}, bfield_(bfield)
-  {
-    if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
-    history_.push_back(Status(0,0,Status::unfit, "Construction"));
-  }
+    {
+      if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+      history_.push_back(Status(0,0,Status::unfit, "Construction"));
+    }
 
   // construct from configuration, reference (seed) fit, hits,and materials specific to this fit. This will compute the domains according to the configuration before fitting.
   //
@@ -198,16 +198,18 @@ namespace KinKal {
     fittraj_ = std::move(fittraj); // steal the underlying object
     // truncate the domains and fit trajectory to be within the detector range
     auto detrange = detectorRange(hits,exings,true);
-    auto idom = domains.begin();
-    // stop at the 1st domain overlaping the detector range, and erase all elements up to that point
-    while(idom != domains.end() && !(detrange.overlaps((*idom)->range())))++idom;
-    if(idom != domains.begin())domains.erase(domains.begin(),--idom);// leave the overlapping piece
-    auto jdom= domains.rbegin();
-    while(jdom != domains.rend() && !(detrange.overlaps((*jdom)->range())))++jdom;
-    domains.erase(jdom.base(),domains.end()); // base points 1 past the reverse iterator
-   // trim the trajectory to this range
-    detrange.combine((*domains.begin())->range());
-    detrange.combine((*domains.rbegin())->range());
+    if(domains.size() > 0){
+      auto idom = domains.begin();
+      // stop at the 1st domain overlaping the detector range, and erase all elements up to that point
+      while(idom != domains.end() && !(detrange.overlaps((*idom)->range())))++idom;
+      if(idom != domains.begin())domains.erase(domains.begin(),--idom);// leave the overlapping piece
+      auto jdom= domains.rbegin();
+      while(jdom != domains.rend() && !(detrange.overlaps((*jdom)->range())))++jdom;
+      domains.erase(jdom.base(),domains.end()); // base points 1 past the reverse iterator
+      // trim the trajectory to this range
+      detrange.combine((*domains.begin())->range());
+      detrange.combine((*domains.rbegin())->range());
+    }
     fittraj_->setRange(detrange,true);
     createEffects(hits,exings,domains);
     fit();
@@ -215,9 +217,9 @@ namespace KinKal {
 
   // copy constructor
   template<class KTRAJ> Track<KTRAJ>::Track(const Track& rhs, CloneContext& context) :
-      config_(rhs.configs()),
-      bfield_(rhs.bfield()),
-      history_(rhs.history())
+    config_(rhs.configs()),
+    bfield_(rhs.bfield()),
+    history_(rhs.history())
   {
     fittraj_ = std::make_unique<PKTRAJ>(rhs.fitTraj());
     hits_.reserve(rhs.hits().size());
@@ -231,12 +233,12 @@ namespace KinKal {
       exings_.push_back(xng);
     }
     for (const auto& ptr: rhs.domains()){
-        auto dmn = context.get(ptr);
-        domains_.insert(dmn);
+      auto dmn = context.get(ptr);
+      domains_.insert(dmn);
     }
     for (const auto& ptr: rhs.effects()){
-        auto eff = ptr->clone(context);
-        effects_.push_back(std::move(eff));
+      auto eff = ptr->clone(context);
+      effects_.push_back(std::move(eff));
     }
   };
 
