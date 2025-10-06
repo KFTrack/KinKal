@@ -47,8 +47,12 @@ namespace KinKal {
     // project the parameter differnce to residual space and 'correct' the reference residual to be WRT these parameters
     double uresid = resid.value() - ROOT::Math::Dot(dpvec,resid.dRdP());
     double pvar = ROOT::Math::Similarity(resid.dRdP(),params.covariance());
-    if(pvar<0) throw std::runtime_error("Covariance projection inconsistency");
-    return Residual(uresid,resid.variance(),pvar,resid.active(),resid.dRdP());
+    bool active = resid.active();
+    if(pvar<0.0){
+      active = false;
+      pvar = resid.variance();
+    }
+    return Residual(uresid,resid.variance(),pvar,resid.dRdP(),active);
 
   }
 

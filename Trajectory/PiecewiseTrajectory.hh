@@ -47,6 +47,8 @@ namespace KinKal {
       void append(KTRAJ const& newpiece, bool allowremove=false);
       void prepend(KTRAJ const& newpiece, bool allowremove=false);
       void add(KTRAJ const& newpiece, TimeDir tdir=TimeDir::forwards, bool allowremove=false);
+      // literally append a piece.
+      void add(KTRAJPTR const& pieceptr, TimeDir tdir=TimeDir::forwards);
       // Find the piece associated with a particular time
       KTRAJPTR const& nearestTraj(double time) const { return pieces_[nearestIndex(time)]; }
       KTRAJPTR const& indexTraj(size_t index) const { return pieces_[index]; }
@@ -170,6 +172,24 @@ namespace KinKal {
         } else {
           throw std::invalid_argument("PiecewiseTrajectory::append; range error");
         }
+      }
+    }
+  }
+
+  template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::add(KTRAJPTR const& pieceptr, TimeDir tdir) {
+    if(pieces_.empty()){
+      pieces_.push_back(pieceptr);
+    } else if(!(this->range().contains(pieceptr->range()))){
+      if(tdir == TimeDir::forwards){
+        // synchronize phase variables
+        pieceptr->syncPhi0(*pieces_.back());
+        // fine-adjust the time to have 0 gap
+        pieceptr->setRange(TimeRange(pieces_.back()->range().end(),pieceptr->range().end()));
+        pieces_.push_back(pieceptr);
+      } else {
+        pieceptr->syncPhi0(*pieces_.front());
+        pieceptr->setRange(TimeRange(pieceptr->range().begin(),pieces_.front()->range().begin()));
+        pieces_.push_front(pieceptr);
       }
     }
   }

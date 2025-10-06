@@ -18,21 +18,22 @@ namespace KinKal {
       double parameterVariance() const  { return pvar_; }
       double variance() const { return mvar_ + pvar_; }
       DVEC const& dRdP() const { return dRdP_; } // derivative of this residual WRT parameters
-      double chisq() const { return active_ ? (value_*value_)/variance() : 0.0; }
-      double chi() const { return active_ ? value_/sqrt(variance()): 0.0; }
-      double pull() const { return chi(); }
-      unsigned nDOF() const { return active_ ? 1 : 0; }
       bool active() const { return active_; }
+      double chisq() const { return active() ? (value_*value_)/variance() : 0.0; }
+      double chi() const { return active() ? value_/sqrt(variance()): 0.0; }
+      double pull() const { return chi(); }
+      unsigned nDOF() const { return active() ? 1 : 0; }
       // calculate the weight WRT some parameters implied by this residual.  Optionally scale the variance
       Weights weight(DVEC const& params, double varscale=1.0) const;
-      Residual(double value, double mvar, double pvar, bool active, DVEC const& dRdP) : value_(value), mvar_(mvar), pvar_(pvar), active_(active), dRdP_(dRdP){}
+      Residual(double value, double mvar, double pvar, DVEC const& dRdP,bool active=true) :
+        value_(value), mvar_(mvar), pvar_(pvar), dRdP_(dRdP), active_(active){}
       Residual() : value_(0.0), mvar_(-1.0), pvar_(-1.0), active_(false) {}
     private:
       double value_;  // value for this residual
       double mvar_; // estimated variance due to measurement uncertainty
       double pvar_; // estimated variance due to parameter uncertainty
-      bool active_; // whether this residual is active or not
       DVEC dRdP_; // derivative of this residual WRT the trajectory parameters, evaluated at the reference parameters
+      bool active_;
   };
   std::ostream& operator <<(std::ostream& ost, Residual const& res);
 }

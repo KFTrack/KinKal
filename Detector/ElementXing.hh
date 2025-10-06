@@ -54,16 +54,17 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void ElementXing<KTRAJ>::momentumChange(SVEC3& dmom, SMAT& dmomvar) const {
-    // compute the parameter effect for forwards time
+    // compute the momentum change moving forwards time in global cartesian basis
+    // first, compute the change and variance in the momentum basis (along and perp to the momentum direction)
     double dm, paramomvar, perpmomvar;
     materialEffects(dm, paramomvar,perpmomvar);
-    // momentum change in forward time direction /mdue to energy loss; this is along the momentum
+    // momentum change in forward time direction is due to energy loss; this is along the momentum
     auto momdir = referenceTrajectory().direction(time());
     dmom = dm*SVEC3(momdir.X(),momdir.Y(),momdir.Z());
-    // now update the covariance; this includes smearing from energy straggling and multiple scattering
-    // move variances into a matrix
+    // now compute the covariance; this includes smearing from energy straggling and multiple scattering.
+    // This is a diagonal matrix in momentum basis; no physical correlation between stragling and scattering, or orthogonal scattering.
     ROOT::Math::SVector<double, 6>  varvec(paramomvar, 0, perpmomvar, 0, 0, perpmomvar);
-    SMAT mmvar(varvec);
+    SMAT mmvar(varvec); // construct matrix from upper-diagonal elements
     // loop over the momentum change basis directions and create the transform matrix between that and global Cartesian basis
     SSMAT dmdxyz; // momentum basis -> Cartesian conversion matrix
     for(int idir=0;idir<MomBasis::ndir; idir++) {
@@ -71,12 +72,12 @@ namespace KinKal {
       SVEC3 vmdir(mdir.X(), mdir.Y(), mdir.Z());
       dmdxyz.Place_in_col(vmdir,0,idir);
     }
-    // return variance in global Cartesian coordinates
+    // return covariance in global Cartesian coordinates
     dmomvar = ROOT::Math::Similarity(dmdxyz,mmvar);
   }
 
   template <class KTRAJ> Parameters ElementXing<KTRAJ>::parameterChange(double varscale) const {
-    // compute this xing's effect on momentum in global Cartesian
+    // compute this xing's effect on parameters and covariance. First compute the momentum change and variance
     SVEC3 dmom;
     SMAT dmomvar;
     momentumChange(dmom,dmomvar);
@@ -85,6 +86,7 @@ namespace KinKal {
     auto dmomp = dPdM*dmom;
     // scale covariance as needed
     dmomvar*= varscale;
+    // jacobean transform of covariance into parameter space
     auto dmompvar = ROOT::Math::Similarity(dPdM,dmomvar);
     return Parameters(dmomp,dmompvar);
   }
