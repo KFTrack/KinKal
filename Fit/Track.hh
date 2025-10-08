@@ -188,10 +188,12 @@ namespace KinKal {
     // convert the seed traj to a piecewaise traj. This creates the domains
     DOMAINCOL domains;
     convertSeed(seedtraj,detrange,domains);
-    // convert all the primary info to fit effects
-    createEffects(hits,  exings, domains);
-    // now fit
-    fit();
+    if(status().needsFit()){
+      // convert all the primary info to fit effects
+      createEffects(hits,  exings, domains);
+      // now fit
+      fit();
+    }
   }
 
   template <class KTRAJ> void Track<KTRAJ>::fit(HITCOL& hits, EXINGCOL& exings, DOMAINCOL& domains, PKTRAJPTR& fittraj) {
