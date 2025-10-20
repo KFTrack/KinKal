@@ -12,7 +12,7 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     "Debug" "Release")
 endif()
 
-if (CMAKE_BUILD_TYPE MATCHES "^((p|P)(rofile|rof))|(release)$")
+if (CMAKE_BUILD_TYPE MATCHES "^((p|P)(rofile|rof))|(release)|(RelWithDebInfo)$")
   message(STATUS "Setting build type to 'Release' instead of '${CMAKE_BUILD_TYPE}'.")
   set(CMAKE_BUILD_TYPE "Release" CACHE
     STRING "Choose the type of build." FORCE)
@@ -55,7 +55,7 @@ find_package(Git)
 if(GIT_FOUND)
   execute_process(
     COMMAND ${GIT_EXECUTABLE} describe --tags
-    WORKING_DIRECTORY "${CMAKE_SOURCE_DIR}"
+    WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}"
     OUTPUT_VARIABLE _build_version
     ERROR_QUIET
     OUTPUT_STRIP_TRAILING_WHITESPACE
@@ -197,8 +197,12 @@ add_subdirectory(Tests)
 
 
 install(TARGETS General Trajectory Geometry Detector Fit MatEnv Examples
+  EXPORT KinKalTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+  PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+          ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+        INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
 # install headers
 # Globbing here is fine because it does not influence build behaviour
@@ -234,4 +238,30 @@ export KINKAL_LIBRARY_DIR=${CMAKE_CURRENT_BINARY_DIR}/lib
 
 ")
 
+# Set up CMake exports for find_package
+set(KinKal_IN_TREE TRUE CACHE BOOL "Whether KinKal is in the current tree")
+include(CMakePackageConfigHelpers)
+install(EXPORT KinKalTargets 
+        FILE KinKalTargets.cmake 
+        NAMESPACE KinKal::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
+)
+  
+ write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
+                                 VERSION ${PROJECT_VERSION}
+                                 COMPATIBILITY SameMajorVersion)
 
+ configure_package_config_file(
+    "${PROJECT_SOURCE_DIR}/cmake/${PROJECT_NAME}Config.cmake.in"
+    "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+    INSTALL_DESTINATION
+    ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
+
+install(FILES "${PROJECT_BINARY_DIR}/${PROJECT_NAME}Config.cmake"
+              "${PROJECT_BINARY_DIR}/${PROJECT_NAME}ConfigVersion.cmake"
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake)
+
+export(EXPORT KinKalTargets
+       FILE "${PROJECT_BINARY_DIR}/KinKalTargets.cmake"
+       NAMESPACE KinKal::
+)

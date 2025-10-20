@@ -21,7 +21,9 @@ add_library(Geometry SHARED
 set(CMAKE_SHARED_LIBRARY_PREFIX "libKinKal_")
 
 # set top-level directory as include root
-target_include_directories(Geometry PRIVATE ${PROJECT_SOURCE_DIR}/..)
+target_include_directories(Geometry PUBLIC 
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
+    $<INSTALL_INTERFACE:include>)
 
 # link this library with ROOT libraries
 target_link_libraries(Geometry General ${ROOT_LIBRARIES})
