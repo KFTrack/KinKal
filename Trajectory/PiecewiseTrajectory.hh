@@ -21,8 +21,8 @@ namespace KinKal {
     public:
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using DKTRAJ = std::deque<KTRAJPTR>;
-      using DKTRAJITER = DKTRAJ::iterator;
-      using DKTRAJCITER = DKTRAJ::const_iterator;
+      using DKTRAJITER = typename DKTRAJ::iterator;
+      using DKTRAJCITER = typename DKTRAJ::const_iterator;
       // forward calls to the pieces
       VEC3 position3(double time) const { return nearestPiece(time).position3(time); }
       VEC3 velocity(double time) const { return nearestPiece(time).velocity(time); }
@@ -283,8 +283,8 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
-      std::deque<std::shared_ptr<KTRAJ>>::const_iterator& first,
-      std::deque<std::shared_ptr<KTRAJ>>::const_iterator& last ) const {
+      typename std::deque<std::shared_ptr<KTRAJ>>::const_iterator &first,
+      typename std::deque<std::shared_ptr<KTRAJ>>::const_iterator &last) const {
     first = last = pieces_.end();
     // check for no overlap
     if(this->range().overlaps(range)){
@@ -298,8 +298,8 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void PiecewiseTrajectory<KTRAJ>::pieceRange(TimeRange const& range,
-      std::deque<std::shared_ptr<KTRAJ>>::iterator& first,
-      std::deque<std::shared_ptr<KTRAJ>>::iterator& last) {
+      typename std::deque<std::shared_ptr<KTRAJ>>::iterator &first,
+      typename std::deque<std::shared_ptr<KTRAJ>>::iterator &last) {
     first = last = pieces_.end();
     // check for no overlap
     if(this->range().overlaps(range)){
