@@ -244,7 +244,7 @@ include(CMakePackageConfigHelpers)
 install(EXPORT KinKalTargets 
         FILE KinKalTargets.cmake 
         NAMESPACE KinKal::
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/${PROJECT_NAME}/cmake
 )
   
  write_basic_package_version_file("${PROJECT_NAME}ConfigVersion.cmake"
