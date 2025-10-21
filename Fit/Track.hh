@@ -324,7 +324,7 @@ namespace KinKal {
       // find the range of existing ptraj pieces that overlaps with this domain's range
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using DKTRAJ = std::deque<KTRAJPTR>;
-      using DKTRAJCITER = DKTRAJ::const_iterator;
+      using DKTRAJCITER = typename DKTRAJ::const_iterator;
       DKTRAJCITER first,last;
       fittraj_->pieceRange(domain->range(),first,last);
       // loop over these pieces

@@ -11,7 +11,9 @@ add_library(Detector SHARED
 
 #message( "source dir detector " ${CMAKE_SOURCE_DIR}/..)
 # set top-level directory as include root
-target_include_directories(Detector PRIVATE ${PROJECT_SOURCE_DIR}/..)
+target_include_directories(Detector PUBLIC 
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
+    $<INSTALL_INTERFACE:include>)
 
 # link this library with ROOT libraries and other KinKal libraries
 target_link_libraries(Detector Trajectory General ${ROOT_LIBRARIES})
