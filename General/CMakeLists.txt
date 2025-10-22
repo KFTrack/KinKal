@@ -34,7 +34,9 @@ ROOT_GENERATE_DICTIONARY(GeneralDict
 )
 
 # set top-level directory as include root
-target_include_directories(General PRIVATE ${PROJECT_SOURCE_DIR}/..)
+target_include_directories(General PUBLIC 
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
+    $<INSTALL_INTERFACE:include>)
 
 # link this library with ROOT libraries
 target_link_libraries(General ${ROOT_LIBRARIES})

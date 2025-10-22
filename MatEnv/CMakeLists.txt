@@ -18,7 +18,9 @@ add_library(MatEnv SHARED
 )
 
 # set top-level directory as include root
-target_include_directories(MatEnv PRIVATE ${PROJECT_SOURCE_DIR}/..)
+target_include_directories(MatEnv PUBLIC 
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
+    $<INSTALL_INTERFACE:include>)
 
 # set shared library version equal to project version
 set_target_properties(MatEnv PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
