@@ -43,8 +43,8 @@ namespace MatEnv {
   //
 
   double cm(10.0); // convert cm to mm
-  DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp):
-    _elossmode(mpv), //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
+  DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp, energylossmode elossmode):
+    _elossmode(elossmode),
     _scatterfrac(0.9999),
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
@@ -106,7 +106,6 @@ namespace MatEnv {
   }
 
 
-  //Most probable energy loss from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
   double DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
     if(mom>0.0){
       double beta  = particleBeta(mom,mass) ;
@@ -121,6 +120,7 @@ namespace MatEnv {
       return 0.0;
   }
 
+  //Most probable energy loss from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
   double DetMaterial::energyLossMPV(double mom, double pathlen, double mass) const {
     if(mom>0.0){
       //taking positive lengths

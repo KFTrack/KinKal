@@ -70,8 +70,7 @@ namespace MatEnv {
 
     genMtrProp = _genMatFactory->GetMtrProperties(db_name);
     if(genMtrProp != 0){
-      theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp ) ;
-      theMat->setEnergyLossMode(_elossmode);
+      theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp, _elossmode ) ;
       that()->_matList[ detMatName ] = theMat;
       return theMat;
     } else {

@@ -28,11 +28,12 @@
 namespace MatEnv {
   class DetMaterial{
     public:
-      enum dedxtype {loss=0,deposit};
+ //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
+      enum energylossmode {mpv=0, moyalmean};
       //
       //  Constructor
       // new style
-      DetMaterial(const char* detName, const MtrPropObj* detMtrProp);
+      DetMaterial(const char* detName, const MtrPropObj* detMtrProp, energylossmode);
 
       ~DetMaterial();
       //
@@ -46,10 +47,10 @@ namespace MatEnv {
       bool operator == (const DetMaterial& other) const {
         return _name == other._name; }
 
-      enum energylossmode {mpv=0, moyalmean};
-      energylossmode _elossmode;
 
-      void setEnergyLossMode(energylossmode elossmode) {_elossmode = elossmode;}
+
+
+
 
       //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
       double energyLoss(double mom,double pathlen,double mass) const;
@@ -102,15 +103,14 @@ namespace MatEnv {
       double densityCorrection(double bg2) const;
       double shellCorrection(double bg2, double tau) const;
       double moyalMean(double deltap, double xi) const;
-      double kappa(double mom,double pathlen,double mass) const {
-        return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
-      //
+      double kappa(double mom,double pathlen,double mass) const { return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
     protected:
       //
       //  Constants used in material calculations
       //
       static double _dgev; // energy characterizing energy loss
       static const double _alpha; // fine structure constant
+      energylossmode _elossmode;
       double _scatterfrac; // fraction of scattering distribution to include in RMS
 
       //
