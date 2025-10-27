@@ -47,25 +47,26 @@ namespace MatEnv {
       bool operator == (const DetMaterial& other) const {
         return _name == other._name; }
 
-
-
-
-
-
-      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
+      // total energy loss (ionization and radiation) and variance
       double energyLoss(double mom,double pathlen,double mass) const;
+      double energyLossVar(double mom,double pathlen,double mass) const;
+      double energyLossRMS(double mom,double pathlen,double mass) const {
+        return sqrt(energyLossVar(mom,pathlen,mass));
+      }
 
+      // ionization energy loss functions using closed-form Moyal calculations, see end of DetMaterial.cc for more information
+      double ionizationEnergyLoss(double mom,double pathlen,double mass) const;
       // most probable value of energy loss
-      double energyLossMPV(double mom,double pathlen,double mass) const;
-
-
-      double energyLossRMS(double mom,double pathlen,double mass) const;
-
-      double energyLossVar(double mom,double pathlen,double mass) const {
-        double elrms = energyLossRMS(mom,pathlen,mass);
+      double ionizationEnergyLossMPV(double mom,double pathlen,double mass) const;
+      double ionizationEnergyLossRMS(double mom,double pathlen,double mass) const;
+      double ionizationEnergyLossVar(double mom,double pathlen,double mass) const {
+        double elrms = ionizationEnergyLossRMS(mom,pathlen,mass);
         return elrms*elrms;
       }
+      // radiation (brehmsstrahlung) energy loss calculation. This is relevant only for electrons
       //
+      double radiationEnergyLoss(double mom,double pathlen, double mass) const;
+      double radiationEnergyLossVar(double mom,double pathlen, double mass) const;
       // Single Gaussian approximation
       double scatterAngleVar(double mom,double pathlen,double mass) const;
       double scatterAngleRMS(double mom,double pathlen,double mass) const {
@@ -98,12 +99,10 @@ namespace MatEnv {
       //
       //  functions used to compute energy loss
       //
-      static double eloss_emax(double mom,double mass) ;
       double eloss_xi(double beta,double pathlen) const;
       double densityCorrection(double bg2) const;
       double shellCorrection(double bg2, double tau) const;
       double moyalMean(double deltap, double xi) const;
-      double kappa(double mom,double pathlen,double mass) const { return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
     protected:
       //
       //  Constants used in material calculations

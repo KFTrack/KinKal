@@ -105,12 +105,19 @@ namespace MatEnv {
       return 1.0; // 'infinite' scattering
   }
 
+  double DetMaterial::energyLoss(double mom,double pathlen,double mass) const {
+    return ionizationEnergyLoss(mom,pathlen,mass);
+  }
 
-  double DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
+  double DetMaterial::energyLossVar(double mom,double pathlen,double mass) const {
+    return ionizationEnergyLossVar(mom,pathlen,mass);
+  }
+
+  double DetMaterial::ionizationEnergyLoss(double mom, double pathlen, double mass) const {
     if(mom>0.0){
       double beta  = particleBeta(mom,mass) ;
       double xi = eloss_xi(beta, pathlen);
-      double deltap = energyLossMPV(mom,pathlen,mass);
+      double deltap = ionizationEnergyLossMPV(mom,pathlen,mass);
       //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
       if(_elossmode == moyalmean) {
         return moyalMean(deltap, xi);
@@ -121,7 +128,7 @@ namespace MatEnv {
   }
 
   //Most probable energy loss from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
-  double DetMaterial::energyLossMPV(double mom, double pathlen, double mass) const {
+  double DetMaterial::ionizationEnergyLossMPV(double mom, double pathlen, double mass) const {
     if(mom>0.0){
       //taking positive lengths
       pathlen = fabs(pathlen) ;
@@ -156,145 +163,123 @@ namespace MatEnv {
       return 0.0;
   }
 
+  double DetMaterial::radiationEnergyLoss(double mom,double pathlen, double mass) const {
+    return 0;0;
+  }
+  double DetMaterial::radiationEnergyLossVar(double mom,double pathlen, double mass) const {
+    return 0.0;
+  }
+
+
   //////////////////////////////////////////////////////////
 
   //// Calculate Moyal mean
-  double
-    DetMaterial::moyalMean(double deltap, double xi) const{
-      //getting most probable energy loss, or mpv:
-      double energylossmpv = fabs(deltap);
+  double DetMaterial::moyalMean(double deltap, double xi) const{
+    //getting most probable energy loss, or mpv:
+    double energylossmpv = fabs(deltap);
 
-      //declare moyalsigma for sanity check
-      double moyalsigma = xi;
+    //declare moyalsigma for sanity check
+    double moyalsigma = xi;
 
-      //forming the Moyal Mean
+    //forming the Moyal Mean
 
-      //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
-      constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
-      double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
+    //note: when this is moved to c++20, the eulergamma constant should be replaced by 'egamma_v' in #include <numbers>
+    constexpr static double moyalmeanfactor = 0.57721566490153286 + M_LN2 ; //approximate Euler-Mascheroni (also known as gamma) constant (0.577...), see https://mathworld.wolfram.com/Euler-MascheroniConstant.html, added to log(2). This sum is used for the calculation of the closed-form Moyal mean below
+    double mmean = energylossmpv + moyalsigma * moyalmeanfactor; //formula from https://reference.wolfram.com/language/ref/MoyalDistribution.html, see end of file for more information
 
-      return -1.0 * mmean;
-    }
+    return -1.0 * mmean;
+  }
 
   ////Calculate density correction for energy loss
-  double
-    DetMaterial::densityCorrection(double bg2) const {
-      // density correction
-      double x = 0;
-      double delta = 0;
-      x = log(bg2)/twoln10 ;
-      if ( x < _x0 ) {
-        if(_delta0 > 0) {
-          delta = _delta0*pow(10.0,2*(x-_x0));
-        }
-        else {
-          delta = 0.;
-        }
-      } else {
-        delta = twoln10*x - _bigc;
-        if ( x < _x1 )
-          delta += _afactor * pow((_x1 - x), _mpower);
-      }
-      return delta;
-    }
-
-  //// Caluclate shell correction for energy loss
-  double
-    DetMaterial::shellCorrection(double bg2, double tau) const {
-      double sh = 0;
-      double x = 1;
-      // shell correction
-      if ( bg2 > bg2lim ) {
-        //sh = 0. ;
-        //x = 1. ;
-        for (int k=0; k<=2; k++) {
-          x *= bg2 ;
-          sh += (*_shellCorrectionVector)[k]/x;
-        }
+  double DetMaterial::densityCorrection(double bg2) const {
+    // density correction
+    double x = 0;
+    double delta = 0;
+    x = log(bg2)/twoln10 ;
+    if ( x < _x0 ) {
+      if(_delta0 > 0) {
+        delta = _delta0*pow(10.0,2*(x-_x0));
       }
       else {
-        //sh = 0. ;
-        //x = 1. ;
-        for (int k=0; k<2; k++) {
-          x *= bg2lim ;
-          sh += (*_shellCorrectionVector)[k]/x;
-        }
-        sh *= log(tau/_taul)/log(taulim/_taul);
+        delta = 0.;
       }
-      return sh;
+    } else {
+      delta = twoln10*x - _bigc;
+      if ( x < _x1 )
+        delta += _afactor * pow((_x1 - x), _mpower);
     }
+    return delta;
+  }
 
-
-
-  double
-    DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
-      if(mom>0.0){
-        //taking positive lengths
-        pathlen = fabs(pathlen) ;
-
-        double beta = particleBeta(mom, mass) ;
-
-        double moyalsigma = eloss_xi(beta, pathlen);
-
-
-        //forming the Moyal RMS
-        constexpr static double pisqrt2 = M_PI/M_SQRT2 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
-        double mrms = pisqrt2 * moyalsigma ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
-
-        return mrms;
-
-      } else {
-        return 0.0 ;
+  //// Caluclate shell correction for energy loss
+  double DetMaterial::shellCorrection(double bg2, double tau) const {
+    double sh = 0;
+    double x = 1;
+    // shell correction
+    if ( bg2 > bg2lim ) {
+      //sh = 0. ;
+      //x = 1. ;
+      for (int k=0; k<=2; k++) {
+        x *= bg2 ;
+        sh += (*_shellCorrectionVector)[k]/x;
       }
     }
-
-  //
-  //  Functions needed for energy loss calculation, see reference above
-  //
-  double
-    DetMaterial::eloss_emax(double mom,double mass){
-      double beta = particleBeta(mom,mass);
-      double gamma = particleGamma(mom,mass);
-      double mratio = e_mass_/mass;
-      double emax = 2*e_mass_*pow(beta*gamma,2)/
-        (1+2*gamma*mratio + pow(mratio,2));
-      if(mass <= e_mass_)
-        emax *= 0.5;
-      return emax;
+    else {
+      //sh = 0. ;
+      //x = 1. ;
+      for (int k=0; k<2; k++) {
+        x *= bg2lim ;
+        sh += (*_shellCorrectionVector)[k]/x;
+      }
+      sh *= log(tau/_taul)/log(taulim/_taul);
     }
+    return sh;
+  }
 
-  double
-    DetMaterial::eloss_xi(double beta,double pathlen) const{
-      return _dgev*_za*_density*fabs(pathlen)/pow(beta,2);
+  double DetMaterial::ionizationEnergyLossRMS(double mom,double pathlen,double mass) const {
+    if(mom>0.0){
+      //taking positive lengths
+      pathlen = fabs(pathlen) ;
+      double beta = particleBeta(mom, mass) ;
+      double moyalsigma = eloss_xi(beta, pathlen);
+      //forming the Moyal RMS
+      constexpr static double pisqrt2 = M_PI/M_SQRT2 ; //constant that is used to calculate the Moyal closed-form RMS: pi/sqrt(2), approx.
+      double mrms = pisqrt2 * moyalsigma ; //from https://reference.wolfram.com/language/ref/MoyalDistribution.html
+      return mrms;
+    } else {
+      return 0.0 ;
     }
+  }
 
-  void
-    DetMaterial::print(ostream& os) const {
-      os << "Material " << _name << endl;
-    }
 
-  void
-    DetMaterial::printAll(ostream& os) const {
-      os << "Material " << _name << " has properties : " << endl
-        << "  Effective Z = " << _zeff << endl
-        << "  Effective A = " << _aeff << endl
-        << "  Density (g/mm^3) = " << _density*cm*cm*cm  << endl
-        << "  Radiation Length (g/mm^2) = " << _radthick*cm*cm << endl
-        << "  Interaction Length (g/mm^2) = " << _intLength << endl
-        << "  Mean Ionization energy (MeV) = " << _eexc << endl;
-    }
+  double DetMaterial::eloss_xi(double beta,double pathlen) const{
+    return _dgev*_za*_density*fabs(pathlen)/pow(beta,2);
+  }
+
+  void DetMaterial::print(ostream& os) const {
+    os << "Material " << _name << endl;
+  }
+
+  void DetMaterial::printAll(ostream& os) const {
+    os << "Material " << _name << " has properties : " << endl
+      << "  Effective Z = " << _zeff << endl
+      << "  Effective A = " << _aeff << endl
+      << "  Density (g/mm^3) = " << _density*cm*cm*cm  << endl
+      << "  Radiation Length (g/mm^2) = " << _radthick*cm*cm << endl
+      << "  Interaction Length (g/mm^2) = " << _intLength << endl
+      << "  Mean Ionization energy (MeV) = " << _eexc << endl;
+  }
 
 
   // note the scaterring momentum here is hard-coded to the simplified Highland formula,
   // this should only be used as a reference, not as a real estimate of the scattering sigma!!!!!
-  double
-    DetMaterial::highlandSigma(double mom,double pathlen, double mass) const {
-      if(mom>0.0){
-        double radfrac = _invx0*fabs(pathlen);
-        return 15*sqrt(radfrac)/(mom*particleBeta(mom,mass));
-      } else
-        return 1.0;
-    }
+  double DetMaterial::highlandSigma(double mom,double pathlen, double mass) const {
+    if(mom>0.0){
+      double radfrac = _invx0*fabs(pathlen);
+      return 15*sqrt(radfrac)/(mom*particleBeta(mom,mass));
+    } else
+      return 1.0;
+  }
 
 
   //Information about the Moyal Distribution Approx.:
