@@ -64,17 +64,13 @@ namespace MatEnv {
         double elrms = energyLossRMS(mom,pathlen,mass);
         return elrms*elrms;
       }
-      double nSingleScatter(double mom,double pathlen, double mass) const;
-      // terms used in first-principles single scattering model
-      double aParam(double mom) const { return 2.66e-6*pow(_zeff,0.33333333333333)/mom; }
-      double bParam(double mom) const { return    0.14/(mom*pow(_aeff,0.33333333333333)); }
       //
-      // Single Gaussian approximation, used in Kalman filtering
-      double scatterAngleRMS(double mom,double pathlen,double mass) const;
-      double scatterAngleVar(double mom,double pathlen,double mass) const {
-        double sarms = scatterAngleRMS(mom,pathlen,mass);
-        return sarms*sarms;
+      // Single Gaussian approximation
+      double scatterAngleVar(double mom,double pathlen,double mass) const;
+      double scatterAngleRMS(double mom,double pathlen,double mass) const {
+        return sqrt(scatterAngleVar(mom,pathlen,mass));
       }
+
       double highlandSigma(double mom,double pathlen, double mass) const;
 
       static double particleEnergy(double mom,double mass) {
@@ -113,12 +109,9 @@ namespace MatEnv {
       //
       //  Constants used in material calculations
       //
-      double _msmom; // constant in Highland scattering formula
-      static double _minkappa; // ionization randomization parameter
       static double _dgev; // energy characterizing energy loss
       static const double _alpha; // fine structure constant
       double _scatterfrac; // fraction of scattering distribution to include in RMS
-      dedxtype _elossType;
 
       //
       //  Specific data for this material
@@ -129,7 +122,6 @@ namespace MatEnv {
       double _aeff; // effective Z of our material
       double _radthick; // radiation thickness in g/cm**2
       double _intLength; // ineraction length from MatMtrObj in g/cm**2
-      double _meanion; // mean ionization energy loss
       double _eexc; // mean ionization energy loss for new e_loss routine
       double _x0; /*  The following specify parameters for energy loss. see
                       Sternheimer etal,'Atomic Data and
@@ -147,7 +139,6 @@ namespace MatEnv {
 
       // cached values to speed calculations
       double _invx0;
-      double _nbar;
       double _chic2;
       double _chia2_1;
       double _chia2_2;
@@ -159,7 +150,6 @@ namespace MatEnv {
       double aeff() const { return _aeff;}
       double radiationLength()const {return _radthick;}
       double intLength()const {return _intLength;}
-      double meanIon()const {return _meanion;}
       double eexc() const { return _eexc; }
       double X0()const {return _x0;}
       double X1()const {return _x1;}
@@ -176,16 +166,9 @@ namespace MatEnv {
       void print(std::ostream& os) const;
       void printAll(std::ostream& os ) const;
 
-      // parameters used in ionization energy loss
-      static double energyLossScale() { return _dgev; }
-      static void setEnergyLossScale(double dgev) { _dgev = dgev; }
       // parameters used in ionization energy loss randomization
-      static double minKappa() { return _minkappa; }
-      static void setMinimumKappa(double minkappa) { _minkappa = minkappa; }
       // scattering parameter
       double scatterFraction() const { return _scatterfrac;}
-      void setScatterFraction(double scatterfrac) {_scatterfrac = scatterfrac;}
-      void setDEDXtype(dedxtype elossType) { _elossType = elossType;}
       static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
   };
 }

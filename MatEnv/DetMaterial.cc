@@ -31,13 +31,10 @@ using std::ostream;
 namespace MatEnv {
 
   double DetMaterial::_dgev = 0.153536e2;
-  double DetMaterial::_minkappa(1.0e-3);
   // if the materials are very thin.
   const double bg2lim = 0.0169;
   const double taulim = 8.4146e-3 ;
   const double twoln10 = 2.0*log(10.);
-  const double betapower = 1.667; // most recent PDG gives beta^-5/3 as dE/dx
-  const int maxnstep = 10; // maximum number of steps through a single material
   // should be from a physics class
   const double DetMaterial::_alpha(1.0/137.036);
 
@@ -45,19 +42,16 @@ namespace MatEnv {
   //  Constructor
   //
 
-  double cm(10.0); // temporary hack
+  double cm(10.0); // convert cm to mm
   DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp):
     _elossmode(mpv), //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
-    _msmom(15.0),
     _scatterfrac(0.9999),
-    _elossType(loss),
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
     _zeff(detMtrProp->getZ()),
     _aeff(detMtrProp->getA()),
     _radthick(detMtrProp->getRadLength()/cm/cm),
     _intLength(detMtrProp->getIntLength()/detMtrProp->getDensity()),
-    _meanion(2.*log(detMtrProp->getMeanExciEnergy()*1.0e6)),
     _eexc(detMtrProp->getMeanExciEnergy()),
     _x0(detMtrProp->getX0density()),
     _x1(detMtrProp->getX1density()),
@@ -73,14 +67,10 @@ namespace MatEnv {
       new std::vector< double >(detMtrProp->getShellCorrectionVector());
     // compute cached values; these are used in detailed scattering models
     _invx0 = _density/_radthick;
-    _nbar = _invx0*1.587e7*pow(_zeff,1.0/3.0)/((_zeff+1)*log(287/sqrt(_zeff)));
     _chic2 = 1.57e1*_zeff*(_zeff+1)/_aeff;
     _chia2_1 = 2.007e-5*pow(_zeff,2.0/3.0);
     _chia2_2 = 3.34*pow(_zeff*_alpha,2);
 
-    if (detMtrProp->getEnergyTcut()>0.0) {
-      _elossType = deposit;
-    }
     if (detMtrProp->getState() == "gas" && detMtrProp->getDensity()<0.01) {
       _scatterfrac = 0.999999;
     }
@@ -94,34 +84,26 @@ namespace MatEnv {
   //
   //  Multiple scattering function
   //
-  double
-    DetMaterial::scatterAngleRMS(double mom, double pathlen,double mass) const {
-      if(mom>0.0){
-        double beta = particleBeta(mom,mass);
-        // pdg formulat
-        //    double radfrac = fabs(pathlen*_invx0);
-        //    double sigpdg = 0.0136*sqrt(radfrac)*(1.0+0.088*log10(radfrac))/(beta*mom);
-        // old Kalman formula
-        //    double oldsig = 0.011463*sqrt(radfrac)/(mom*particleBeta(mom,mass));
-        // DNB 20/1/2011  Updated to use Dahl-Lynch formula from  NIMB58 (1991)
-        double invmom2 = 1.0/pow(mom,2);
-        double invb2 = 1.0/pow(beta,2);
-        // convert to path in gm/cm^2!!!
-        double path = fabs(pathlen)*_density;
-        double chic2 = _chic2*path*invb2*invmom2;
-        double chia2 = _chia2_1*(1.0 + _chia2_2*invb2)*invmom2;
-        double omega = chic2/chia2;
-        static double vfactor = 0.5/(1-_scatterfrac);
-        double v = vfactor*omega;
-        static double sig2factor = 1.0/(1+_scatterfrac*_scatterfrac);
-        double sig2 = sig2factor*chic2*( (1+v)*log(1+v)/v - 1);
-        // protect against underflow
-        double sigdl = sqrt(std::max(0.0,sig2));
-        // check
-        return sigdl;
-      } else
-        return 1.0; // 'infinite' scattering
-    }
+  double DetMaterial::scatterAngleVar(double mom, double pathlen,double mass) const {
+    if(mom>0.0){
+      double beta = particleBeta(mom,mass);
+      // DNB 20/1/2011  Updated to use Dahl-Lynch formula from  NIMB58 (1991)
+      double invmom2 = 1.0/pow(mom,2);
+      double invb2 = 1.0/pow(beta,2);
+      // convert to path in gm/cm^2!!!
+      double path = fabs(pathlen)*_density;
+      double chic2 = _chic2*path*invb2*invmom2;
+      double chia2 = _chia2_1*(1.0 + _chia2_2*invb2)*invmom2;
+      double omega = chic2/chia2;
+      static double vfactor = 0.5/(1-_scatterfrac);
+      double v = vfactor*omega;
+      static double sig2factor = 1.0/(1+_scatterfrac*_scatterfrac);
+      double sig2 = sig2factor*chic2*( (1+v)*log(1+v)/v - 1);
+      // protect against underflow
+      return std::max(0.0,sig2);
+    } else
+      return 1.0; // 'infinite' scattering
+  }
 
 
   //Most probable energy loss from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
@@ -296,18 +278,10 @@ namespace MatEnv {
       os << "Material " << _name << " has properties : " << endl
         << "  Effective Z = " << _zeff << endl
         << "  Effective A = " << _aeff << endl
-        << "  Density (g/cm^3) = " << _density*cm*cm*cm  << endl
-        << "  Radiation Length (g/cm^2) = " << _radthick*cm*cm << endl
-        << "  Interaction Length (g/cm^2) = " << _intLength << endl
-        //   << "  Mean Ionization energy (MeV) = " << _meanion << endl
+        << "  Density (g/mm^3) = " << _density*cm*cm*cm  << endl
+        << "  Radiation Length (g/mm^2) = " << _radthick*cm*cm << endl
+        << "  Interaction Length (g/mm^2) = " << _intLength << endl
         << "  Mean Ionization energy (MeV) = " << _eexc << endl;
-    }
-
-
-  double
-    DetMaterial::nSingleScatter(double mom,double pathlen, double mass) const {
-      double beta = particleBeta(mom,mass);
-      return pathlen*_nbar/pow(beta,2);
     }
 
 
@@ -317,7 +291,7 @@ namespace MatEnv {
     DetMaterial::highlandSigma(double mom,double pathlen, double mass) const {
       if(mom>0.0){
         double radfrac = _invx0*fabs(pathlen);
-        return _msmom*sqrt(radfrac)/(mom*particleBeta(mom,mass));
+        return 15*sqrt(radfrac)/(mom*particleBeta(mom,mass));
       } else
         return 1.0;
     }
