@@ -53,10 +53,6 @@ namespace MatEnv {
 
       void setEnergyLossMode(energylossmode elossmode) {_elossmode = elossmode;}
 
-      double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old BTrk model dE/dx-based energy loss function from Geant3
-
-      double energyLossRMSG3(double mom,double pathlen,double mass) const; //this is the old BTrk model energy loss RMS approx. from Geant3
-
       //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
       double energyLoss(double mom,double pathlen,double mass) const;
 
@@ -70,8 +66,6 @@ namespace MatEnv {
         double elrms = energyLossRMS(mom,pathlen,mass);
         return elrms*elrms;
       }
-      double energyDeposit(double mom, double pathlen,double mass) const;
-      double energyGain(double mom,double pathlen, double mass) const;
       double nSingleScatter(double mom,double pathlen, double mass) const;
       // terms used in first-principles single scattering model
       double aParam(double mom) const { return 2.66e-6*pow(_zeff,0.33333333333333)/mom; }
@@ -157,12 +151,6 @@ namespace MatEnv {
 
       int _noem;
       std::vector< double >* _shellCorrectionVector;
-      std::vector< double >* _vecNbOfAtomsPerVolume;
-      std::vector< double >* _vecTau0;
-      std::vector< double >* _vecAlow;
-      std::vector< double >* _vecBlow;
-      std::vector< double >* _vecClow;
-      std::vector< double >* _vecZ;
       double _taul;
 
       // cached values to speed calculations

@@ -74,14 +74,6 @@ namespace MatEnv {
   {
     _shellCorrectionVector =
       new std::vector< double >(detMtrProp->getShellCorrectionVector());
-    _vecNbOfAtomsPerVolume =
-      new std::vector< double >(detMtrProp->getVecNbOfAtomsPerVolume());
-    _vecTau0 =
-      new std::vector< double >(detMtrProp->getVecTau0());
-    _vecAlow = new std::vector< double >(detMtrProp->getVecAlow());
-    _vecBlow = new std::vector< double >(detMtrProp->getVecBlow());
-    _vecClow = new std::vector< double >(detMtrProp->getVecClow());
-    _vecZ = new std::vector< double >(detMtrProp->getVecZ());
     // compute cached values; these are used in detailed scattering models
     _invx0 = _density/_radthick;
     _nbar = _invx0*1.587e7*pow(_zeff,1.0/3.0)/((_zeff+1)*log(287/sqrt(_zeff)));
@@ -101,12 +93,6 @@ namespace MatEnv {
   DetMaterial::~DetMaterial()
   {
     delete _shellCorrectionVector;
-    delete _vecNbOfAtomsPerVolume;
-    delete _vecTau0;
-    delete _vecAlow;
-    delete _vecBlow;
-    delete _vecClow;
-    delete _vecZ;
   }
 
   //
@@ -305,90 +291,7 @@ namespace MatEnv {
       return sh;
     }
 
-  //below, the old BTrk model 'energyLoss' function based on dE/dx has been renamed (G3 for geant3)
-  //and now 'energyLoss' above refers to the new most probable energy loss method
 
-  double
-    DetMaterial::energyLossG3(double mom, double pathlen,double mass) const {
-      // make sure we take positive lengths!
-      pathlen = fabs(pathlen);
-      double dedx = dEdx(mom,_elossType,mass);
-      // see how far I can step, within tolerance, given this energy loss
-      double maxstep = maxStepdEdx(mom,mass,dedx);
-      // if this is larger than my path, I'm done
-      if(maxstep>pathlen){
-        return dedx*pathlen;
-      } else {
-        // subdivide the material
-        unsigned nstep = std::min(int(pathlen/maxstep) + 1,maxnstep);
-        double step = pathlen/nstep;
-        double energy = particleEnergy(mom,mass);
-        double deltae = step*dedx;
-        double newenergy(energy+deltae);
-        double eloss(deltae);
-        for(unsigned istep=0;istep<nstep-1;istep++){
-          if(newenergy>mass){
-            // compute the new dedx given the new momentum
-            double newmom = particleMomentum(newenergy,mass);
-            deltae = step*dEdx(newmom,_elossType,mass);
-            // compute the loss in this step
-            eloss += deltae;
-            newenergy += deltae;
-          } else {
-            // lost all kinetic energy; stop
-            eloss = mass-energy;
-            break;
-          }
-        }
-        return eloss;
-      }
-    }
-
-
-  double
-    DetMaterial::energyGain(double mom, double pathlen, double mass) const {
-      // make sure we take positive lengths!
-      pathlen = fabs(pathlen);
-      double dedx = dEdx(mom,_elossType,mass);
-      // see how far I can step, within tolerance, given this energy loss
-      double maxstep = maxStepdEdx(mom,mass,dedx);
-      // if this is larger than my path, I'm done
-      if(maxstep>pathlen){
-        return -dedx*pathlen;
-      } else {
-        // subdivide the material
-        unsigned nstep = std::min(int(pathlen/maxstep) + 1,maxnstep);
-        double step = pathlen/nstep;
-        double energy = particleEnergy(mom,mass);
-        double deltae = -step*dedx;
-        // move to the middle of the slice of material
-        double newenergy(energy+deltae);
-        double egain(deltae);
-        for(unsigned istep=0;istep<nstep-1;istep++){
-          // compute the new dedx given the new momentum
-          double newmom = particleMomentum(newenergy,mass);
-          double deltae = -step*dEdx(newmom,_elossType,mass);
-          egain += deltae;
-          newenergy += deltae;
-        }
-        return egain;
-      }
-    }
-  //
-  // calculate the energy deposited in an absorber. That's similiar to
-  // energyLoss, but the delta electron correction in the Bethe Bloch is
-  // switched on, and there is no Bremsstrahlung
-  //
-  double
-    DetMaterial::energyDeposit(double mom, double pathlen, double mass) const {
-      double dedx = dEdx(mom,deposit,mass);
-      return dedx*fabs(pathlen);
-    }
-
-  /********************** end of New Routines **************************/
-
-
-  //this 'energyLossRMS' now refers to the closed-form Moyal distribution RMS, see end of file for more information
 
   double
     DetMaterial::energyLossRMS(double mom,double pathlen,double mass) const {
@@ -411,38 +314,6 @@ namespace MatEnv {
         return 0.0 ;
       }
     }
-
-
-  //below, the old BTrk model 'energyLossRMS' function, which has been renamed (G3 for geant3)
-  //
-  //  RMS of energy loss.  This is a gaussian approximation, stolen from
-  //  Geant3 (see Phys332)
-  //
-  double
-    DetMaterial::energyLossRMSG3(double mom,double pathlen,double mass) const {
-      //      double beta = particleBeta(mom,mass);
-      //      double emax = eloss_emax(mom,mass);
-      //      double xi = eloss_xi(beta,fabs(pathlen));
-      //      double kappa = xi/emax;
-      //      double gam = sqrt(1.0-0.5*pow(beta,2));
-      //      // formula comes from GFLUCT.F in gphys dnb Jun 4 2004
-      //      //
-      //      // this formula seriously overestimates the rms when kappa<0.001
-      //      // This only really affects electrons
-      //      // as for heavier particles resolution effects already dominate when we get to
-      //      // this range.  I'll truncate
-      //      if(kappa < _minkappa)kappa = _minkappa;
-      //      double elossrms = xi*sqrt(gam/kappa);
-      //      //  cout << "beta = " << beta
-      //      //       << " emax = " << emax
-      //      //       << " xi = " << xi
-      //      //       << " kappa = " << kappa
-      //      //       << " elossrms = " << elossrms << endl;
-      //      // this value is way too big: scale it down for now but this function needs a rewrite FIXME!
-      //      return elossrms;
-      return 0.5*energyLossG3(mom,pathlen,mass);
-    }
-
 
   //
   //  Functions needed for energy loss calculation, see reference above
@@ -479,23 +350,6 @@ namespace MatEnv {
         << "  Interaction Length (g/cm^2) = " << _intLength << endl
         //   << "  Mean Ionization energy (MeV) = " << _meanion << endl
         << "  Mean Ionization energy (MeV) = " << _eexc << endl;
-    }
-
-  double
-    DetMaterial::maxStepdEdx(double mom,double mass,double dEdx,double tol) {
-      // compute betagamma at entrance
-      double betagamma = particleBetaGamma(mom,mass);
-      double energy = particleEnergy(mom,mass);
-      // basic calculation, based on constant dE/dx
-      if(dEdx<0.0){
-        double maxstep = -tol*energy/dEdx;
-        // Modify for steep rise at low momentum
-        if(betagamma<2.0)
-          maxstep *= pow(betagamma,2)/betapower;
-        return maxstep;
-      }
-      else
-        return 1.0e6; // large step
     }
 
 
