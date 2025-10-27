@@ -46,8 +46,6 @@ namespace MatEnv {
       bool operator == (const DetMaterial& other) const {
         return _name == other._name; }
 
-      double dEdx(double mom,dedxtype type,double mass) const;
-
       enum energylossmode {mpv=0, moyalmean};
       energylossmode _elossmode;
 
@@ -111,11 +109,6 @@ namespace MatEnv {
       double kappa(double mom,double pathlen,double mass) const {
         return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
       //
-      // return the maximum step one can make through this material
-      // for a given momentum and particle type without dE/dx changing
-      // by more than the given tolerance (fraction).  This is an _approximate_
-      // function, based on a crude model of dE/dx.
-      static double maxStepdEdx(double mom,double mass, double dEdx,double tol=0.05);
     protected:
       //
       //  Constants used in material calculations
@@ -125,7 +118,6 @@ namespace MatEnv {
       static double _dgev; // energy characterizing energy loss
       static const double _alpha; // fine structure constant
       double _scatterfrac; // fraction of scattering distribution to include in RMS
-      double _cutOffEnergy; // cut on max energy loss
       dedxtype _elossType;
 
       //
@@ -193,8 +185,6 @@ namespace MatEnv {
       // scattering parameter
       double scatterFraction() const { return _scatterfrac;}
       void setScatterFraction(double scatterfrac) {_scatterfrac = scatterfrac;}
-      double cutOffEnergy() const { return _cutOffEnergy;}
-      void setCutOffEnergy(double cutOffEnergy) {_cutOffEnergy = cutOffEnergy; _elossType = deposit; }
       void setDEDXtype(dedxtype elossType) { _elossType = elossType;}
       static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
   };

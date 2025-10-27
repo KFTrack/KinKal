@@ -30,10 +30,8 @@ using std::ostream;
 //
 namespace MatEnv {
 
-  //double DetMaterial::_msmom = 15.0*MeV;
   double DetMaterial::_dgev = 0.153536e2;
   double DetMaterial::_minkappa(1.0e-3);
-  //double DetMaterial::_scatterfrac(0.9999); // integrate 99.99% percent of the tail by default, this should be larger
   // if the materials are very thin.
   const double bg2lim = 0.0169;
   const double taulim = 8.4146e-3 ;
@@ -52,7 +50,6 @@ namespace MatEnv {
     _elossmode(mpv), //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
     _msmom(15.0),
     _scatterfrac(0.9999),
-    _cutOffEnergy(1000.),
     _elossType(loss),
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
@@ -82,7 +79,6 @@ namespace MatEnv {
     _chia2_2 = 3.34*pow(_zeff*_alpha,2);
 
     if (detMtrProp->getEnergyTcut()>0.0) {
-      _cutOffEnergy = detMtrProp->getEnergyTcut();
       _elossType = deposit;
     }
     if (detMtrProp->getState() == "gas" && detMtrProp->getDensity()<0.01) {
@@ -127,52 +123,8 @@ namespace MatEnv {
         return 1.0; // 'infinite' scattering
     }
 
-  double
-    DetMaterial::dEdx(double mom,dedxtype type,double mass) const {
-      if(mom>0.0){
-        double Eexc2 = _eexc*_eexc ;
 
-        // New energy loss implementation
-        double Tmax,gamma2,beta2,bg2,rcut,delta,sh,dedx ;
-        double beta  = particleBeta(mom,mass) ;
-        double gamma = particleGamma(mom,mass) ;
-        double tau = gamma-1. ;
-
-        // high energy part , Bethe-Bloch formula
-        beta2 = beta*beta ;
-        gamma2 = gamma*gamma ;
-        bg2 = beta2*gamma2 ;
-
-        double RateMass = e_mass_/ mass;
-
-        Tmax = 2.*e_mass_*bg2
-          /(1.+2.*gamma*RateMass+RateMass*RateMass) ;
-
-        dedx = log(2.*e_mass_*bg2*Tmax/Eexc2);
-        if(type == loss)
-          dedx -= 2.*beta2;
-        else {
-          rcut =  ( _cutOffEnergy< Tmax) ? _cutOffEnergy/Tmax : 1;
-          dedx += log(rcut)-(1.+rcut)*beta2;
-        }
-
-        //// density correction
-        delta = densityCorrection(bg2);
-
-        //// shell correction
-        sh = shellCorrection(bg2, tau);
-
-        dedx -= delta + sh ;
-        dedx *= -_dgev*_density*_za / beta2 ;
-
-        return dedx;
-
-      } else
-        return 0.0;
-    }
-
-  //Replacement for dEdx-based energy loss function: Most probable energy loss is now used
-  //from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
+  //Most probable energy loss from https://pdg.lbl.gov/2019/reviews/rpp2018-rev-passage-particles-matter.pdf
   double DetMaterial::energyLoss(double mom, double pathlen, double mass) const {
     if(mom>0.0){
       double beta  = particleBeta(mom,mass) ;
@@ -198,7 +150,6 @@ namespace MatEnv {
       double gamma = particleGamma(mom,mass) ;
       double j = 0.200 ;
       double tau = gamma-1;
-
 
       // most probable energy loss function
       beta2 = beta*beta ;
