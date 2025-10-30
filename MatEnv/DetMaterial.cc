@@ -46,7 +46,6 @@ namespace MatEnv {
   DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp, energylossmode elossmode):
     _elossmode(elossmode),
     _scatterfrac(0.995), // should come from configuration TODO
-    _ymax(0.1), // should come from configuration TODO
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
     _zeff(detMtrProp->getZ()),
@@ -75,10 +74,11 @@ namespace MatEnv {
     if (detMtrProp->getState() == "gas" && detMtrProp->getDensity()<0.01) {
       _scatterfrac = 0.999; // should come from configuration TODO
     }
-    // calculate the brehms energy loss scale based on the cutoff fraction ymax = max(E_gamma/E_electron)
-    // The cutoff describes where the energy loss is so extreme as to prevent subsequent hits from being
-    // included in the track fit.
-    _e_lpm = 7.7e6*_radthick/_density;
+    // compute the sum radiated photons*energy for the given cuttoff
+    double ymax(0.04);  // should come from configuration TODO
+    // energy loss through 1 radiation length of this material
+    _erad = (_density/_radthick)*(4.0*ymax -2.0*pow(ymax,2) + pow(ymax,3)); // energy loss per radiation length per MeV
+    _eradvar = pow(_density/_radthick,2)*(2.0*pow(ymax,2)/3.0 - 4.0*pow(ymax,3)/9.0 + pow(ymax,4)/4.0); // energy variance per (rad length per MeV)^2
   }
 
   DetMaterial::~DetMaterial()
@@ -111,12 +111,14 @@ namespace MatEnv {
   }
 
   double DetMaterial::energyLoss(double mom,double pathlen,double mass) const {
-    double retval = ionizationEnergyLoss(mom,pathlen,mass); // + radiationEnergyLoss(mom,pathlen,mass);
+    double retval = ionizationEnergyLoss(mom,pathlen,mass);
+    retval += radiationEnergyLoss(mom,pathlen,mass);
     return retval;
   }
 
   double DetMaterial::energyLossVar(double mom,double pathlen,double mass) const {
-    double retval = ionizationEnergyLossVar(mom,pathlen,mass); //+ radiationEnergyLossVar(mom,pathlen,mass);
+    double retval = ionizationEnergyLossVar(mom,pathlen,mass);
+    retval += radiationEnergyLossVar(mom,pathlen,mass);
     return retval;
   }
 
@@ -170,24 +172,14 @@ namespace MatEnv {
       return 0.0;
   }
 
-  // radiation energy loss normalization
-  double DetMaterial::radiationNormalization(double mom) const {
-    double ymin = _e_lpm/mom; // electron mass is negligible
-    return 4*(log(_ymax/ymin) - _ymax)/3.0 + 0.5*(pow(_ymax,2));
-  }
-
   double DetMaterial::radiationEnergyLoss(double mom,double pathlen, double mass) const {
-    // trancated average bremhsstrahlung radiation energy loss
+    // truncated average bremhsstrahlung radiation energy loss
     // Based on integrating the 'low-y' approximation of the brehms cross-section from 0 to ymax, using
-    // formula 34.29 of the PDG 'Passage of particles through matter', Phys. Rev. D 110, 030001 (2024)
-    // lower cutoff to brehmsstrahlung due to coherence effect. from equation 34.33 in RPG
-    // calculation based on equations 33.29 and 34.33 of the RPG 'pass
+    // equation 34.29 of the RPP 'Passage of particles through matter', Phys. Rev. D 110, 030001 (2024)
     double retval(0.0);
     static const double small(1e-3);
     if(fabs(mass-e_mass_)<small){ // crude test to select electrons; should be replaced by a propoer particle enum TODO
-      // normalization for brehms calculations
-      double norm = radiationNormalization(mom);
-      retval = -(4.0*_ymax-2.0*pow(_ymax,2) + pow(_ymax,3))/(3*norm);
+      retval = -mom*pathlen*_erad;
     }
     return retval;
   }
@@ -195,10 +187,7 @@ namespace MatEnv {
     double retval(0.0);
     static const double small(1e-3);
     if(fabs(mass-e_mass_)<small){ // crude test to select electrons; should be replaced by a propoer particle enum TODO
-      double norm = radiationNormalization(mom);
-      double meany = radiationEnergyLoss(mom,pathlen,mass);
-      double meany2 = (2.0*pow(_ymax,2)/3.0 - 4.0*pow(_ymax,3)/9.0 + pow(_ymax,4)/4.0)/norm;
-      retval = meany2 - pow(meany,2);
+      retval = pow(mom*pathlen,2)*_eradvar;
     }
     return retval;
   }

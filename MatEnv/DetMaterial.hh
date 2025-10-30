@@ -111,8 +111,8 @@ namespace MatEnv {
       static const double _alpha; // fine structure constant
       energylossmode _elossmode;
       double _scatterfrac; // fraction of scattering distribution to include in RMS
-      double _e_lpm; // brehmsstrahlung energy lower limit
-      double _ymax; // bremsstrahlong fractional energy upper limit
+      double _erad; // bremsstrahlong fractional energy loss scale
+      double _eradvar; // bremsstrahlong fractional energy loss variance scale
       //
       //  Specific data for this material
       //
@@ -142,8 +142,6 @@ namespace MatEnv {
       double _chic2;
       double _chia2_1;
       double _chia2_2;
-      // helper function
-      double radiationNormalization(double mom) const;
 
     public:
       // baseic accessors
