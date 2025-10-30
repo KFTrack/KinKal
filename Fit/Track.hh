@@ -694,7 +694,10 @@ namespace KinKal {
     }
     KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
-    setBounds(fwdbnds,revbnds);
+    if(!setBounds(fwdbnds,revbnds)){
+      status().status_ = Status::lowNDOF;
+      return;
+    }
     // initialize the fit state where we left off processing
     FitStateArray states;
     TimeRange fitrange(fwdbnds[0]->get()->time(),revbnds[0]->get()->time());
