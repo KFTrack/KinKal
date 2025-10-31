@@ -26,14 +26,15 @@
 #include <memory>
 
 namespace MatEnv {
+  class DetMaterialConfig;
   class DetMaterial{
     public:
- //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information, as well as discussion about radiative losses
+ //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information
       enum energylossmode {mpv=0, moyalmean};
       //
       //  Constructor
       // new style
-      DetMaterial(const char* detName, const MtrPropObj* detMtrProp, energylossmode);
+      DetMaterial(const char* detName, const MtrPropObj* detMtrProp, DetMaterialConfig const& dmconf);
 
       ~DetMaterial();
       //
@@ -171,6 +172,14 @@ namespace MatEnv {
       double scatterFraction() const { return _scatterfrac;}
       static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
   };
+
+  struct DetMaterialConfig {
+    DetMaterial::energylossmode elossmode_ = DetMaterial::moyalmean; // ionization energy loss mode
+    double scatterfrac_solid_ = 0.995; // scattering angle fraction cutoff for computing RMS in solids
+    double scatterfrac_gas_ = 0.999; // scattering angle fraction cutoff for computing RMS in gases
+    double ebrehmsfrac_ = 0.04; // electron Brehmsstrahlung energy fraction cutoff
+  };
+
 }
 #endif
 

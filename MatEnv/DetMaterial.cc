@@ -43,9 +43,8 @@ namespace MatEnv {
   //
 
   double cm(10.0); // convert cm to mm
-  DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp, energylossmode elossmode):
-    _elossmode(elossmode),
-    _scatterfrac(0.995), // should come from configuration TODO
+  DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp, DetMaterialConfig const& dmconf):
+    _elossmode(dmconf.elossmode_),
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
     _zeff(detMtrProp->getZ()),
@@ -72,10 +71,12 @@ namespace MatEnv {
     _chia2_2 = 3.34*pow(_zeff*_alpha,2);
 
     if (detMtrProp->getState() == "gas" && detMtrProp->getDensity()<0.01) {
-      _scatterfrac = 0.999; // should come from configuration TODO
+      _scatterfrac = dmconf.scatterfrac_gas_;
+    } else {
+      _scatterfrac = dmconf.scatterfrac_solid_;
     }
     // compute the sum radiated photons*energy for the given cuttoff
-    double ymax(0.04);  // should come from configuration TODO
+    double ymax = dmconf.ebrehmsfrac_;
     // energy loss through 1 radiation length of this material
     _erad = (_density/_radthick)*(4.0*ymax -2.0*pow(ymax,2) + pow(ymax,3)); // energy loss per radiation length per MeV
     _eradvar = pow(_density/_radthick,2)*(2.0*pow(ymax,2)/3.0 - 4.0*pow(ymax,3)/9.0 + pow(ymax,4)/4.0); // energy variance per (rad length per MeV)^2
