@@ -83,9 +83,9 @@ namespace KinKal {
       pieces_.erase(jpiece.base(),pieces_.end());
     } else if(trange.begin() > pieces_.front()->range().end() || trange.end() < pieces_.back()->range().begin())
       throw std::invalid_argument("PiecewiseTrajectory::setRange; Invalid Range");
-    // update piece range
-    pieces_.front()->range().restrict(trange);
-    pieces_.back()->range().restrict(trange);
+    // update end piece range
+    pieces_.front()->range().extend(trange.begin(),TimeDir::backwards);
+    pieces_.back()->range().extend(trange.end(),TimeDir::forwards);
   }
 
   template <class KTRAJ> PiecewiseTrajectory<KTRAJ>::PiecewiseTrajectory(KTRAJ const& piece) : pieces_(1,std::make_shared<KTRAJ>(piece))

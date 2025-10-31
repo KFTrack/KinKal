@@ -5,6 +5,8 @@
 #include <ostream>
 #include <array>
 #include <stdexcept>
+#include "KinKal/General/TimeDir.hh"
+
 namespace KinKal {
   class TimeRange {
     public:
@@ -32,14 +34,9 @@ namespace KinKal {
       }
       // restrict the range to the overlap with another range. If there is no overlap
       // leave the object unchanged and return 'false'
-      bool restrict(TimeRange const& other ) {
-        bool retval = overlaps(other);
-        if(retval){
-          range_[0] = std::max(begin(),other.begin());
-          range_[1] = std::min(end(),other.end());
-        }
-        return retval;
-      }
+      bool restrict(TimeRange const& other );
+      // extend in a given direction
+      void extend(double time, TimeDir tdir);
     private:
       std::array<double,2> range_; // range of times
   };

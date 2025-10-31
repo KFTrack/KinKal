@@ -159,7 +159,7 @@ namespace KinKal {
       KKEFFCOL effects_; // effects used in this fit, sorted by time
       HITCOL hits_; // hits used in this fit
       EXINGCOL exings_; // material xings used in this fit
-      DOMAINCOL domains_; // DomainWall domains used in this fit, contiguous and sorted by time
+      DOMAINCOL domains_; // domains used in this fit, contiguous and sorted by time
   };
   // minimal constructor for subclasses. The resulting object has no fit.
   template <class KTRAJ> Track<KTRAJ>::Track(Config const& cfg, BFieldMap const& bfield) :
@@ -303,7 +303,7 @@ namespace KinKal {
   }
 
   // replace domains when DomainWall correction is added or changed. the traj must also be replaced, so that
-  // the pieces correspond to the new domains
+  // the pieces correspond to the new domains. The new traj is geometrically equivalent, but not parametrically equal.
   template <class KTRAJ> void Track<KTRAJ>::replaceDomains(DOMAINCOL const& domains) {
     // if domains exist, clear them and remove all DomainWall effects
     if(domains_.size() > 0){
@@ -320,7 +320,11 @@ namespace KinKal {
       }
     }
     auto newtraj = std::make_unique<PKTRAJ>();
-    // loop over domains
+    // loop over domains, splitting the overlapping traj pieces at the domain walls, and transforming them to reference the domain's field
+    // This increases the number of traj pieces.
+    // extend the existing traj to the domain range
+    TimeRange drange(domains.begin()->get()->begin(),domains.rbegin()->get()->end());
+    fittraj_->setRange(drange);
     for(auto const& domain : domains) {
       // find the range of existing ptraj pieces that overlaps with this domain's range
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
@@ -328,9 +332,9 @@ namespace KinKal {
       using DKTRAJCITER = typename DKTRAJ::const_iterator;
       DKTRAJCITER first,last;
       fittraj_->pieceRange(domain->range(),first,last);
-      // loop over these pieces
+      // loop over these pieces; first and last can be the same!
       auto olditer = first;
-      while(olditer != last){
+      do {
         auto const& oldpiece = **olditer;
         // copy this piece, translating bnom to this domain's field
         KTRAJ newpiece(oldpiece,domain->bnom(),domain->range().mid());
@@ -341,14 +345,14 @@ namespace KinKal {
           newpiece.range() = TimeRange(tstart,tend);
           newtraj->append(newpiece);
         }
-        ++olditer;
-      }
+        if(olditer != last)++olditer;
+      } while(olditer != last);
     }
     // switch over any existing effects to reference this traj (could be none)
     for (auto& eff : effects_) {
       eff->updateReference(*newtraj);
     }
-    // swap out the fit
+    // swap out the fit trajectory; this will be used as reference for the next iterations
     fittraj_.swap(newtraj);
   }
 
