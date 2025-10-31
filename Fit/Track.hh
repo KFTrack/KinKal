@@ -248,12 +248,13 @@ namespace KinKal {
   template <class KTRAJ> void Track<KTRAJ>::extend(Config const& cfg, HITCOL& hits, EXINGCOL& exings) {
     // require the existing fit to be usable
     if(!fitStatus().usable())return;
-    // remember the previous config
-    auto const& oldconfig = config_.back();
-    // update the configuration
-    config_.push_back(cfg);
     // configuation check
-    if(config().schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+    if(cfg.schedule().size() ==0)throw std::invalid_argument("Invalid configuration: no schedule");
+    // save the new configuration
+    config_.push_back(cfg);
+    // remember the previous config
+    auto oldciter = config_.rbegin(); oldciter++;
+    auto const& oldconfig = *oldciter;
     // find the range of the added information, and extend as needed
     TimeRange exrange = fittraj_->range();
     if(hits.size() >0 || exings.size() > 0){
