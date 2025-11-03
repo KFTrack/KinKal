@@ -26,7 +26,7 @@
 #include <memory>
 
 namespace MatEnv {
-  class DetMaterialConfig;
+  struct DetMaterialConfig;
   class DetMaterial{
     public:
  //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information
