@@ -20,9 +20,12 @@
 #include <map>
 namespace MatEnv {
 
-  MatDBInfo::MatDBInfo(FileFinderInterface const& interface, DetMaterial::energylossmode elossmode ) :
-    _genMatFactory(RecoMatFactory::getInstance(interface)), _elossmode(elossmode)
+  MatDBInfo::MatDBInfo(FileFinderInterface const& interface, DetMaterialConfig const& dmconf ) :
+    _genMatFactory(RecoMatFactory::getInstance(interface)), _dmconf(dmconf)
   {;}
+
+  MatDBInfo::MatDBInfo(FileFinderInterface const& interface) : MatDBInfo(interface, DetMaterialConfig()){}
+
 
   MatDBInfo::~MatDBInfo() {;}
 
@@ -70,8 +73,7 @@ namespace MatEnv {
 
     genMtrProp = _genMatFactory->GetMtrProperties(db_name);
     if(genMtrProp != 0){
-      theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp ) ;
-      theMat->setEnergyLossMode(_elossmode);
+      theMat = std::make_shared<DetMaterial> ( detMatName.c_str(), genMtrProp, _dmconf ) ;
       that()->_matList[ detMatName ] = theMat;
       return theMat;
     } else {

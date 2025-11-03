@@ -26,13 +26,15 @@
 #include <memory>
 
 namespace MatEnv {
+  struct DetMaterialConfig;
   class DetMaterial{
     public:
-      enum dedxtype {loss=0,deposit};
+ //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information
+      enum energylossmode {mpv=0, moyalmean};
       //
       //  Constructor
       // new style
-      DetMaterial(const char* detName, const MtrPropObj* detMtrProp);
+      DetMaterial(const char* detName, const MtrPropObj* detMtrProp, DetMaterialConfig const& dmconf);
 
       ~DetMaterial();
       //
@@ -46,43 +48,32 @@ namespace MatEnv {
       bool operator == (const DetMaterial& other) const {
         return _name == other._name; }
 
-      double dEdx(double mom,dedxtype type,double mass) const;
-
-      enum energylossmode {mpv=0, moyalmean};
-      energylossmode _elossmode;
-
-      void setEnergyLossMode(energylossmode elossmode) {_elossmode = elossmode;}
-
-      double energyLossG3(double mom, double pathlen, double mass) const; // this will be the old BTrk model dE/dx-based energy loss function from Geant3
-
-      double energyLossRMSG3(double mom,double pathlen,double mass) const; //this is the old BTrk model energy loss RMS approx. from Geant3
-
-      //below, 'energyLoss' and 'energyLossRMS' now refer to the MPV-based energy loss (not dE/dx) and closed-form Moyal calculations, see end of DetMaterial.cc for more information on the Moyal distribution and parameters
+      // total energy loss (ionization and radiation) and variance
       double energyLoss(double mom,double pathlen,double mass) const;
+      double energyLossVar(double mom,double pathlen,double mass) const;
+      double energyLossRMS(double mom,double pathlen,double mass) const {
+        return sqrt(energyLossVar(mom,pathlen,mass));
+      }
 
+      // ionization energy loss functions using closed-form Moyal calculations, see end of DetMaterial.cc for more information
+      double ionizationEnergyLoss(double mom,double pathlen,double mass) const;
       // most probable value of energy loss
-      double energyLossMPV(double mom,double pathlen,double mass) const;
-
-
-      double energyLossRMS(double mom,double pathlen,double mass) const;
-
-      double energyLossVar(double mom,double pathlen,double mass) const {
-        double elrms = energyLossRMS(mom,pathlen,mass);
+      double ionizationEnergyLossMPV(double mom,double pathlen,double mass) const;
+      double ionizationEnergyLossRMS(double mom,double pathlen,double mass) const;
+      double ionizationEnergyLossVar(double mom,double pathlen,double mass) const {
+        double elrms = ionizationEnergyLossRMS(mom,pathlen,mass);
         return elrms*elrms;
       }
-      double energyDeposit(double mom, double pathlen,double mass) const;
-      double energyGain(double mom,double pathlen, double mass) const;
-      double nSingleScatter(double mom,double pathlen, double mass) const;
-      // terms used in first-principles single scattering model
-      double aParam(double mom) const { return 2.66e-6*pow(_zeff,0.33333333333333)/mom; }
-      double bParam(double mom) const { return    0.14/(mom*pow(_aeff,0.33333333333333)); }
+      // radiation (brehmsstrahlung) energy loss calculation. This is relevant only for electrons
       //
-      // Single Gaussian approximation, used in Kalman filtering
-      double scatterAngleRMS(double mom,double pathlen,double mass) const;
-      double scatterAngleVar(double mom,double pathlen,double mass) const {
-        double sarms = scatterAngleRMS(mom,pathlen,mass);
-        return sarms*sarms;
+      double radiationEnergyLoss(double mom,double pathlen, double mass) const;
+      double radiationEnergyLossVar(double mom,double pathlen, double mass) const;
+      // Single Gaussian approximation
+      double scatterAngleVar(double mom,double pathlen,double mass) const;
+      double scatterAngleRMS(double mom,double pathlen,double mass) const {
+        return sqrt(scatterAngleVar(mom,pathlen,mass));
       }
+
       double highlandSigma(double mom,double pathlen, double mass) const;
 
       static double particleEnergy(double mom,double mass) {
@@ -109,31 +100,20 @@ namespace MatEnv {
       //
       //  functions used to compute energy loss
       //
-      static double eloss_emax(double mom,double mass) ;
       double eloss_xi(double beta,double pathlen) const;
       double densityCorrection(double bg2) const;
       double shellCorrection(double bg2, double tau) const;
       double moyalMean(double deltap, double xi) const;
-      double kappa(double mom,double pathlen,double mass) const {
-        return eloss_xi(particleBeta(mom,mass),pathlen)/eloss_emax(mom,mass);}
-      //
-      // return the maximum step one can make through this material
-      // for a given momentum and particle type without dE/dx changing
-      // by more than the given tolerance (fraction).  This is an _approximate_
-      // function, based on a crude model of dE/dx.
-      static double maxStepdEdx(double mom,double mass, double dEdx,double tol=0.05);
     protected:
       //
       //  Constants used in material calculations
       //
-      double _msmom; // constant in Highland scattering formula
-      static double _minkappa; // ionization randomization parameter
       static double _dgev; // energy characterizing energy loss
       static const double _alpha; // fine structure constant
+      energylossmode _elossmode;
       double _scatterfrac; // fraction of scattering distribution to include in RMS
-      double _cutOffEnergy; // cut on max energy loss
-      dedxtype _elossType;
-
+      double _erad; // bremsstrahlong fractional energy loss scale
+      double _eradvar; // bremsstrahlong fractional energy loss variance scale
       //
       //  Specific data for this material
       //
@@ -143,7 +123,6 @@ namespace MatEnv {
       double _aeff; // effective Z of our material
       double _radthick; // radiation thickness in g/cm**2
       double _intLength; // ineraction length from MatMtrObj in g/cm**2
-      double _meanion; // mean ionization energy loss
       double _eexc; // mean ionization energy loss for new e_loss routine
       double _x0; /*  The following specify parameters for energy loss. see
                       Sternheimer etal,'Atomic Data and
@@ -157,17 +136,10 @@ namespace MatEnv {
 
       int _noem;
       std::vector< double >* _shellCorrectionVector;
-      std::vector< double >* _vecNbOfAtomsPerVolume;
-      std::vector< double >* _vecTau0;
-      std::vector< double >* _vecAlow;
-      std::vector< double >* _vecBlow;
-      std::vector< double >* _vecClow;
-      std::vector< double >* _vecZ;
       double _taul;
 
       // cached values to speed calculations
       double _invx0;
-      double _nbar;
       double _chic2;
       double _chia2_1;
       double _chia2_2;
@@ -179,7 +151,6 @@ namespace MatEnv {
       double aeff() const { return _aeff;}
       double radiationLength()const {return _radthick;}
       double intLength()const {return _intLength;}
-      double meanIon()const {return _meanion;}
       double eexc() const { return _eexc; }
       double X0()const {return _x0;}
       double X1()const {return _x1;}
@@ -196,20 +167,19 @@ namespace MatEnv {
       void print(std::ostream& os) const;
       void printAll(std::ostream& os ) const;
 
-      // parameters used in ionization energy loss
-      static double energyLossScale() { return _dgev; }
-      static void setEnergyLossScale(double dgev) { _dgev = dgev; }
       // parameters used in ionization energy loss randomization
-      static double minKappa() { return _minkappa; }
-      static void setMinimumKappa(double minkappa) { _minkappa = minkappa; }
       // scattering parameter
       double scatterFraction() const { return _scatterfrac;}
-      void setScatterFraction(double scatterfrac) {_scatterfrac = scatterfrac;}
-      double cutOffEnergy() const { return _cutOffEnergy;}
-      void setCutOffEnergy(double cutOffEnergy) {_cutOffEnergy = cutOffEnergy; _elossType = deposit; }
-      void setDEDXtype(dedxtype elossType) { _elossType = elossType;}
       static constexpr double e_mass_ = 5.10998910E-01; // electron mass in MeVC^2
   };
+
+  struct DetMaterialConfig {
+    DetMaterial::energylossmode elossmode_ = DetMaterial::moyalmean; // ionization energy loss mode
+    double scatterfrac_solid_ = 0.995; // scattering angle fraction cutoff for computing RMS in solids
+    double scatterfrac_gas_ = 0.999; // scattering angle fraction cutoff for computing RMS in gases
+    double ebrehmsfrac_ = 0.04; // electron Brehmsstrahlung energy fraction cutoff
+  };
+
 }
 #endif
 

@@ -37,7 +37,8 @@ namespace MatEnv {
 
   class MatDBInfo : public MaterialInfo {
     public:
-      MatDBInfo(FileFinderInterface const& interface, DetMaterial::energylossmode elossmode);
+      MatDBInfo(FileFinderInterface const& interface);
+      MatDBInfo(FileFinderInterface const& interface, DetMaterialConfig const& dmconf);
       virtual ~MatDBInfo();
       //  Find the material, given the name
       const std::shared_ptr<DetMaterial> findDetMaterial( const std::string& matName ) const override;
@@ -57,7 +58,7 @@ namespace MatEnv {
       MatDBInfo* that() const {
         return const_cast<MatDBInfo*>(this);
       }
-      DetMaterial::energylossmode _elossmode;
+      DetMaterialConfig _dmconf;
   };
 
 }

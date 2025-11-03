@@ -85,7 +85,13 @@ int main(int argc, char **argv) {
   cout << "Test for particle " << pname  << " mass " << pmass << endl;
   cout << "Searching for material " << matname << endl;
   MatEnv::SimpleFileFinder sfinder;
-  MatDBInfo matdbinfo(sfinder,MatEnv::DetMaterial::moyalmean);
+  DetMaterialConfig dmconf;
+  dmconf.elossmode_ = MatEnv::DetMaterial::moyalmean;
+  dmconf.scatterfrac_solid_ = 0.995;
+  dmconf.scatterfrac_gas_ = 0.999;
+  dmconf.ebrehmsfrac_ = 0.04;
+
+  MatDBInfo matdbinfo(sfinder,dmconf);
   const std::shared_ptr<DetMaterial> dmat = matdbinfo.findDetMaterial(matname);
   if(dmat != 0){
     cout << "Found DetMaterial " << dmat->name() << endl;

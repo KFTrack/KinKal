@@ -41,7 +41,7 @@ namespace KKTest {
       using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool scinthit, double ambigdoca ,double simmass) :
-        bfield_(bfield), matdb_(sfinder_,MatEnv::DetMaterial::moyalmean), // use the moyal based eloss model
+        bfield_(bfield), matdb_(sfinder_),
         mom_(mom), icharge_(icharge),
         tr_(iseed), nhits_(nhits), simmat_(simmat), scinthit_(scinthit), ambigdoca_(ambigdoca), simmass_(simmass),
         sprop_(0.8*CLHEP::c_light), sdrift_(0.065),
