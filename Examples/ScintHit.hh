@@ -71,7 +71,7 @@ namespace KinKal {
 
   template <class KTRAJ> ScintHit<KTRAJ>::ScintHit(PCA const& pca, double tvar, double wvar) :
     saxis_(pca.sensorTraj()), tvar_(tvar), wvar_(wvar),
-    tpca_(pca.localTraj(),saxis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP())
+    tpca_(static_cast<CA const&>(pca))
   {}
 
   template <class KTRAJ> Residual const& ScintHit<KTRAJ>::refResidual(unsigned ires) const {
@@ -83,7 +83,7 @@ namespace KinKal {
     // use previous hint, or initialize from the sensor time
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(saxis_.measurementTime(), saxis_.measurementTime());
     PCA pca(ptraj,saxis_,tphint,precision());
-    tpca_ = pca.localClosestApproach();
+    tpca_ = static_cast<CA>(pca);
     if(!tpca_.usable())throw std::runtime_error("ScintHit TPOCA failure");
   }
 

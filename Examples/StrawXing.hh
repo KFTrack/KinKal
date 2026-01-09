@@ -81,7 +81,7 @@ namespace KinKal {
   template <class KTRAJ> StrawXing<KTRAJ>::StrawXing(PCA const& pca, StrawMaterial const& smat) :
     axis_(pca.sensorTraj()),
     smat_(smat),
-    tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
+    tpca_(static_cast<CA const&>(pca)),
     toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire to avoid overlap with hits
     varscale_(1.0)
   {}
@@ -89,7 +89,7 @@ namespace KinKal {
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.timeAtMidpoint(),axis_.timeAtMidpoint());
     PCA pca(ptraj,axis_,tphint,precision());
-    tpca_ = pca.localClosestApproach();
+    tpca_ = static_cast<CA>(pca);
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
   }
 

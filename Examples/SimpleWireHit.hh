@@ -114,7 +114,7 @@ namespace KinKal {
       double mindoca, double driftspeed, double tvar, double tot, double totvar, double rcell, int id) :
     bfield_(bfield),
     whstate_(whstate), wire_(pca.sensorTraj()),
-    ca_(pca.localTraj(),wire_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()), // must be explicit to get the right sensor traj reference
+    ca_(static_cast<CA const&>(pca)),
     mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
     }
 
@@ -123,7 +123,7 @@ namespace KinKal {
     // otherwise use the time at the center of the wire
     CAHint tphint = ca_.usable() ?  ca_.hint() : CAHint(wire_.timeAtMidpoint(),wire_.timeAtMidpoint());
     PCA pca(ptraj,wire_,tphint,precision());
-    ca_ = pca.localClosestApproach();
+    ca_ = static_cast<CA>(pca);
     if(!ca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }
 

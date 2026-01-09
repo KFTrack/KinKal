@@ -20,17 +20,19 @@ namespace KinKal {
   };
   template<class KTRAJ> class PointClosestApproach {
     public:
+      using KTRAJPTR = std::shared_ptr<KTRAJ>;
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
       PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, PCAHint const& hint, double precision);
       // construct without a hint
-      PointClosestApproach(KTRAJ const& ptraj, VEC4 const& point, double precision);
+      PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double precision);
       // construct with full data
-      PointClosestApproach(KTRAJ const& ptraj, VEC4 const& point, double precision,
+      PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double precision,
            ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
      // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
-      KTRAJ const& particleTraj() const { return ktraj_; }
+      KTRAJ const& particleTraj() const { return *ktrajptr_; }
+      KTRAJPTR const& particleTrajPtr() const { return ktrajptr_; }
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       DVEC const& dDdP() const { return dDdP_; }
       DVEC const& dTdP() const { return dTdP_; }
@@ -58,10 +60,11 @@ namespace KinKal {
       // calculate CA given the hint, and fill the state
   private:
       double precision_; // precision used to define convergence
-      KTRAJ const& ktraj_; // kinematic particle trajectory
       ClosestApproachData tpdata_; // data payload of CA calculation
       DVEC dDdP_; // derivative of DOCA WRT Parameters
       DVEC dTdP_; // derivative of TOCA WRT Parameters
+  protected:
+      KTRAJPTR ktrajptr_; // kinematic particle trajectory
   };
 
   template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double prec) :
@@ -69,10 +72,10 @@ namespace KinKal {
 
   template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, double prec,
             ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
-   precision_(prec), ktraj_(ktraj), tpdata_(tpdata), dDdP_(dDdP), dTdP_(dTdP) {}
+   precision_(prec), ktrajptr_(new KTRAJ(ktraj)), tpdata_(tpdata), dDdP_(dDdP), dTdP_(dTdP) {}
 
   template<class KTRAJ> PointClosestApproach<KTRAJ>::PointClosestApproach(KTRAJ const& ktraj, VEC4 const& point, PCAHint const& hint,
-      double prec) : precision_(prec), ktraj_(ktraj) {
+      double prec) : precision_(prec), ktrajptr_(new KTRAJ(ktraj)) {
     // sensor CA is fixed to the point
     tpdata_.sensCA_ = point;
     findTCA(hint);
@@ -86,13 +89,13 @@ namespace KinKal {
     static const unsigned maxiter=100; // don't allow infinite iteration.  This should be a parameter FIXME!
     unsigned niter(0);
     // speed doesn't change
-    double pspeed = ktraj_.speed(particleToca());
+    double pspeed = ktrajptr_->speed(particleToca());
     // iterate until change in TOCA is less than precision
     double dptoca(std::numeric_limits<double>::max());
     while(tpdata_.usable() && fabs(dptoca) > precision() && niter++ < maxiter) {
       // find positions and directions at the current TOCA estimate
-      tpdata_.partCA_ = ktraj_.position4(tpdata_.particleToca());
-      tpdata_.pdir_ = ktraj_.direction(particleToca());
+      tpdata_.partCA_ = ktrajptr_->position4(tpdata_.particleToca());
+      tpdata_.pdir_ = ktrajptr_->direction(particleToca());
       auto dpos = point().Vect()-particlePoca().Vect();
       // compute the change in times
       dptoca = dpos.Dot(tpdata_.pdir_)/pspeed;
@@ -104,8 +107,8 @@ namespace KinKal {
     else
       tpdata_.status_ = ClosestApproachData::unconverged;
     // final update
-    tpdata_.partCA_ = ktraj_.position4(tpdata_.particleToca());
-    tpdata_.pdir_ = ktraj_.direction(particleToca());
+    tpdata_.partCA_ = ktrajptr_->position4(tpdata_.particleToca());
+    tpdata_.pdir_ = ktrajptr_->direction(particleToca());
     tpdata_.sdir_ = tpdata_.delta().Vect();
     // fill the rest of the state
     if(usable()){
@@ -116,13 +119,13 @@ namespace KinKal {
       VEC3 dvechat = dvec.Unit();
       // now variances due to the particle trajectory parameter covariance
       // for DOCA, project the spatial position derivative along the delta-CA direction
-      DVDP dxdp = ktraj_.dXdPar(particleToca());
+      DVDP dxdp = ktrajptr_->dXdPar(particleToca());
       SVEC3 dv(dvechat.X(),dvechat.Y(),dvechat.Z());
       dDdP_ = -dv*dxdp;
       dTdP_[KTRAJ::t0Index()] = -1.0;  // TOCA is 100% anti-correlated with the (mandatory) t0 component.
       // project the parameter covariance onto DOCA and TOCA
-      tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktraj_.params().covariance());
-      tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktraj_.params().covariance());
+      tpdata_.docavar_ = ROOT::Math::Similarity(dDdP(),ktrajptr_->params().covariance());
+      tpdata_.tocavar_ = ROOT::Math::Similarity(dTdP(),ktrajptr_->params().covariance());
     }
   }
 

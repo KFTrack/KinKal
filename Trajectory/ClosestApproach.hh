@@ -74,14 +74,14 @@ namespace KinKal {
       void setTrajectory(KTRAJPTR ktrajptr){ ktrajptr_ = ktrajptr; }
     private:
       double precision_; // precision used to define convergence
+      DVEC dDdP_; // derivative of DOCA WRT Parameters
+      DVEC dTdP_; // derivative of TOCA WRT Parameters
+    protected:
       KTRAJPTR ktrajptr_; // kinematic particle trajectory
       STRAJ const& straj_; // sensor trajectory This should be a shared ptr TODO
-    protected:
       // calculate CA given the hint, and fill the state
       void findTCA(CAHint const& hint);
       ClosestApproachData tpdata_; // data payload of CA calculation
-      DVEC dDdP_; // derivative of DOCA WRT Parameters
-      DVEC dTdP_; // derivative of TOCA WRT Parameters
       void setParticleTOCA( double ptoca);
       void setSensorTOCA( double stoca);
   };
