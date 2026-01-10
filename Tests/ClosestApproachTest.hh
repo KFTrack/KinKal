@@ -118,15 +118,15 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
     if(tr_.Uniform(-1.0,1.0) < 0.0)cost *= -1.0;
     double sint = sqrt(1.0-cost*cost);
     MOM4 momv(mom*sint*cos(phi),mom*sint*sin(phi),mom*cost,pmass);
-    KTRAJ ktraj(origin,momv,icharge,bnom);
+    auto ktraj = std::make_shared<KTRAJ>(origin,momv,icharge,bnom);
     for(unsigned itime=0;itime < ntstep;itime++){
       double time = tmin + itime*(tmax-tmin)/(ntstep-1);
       // create tline perp to trajectory at the specified time, separated by the specified gap
       VEC3 ppos, pdir;
-      ppos = ktraj.position3(time);
-      pdir = ktraj.direction(time);
-      VEC3 perp1 = ktraj.direction(time,MomBasis::perpdir_);
-      VEC3 perp2 = ktraj.direction(time,MomBasis::phidir_);
+      ppos = ktraj->position3(time);
+      pdir = ktraj->direction(time);
+      VEC3 perp1 = ktraj->direction(time,MomBasis::perpdir_);
+      VEC3 perp2 = ktraj->direction(time,MomBasis::phidir_);
       // choose a specific direction for DOCA
       // the line traj must be perp. to this and perp to the track
       double eta = tr_.Uniform(-3.14,3.14);
@@ -140,7 +140,7 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
       double gap = tr_.Uniform(0.01,maxgap);
       VEC3 spos = ppos + gap*docadir;
       // create the Line
-      SensorLine tline(spos, time, svel, wlen);
+      auto tline = std::make_shared<SensorLine>(spos, time, svel, wlen);
       // create ClosestApproach from these
       CAHint tphint(time,time);
       TCA tp(ktraj,tline,tphint,1e-8);
@@ -160,14 +160,14 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
       }
       // test PointClosestApproach
       VEC4 pt(spos.X(),spos.Y(),spos.Z(),time-1.0);
-      TCAP tpp(ktraj,pt,1e-8);
+      TCAP tpp(*ktraj,pt,1e-8);
       if(fabs(fabs(tpp.doca()) - gap) > 1e-8){
         cout << "Point DOCA not correct, doca = " << tpp.doca() << " gap " << gap << endl;
         status = 3;
       }
 
       // test against a piece-traj
-      PTRAJ ptraj(ktraj);
+      PTRAJ ptraj(*ktraj);
       PCA pca(ptraj,tline,tphint,1e-8);
       if(tp.status() != ClosestApproachData::converged)cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
       if(tpp.status() != ClosestApproachData::converged)cout << "PointClosestApproach status " << tpp.statusName() << " doca " << tpp.doca() << " dt " << tpp.deltaT() << endl;
@@ -187,11 +187,11 @@ int ClosestApproachTest(int argc, char **argv, KinKal::DVEC pchange ){
         double dstart = -0.5*pchange[ipar];
         for(unsigned istep=0;istep<nstep;istep++){
           // compute exact change in DOCA
-          auto dvec = ktraj.params().parameters();
+          auto dvec = ktraj->params().parameters();
           double dpar = dstart + dstep*istep;
           dvec[ipar] += dpar;
-          Parameters pdata(dvec,ktraj.params().covariance());
-          KTRAJ dktraj(pdata,ktraj);
+          Parameters pdata(dvec,ktraj->params().covariance());
+          auto dktraj = std::make_shared<KTRAJ>(pdata,*ktraj);
           TCA dtp(dktraj,tline,tphint,1e-9);
           double xd = dtp.doca();
           double xt = dtp.deltaT();

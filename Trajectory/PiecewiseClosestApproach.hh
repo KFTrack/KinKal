@@ -13,10 +13,11 @@ namespace KinKal {
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
-      PiecewiseClosestApproach(PTRAJ const& ptraj, STRAJ const& straj, CAHint const& hint, double precision);
+      using STRAJPTR = std::shared_ptr<STRAJ>;
+      PiecewiseClosestApproach(PTRAJ const& ptraj, STRAJPTR strajptr, CAHint const& hint, double precision);
   };
 
-  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& ptraj, STRAJ const& straj, CAHint const& hint, double prec) : KTCA(ptraj.nearestTraj(hint.particleToca_),straj,prec) {
+  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& ptraj, STRAJPTR strajptr, CAHint const& hint, double prec) : KTCA(ptraj.nearestTraj(hint.particleToca_),strajptr,prec) {
     // iteratively find the nearest piece, and CA for that piece.  Start at hint
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter TODO
     unsigned niter=0;

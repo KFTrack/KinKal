@@ -40,7 +40,7 @@ namespace KinKal {
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void updateReference(PTRAJ const& ptraj) override { reftraj_ = ptraj.nearestTraj(time()); }
-      KTRAJPTR const& refTrajPtr() const override { return reftraj_; }
+      KTRAJPTR refTrajPtr() const override { return reftraj_; }
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
       ParameterHit(double time, PTRAJ const& ptraj, Parameters const& params, PMASK const& pmask);

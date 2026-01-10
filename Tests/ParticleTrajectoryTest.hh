@@ -38,6 +38,7 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 using KinKal::SensorLine;
+using STRAJPTR = std::shared_ptr<SensorLine>;
 
 void print_usage() {
   printf("Usage: ParticleTrajectoryTest --changedir i --delta f --tstep f --nsteps i \n");
@@ -225,7 +226,7 @@ int ParticleTrajectoryTest(int argc, char **argv) {
   // shift the position
   VEC3 lpos = midpos + gap*rdir;
   double wlen(1000.0);
-  SensorLine tline(lpos, ptraj.range().mid(), pvel, wlen);
+  auto tline = std::make_shared<SensorLine>(lpos, ptraj.range().mid(), pvel, wlen);
   // create ClosestApproach from these
   CAHint tphint(ptraj.range().mid(),0.0);
   PCA pca(ptraj,tline, tphint,1e-8);
@@ -240,8 +241,8 @@ int ParticleTrajectoryTest(int argc, char **argv) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
     VEC3 plow, phigh;
-    plow = tline.start();
-    phigh = tline.end();
+    plow = tline->start();
+    phigh = tline->end();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);

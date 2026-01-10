@@ -35,7 +35,7 @@ namespace KinKal {
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
       // update to a new reference, without changing internal state
       virtual void updateReference(PTRAJ const& ptraj) = 0;
-      virtual KTRAJPTR const& refTrajPtr() const = 0;
+      virtual KTRAJPTR refTrajPtr() const = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void updateState(MetaIterConfig const& config,bool first) = 0;
       // The following provides the constraint/information content of this hit in the trajectory weight space

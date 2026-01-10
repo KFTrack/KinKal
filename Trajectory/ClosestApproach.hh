@@ -25,24 +25,26 @@ namespace KinKal {
   template<class KTRAJ, class STRAJ> class ClosestApproach {
     public:
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      using STRAJPTR = std::shared_ptr<STRAJ>;
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
       // same, using Ptrs
-      ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, CAHint const& hint, double precision);
+      ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double precision);
-      ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision);
+      ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR straj, double precision);
       // explicitly construct from all content (no calculation)
-      ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double precision,
+      ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double precision,
           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
       // copy constructor
       ClosestApproach(ClosestApproach<KTRAJ,STRAJ> const&) = default;
       // accessors
       ClosestApproachData const& tpData() const { return tpdata_; }
       KTRAJ const& particleTraj() const { return *ktrajptr_; }
-      KTRAJPTR const& particleTrajPtr() const { return ktrajptr_; }
-      STRAJ const& sensorTraj() const { return straj_; }
+      KTRAJPTR particleTrajPtr() const { return ktrajptr_; }
+      STRAJ const& sensorTraj() const { return *strajptr_; }
+      STRAJPTR sensorTrajPtr() const { return strajptr_; }
       // derviatives of TOCA and DOCA WRT particle trajectory parameters
       DVEC const& dDdP() const { return dDdP_; }
       DVEC const& dTdP() const { return dTdP_; }
@@ -78,7 +80,7 @@ namespace KinKal {
       DVEC dTdP_; // derivative of TOCA WRT Parameters
     protected:
       KTRAJPTR ktrajptr_; // kinematic particle trajectory
-      STRAJ const& straj_; // sensor trajectory This should be a shared ptr TODO
+      STRAJPTR strajptr_; // sensor trajectory
       // calculate CA given the hint, and fill the state
       void findTCA(CAHint const& hint);
       ClosestApproachData tpdata_; // data payload of CA calculation
@@ -87,22 +89,22 @@ namespace KinKal {
   };
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
-    precision_(prec),ktrajptr_(new KTRAJ(ktraj)), straj_(straj) {}
+    precision_(prec),ktrajptr_(new KTRAJ(ktraj)), strajptr_(new STRAJ(straj)) {}
 
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double prec) :
-    precision_(prec),ktrajptr_(ktrajptr), straj_(straj) {}
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double prec) :
+    precision_(prec),ktrajptr_(ktrajptr), strajptr_(strajptr) {}
 
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, double prec,
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double prec,
     ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
-   precision_(prec),ktrajptr_(ktrajptr), straj_(straj), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP) {}
+   precision_(prec),ktrajptr_(ktrajptr), strajptr_(strajptr), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
       double prec) : ClosestApproach(ktraj,straj,prec) {
     findTCA(hint);
   }
 
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR const& ktrajptr, STRAJ const& straj, CAHint const& hint,
-      double prec) : ClosestApproach(ktrajptr,straj,prec) {
+  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, CAHint const& hint,
+      double prec) : ClosestApproach(ktrajptr,strajptr,prec) {
     findTCA(hint);
   }
 
@@ -113,7 +115,7 @@ namespace KinKal {
     dTdP_ = other.dTdP();
     ktrajptr_ = other.ktrajptr_;
     // make sure the sensor traj is the same
-    if(&straj_ != &other.sensorTraj()) throw std::invalid_argument("Inconsistent ClosestApproach SensorTraj");
+    if(strajptr_ != other.sensorTrajPtr()) throw std::invalid_argument("Inconsistent ClosestApproach SensorTraj");
     return *this;
   }
 
@@ -127,7 +129,7 @@ namespace KinKal {
     unsigned niter(0);
     // speed doesn't change
     double pspeed = ktrajptr_->speed(particleToca());
-    double sspeed = straj_.speed(sensorToca());
+    double sspeed = strajptr_->speed(sensorToca());
     // iterate until change in TOCA is less than precision
     double dptoca(std::numeric_limits<double>::max()), dstoca(std::numeric_limits<double>::max());
     while(tpdata_.usable() && (fabs(dptoca) > precision() || fabs(dstoca) > precision()) && niter++ < maxiter) {
@@ -193,8 +195,8 @@ namespace KinKal {
   }
 
   template<class KTRAJ, class STRAJ> void ClosestApproach<KTRAJ,STRAJ>::setSensorTOCA(double stoca) {
-    tpdata_.sensCA_ = straj_.position4(stoca);
-    tpdata_.sdir_ = straj_.direction(stoca);
+    tpdata_.sensCA_ = strajptr_->position4(stoca);
+    tpdata_.sdir_ = strajptr_->direction(stoca);
   }
 
 

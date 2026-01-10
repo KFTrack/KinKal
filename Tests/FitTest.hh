@@ -517,11 +517,11 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
       WIREHITPTR shptr = std::dynamic_pointer_cast<WIREHIT> (thit);
       SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
       if(shptr.use_count() > 0){
-        auto const& tline = shptr->wire();
-        plow = tline.start();
-        phigh = tline.end();
+        auto tline = shptr->wire();
+        plow = tline->start();
+        phigh = tline->end();
         line->SetLineColor(kRed);
-        auto hitpos = tline.position3(shptr->closestApproach().sensorToca());
+        auto hitpos = tline->position3(shptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(shptr->closestApproach().particleToca());
         hpos->SetPoint(1,hitpos.X(),hitpos.Y(),hitpos.Z());
         hpos->SetMarkerColor(kRed);
@@ -529,10 +529,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
         tpos->SetMarkerColor(kGreen);
       } else if (lhptr.use_count() > 0){
         auto const& tline = lhptr->sensorAxis();
-        plow = tline.start();
-        phigh = tline.end();
+        plow = tline->start();
+        phigh = tline->end();
         line->SetLineColor(kCyan);
-        auto hitpos = tline.position3(lhptr->closestApproach().sensorToca());
+        auto hitpos = tline->position3(lhptr->closestApproach().sensorToca());
         auto trkpos = fptraj.position3(lhptr->closestApproach().particleToca());
         hpos->SetPoint(1,hitpos.X(),hitpos.Y(),hitpos.Z());
         hpos->SetMarkerColor(kCyan);
