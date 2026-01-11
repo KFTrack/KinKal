@@ -28,11 +28,8 @@ namespace KinKal {
       using STRAJPTR = std::shared_ptr<STRAJ>;
       // construct from the particle and sensor trajectories; TCA is computed on construction, given a hint as to where
       // to start looking, which disambiguates functions with multiple solutions
-      ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint, double precision);
-      // same, using Ptrs
       ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
-      ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double precision);
       ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double precision);
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double precision,
@@ -88,20 +85,12 @@ namespace KinKal {
       void setSensorTOCA( double stoca);
   };
 
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double prec) :
-    precision_(prec),ktrajptr_(new KTRAJ(ktraj)), strajptr_(new STRAJ(straj)) {}
-
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double prec) :
     precision_(prec),ktrajptr_(ktrajptr), strajptr_(strajptr) {}
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double prec,
     ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP) :
    precision_(prec),ktrajptr_(ktrajptr), strajptr_(strajptr), tpdata_(tpdata),dDdP_(dDdP), dTdP_(dTdP) {}
-
-  template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, CAHint const& hint,
-      double prec) : ClosestApproach(ktraj,straj,prec) {
-    findTCA(hint);
-  }
 
   template<class KTRAJ, class STRAJ> ClosestApproach<KTRAJ,STRAJ>::ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, CAHint const& hint,
       double prec) : ClosestApproach(ktrajptr,strajptr,prec) {
