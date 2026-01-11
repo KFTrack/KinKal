@@ -36,7 +36,7 @@ namespace KinKal {
           whstate_(rhs.hitState()),
           tpca_(rhs.tpca_),
           rresid_(rhs.residuals()),
-          mindotpca_(rhs.minDOCA()),
+          mindoca_(rhs.minDOCA()),
           dvel_(driftVelocity()),
           tvar_(timeVariance()),
           tot_(rhs.tot()),
@@ -66,7 +66,7 @@ namespace KinKal {
       virtual ~SimpleWireHit(){}
       double driftVelocity() const { return dvel_; }
       double timeVariance() const { return tvar_; }
-      double minDOCA() const { return mindotpca_; }
+      double minDOCA() const { return mindoca_; }
       int id() const { return id_; }
       CA unbiasedClosestApproach() const;
       auto const& closestApproach() const { return tpca_; }
@@ -87,7 +87,7 @@ namespace KinKal {
                   // (when multiplied by the propagation velocity).
       CA tpca_; // reference time and position of closest approach to the wire; this is generally biased by the hit
       std::array<Residual,2> rresid_; // residuals WRT most recent reference
-      double mindotpca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
+      double mindoca_; // effective minimum DOCA used when assigning LR ambiguity, used to define null hit properties
       double dvel_; // constant drift speed
       double tvar_; // constant time variance
       double tot_, totvar_; // TimeOverThreshold and variance
@@ -110,7 +110,7 @@ namespace KinKal {
     bfield_(bfield),
     whstate_(whstate),
     tpca_(static_cast<CA const&>(pca)),
-    mindotpca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
+    mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
     }
 
   template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
@@ -129,12 +129,12 @@ namespace KinKal {
       auto dwhu = miconfig.findUpdater<DOCAWireHitUpdater>();
       if(nwhu != 0 && dwhu != 0)throw std::invalid_argument(">1 SimpleWireHit updater specified");
       if(nwhu != 0){
-        mindotpca_ = cellRadius();
+        mindoca_ = cellRadius();
         whstate_ = nwhu->wireHitState();
         // set the residuals based on this state
       } else if(dwhu != 0){
         // update minDoca (for null ambiguity error estimate)
-        mindotpca_ = std::min(dwhu->minDOCA(),cellRadius());
+        mindoca_ = std::min(dwhu->minDOCA(),cellRadius());
         // compute the unbiased closest approach.  This is brute-force
         // a more clever solution is to linearly correct the residuals for the change in parameters
         auto uca = this->unbiasedClosestApproach();

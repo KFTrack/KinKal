@@ -33,7 +33,7 @@ namespace KinKal {
       ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, CAHint const& hint, double precision);
       // construct without a hint: TCA isn't calculated, state is invalid
       ClosestApproach(KTRAJ const& ktraj, STRAJ const& straj, double precision);
-      ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR straj, double precision);
+      ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double precision);
       // explicitly construct from all content (no calculation)
       ClosestApproach(KTRAJPTR ktrajptr, STRAJPTR strajptr, double precision,
           ClosestApproachData const& tpdata, DVEC const& dDdP, DVEC const& dTdP);
