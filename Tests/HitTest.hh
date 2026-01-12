@@ -190,14 +190,14 @@ int HitTest(int argc, char **argv, const vector<double>& delpars) {
     WIREHITPTR shptr = std::dynamic_pointer_cast<WIREHIT> (thit);
     SCINTHITPTR lhptr = std::dynamic_pointer_cast<SCINTHIT> (thit);
     if((bool)shptr){
-      auto const& tline = shptr->wire();
-      plow = tline.start();
-      phigh = tline.end();
+      auto tline = shptr->wire();
+      plow = tline->start();
+      phigh = tline->end();
       line->SetLineColor(kRed);
     } else if ((bool)lhptr){
       auto const& tline = lhptr->sensorAxis();
-      plow = tline.start();
-      phigh = tline.end();
+      plow = tline->start();
+      phigh = tline->end();
       line->SetLineColor(kCyan);
     }
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());

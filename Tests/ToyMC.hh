@@ -39,6 +39,7 @@ namespace KKTest {
       using STRAWXING = StrawXing<KTRAJ>;
       using STRAWXINGPTR = std::shared_ptr<STRAWXING>;
       using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
+      using STRAJPTR = std::shared_ptr<SensorLine>;
       // create from aseed
       ToyMC(BFieldMap const& bfield, double mom, int icharge, double zrange, int iseed, unsigned nhits, bool simmat, bool scinthit, double ambigdoca ,double simmass) :
         bfield_(bfield), matdb_(sfinder_),
@@ -55,7 +56,7 @@ namespace KKTest {
         }
 
       // generate a straw at the given time.  direction and drift distance are random
-      SensorLine generateStraw(PTRAJ const& traj, double htime);
+      STRAJPTR generateStraw(PTRAJ const& traj, double htime);
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PTRAJ& ptraj,double htime);
@@ -107,7 +108,7 @@ namespace KKTest {
       MetaIterConfig miconfig_; // configuration used when calculating initial effect
   };
 
-  template <class KTRAJ> SensorLine ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
+  template <class KTRAJ> std::shared_ptr<SensorLine> ToyMC<KTRAJ>::generateStraw(PTRAJ const& traj, double htime) {
     // start with the true helix position at this time
     auto hpos = traj.position4(htime);
     auto tdir = traj.direction(htime);
@@ -127,7 +128,7 @@ namespace KKTest {
     // smear measurement time
     tmeas = tr_.Gaus(tmeas,sigt_);
     // construct the trajectory for this hit
-    return SensorLine(mpos,tmeas,vprop,wlen_);
+    return std::make_shared<SensorLine>(mpos,tmeas,vprop,wlen_);
   }
 
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
@@ -224,7 +225,7 @@ namespace KKTest {
     double tmeas = tr_.Gaus(shmaxtime+(shmeas.Z() - shmax.Z())/cprop_,scitsig_);
     // create the ttraj for the light propagation
     VEC3 lvel(0.0,0.0,cprop_);
-    SensorLine lline(shmeas, tmeas, lvel, clen_);
+    auto lline = std::make_shared<SensorLine>(shmeas, tmeas, lvel, clen_);
     // then create the hit and add it; the hit has no material
     CAHint tphint(tmeas,tmeas);
     PCA pca(ptraj,lline,tphint,tprec_);

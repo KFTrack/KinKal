@@ -15,6 +15,7 @@ namespace KinKal {
     public:
       using PTRAJ = ParticleTrajectory<KTRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
+      using STRAJPTR = std::shared_ptr<SensorLine>;
       using EXING = ElementXing<KTRAJ>;
       using PCA = PiecewiseClosestApproach<KTRAJ,SensorLine>;
       using CA = ClosestApproach<KTRAJ,SensorLine>;
@@ -24,14 +25,8 @@ namespace KinKal {
       // copy constructor
       StrawXing(StrawXing const& rhs):
           ElementXing<KTRAJ>(rhs),
-          axis_(rhs.axis_),
           smat_(rhs.smat_),
-          tpca_(
-                rhs.closestApproach().particleTraj(),
-                axis_,
-                rhs.closestApproach().hint(),
-                rhs.closestApproach().precision()
-          ),
+          tpca_(rhs.tpca_),
           toff_(rhs.toff_),
           sxconfig_(rhs.sxconfig_),
           varscale_(rhs.varscale_),
@@ -60,12 +55,12 @@ namespace KinKal {
       bool active() const override { return mxings_.size() > 0; }
       // accessors
       auto const& closestApproach() const { return tpca_; }
+      auto axis() const { return tpca_.sensorTrajPtr(); }
       auto const& strawMaterial() const { return smat_; }
       auto const& config() const { return sxconfig_; }
       auto precision() const { return tpca_.precision(); }
 
     private:
-      SensorLine axis_; // straw axis, expressed as a timeline
       StrawMaterial const& smat_;
       CA tpca_; // result of most recent TPOCA
       double toff_; // small time offset
@@ -79,17 +74,16 @@ namespace KinKal {
   };
 
   template <class KTRAJ> StrawXing<KTRAJ>::StrawXing(PCA const& pca, StrawMaterial const& smat) :
-    axis_(pca.sensorTraj()),
     smat_(smat),
-    tpca_(pca.localTraj(),axis_,pca.precision(),pca.tpData(),pca.dDdP(),pca.dTdP()),
+    tpca_(static_cast<CA const&>(pca)),
     toff_(smat.wireRadius()/pca.particleTraj().speed(pca.particleToca())), // locate the effect to 1 side of the wire to avoid overlap with hits
     varscale_(1.0)
   {}
 
   template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis_.timeAtMidpoint(),axis_.timeAtMidpoint());
-    PCA pca(ptraj,axis_,tphint,precision());
-    tpca_ = pca.localClosestApproach();
+    CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis()->timeAtMidpoint(),axis()->timeAtMidpoint());
+    PCA pca(ptraj,axis(),tphint,precision());
+    tpca_ = static_cast<CA>(pca);
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
   }
 
@@ -131,7 +125,7 @@ namespace KinKal {
     }
     if(detail > 1){
       ost << " Axis ";
-      axis_.print(ost,0);
+      axis()->print(ost,0);
     }
     ost << std::endl;
   }

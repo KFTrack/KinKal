@@ -276,16 +276,17 @@ int TrajectoryTest(int argc, char **argv,KinKal::DVEC sigmas) {
   // shift the position
   VEC3 perpdir(-sin(phi),cos(phi),0.0);
   VEC3 ppos = pos + gap*perpdir;
-  SensorLine tline(ppos, ltime, pvel, wlen);
+  auto tline = std::make_shared<SensorLine>(ppos, ltime, pvel, wlen);
   // find ClosestApproach
   CAHint hint(ltime,ltime);
-  ClosestApproach<KTRAJ,SensorLine> tp(ktraj,tline,hint, 1e-6);
+  auto ktrajptr = std::make_shared<KTRAJ>(ktraj);
+  ClosestApproach<KTRAJ,SensorLine> tp(ktrajptr,tline,hint, 1e-6);
   //  cout << "ClosestApproach status " << tp.statusName() << " doca " << tp.doca() << " dt " << tp.deltaT() << endl;
   if(tp.status() == ClosestApproachData::converged) {
     // draw the line and ClosestApproach
     TPolyLine3D* line = new TPolyLine3D(2);
-    auto plow = tline.start();
-    auto phigh = tline.end();
+    auto plow = tline->start();
+    auto phigh = tline->end();
     line->SetPoint(0,plow.X(),plow.Y(), plow.Z());
     line->SetPoint(1,phigh.X(),phigh.Y(), phigh.Z());
     line->SetLineColor(kOrange);
