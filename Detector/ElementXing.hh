@@ -49,7 +49,7 @@ namespace KinKal {
   // which must be reassigned explicitly; the default action is thus to throw
   // an error if a clone routine has not been explicitly provided.
   template<class KTRAJ> std::shared_ptr< ElementXing<KTRAJ> > ElementXing<KTRAJ>::clone(CloneContext&) const{
-    std::string msg = "Attempt to clone KinKal::Hit subclass with no clone() implementation";
+    std::string msg = "Attempt to clone KinKal::ElementXing subclass with no clone() implementation";
     throw std::runtime_error(msg);
   }
 
