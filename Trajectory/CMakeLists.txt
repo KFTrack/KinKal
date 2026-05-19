@@ -24,12 +24,12 @@ ROOT_GENERATE_DICTIONARY(TrajectoryDict
 )
 
 # set top-level directory as include root
-target_include_directories(Trajectory PUBLIC 
+target_include_directories(Trajectory PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:include>)
 
 # link this library with ROOT libraries
-target_link_libraries(Trajectory Geometry General ${ROOT_LIBRARIES})
+target_link_libraries(Trajectory PUBLIC Geometry General ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
 set_target_properties(Trajectory PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

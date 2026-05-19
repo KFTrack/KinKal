@@ -18,11 +18,11 @@ add_library(Examples SHARED
   ExamplesDict
 )
 target_include_directories(Examples PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
-target_include_directories(Examples PUBLIC 
+target_include_directories(Examples PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:include>)
 
 # link ROOT libraries
-target_link_libraries(Examples ${ROOT_LIBRARIES})
+target_link_libraries(Examples PUBLIC ${ROOT_LIBRARIES})
 # set shared library version equal to project version
 set_target_properties(Examples PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})

@@ -34,12 +34,12 @@ ROOT_GENERATE_DICTIONARY(GeneralDict
 )
 
 # set top-level directory as include root
-target_include_directories(General PUBLIC 
+target_include_directories(General PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/..>
     $<INSTALL_INTERFACE:include>)
 
 # link this library with ROOT libraries
-target_link_libraries(General ${ROOT_LIBRARIES})
+target_link_libraries(General PUBLIC ${ROOT_LIBRARIES})
 
 # set shared library version equal to project version
 set_target_properties(General PROPERTIES VERSION ${PROJECT_VERSION} PREFIX ${CMAKE_SHARED_LIBRARY_PREFIX})
