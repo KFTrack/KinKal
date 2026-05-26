@@ -814,6 +814,15 @@ namespace KinKal {
         }
         retval = true;
       } else {
+        // geometric extrapolation. Extend to the maximum
+        auto& endpiece = tdir == TimeDir::forwards ? fittraj_->backPtr() : fittraj_->frontPtr();
+        TimeRange newrange = tdir == TimeDir::forwards ?
+          TimeRange(endpiece->range().begin(),endpiece->range().end()+xtest.maxDt())
+          :
+          TimeRange(endpiece->range().begin()-xtest.maxDt(),endpiece->range().end());
+        endpiece->setRange(newrange);
+        // invoke the test
+        xtest.needsExtrapolation(*fittraj_,tdir);
         retval = true;
       }
     }
