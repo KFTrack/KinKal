@@ -800,7 +800,7 @@ namespace KinKal {
           while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*fittraj_,tdir) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
-            double dt = bfield_.rangeInTolerance(ktraj,time,xtest.dpTolerance()); // always positive
+            double dt = std::min(bfield_.rangeInTolerance(ktraj,time,xtest.dpTolerance()),xtest.maxDtStep()); // always positive
             TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
             Domain domain(range,bfield_.fieldVect(ktraj.position3(range.mid())));
             addDomain(domain,tdir,true); // use exact transport
@@ -814,7 +814,21 @@ namespace KinKal {
         }
         retval = true;
       } else {
-        retval = true;
+        // geometric extrapolation of the end piece; no need to protect
+        auto& endpiece = tdir == TimeDir::forwards ? fittraj_->backPtr() : fittraj_->frontPtr();
+        double time = tdir == TimeDir::forwards ? endpiece->range().end() : endpiece->range().begin();
+        double tstart = time;
+        bool needsext(true);
+        do {
+          // extend the range by the step dt
+          TimeRange newrange = tdir == TimeDir::forwards ?
+            TimeRange(endpiece->range().begin(),endpiece->range().end()+xtest.maxDtStep())
+            :
+            TimeRange(endpiece->range().begin()-xtest.maxDtStep(),endpiece->range().end());
+          endpiece->setRange(newrange);
+          time = tdir == TimeDir::forwards ? endpiece->range().end() : endpiece->range().begin();
+          needsext = xtest.needsExtrapolation(*fittraj_,tdir);
+        } while(needsext && fabs(time-tstart) < xtest.maxDt());
       }
     }
     return retval;

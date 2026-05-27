@@ -11,8 +11,15 @@ namespace KinKal {
   class TimeRange {
     public:
       TimeRange() : range_{0.0,0.0} {} // default to a null range (matches no times)
-      TimeRange(double begin, double end) : range_{begin,end} {
-        if(begin > end)throw std::invalid_argument("Invalid Time Range"); }
+      TimeRange(double begin, double end,bool ordered=true) : range_{begin,end} {
+        if(begin > end){
+          if(ordered){
+            throw std::invalid_argument("Invalid Time Range");
+          } else {
+            range_[0] = end; range_[1] = begin;
+          }
+        }
+      }
       double begin() const { return range_[0]; }
       double end() const { return range_[1]; }
       double rbegin() const { return range_[1]; }
@@ -27,6 +34,10 @@ namespace KinKal {
         return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range
       void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
+      // test if a given time is beyond the range in the given direction
+      bool beyond(double time, TimeDir tdir) const {
+        return tdir == TimeDir::forwards ? time > range_[1] : time < range_[0];
+      }
       // augment another range
       void combine(TimeRange const& other ) {
         range_[0] = std::min(begin(),other.begin());
