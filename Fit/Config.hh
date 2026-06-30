@@ -41,6 +41,11 @@ namespace KinKal {
                             // field outside the solenoid bore -- where, for tracks that leave the magnet just
                             // past the tracker (cosmics), Bz->0 makes the CentralHelix dPardB ~ 1/(1+dB/B)
                             // correction singular and destroys the fit. Affects only createDomains/extendDomains.
+    unsigned maxdomains_ = std::numeric_limits<unsigned>::max(); // hard cap on the number of BField domains a
+                            // single fit may accumulate. Default = unlimited (legacy). Set finite (e.g. 1000) to
+                            // abort a fit whose iterative domain walk runs away: a diverging low-momentum track can
+                            // build ~1e5 domains (wasted CPU + ~GB memory) before it is dropped anyway. The over-cap
+                            // fit is failed cleanly. Affects createDomains/extendDomains.
     unsigned minndof_ = 5; // minimum number of DOFs to continue fit
     bool bfcorr_ = true; // whether to make BFieldMap corrections in the fit
     bool ends_ = true; // process the passive effects at each end of the track after schedule completion

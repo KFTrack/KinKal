@@ -400,7 +400,6 @@ namespace KinKal {
       // unfittable track: outsidemap stops the fit cleanly (needsFit()==false skips createEffects) and the
       // module drops it via goodFit()==false. fittraj_ is left as a valid (empty) object, never null.
       if(fittraj_->pieces().empty()){
-        std::cout << "CONVERTSEED EMPTY range=[" << range.begin() << "," << range.end() << "] ndomains=" << domains.size() << std::endl; // DIAG - remove before PR
         history_.emplace_back(0,0,Status::outsidemap, "Empty seed trajectory (no domains)");
         return;
       }
@@ -478,8 +477,6 @@ namespace KinKal {
         status().comment_ = status().comment_ + error.what();
       }
     }
-    // CALIBRATION PROBE – remove before PR
-    std::cout << "KinKal::Track::fit ndomains=" << domains_.size() << " status=" << fitStatus().status_ << std::endl;
     if(config().plevel_ > Config::none)print(std::cout, config().plevel_);
   }
 
@@ -693,6 +690,11 @@ namespace KinKal {
           Domain domain(range,bfield_.fieldVect(fittraj_->nearestPiece(range.mid()).position3(range.mid())));
           addDomain(domain,TimeDir::backwards);
           time = domain.begin();
+          // hard cap: a diverging low-momentum track can otherwise accumulate ~1e5 domains here (each adds a
+          // KKDW effect + traj piece) -> wasted CPU + ~GB memory before it is dropped anyway. Abort the runaway;
+          // iterate()'s caller catches this and records the fit as failed (the track is unusable -> dropped).
+          if(domains_.size() > config().maxdomains_)
+            throw std::runtime_error("Fit exceeded MaxDomains (BField domain walk runaway)");
         }
       }
       // then forwards
@@ -708,11 +710,11 @@ namespace KinKal {
           Domain domain(range,bfield_.fieldVect(fittraj_->nearestPiece(range.mid()).position3(range.mid())));
           addDomain(domain,TimeDir::forwards);
           time = domain.end();
+          if(domains_.size() > config().maxdomains_)
+            throw std::runtime_error("Fit exceeded MaxDomains (BField domain walk runaway)");
         }
       }
     }
-    // CALIBRATION PROBE – remove before PR
-    if(retval) std::cout << "KinKal::Track::extendDomains ndomains=" << domains_.size() << " fitrange=[" << fitrange.begin() << "," << fitrange.end() << "]" << std::endl;
     return retval;
   }
 
@@ -806,6 +808,9 @@ namespace KinKal {
           }
           // start the next domain at the end of this one
           tstart += trange;
+          // hard cap (backup to extendDomains): bail if the initial domain build itself runs away
+          if(domains.size() > config().maxdomains_)
+            throw std::runtime_error("createDomains exceeded MaxDomains");
         } while(tstart < range.end() + 0.5*trange); // ensure the last domain fully covers the last effect
       } catch (std::exception const& error) {
         retval = false;

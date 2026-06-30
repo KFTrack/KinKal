@@ -11,6 +11,7 @@ namespace KinKal {
       << " min domain step (ns) " << kkconfig.mindtstep_
       << " min field (T) " << kkconfig.minfield_
       << " domain margin (ns) " << kkconfig.domainmargin_
+      << " max domains " << kkconfig.maxdomains_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
       << " with " << kkconfig.schedule().size()
