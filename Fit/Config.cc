@@ -8,6 +8,9 @@ namespace KinKal {
       << " diverge dpar chisq " << kkconfig.pdchisq_
       << " diverge traj gap (mm) " << kkconfig.divgap_
       << " fractional momentum tolerance " << kkconfig.tol_
+      << " min domain step (ns) " << kkconfig.mindtstep_
+      << " min field (T) " << kkconfig.minfield_
+      << " domain margin (ns) " << kkconfig.domainmargin_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
       << " with " << kkconfig.schedule().size()

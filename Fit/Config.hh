@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <limits>
 #include <ostream>
 #include <istream>
 
@@ -29,6 +30,17 @@ namespace KinKal {
     double pdchisq_ = 1.0e6; // maximum allowed parameter change (units of chisqred) WRT previous reference
     double divgap_ = 1.0e2; // maximum average gap of trajectory before calling it diverged (mm)
     double tol_ = 1.0e-4; // tolerance on fractional momentum accuracy due to BField domain steps
+    double mindtstep_ = 1.0e-3; // ns: hard floor on the BField domain step, bounding the domain count in
+                                // high-gradient/low-momentum regions where rangeInTolerance -> ~0 (else the
+                                // bfcorr domain walk takes ~MaxDt/dt micro-steps -> OOM / time-budget truncation)
+    double minfield_ = 0.0; // T: if >0, stop the bfcorr extrapolation once |B| drops below this, so the
+                            // ill-conditioned CentralHelix is never driven into B->0 (the physical runaway origin)
+    double domainmargin_ = std::numeric_limits<double>::max(); // ns: max time a BField fit domain may extend
+                            // beyond the active (hit) range. Default = unclamped (legacy). Set small (e.g. 0)
+                            // to confine the fit's domains to the measurement region, so it never samples the
+                            // field outside the solenoid bore -- where, for tracks that leave the magnet just
+                            // past the tracker (cosmics), Bz->0 makes the CentralHelix dPardB ~ 1/(1+dB/B)
+                            // correction singular and destroys the fit. Affects only createDomains/extendDomains.
     unsigned minndof_ = 5; // minimum number of DOFs to continue fit
     bool bfcorr_ = true; // whether to make BFieldMap corrections in the fit
     bool ends_ = true; // process the passive effects at each end of the track after schedule completion
