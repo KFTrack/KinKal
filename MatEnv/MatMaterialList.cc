@@ -24,6 +24,7 @@
 #include <stdlib.h>
 #include <assert.h>
 #include <algorithm>
+#include <cctype>
 #include "KinKal/MatEnv/BbrCollectionUtils.hh"
 
 //----------------------
@@ -96,7 +97,6 @@ namespace MatEnv {
     double refindex = 0.;
     double temperature = 0.;
     double pressure = 0.;
-    double Tcut = 0.;
     materials >> name;
     while( !materials.eof())
     {
@@ -146,8 +146,31 @@ namespace MatEnv {
 	matObj->setTemperature(temperature);
 	matObj->setPressure(pressure);
 	matObj->setState(state);
-	if (iss>>Tcut) {
-	  matObj->setTcut(Tcut);
+	// Optional trailing columns (order-independent): a numeric token is the Tcut
+	// (restricted energy-loss cut, as before), a keyword token selects the ionization
+	// energy loss mode for this material ("mpv"/"moyalmean"/"bethemean", matching
+	// DetMaterial::energylossmode). Anything else is ignored.
+	std::string token;
+	while (iss >> token) {
+	  char* endptr = nullptr;
+	  double tokval = strtod(token.c_str(), &endptr);
+	  if (endptr != token.c_str() && *endptr == '\0') {
+	    matObj->setTcut(tokval);
+	  } else {
+	    std::string key = token;
+	    std::transform(key.begin(), key.end(), key.begin(),
+		[](unsigned char c){ return std::tolower(c); });
+	    if (key == "mpv") {
+	      matObj->setElossMode(0);
+	    } else if (key == "moyalmean") {
+	      matObj->setElossMode(1);
+	    } else if (key == "bethemean") {
+	      matObj->setElossMode(2);
+	    } else {
+	      ErrMsg(warning) << "MatMaterialList: unrecognized trailing token '" << token
+		<< "' for material " << name << ", ignored." << endmsg;
+	    }
+	  }
 	}
 
 	_vector.push_back(matObj);
@@ -226,6 +249,10 @@ namespace MatEnv {
       out <<" "<< radlen <<" "<< intlen <<" "<< refindex <<" "<< temperature 
 	<<" "<< pressure <<" "<< state;
       if (energyCut>0.0) { out <<" "<< energyCut; }
+      int elossMode = matObj->getElossMode();
+      if (elossMode==0) { out <<" mpv"; }
+      else if (elossMode==1) { out <<" moyalmean"; }
+      else if (elossMode==2) { out <<" bethemean"; }
 
       out << std::endl;
     }

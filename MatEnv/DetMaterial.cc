@@ -44,7 +44,9 @@ namespace MatEnv {
 
   double cm(10.0); // convert cm to mm
   DetMaterial::DetMaterial(const char* detMatName, const MtrPropObj* detMtrProp, DetMaterialConfig const& dmconf):
-    _elossmode(dmconf.elossmode_),
+    // per-material eloss mode if the material specifies one (>=0), else the global default
+    _elossmode(detMtrProp->getElossMode() >= 0 ?
+        (energylossmode)detMtrProp->getElossMode() : dmconf.elossmode_),
     _name(detMatName),
     _za(detMtrProp->getZ()/detMtrProp->getA()),
     _zeff(detMtrProp->getZ()),
@@ -131,8 +133,41 @@ namespace MatEnv {
       //if using mean calculated from the Moyal Dist. Approx: (see end of file for more information)
       if(_elossmode == moyalmean) {
         return moyalMean(deltap, xi);
+      } else if(_elossmode == bethemean) {
+        //unrestricted Bethe-Bloch mean (full loss including energy carried off by delta-rays), see end of file
+        return ionizationEnergyLossBetheMean(mom, pathlen, mass);
       } else
         return deltap;
+    } else
+      return 0.0;
+  }
+
+  //Unrestricted Bethe-Bloch MEAN ionization energy loss (PDG RPP eq. 34.5), NOT the most-probable value.
+  //With xi == (K/2)(Z/A)(rho x / beta^2) as used throughout this class, the standard mean stopping power
+  //  -dE/dx = K (Z/A)(1/beta^2) [ 0.5 ln(2 me c^2 beta^2 gamma^2 Tmax / I^2) - beta^2 - delta/2 - C/Z ]
+  //multiplied by the traversed grammage rho*x becomes
+  //  <dE> = xi [ ln(2 me c^2 beta^2 gamma^2 / I) + ln(Tmax / I) - 2 beta^2 - delta - 2 sh ],
+  //where Tmax is the maximum single-collision energy transfer, delta the density-effect correction and sh the
+  //shell correction (the same terms ionizationEnergyLossMPV uses). Unlike the MPV this is additive in path
+  //length, so integrating it over sub-steps of a decelerating track yields an unbiased mean.
+  double DetMaterial::ionizationEnergyLossBetheMean(double mom, double pathlen, double mass) const {
+    if(mom>0.0){
+      //taking positive lengths
+      pathlen = fabs(pathlen) ;
+      double beta  = particleBeta(mom,mass) ;
+      double gamma = particleGamma(mom,mass) ;
+      double beta2 = beta*beta ;
+      double bg2   = beta2*gamma*gamma ;                 // (beta*gamma)^2
+      double tau   = gamma - 1 ;
+      double xi    = eloss_xi(beta, pathlen);            // (K/2)(Z/A)(rho x / beta^2)
+      // maximum kinetic energy transferable to a free electron in a single collision (PDG RPP eq. 34.4)
+      double Tmax  = 2.*e_mass_*bg2 / (1. + 2.*gamma*e_mass_/mass + (e_mass_/mass)*(e_mass_/mass)) ;
+      // density-effect and shell corrections (identical to ionizationEnergyLossMPV)
+      double delta = densityCorrection(bg2);
+      double sh    = shellCorrection(bg2, tau);
+      double meanloss = log(2.*e_mass_*bg2/_eexc) + log(Tmax/_eexc) - 2.*beta2 - delta - 2.*sh ;
+      meanloss *= -xi ; // sign convention: energy loss is returned as a NEGATIVE energy change
+      return meanloss;
     } else
       return 0.0;
   }
@@ -308,7 +343,8 @@ namespace MatEnv {
 
   //Information about the Moyal Distribution Approx.:
 
-  //The Moyal distribution is an approximation for the ionization energy loss distribution. Unlike the Landau distribution is provides a closed-form energy loss mean and RMS. Code above uses the closed-form Moyal RMS for RMS, and allows the option of choosing the closed-form Moyal mean for the total energy loss parameter, which utilizes the most probable energy loss function. The options for either most probable energy loss and moyal distribution mean is toggled with the DetMaterial class member '_elossmode' with the options 'mpv' or 'moyalmean' respectively.
+  //The Moyal distribution is an approximation for the ionization energy loss distribution. Unlike the Landau distribution is provides a closed-form energy loss mean and RMS. Code above uses the closed-form Moyal RMS for RMS, and allows the option of choosing the closed-form Moyal mean for the total energy loss parameter, which utilizes the most probable energy loss function. The energy-loss parameter returned by ionizationEnergyLoss is toggled with the DetMaterial class member '_elossmode': 'mpv' (most probable value), 'moyalmean' (closed-form Moyal mean of the restricted loss), or 'bethemean'.
+  //'bethemean' returns the unrestricted Bethe-Bloch MEAN (ionizationEnergyLossBetheMean): the full mean energy loss including the energy carried away by energetic delta-rays. The Moyal/MPV values track only the locally-deposited (restricted) loss, whose dE/dx saturates at the Fermi plateau; the unrestricted mean keeps rising (the relativistic rise), so for a thick absorber it is the correct estimate of the momentum the particle actually loses. It is additive in path length (integrable over sub-steps), whereas the MPV is not. See PDG RPP 'Passage of particles through matter' eqs. 34.4-34.5.
   //reference for Moyal dist.: Theory of Ionization Fluctuation by J. E. Moyal, Phil. Mag. 46 (1955) 263
   //more useful references: https://reference.wolfram.com/language/ref/MoyalDistribution.html, http://www.stat.rice.edu/~dobelman/textfiles/DistributionsHandbook.pdf, and https://arxiv.org/pdf/1702.06655.pdf
 

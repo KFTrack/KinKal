@@ -19,6 +19,9 @@ HDPE      0.96        0.   0.   -2      4  Hydrogen 0    2 Carbon 0    -10 -20 -
 HeCF4  0.0005331 0. 0. 2 0.334 Helium 0 0.666 CF4 1 -10 -20 -30 20.0 1.0 gas
 Kapton       1.4300    0.   0.   -4    37    Carbon     0 6 Oxygen 0 2 Nitrogen 0 6 Hydrogen 0    -10     -20     -30     20.0    1.0    solid
 Mylar       1.4    0.   0.   -3    10    Carbon     0 4 Oxygen 0 8 Hydrogen 0    -10     -20     -30     20.0    1.0    solid
+# Concrete (MARS composition, matches Offline/TrackerConditions/data/MaterialsList.data). Tagged
+# bethemean: a thick passive absorber where the unrestricted Bethe-Bloch mean is the correct estimator.
+CONCRETE_MARS 2.35 0.0 0.0 +9 0.006 Hydrogen 0 0.030 Carbon 0 0.500 Oxygen 0 0.010 Sodium 0 0.030 Aluminum 0 0.200 Silicon 0 0.010 Potasium 0 0.200 Calcium 0 0.014 Iron 0 -10 -20 -30 20.0 1.0 solid bethemean
 # specific mu2e materials
 straw-wire    19.300000    0.   0.   +1    100.0e-2    Tungsten   0    -10 -20 -30     20.0    1.0    solid
 # 80:20 (by volume) Argon:CO2
