@@ -25,6 +25,7 @@
 #include <assert.h>
 #include <algorithm>
 #include <cctype>
+#include <stdexcept>
 #include "KinKal/MatEnv/BbrCollectionUtils.hh"
 
 //----------------------
@@ -167,8 +168,8 @@ namespace MatEnv {
 	    } else if (key == "bethemean") {
 	      matObj->setElossMode(2);
 	    } else {
-	      ErrMsg(warning) << "MatMaterialList: unrecognized trailing token '" << token
-		<< "' for material " << name << ", ignored." << endmsg;
+	      throw std::invalid_argument("MatMaterialList: unrecognized trailing token '" + token
+		+ "' for material " + name);
 	    }
 	  }
 	}
