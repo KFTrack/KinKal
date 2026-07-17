@@ -92,6 +92,8 @@ namespace MatEnv {
       double getMeanExciEnergy() const { return _meanExciEnergy; }
       const std::vector< double >& getShellCorrectionVector() const;
       double getEnergyTcut() const { return _energyTcut; }
+      // per-material ionization energy loss mode (DetMaterial::energylossmode); -1 = unspecified
+      int getElossMode() const { return _elossMode; }
 
       double getRadLength() const { return _radLength; }
       double getIntLength() const { return _intLength; }
@@ -140,6 +142,7 @@ namespace MatEnv {
       double _meanExciEnergy;
       std::vector< double >* _shellCorrectionVector;
       double _energyTcut;
+      int _elossMode = -1;          // per-material ionization energy loss mode; -1 = unspecified (use global default)
 
       double _zeff;
       double _aeff;

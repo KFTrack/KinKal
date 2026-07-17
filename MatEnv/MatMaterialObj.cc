@@ -48,7 +48,8 @@ namespace MatEnv {
     _matTemperature(0),
     _matPressure(0),
     _matState(" "),
-    _matTcut(0)
+    _matTcut(0),
+    _elossMode(-1)
   {
   }
 
@@ -107,6 +108,7 @@ namespace MatEnv {
     _matPressure = matcp.getPressure();
     _matState = matcp.getState();
     _matTcut = matcp.getTcut();
+    _elossMode = matcp.getElossMode();
   }
 
   MatMaterialObj& MatMaterialObj::operator= (const MatMaterialObj& matrl)
@@ -129,8 +131,9 @@ namespace MatEnv {
     _refIndex = matrl.getRefIndex();
     _matTemperature = matrl.getTemperature();
     _matPressure = matrl.getPressure();
-    _matState = matrl.getState();            
+    _matState = matrl.getState();
     _matTcut = matrl.getTcut();
+    _elossMode = matrl.getElossMode();
 
     return *this;
   }
@@ -172,6 +175,7 @@ namespace MatEnv {
       << " RefIndex: " << getRefIndex()  << "  Temperature: " << getTemperature() 
       << "  Pressure: " << getPressure() << "  State: " << getState();
     if (_matTcut>0.0) { cout<< " Tcut: "<<getTcut(); }
+    if (_elossMode>=0) { cout<< " ElossMode: "<<getElossMode(); }
     cout << endl;
   }
 

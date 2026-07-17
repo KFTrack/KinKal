@@ -78,8 +78,11 @@ namespace MatEnv {
       double getRefIndex() const { return _refIndex; };  
       double getTemperature() const { return _matTemperature; };           
       double getPressure() const { return _matPressure; };  
-      std::string getState() const { return std::string(_matState); };              
+      std::string getState() const { return std::string(_matState); };
       double getTcut() const { return _matTcut; };
+      // ionization energy loss mode for this material (matches DetMaterial::energylossmode:
+      // 0=mpv, 1=moyalmean, 2=bethemean); -1 means unspecified -> fall back to the global default
+      int getElossMode() const { return _elossMode; };
 
       void setName(const std::string Name) {_matName=Name; };
       void setDensity(double Density) {_matDensity=Density; };
@@ -98,6 +101,7 @@ namespace MatEnv {
       void setPressure(double Pressure) {_matPressure=Pressure; };
       void setState(const std::string State) {_matState=State; };
       void setTcut(double Tcut) {_matTcut=Tcut; };
+      void setElossMode(int ElossMode) {_elossMode=ElossMode; };
 
 
     private:
@@ -123,6 +127,7 @@ namespace MatEnv {
       double _matPressure;          // Material Pressure
       std::string _matState;        // Material State (Gas, liquid, ...)
       double _matTcut;              // Maximum energy transfer allowed per interaction step (this means that for the dE/dx is used the restricted energy loss rate parameterization instead of the Bethe-Bloch)
+      int _elossMode = -1;          // per-material ionization energy loss mode (DetMaterial::energylossmode); -1 = unspecified (use global default)
 
       friend bool testCdb(const MatMaterialObj*, const MatMaterialObj*);
   };

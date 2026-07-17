@@ -57,6 +57,7 @@ namespace MatEnv {
     _dEdxFactor(0),
     _meanExciEnergy(0),
     _energyTcut(0),
+    _elossMode(-1),
     _zeff( 0 ),
     _aeff( 0 ),
     _temp( 0 ),
@@ -94,6 +95,7 @@ namespace MatEnv {
     _radLength( theMaterial->getRadLength() ),
     _intLength( theMaterial->getIntLength() ),
     _energyTcut( theMaterial->getTcut() ),
+    _elossMode( theMaterial->getElossMode() ),
     _zeff( theMaterial->getZeff() ),
     _aeff( theMaterial->getAeff() ),
     _temp( theMaterial->getTemperature()+STP_Temperature ),
@@ -190,6 +192,7 @@ namespace MatEnv {
     _radLength = matcp.getRadLength();
     _intLength = matcp.getIntLength();
     _energyTcut = matcp.getEnergyTcut();
+    _elossMode = matcp.getElossMode();
 
   }
 
@@ -212,6 +215,7 @@ namespace MatEnv {
       _radLength = matrl.getRadLength();
       _intLength = matrl.getIntLength();
       _energyTcut = matrl.getEnergyTcut();
+      _elossMode = matrl.getElossMode();
       *_state = matrl.getState();
 
       return *this;

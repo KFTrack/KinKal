@@ -29,8 +29,10 @@ namespace MatEnv {
   struct DetMaterialConfig;
   class DetMaterial{
     public:
- //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, or 'moyalmean' for the mean calculated via the Moyal Distribution approximation, see end of file for more information
-      enum energylossmode {mpv=0, moyalmean};
+ //Energy Loss model: choose 'mpv' for the Most Probable Energy Loss, 'moyalmean' for the (restricted) mean
+ //calculated via the Moyal Distribution approximation, or 'bethemean' for the unrestricted Bethe-Bloch mean
+ //(the full mean loss including energy carried off by delta-rays); see end of file for more information
+      enum energylossmode {mpv=0, moyalmean, bethemean};
       //
       //  Constructor
       // new style
@@ -59,6 +61,10 @@ namespace MatEnv {
       double ionizationEnergyLoss(double mom,double pathlen,double mass) const;
       // most probable value of energy loss
       double ionizationEnergyLossMPV(double mom,double pathlen,double mass) const;
+      // unrestricted Bethe-Bloch MEAN ionization energy loss (the full mean, including the energy carried off by
+      // energetic delta-rays; PDG RPP eq. 34.5). Unlike ionizationEnergyLossMPV it is additive in path length, so
+      // integrating it over sub-steps of a decelerating track gives an unbiased mean. Selected by elossmode==bethemean.
+      double ionizationEnergyLossBetheMean(double mom,double pathlen,double mass) const;
       double ionizationEnergyLossRMS(double mom,double pathlen,double mass) const;
       double ionizationEnergyLossVar(double mom,double pathlen,double mass) const {
         double elrms = ionizationEnergyLossRMS(mom,pathlen,mass);
@@ -167,6 +173,9 @@ namespace MatEnv {
       void print(std::ostream& os) const;
       void printAll(std::ostream& os ) const;
 
+      // ionization energy loss mode in effect for this material (per-material if the
+      // material specified one, otherwise the global DetMaterialConfig default)
+      energylossmode elossMode() const { return _elossmode; }
       // parameters used in ionization energy loss randomization
       // scattering parameter
       double scatterFraction() const { return _scatterfrac;}
