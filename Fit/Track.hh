@@ -392,17 +392,6 @@ namespace KinKal {
         newpiece.range() = domain->range();
         fittraj_->append(newpiece);
       }
-      // A degenerate active range (an inverted/zero-width detectorRange for a pathological seed) can leave
-      // createDomains with zero domains, so the loop above appends nothing and fittraj_ is empty. createEffects
-      // would then build a Measurement against this empty PiecewiseTrajectory and throw
-      // std::length_error("Empty PiecewiseTrajectory!"), which -- being neither std::invalid_argument nor
-      // caught -- aborts the whole art event (and corrupts the output -> TTree::SetEntries). Treat it as an
-      // unfittable track: outsidemap stops the fit cleanly (needsFit()==false skips createEffects) and the
-      // module drops it via goodFit()==false. fittraj_ is left as a valid (empty) object, never null.
-      if(fittraj_->pieces().empty()){
-        history_.emplace_back(0,0,Status::outsidemap, "Empty seed trajectory (no domains)");
-        return;
-      }
     } else {
       // use the middle of the range as the nominal BField for this fit:
       double tref = range.mid();
@@ -430,12 +419,9 @@ namespace KinKal {
       auto prevdom = nextdom;
       ++nextdom;
       while( nextdom != domains.cend() ){
-        // only connect domains that actually abut. A gap means prevdom and nextdom belong to different
-        // contiguous blocks (e.g. separate low/high fit extensions either side of the existing core domains);
-        // bridging across that gap would create a spurious DomainWall spanning the whole core, so skip it
-        // (this previously threw "Invalid domains" and aborted the fit).
-        if(fabs(prevdom->get()->end()-nextdom->get()->begin())<=1e-10)
-          effects_.emplace_back(std::make_unique<KKDW>(*prevdom,*nextdom ,*fittraj_));
+        // must be contiguous
+        if(fabs(prevdom->get()->end()-nextdom->get()->begin())>1e-10)throw std::invalid_argument("Invalid domains");
+        effects_.emplace_back(std::make_unique<KKDW>(*prevdom,*nextdom ,*fittraj_));
         prevdom = nextdom;
         ++nextdom;
       }
@@ -683,16 +669,15 @@ namespace KinKal {
         while(time > fitrange.begin()){
           auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = std::max(bfield_.rangeInTolerance(ktraj,time,config().tol_),config().mindtstep_);
-          // clamp the domain low bound to the active range minus domainmargin_ (see createDomains; default
-          // margin = max() leaves this unclamped)
+          // clamp the domain low bound to the active range minus domainmargin_ (max = unclamped/legacy)
           double dlo = std::max(time-dt, fitrange.begin() - config().domainmargin_);
           TimeRange range(dlo,time);
-          Domain domain(range,bfield_.fieldVect(fittraj_->nearestPiece(range.mid()).position3(range.mid())));
+          // sample BNom at the domain-midpoint piece only when confined (domainmargin_ set); else legacy piece (nearest time)
+          auto const& straj = (config().domainmargin_ < std::numeric_limits<double>::max()) ? fittraj_->nearestPiece(range.mid()) : ktraj;
+          Domain domain(range,bfield_.fieldVect(straj.position3(range.mid())));
           addDomain(domain,TimeDir::backwards);
           time = domain.begin();
-          // hard cap: a diverging low-momentum track can otherwise accumulate ~1e5 domains here (each adds a
-          // KKDW effect + traj piece) -> wasted CPU + ~GB memory before it is dropped anyway. Abort the runaway;
-          // iterate()'s caller catches this and records the fit as failed (the track is unusable -> dropped).
+          // abort a runaway domain walk (caught by iterate()'s caller -> fit failed -> track dropped)
           if(domains_.size() > config().maxdomains_)
             throw std::runtime_error("Fit exceeded MaxDomains (BField domain walk runaway)");
         }
@@ -703,11 +688,12 @@ namespace KinKal {
         while(time < fitrange.end()){
           auto const& ktraj = fittraj_->nearestPiece(time);
           double dt = std::max(bfield_.rangeInTolerance(ktraj,time,config().tol_),config().mindtstep_);
-          // clamp the domain high bound to the active range plus domainmargin_ (see createDomains; default
-          // margin = max() leaves this unclamped)
+          // clamp the domain high bound to the active range plus domainmargin_ (max = unclamped/legacy)
           double dhi = std::min(time+dt, fitrange.end() + config().domainmargin_);
           TimeRange range(time,dhi);
-          Domain domain(range,bfield_.fieldVect(fittraj_->nearestPiece(range.mid()).position3(range.mid())));
+          // sample BNom at the domain-midpoint piece only when confined (domainmargin_ set); else legacy piece (nearest time)
+          auto const& straj = (config().domainmargin_ < std::numeric_limits<double>::max()) ? fittraj_->nearestPiece(range.mid()) : ktraj;
+          Domain domain(range,bfield_.fieldVect(straj.position3(range.mid())));
           addDomain(domain,TimeDir::forwards);
           time = domain.end();
           if(domains_.size() > config().maxdomains_)
@@ -779,8 +765,7 @@ namespace KinKal {
       auto const& ktraj = ptraj.nearestPiece(range.begin());
       // catch exceptions if the fit extends beyond the range of the field map
       try {
-        // floor the step at config().mindtstep_: in high-gradient/low-momentum regions rangeInTolerance
-        // can return a vanishing step, which otherwise produces an unbounded number of domains (CPU hang/OOM)
+        // floor the step at mindtstep_ so a vanishing rangeInTolerance can't spawn unbounded domains (CPU hang/OOM)
         double trange = std::max(bfield_.rangeInTolerance(ktraj,range.begin(),config().tol_),config().mindtstep_);
         // define 1st domain to have the 1st effect in the middle.  This avoids effects having exactly the same time
         double tstart = range.begin() - 0.5*trange;
@@ -789,22 +774,19 @@ namespace KinKal {
           // note this assumes the trajectory is accurate (geometric extrapolation only)
           auto const& ktraj = ptraj.nearestPiece(tstart);
           trange = std::max(bfield_.rangeInTolerance(ktraj,tstart,config().tol_),config().mindtstep_);
-          // Clamp the domain BOUNDS to [range - domainmargin_, range + domainmargin_]. The walk steps
-          // ~0.5*trange beyond each end to bracket the edge effects, and in a uniform field (e.g. the
-          // tracker) trange is large, so an unclamped domain spans metres past the active region -- for a
-          // track that exits the solenoid bore there (a cosmic, just past the tracker), Bz->0 and the
-          // CentralHelix dPardB ~ bfrac/(1+bfrac) correction (bfrac=ΔBz/|Bnom|) is singular at bfrac=-1,
-          // blowing the reference off by metres and killing the fit. The fit has no measurements outside
-          // the active range, so a finite domainmargin_ confines the domains (and the field sampling at
-          // their midpoints, here and in convertSeed) to it; in a uniform field that collapses to a single
-          // in-bore domain (bfcorr=true reduces to the bfcorr=false behaviour the tracker needs). The
-          // default domainmargin_ = max() leaves the legacy unclamped behaviour unchanged.
-          double dlo = std::max(tstart,        range.begin() - config().domainmargin_);
-          double dhi = std::min(tstart+trange, range.end()   + config().domainmargin_);
-          if(dhi > dlo){
-            TimeRange drange(dlo,dhi);
-            auto const& straj = ptraj.nearestPiece(drange.mid());
-            domains.emplace(std::make_shared<Domain>(drange,bfield_.fieldVect(straj.position3(drange.mid()))));
+          // domainmargin_ confines the domains to the active range +/- margin, keeping the field sampling out of the B->0 region past the tracker where the CentralHelix dPardB correction is singular
+          if(config().domainmargin_ < std::numeric_limits<double>::max()){
+            // confined: clamp the bounds, drop a fully clamped-out domain, sample BNom at the clamped midpoint
+            double dlo = std::max(tstart,        range.begin() - config().domainmargin_);
+            double dhi = std::min(tstart+trange, range.end()   + config().domainmargin_);
+            if(dhi > dlo){
+              TimeRange drange(dlo,dhi);
+              auto const& straj = ptraj.nearestPiece(drange.mid());
+              domains.emplace(std::make_shared<Domain>(drange,bfield_.fieldVect(straj.position3(drange.mid()))));
+            }
+          } else {
+            // legacy (default): always emplace (even a zero-width boundary domain), sampling BNom at ktraj, so this is bit-identical to upstream
+            domains.emplace(std::make_shared<Domain>(tstart,trange,bfield_.fieldVect(ktraj.position3(tstart+0.5*trange))));
           }
           // start the next domain at the end of this one
           tstart += trange;
@@ -835,6 +817,8 @@ namespace KinKal {
         tmax = std::max(tmax,exing->time());
       }
     }
+    // no (active) effects leaves tmin>tmax; return a null range instead of an invalid one that would throw
+    if(tmax < tmin) return TimeRange();
     return TimeRange(tmin,tmax);
   }
 
@@ -850,18 +834,10 @@ namespace KinKal {
           while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*fittraj_,tdir) ){
             // create a domain for this extrapolation
             auto const& ktraj = fittraj_->nearestPiece(time);
-            // stop cleanly if the helix has gone singular
-            if( !std::isfinite(ktraj.momentum(time)) ) break;
-            // clamp the step: the floor (mindtstep_) bounds the domain count so a vanishing rangeInTolerance in a
-            // high-gradient/low-momentum region can no longer exhaust the MaxDt budget in micro-steps (OOM / truncation)
+            // floor the step at mindtstep_ so a vanishing rangeInTolerance can't exhaust MaxDt in micro-steps (OOM)
             double dt = std::clamp(bfield_.rangeInTolerance(ktraj,time,xtest.dpTolerance()),config().mindtstep_,xtest.maxDtStep()); // always positive
             TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
-            // stop cleanly once we reach the (near) field-free region: the CentralHelix is ill-conditioned
-            // as |B|->0 (dPardB pole), the physical origin of the domain-walk runaway. Test the field where
-            // the NEW domain's BNom is sampled (its midpoint), not the current frontier -- a single coarse
-            // domain wall can otherwise jump the bnom straight from the tracker field to the field-free DS-
-            // shell region, hitting the pole before a frontier-only check sees it. Leaving from a valid state
-            // lets the caller (the line tail) continue as a straight line.
+            // stop before the near-field-free region (dPardB pole), testing |B| at the new domain's midpoint not the frontier, so the line tail can take over
             auto domainfield = bfield_.fieldVect(ktraj.position3(range.mid()));
             if( config().minfield_ > 0.0 && domainfield.R() < config().minfield_ ) break;
             Domain domain(range,domainfield);
