@@ -31,11 +31,12 @@ namespace KinKal {
     double divgap_ = 1.0e2; // maximum average gap of trajectory before calling it diverged (mm)
     double tol_ = 1.0e-4; // tolerance on fractional momentum accuracy due to BField domain steps
     double mindtstep_ = 0.0; // ns: hard floor on the BField domain step (0 = legacy; >0 bounds the domain count where rangeInTolerance->0)
-    double minfield_ = 0.0; // T: if >0, stop the bfcorr extrapolation once |B| drops below this (keeps CentralHelix out of the B->0 runaway)
-    double domainmargin_ = std::numeric_limits<double>::max(); // ns: max time a fit domain may extend beyond the active range (max = unclamped/legacy)
+    double minfield_ = 0.0; // T: if >0, and zerofield_extrap_ is enabled, hand bfcorr extrapolation off to free-particle continuation once |B| drops below this
+    double domainmargin_ = std::numeric_limits<double>::max(); // ns: max time a fit domain may extend beyond the active range (max = unclamped/legacy overhang; finite = confine walk+sampling to range±margin)
     unsigned maxdomains_ = std::numeric_limits<unsigned>::max(); // hard cap on BField domains per fit; over-cap fits fail cleanly (max = unlimited/legacy)
     unsigned minndof_ = 5; // minimum number of DOFs to continue fit
     bool bfcorr_ = true; // whether to make BFieldMap corrections in the fit
+    bool zerofield_extrap_ = false; // if true: (1) bfcorr extrapolate() hands off to geometric free-particle continuation outside the map / below minfield_; (2) createDomains stops DomainWalls at that edge instead of failing Extension; (3) replaceDomains charge/mass mismatch soft-keeps the prior usable fit (CH cosmic CRV). Default false preserves legacy LH/CH behaviour.
     bool ends_ = true; // process the passive effects at each end of the track after schedule completion
     printLevel plevel_ = none; // print level
     // schedule of meta-iterations.  These will be executed sequentially until completion or failure

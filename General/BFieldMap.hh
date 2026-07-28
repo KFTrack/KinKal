@@ -33,6 +33,11 @@ namespace KinKal {
       BFieldMap& operator =(BFieldMap const& ) = delete;
       // speed of light in units to convert Tesla to mm (bending radius)
       static double constexpr cbar() { return CLHEP::c_light/1000.0; }
+      // |B| below this (T) is treated as physically zero for ZeroFieldExtrap handoff decisions.
+      // Fit paths must not sample here; with zerofield_extrap_, extrapolation leaves the bfcorr
+      // domain walk and continues by geometric range-extend (no CH rebuild at B≈0).
+      static double constexpr zeroField() { return 1.0e-6; }
+      static bool isZeroField(VEC3 const& bvec) { return bvec.R() < zeroField(); }
       // templated interface for interacting with kinematic trajectory classes
       // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum accuracy out of (fractional) tolerance
       template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol) const;

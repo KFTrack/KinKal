@@ -14,6 +14,7 @@ namespace KinKal {
       << " max domains " << kkconfig.maxdomains_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
+      << " zero-field extrap handoff " << kkconfig.zerofield_extrap_
       << " with " << kkconfig.schedule().size()
       << " Meta-iterations:" << std::endl;
     for(auto const& miconfig : kkconfig.schedule() ) {
