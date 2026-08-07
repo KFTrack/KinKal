@@ -9,12 +9,9 @@ namespace KinKal {
       << " diverge traj gap (mm) " << kkconfig.divgap_
       << " fractional momentum tolerance " << kkconfig.tol_
       << " min domain step (ns) " << kkconfig.mindtstep_
-      << " min field (T) " << kkconfig.minfield_
       << " domain margin (ns) " << kkconfig.domainmargin_
-      << " max domains " << kkconfig.maxdomains_
       << " min NDOF " << kkconfig.minndof_
       << " BField correction " << kkconfig.bfcorr_
-      << " zero-field extrap handoff " << kkconfig.zerofield_extrap_
       << " with " << kkconfig.schedule().size()
       << " Meta-iterations:" << std::endl;
     for(auto const& miconfig : kkconfig.schedule() ) {
