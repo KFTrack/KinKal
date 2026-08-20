@@ -21,6 +21,8 @@ namespace KinKal {
         return "OutsideBFieldMap ";
       case Status::failed:
         return "Failed ";
+      case Status::incompatiblepiece:
+        return "IncompatiblePiece ";
     }
   }
 

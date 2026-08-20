@@ -18,15 +18,19 @@ namespace KinKal {
       // construct from an initial piece, which also provides kinematic information
       ParticleTrajectory(KTRAJ const& piece) : PTTRAJ(piece) {}
       ParticleTrajectory() : PTTRAJ() {}
+      // does this piece describe the same particle (mass and charge) as the existing ones? Callers that
+      // expect incompatibility as a routine outcome test this instead of catching append's throw
+      bool compatible(KTRAJ const& newpiece) const {
+        return PTTRAJ::pieces().size() == 0 ||
+          (fabs(newpiece.mass()-mass()) <= 1e-6 && newpiece.charge() == charge());
+      }
       //  append and prepend to check mass and charge consistency
       void append(KTRAJ const& newpiece, bool allowremove=false)  {
-        if(PTTRAJ::pieces().size() > 0){
-          if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
-        }
+        if(!compatible(newpiece)) throw std::invalid_argument("Invalid particle parameters");
         PTTRAJ::append(newpiece,allowremove);
       }
       void prepend(KTRAJ const& newpiece, bool allowremove=false)  {
-        if(fabs(newpiece.mass()-mass())>1e-6 || newpiece.charge() != charge()) throw std::invalid_argument("Invalid particle parameters");
+        if(!compatible(newpiece)) throw std::invalid_argument("Invalid particle parameters");
         PTTRAJ::prepend(newpiece,allowremove);
       }
       // kinematic interface
