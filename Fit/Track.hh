@@ -293,6 +293,9 @@ namespace KinKal {
           // a tighter extension tolerance can flip omega near a collapsing field, which the
           // parameterization reads as a charge change; leave the track untouched and record why
           if(!replaceDomains(domains)){
+            // A fit that already converged is not invalidated by the EXTENSION failing to re-domain it:
+            // keep it, as the low-field handoff did before this returned a status instead of throwing.
+            if(bfield_.protecting() && fitStatus().usable()) return;
             history_.push_back(Status(0));
             status().status_ = Status::incompatiblepiece;
             status().comment_ = std::string("Domain replacement: incompatible piece");
@@ -340,52 +343,45 @@ namespace KinKal {
   template <class KTRAJ> bool Track<KTRAJ>::replaceDomains(DOMAINCOL const& domains) {
     if(domains.size() == 0) return false;
     TimeRange drange(domains.begin()->get()->begin(),domains.rbegin()->get()->end());
-    TimeRange oldrange = fittraj_->range();
     auto newtraj = std::make_unique<PKTRAJ>();
+    // Split from a COPY extended to the domain span. The original code extended fittraj_ itself and
+    // rolled its end-piece ranges back on failure; copying keeps the piece splitting identical to that
+    // (the copy ctor deep-copies every piece) while leaving fittraj_ untouched until the commit below.
+    PKTRAJ srctraj(*fittraj_);
+    // setRange throws when the domain span is disjoint from the trajectory. Here that is a routine
+    // outcome, not an error -- report it like any other failure to re-domain, so the caller can keep a
+    // fit that already converged, instead of the exception unwinding out to the module and losing it.
+    if(drange.begin() > srctraj.front().range().end() ||
+       drange.end() < srctraj.back().range().begin()) return false;
+    srctraj.setRange(drange);
     // loop over domains, splitting the overlapping traj pieces at the domain walls, and transforming them to reference the domain's field
     // This increases the number of traj pieces.
     for(auto const& domain : domains) {
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using DKTRAJ = std::deque<KTRAJPTR>;
       using DKTRAJCITER = typename DKTRAJ::const_iterator;
-      // clamp the lookup to the existing traj: domains may extend past it, and extending fittraj_ to
-      // reach them is the pre-mutation that used to need rollback. drange is restored on newtraj below.
-      double tlo = std::max(domain->begin(),oldrange.begin());
-      double thi = std::min(domain->end(),oldrange.end());
-      if(tlo < thi){
-        // find the range of existing ptraj pieces that overlaps with this domain's range
-        DKTRAJCITER first,last;
-        fittraj_->pieceRange(TimeRange(tlo,thi),first,last);
-        // loop over these pieces; first and last can be the same!
-        auto olditer = first;
-        do {
-          auto const& oldpiece = **olditer;
-          // copy this piece, translating bnom to this domain's field
-          KTRAJ newpiece(oldpiece,domain->bnom(),domain->range().mid());
-          // set the range for this piece, making sure it is non-zero
-          double tstart = std::max(domain->begin(), oldpiece.range().begin());
-          double tend = std::min(domain->end(),oldpiece.range().end());
-          if(tstart < tend){
-            // test only where the old code would actually have appended (and thrown)
-            if(!newtraj->compatible(newpiece)) return false;
-            newpiece.range() = TimeRange(tstart,tend);
-            newtraj->append(newpiece);
-          }
-          if(olditer != last)++olditer;
-        } while(olditer != last);
-      } else {
-        // domain lies entirely outside the current traj: transform the nearest piece to cover it
-        auto const& oldpiece = fittraj_->nearestPiece(domain->range().mid());
+      // find the range of existing ptraj pieces that overlaps with this domain's range
+      DKTRAJCITER first,last;
+      srctraj.pieceRange(domain->range(),first,last);
+      // loop over these pieces; first and last can be the same!
+      auto olditer = first;
+      do {
+        auto const& oldpiece = **olditer;
+        // copy this piece, translating bnom to this domain's field
         KTRAJ newpiece(oldpiece,domain->bnom(),domain->range().mid());
-        if(!newtraj->compatible(newpiece)) return false;
-        newpiece.range() = domain->range();
-        newtraj->append(newpiece);
-      }
+        // set the range for this piece, making sure it is non-zero
+        double tstart = std::max(domain->begin(), oldpiece.range().begin());
+        double tend = std::min(domain->end(),oldpiece.range().end());
+        if(tstart < tend){
+          // test only where the old code would actually have appended (and thrown)
+          if(!newtraj->compatible(newpiece)) return false;
+          newpiece.range() = TimeRange(tstart,tend);
+          newtraj->append(newpiece);
+        }
+        if(olditer != last)++olditer;
+      } while(olditer != last);
     }
     if(newtraj->pieces().size() == 0) return false;
-    // restore the full domain span on the replacement, matching the range the old code reached by
-    // extending fittraj_ up front
-    newtraj->setRange(drange);
     // commit: clear old domains / DomainWall effects, retarget remaining effects, swap traj
     if(domains_.size() > 0){
       domains_.clear();
@@ -460,8 +456,15 @@ namespace KinKal {
       fittraj_ = std::make_unique<PKTRAJ>();
       for(auto const& domain : domains) {
         // Set the DomainWall to the start of this domain
-        auto bf = bfield_.fieldVect(seedtraj.position3(domain->mid()));
-        KTRAJ newpiece(seedtraj,bf,domain->mid());
+        // the domain walk should never hand back a domain whose midpoint has no usable field, but a
+        // null bnom makes the parameterization degenerate (omega -> signed zero, momentum 0/0), so
+        // never construct a piece from an unchecked sample
+        auto bf = bfield_.usableField(seedtraj.position3(domain->mid()));
+        if(!bf){
+          history_.emplace_back(0,0,Status::outsidemap, "Seed conversion: unusable field at domain");
+          return;
+        }
+        KTRAJ newpiece(seedtraj,*bf,domain->mid());
         newpiece.range() = domain->range();
         // same routine incompatibility as replaceDomains; this append was previously unguarded, so a
         // CentralHelix omega sign flip here threw std::invalid_argument out of the Track constructor
@@ -480,9 +483,13 @@ namespace KinKal {
     } else {
       // use the middle of the range as the nominal BField for this fit:
       double tref = range.mid();
-      VEC3 bf = bfield_.fieldVect(seedtraj.position3(tref));
+      auto bf = bfield_.usableField(seedtraj.position3(tref));
+      if(!bf){
+        history_.emplace_back(0,0,Status::outsidemap, "Seed conversion: unusable field at reference");
+        return;
+      }
       // create the first piece.  Note this constructor adjusts the parameters according to the local field
-      KTRAJ firstpiece(seedtraj,bf,tref);
+      KTRAJ firstpiece(seedtraj,*bf,tref);
       firstpiece.range() = range;
       // create the piecewise trajectory from this
       fittraj_ = std::make_unique<PKTRAJ>(firstpiece);
@@ -738,7 +745,10 @@ namespace KinKal {
 
   template <class KTRAJ> void Track<KTRAJ>::updateDomains(PKTRAJ const& ptraj) {
     for(auto& domain : domains_) {
-      domain->updateBNom(bfield_.fieldVect(ptraj.position3(domain->mid())));
+      // an unusable sample would zero the domain's BNom and make every piece built from it degenerate;
+      // keep the field the domain was created with instead
+      auto bf = bfield_.usableField(ptraj.position3(domain->mid()));
+      if(bf) domain->updateBNom(*bf);
     }
   }
 
@@ -858,10 +868,13 @@ namespace KinKal {
     // Sample the midpoint on the midpoint's own piece only when confined (domainmargin_ set); the
     // unconfined walk samples it on the start piece, as extendDomains does.
     bool confined = config().domainmargin_ < std::numeric_limits<double>::max();
-    auto const& straj = confined ? ptraj.nearestPiece(drange.mid()) : ktraj;
-    VEC3 midpos = straj.position3(drange.mid());
-    if(bfield_.protecting() && !bfield_.usable(midpos)) return std::nullopt;
-    return Domain(drange,bfield_.fieldVect(midpos));
+    double tmid = confined ? drange.mid() : tstart + 0.5*trange;
+    auto const& straj = confined ? ptraj.nearestPiece(tmid) : ktraj;
+    VEC3 midpos = straj.position3(tmid);
+    // one interpolation gives both the test and the domain's BNom
+    auto midfield = bfield_.usableField(midpos);
+    if(bfield_.protecting() && !midfield) return std::nullopt;
+    return Domain(drange,midfield ? *midfield : bfield_.fieldVect(midpos));
   }
 
   // divide a trajectory into magnetic 'domains' used to apply the DomainWall corrections
@@ -963,11 +976,12 @@ namespace KinKal {
               double dt = std::clamp(bfield_.rangeInTolerance(ktraj,time,xtest.dpTolerance()),config().mindtstep_,xtest.maxDtStep());
               TimeRange range = tdir == TimeDir::forwards ? TimeRange(time,time+dt) : TimeRange(time-dt,time);
               VEC3 midpos = ktraj.position3(range.mid());
-              if(!bfield_.usable(midpos)){
+              auto midfield = bfield_.usableField(midpos); // one interpolation: test AND the BNom below
+              if(!midfield){
                 handed_off = true;
                 break;
               }
-              Domain domain(range,bfield_.fieldVect(midpos));
+              Domain domain(range,*midfield);
               addDomain(domain,tdir,true);
               time = tdir == TimeDir::forwards ? domain.end() : domain.begin();
             }

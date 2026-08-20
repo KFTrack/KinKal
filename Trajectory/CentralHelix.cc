@@ -32,6 +32,12 @@ namespace KinKal {
   CentralHelix::CentralHelix(VEC4 const &pos0, MOM4 const &mom0, int charge, VEC3 const &bnom,
       TimeRange const &trange) : trange_(trange), mass_(mom0.M()), bnom_(bnom)
   {
+    // A null nominal field has no valid parameterization here: radToMom below is 0, so omega comes out
+    // as signed zero and momentum() as 0/0 = NaN, while charge() -- which reads the sign of omega --
+    // becomes meaningless. Refuse rather than return a silently degenerate object. Callers that can meet
+    // a field-free region test BFieldMap::usableField() first; this is the backstop behind them.
+    if(bnom_.R() < BFieldMap::zeroField())
+      throw std::invalid_argument("CentralHelix::CentralHelix; null BNom");
     // Transform into the system where Z is along the Bfield.  This is a pure rotation about the origin
     VEC4 pos(pos0);
     MOM4 mom(mom0);
@@ -85,6 +91,9 @@ namespace KinKal {
   }
 
   void CentralHelix::resetBNom(VEC3 const& bnom) {
+    // same degeneracy as construction: refuse to move an existing piece onto a null field
+    if(bnom.R() < BFieldMap::zeroField())
+      throw std::invalid_argument("CentralHelix::resetBNom; null BNom");
     bnom_ = bnom;
     setTransforms();
   }
