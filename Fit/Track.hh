@@ -139,14 +139,16 @@ namespace KinKal {
       void convertSeed(KTRAJ const& seedtraj,TimeRange const& refrange, DOMAINCOL& domains);
       void fit(); // process the effects and create the trajectory.  This executes the current schedule
       bool createDomains(PKTRAJ const& ptraj, TimeRange const& range, DOMAINCOL& domains) const;
-      // build one usable domain starting at tstart, or nothing if the field there can't support one
-      std::optional<Domain> createDomain(PKTRAJ const& ptraj, double tstart, double tend) const;
+      // build one usable domain starting at tstart and running in tdir, or nothing if the field there can't support one.
+      // rangemid: unconfined, sample the field at the domain's range midpoint (extendDomains) rather than tstart + half the step (createDomains)
+      std::optional<Domain> createDomain(PKTRAJ const& ptraj, double tstart, double tend, TimeDir tdir=TimeDir::forwards, bool rangemid=false) const;
       // input preconditions that don't depend on the BField. Checking them here keeps unusable input out
       // of the domain walk and out of the trajectory; records the reason and returns false on failure.
       bool validInput(TimeRange const& detrange);
       bool validInput(TimeRange const& detrange, KTRAJ const& seedtraj);
       bool setBounds(KKEFFFWDBND& fwdbnds,KKEFFREVBND& revbnds); // set the bounds.  Returns false if the bounds are empty
-      bool extendDomains(TimeRange const& fitrange); // extend domains if the fit range changes.  Return value says if domains were added
+      // extend domains if the fit range changes; added says if any were. Returns false if the field can't support the extension
+      bool extendDomains(TimeRange const& fitrange, bool& added);
       void updateDomains(PKTRAJ const& ptraj); // Update domains between iterations
       void iterate(MetaIterConfig const& miconfig);
       void setStatus(PKTRAJPTR& ptrajptr);
@@ -158,6 +160,8 @@ namespace KinKal {
       void processEnds();
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
+      // record an extrapolation failure; always returns false
+      bool extrapolationFailed(Status::status stat, const char* comment);
       auto& status() { return history_.back(); } // most recent status
       // divide a trajectory into magnetic 'domains' within which the BField can be considered constant (parameter change is within tolerance)
       // payload
@@ -301,9 +305,10 @@ namespace KinKal {
       } else {
         // grow the existing domains out to the extension, so each new domain abuts and is DomainWall-linked to its neighbor
         try {
-          extendDomains(exrange);
+          bool added(false);
+          dok = extendDomains(exrange,added); // false: the field can't support the extension, reported below
         } catch (std::exception const&) {
-          dok = false; // walked outside the field map: soft failure, reported below as an extension error
+          dok = false; // a piece that couldn't join the trajectory: soft failure, reported below as an extension error
         }
       }
     }
@@ -569,8 +574,14 @@ namespace KinKal {
       return;
     }
     if(config().bfcorr_){
+      bool added(false);
+      if(!extendDomains(fitrange,added)){
+        status().status_ = Status::outsidemap;
+        status().comment_ = "Domain extension: unusable field";
+        return;
+      }
       // update the limits if new DW effects were added
-      if(extendDomains(fitrange))setBounds(fwdbnds,revbnds);
+      if(added)setBounds(fwdbnds,revbnds);
     }
     FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
@@ -742,46 +753,36 @@ namespace KinKal {
     }
   }
 
-  template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange) {
-    bool retval(false);
+  template <class KTRAJ> bool Track<KTRAJ>::extendDomains(TimeRange const& fitrange, bool& added) {
+    added = false;
+    // the walk extends from the existing domains, so there must be some
+    if(domains_.empty()) return false;
     // then, check if the range has
     TimeRange drange(domains().begin()->get()->begin(),domains().rbegin()->get()->end());
     if(!drange.contains(fitrange)){
-      retval = true;
-      // we need to extend the domains.  First backwards
+      added = true;
+      // we need to extend the domains, each abutting the last, clipped to the active range -/+ domainmargin_ (max = unclamped).  First backwards
       if(drange.begin() > fitrange.begin()){
         double time = drange.begin();
         while(time > fitrange.begin()){
-          auto const& ktraj = fittraj_->nearestPiece(time);
-          double dt = std::max(bfield_.rangeInTolerance(ktraj,time,config().tol_),config().mindtstep_);
-          // clamp the domain low bound to the active range minus domainmargin_ (max = unclamped)
-          double dlo = std::max(time-dt, fitrange.begin() - config().domainmargin_);
-          TimeRange range(dlo,time);
-          // sample BNom at the domain-midpoint piece when confined (domainmargin_ set), else at the nearest piece
-          auto const& straj = (config().domainmargin_ < std::numeric_limits<double>::max()) ? fittraj_->nearestPiece(range.mid()) : ktraj;
-          Domain domain(range,bfield_.fieldVect(straj.position3(range.mid())));
-          addDomain(domain,TimeDir::backwards);
-          time = domain.begin();
+          auto domain = createDomain(*fittraj_,time,fitrange.begin() - config().domainmargin_,TimeDir::backwards,true);
+          if(!domain) return false;
+          addDomain(*domain,TimeDir::backwards);
+          time = domain->begin();
         }
       }
       // then forwards
       if(drange.end() < fitrange.end()){
         double time = drange.end();
         while(time < fitrange.end()){
-          auto const& ktraj = fittraj_->nearestPiece(time);
-          double dt = std::max(bfield_.rangeInTolerance(ktraj,time,config().tol_),config().mindtstep_);
-          // clamp the domain high bound to the active range plus domainmargin_ (max = unclamped)
-          double dhi = std::min(time+dt, fitrange.end() + config().domainmargin_);
-          TimeRange range(time,dhi);
-          // sample BNom at the domain-midpoint piece when confined (domainmargin_ set), else at the nearest piece
-          auto const& straj = (config().domainmargin_ < std::numeric_limits<double>::max()) ? fittraj_->nearestPiece(range.mid()) : ktraj;
-          Domain domain(range,bfield_.fieldVect(straj.position3(range.mid())));
-          addDomain(domain,TimeDir::forwards);
-          time = domain.end();
+          auto domain = createDomain(*fittraj_,time,fitrange.end() + config().domainmargin_,TimeDir::forwards,true);
+          if(!domain) return false;
+          addDomain(*domain,TimeDir::forwards);
+          time = domain->end();
         }
       }
     }
-    return retval;
+    return true;
   }
 
   template <class KTRAJ> void Track<KTRAJ>::processEnds() {
@@ -790,7 +791,12 @@ namespace KinKal {
     // update domains as needed to cover the end effects
     if(config().bfcorr_){
       TimeRange endrange(effects_.front()->time(),effects_.back()->time());
-      extendDomains(endrange);
+      bool added(false);
+      if(!extendDomains(endrange,added)){
+        status().status_ = Status::outsidemap;
+        status().comment_ = "Domain extension: unusable field";
+        return;
+      }
     }
     KKEFFFWDBND fwdbnds; // bounding sites used for fitting
     KKEFFREVBND revbnds;
@@ -844,27 +850,32 @@ namespace KinKal {
       for(auto const& eff : effects()) eff.get()->print(ost,detail-3);
     }
   }
-  // build one domain starting at tstart, clipped to end no later than tend. Returns nothing when the
-  // field can't support a domain here; the map decides that, this just reports it.
-  template<class KTRAJ> std::optional<Domain> Track<KTRAJ>::createDomain(PKTRAJ const& ptraj, double tstart, double tend) const {
+  // build one domain starting at tstart and running in tdir, clipped to end no further than tend. Returns
+  // nothing when the field can't support a domain here; the map decides that, this just reports it.
+  template<class KTRAJ> std::optional<Domain> Track<KTRAJ>::createDomain(PKTRAJ const& ptraj, double tstart, double tend, TimeDir tdir, bool rangemid) const {
     auto const& ktraj = ptraj.nearestPiece(tstart);
     if(!bfield_.usable(ktraj.position3(tstart))) return std::nullopt;
     double trange = bfield_.domainStep(ktraj,tstart,config().tol_,config().mindtstep_);
-    double dhi = std::min(tstart+trange,tend);
-    if(dhi <= tstart) return std::nullopt;
-    TimeRange drange(tstart,dhi);
+    bool forwards = tdir == TimeDir::forwards;
+    double tfar = forwards ? std::min(tstart+trange,tend) : std::max(tstart-trange,tend);
+    // the domain must advance the walk; this also refuses a non-finite step
+    if(!(forwards ? tfar > tstart : tfar < tstart)) return std::nullopt;
+    TimeRange drange = forwards ? TimeRange(tstart,tfar) : TimeRange(tfar,tstart);
     // the domain carries the field sampled at its midpoint. Requiring that sample to be usable is what
     // protection buys; unprotected, fieldVect reports a null field outside the map.
     // Sample the midpoint on the midpoint's own piece only when confined (domainmargin_ set); the
-    // unconfined walk samples it on the start piece, as extendDomains does.
+    // unconfined walk samples it on the start piece. The two unconfined midpoint expressions differ in the last bit, and fits are sensitive to it.
     bool confined = config().domainmargin_ < std::numeric_limits<double>::max();
-    double tmid = confined ? drange.mid() : tstart + 0.5*trange;
+    double tmid = (confined || rangemid) ? drange.mid() : (forwards ? tstart + 0.5*trange : tstart - 0.5*trange);
     auto const& straj = confined ? ptraj.nearestPiece(tmid) : ktraj;
     VEC3 midpos = straj.position3(tmid);
     // one interpolation gives both the test and the domain's BNom
     auto midfield = bfield_.usableField(midpos);
     if(bfield_.protecting() && !midfield) return std::nullopt;
-    return Domain(drange,midfield ? *midfield : bfield_.fieldVect(midpos));
+    VEC3 bnom = midfield ? *midfield : bfield_.fieldVect(midpos);
+    // a null BNom is refused only by a trajectory that can't be built in it (CentralHelix); KinematicLine and LoopHelix accept it
+    if(bnom.R() < BFieldMap::zeroField() && !KTRAJ::constructible(ktraj.state(tmid),bnom)) return std::nullopt;
+    return Domain(drange,bnom);
   }
 
   // divide a trajectory into magnetic 'domains' used to apply the DomainWall corrections
@@ -926,6 +937,8 @@ namespace KinKal {
     bool retval = fitStatus().usable();
     if(retval){
       if(config().bfcorr_){
+        // the step is clamped to [mindtstep_, maxDtStep], which needs a non-empty interval
+        if(config().mindtstep_ > xtest.maxDtStep()) throw std::invalid_argument("Invalid configuration: minimum domain step exceeds the extrapolation maximum step");
         // opt-in low-field handoff, for extrapolation that must leave the field map; with minfield_ 0
         // the unprotected domain walk below is used
         if(bfield_.protecting()){
@@ -952,7 +965,7 @@ namespace KinKal {
           try {
             while(fabs(time-tstart) < xtest.maxDt() && xtest.needsExtrapolation(*fittraj_,tdir) ){
               auto const& ktraj = fittraj_->nearestPiece(time);
-              if( !std::isfinite(ktraj.momentum(time)) ) break;
+              if(!std::isfinite(ktraj.momentum(time))) return extrapolationFailed(Status::failed,"Extrapolation error: non-finite momentum");
 
               // the map decides whether this point can carry field-corrected transport; asking it first
               // also keeps rangeInTolerance from sampling fieldDeriv out of range
@@ -1015,7 +1028,6 @@ namespace KinKal {
             status().comment_ = std::string("Extrapolation error: ") + error.what();
             retval = false;
           }
-          retval = true;
         }
       } else {
         // geometric extrapolation of the end piece; no need to protect
@@ -1035,6 +1047,11 @@ namespace KinKal {
       }
     }
     return retval;
+  }
+
+  template <class KTRAJ> bool Track<KTRAJ>::extrapolationFailed(Status::status stat, const char* comment) {
+    history_.emplace_back(0,0,stat,comment);
+    return false;
   }
 
   template<class KTRAJ> void Track<KTRAJ>::addDomain(Domain const& domain,TimeDir const& tdir,bool exact) {

@@ -63,7 +63,7 @@ namespace KinKal {
     auto lcent = pos.Vect() + relpos;
     double rcent = sqrt(lcent.perp2());
     // central helix undefined for small center radius
-    if(rcent < 1.0) throw invalid_argument("Central helix undefined for center at origin");
+    if(rcent < minrcent_) throw invalid_argument("Central helix undefined for center at origin");
     double phicent = atan2(lcent.Y(),lcent.X());
     param(phi0_) = phicent - amsign*M_PI_2;
     // force phi0 in the range [-pi,pi];
