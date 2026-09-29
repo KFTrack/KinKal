@@ -17,6 +17,8 @@
 #include "KinKal/Geometry/Ray.hh"
 #include "KinKal/Geometry/Plane.hh"
 #include "Math/Rotation3D.h"
+#include "Math/AxisAngle.h"
+#include <cmath>
 #include <vector>
 #include <string>
 #include <ostream>
@@ -55,6 +57,20 @@ namespace KinKal {
       explicit CentralHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // same, including covariance information
       explicit CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+      // can the state constructor represent this state in this field? It refuses a null field and a circle centered on the axis
+      static bool constructible(ParticleState const& pstate, VEC3 const& bnom) {
+        if(bnom.R() < BFieldMap::zeroField()) return false;
+        // the constructor's circle center, in the frame where Z is along bnom; keep in step with it
+        auto g2l = ROOT::Math::Rotation3D(ROOT::Math::AxisAngle(VEC3(sin(bnom.Phi()),-cos(bnom.Phi()),0.0),bnom.Theta()));
+        VEC4 pos = g2l(pstate.position4());
+        MOM4 mom = g2l(pstate.momentum4());
+        double momToRad = 1.0/(BFieldMap::cbar()*pstate.charge()*bnom.R());
+        double radius = fabs(sqrt(mom.perp2())*momToRad);
+        double amsign = copysign(1.0,-pstate.momentum4().M()*momToRad);
+        double phirm = atan2(mom.Y(),mom.X()) + amsign*M_PI_2;
+        auto lcent = pos.Vect() + radius*VEC3(cos(phirm),sin(phirm),0.0);
+        return !(sqrt(lcent.perp2()) < minrcent_);
+      }
       void syncPhi0(CentralHelix const& other);
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
@@ -170,6 +186,7 @@ namespace KinKal {
       const static std::vector<std::string> paramNames_;
       const static std::vector<std::string> paramUnits_;
       const static std::string trajName_;
+      static constexpr double minrcent_ = 1.0; // mm: smallest circle-center distance from the field axis the parameterization supports
       // DO NOT CACHE ANYTHING that depends on parameters.  it will break the parameter-based constructors
       // non-const accessors
       double &param(size_t index) { return pars_.parameters()[index]; }

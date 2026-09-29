@@ -60,6 +60,8 @@ class KinematicLine {
     explicit KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
     // same, including covariance information
     explicit KinematicLine(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
+    // can the state constructor represent this state in this field? It never refuses
+    static bool constructible(ParticleState const&, VEC3 const&) { return true; }
 
 
     virtual ~KinematicLine() = default;

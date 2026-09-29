@@ -11,6 +11,7 @@
 #include <algorithm>
 #include <cstdarg>
 #include <cmath>
+#include <optional>
 #include <ostream>
 
 namespace KinKal {
@@ -27,17 +28,41 @@ namespace KinKal {
       virtual bool inRange(VEC3 const& position) const = 0;
       virtual ~BFieldMap(){}
       virtual void print(std::ostream& os ) const = 0;
-      BFieldMap(){}
+      // smallest |B| (T) usable for field-corrected transport; 0 (default) disables low-field
+      // protection, leaving an unusable sample a hard failure for the caller
+      BFieldMap(double minfield=0.0) : minfield_(minfield) {}
+      double minField() const { return minfield_; }
+      bool protecting() const { return minfield_ > 0.0; } // is low-field protection enabled?
+      // The field here, if this position can support field-corrected transport; nothing if it cannot.
+      std::optional<VEC3> usableField(VEC3 const& position) const {
+        if(!inRange(position)) return std::nullopt;   // outside: fieldDeriv is undefined here
+        VEC3 bf = fieldVect(position);
+        if(protecting() && bf.R() < std::max(minfield_,zeroField())) return std::nullopt;
+        return bf;
+      }
+      // predicate form, for the callers that only decide and never use the field
+      bool usable(VEC3 const& position) const { return usableField(position).has_value(); }
       // disallow copy and equivalence
       BFieldMap(BFieldMap const& ) = delete;
       BFieldMap& operator =(BFieldMap const& ) = delete;
       // speed of light in units to convert Tesla to mm (bending radius)
       static double constexpr cbar() { return CLHEP::c_light/1000.0; }
+      // |B| below this (T) is treated as physically zero when deciding to hand off extrapolation;
+      // fit paths must not sample here
+      static double constexpr zeroField() { return 1.0e-6; }
+      static bool isZeroField(VEC3 const& bvec) { return bvec.R() < zeroField(); }
       // templated interface for interacting with kinematic trajectory classes
       // how far can you go along the given kinematic trajectory till BField inhomogeneity makes the momentum accuracy out of (fractional) tolerance
       template<class KTRAJ> double rangeInTolerance(KTRAJ const& ktraj, double tstart, double tol) const;
+      // the domain step at tstart: rangeInTolerance with a floor applied. Callers must have confirmed
+      // the position is in range first -- rangeInTolerance samples fieldDeriv, undefined outside it.
+      template<class KTRAJ> double domainStep(KTRAJ const& ktraj, double tstart, double tol, double mindtstep) const {
+        return std::max(rangeInTolerance(ktraj,tstart,tol),mindtstep);
+      }
       // integrate the residual magentic force over the given kinematic trajectory and range due to the difference between the true field and the nominal field in the
       template<class KTRAJ> VEC3 integrate(KTRAJ const& ktraj, TimeRange const& trange) const;
+    private:
+      double minfield_; // smallest usable |B| (T); 0 disables low-field protection
   };
 
   template<class KTRAJ> VEC3 BFieldMap::integrate(KTRAJ const& ktraj, TimeRange const& trange) const {

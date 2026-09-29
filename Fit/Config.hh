@@ -11,6 +11,7 @@
 #include <vector>
 #include <memory>
 #include <algorithm>
+#include <limits>
 #include <ostream>
 #include <istream>
 
@@ -29,6 +30,8 @@ namespace KinKal {
     double pdchisq_ = 1.0e6; // maximum allowed parameter change (units of chisqred) WRT previous reference
     double divgap_ = 1.0e2; // maximum average gap of trajectory before calling it diverged (mm)
     double tol_ = 1.0e-4; // tolerance on fractional momentum accuracy due to BField domain steps
+    double mindtstep_ = 0.0; // ns: minimum domain range. >0 bounds the domain count at (walk window)/mindtstep_; 0 leaves it unbounded
+    double domainmargin_ = std::numeric_limits<double>::max(); // ns: max time a domain may extend beyond the active range; finite confines the walk and its field sampling to range +/- margin
     unsigned minndof_ = 5; // minimum number of DOFs to continue fit
     bool bfcorr_ = true; // whether to make BFieldMap corrections in the fit
     bool ends_ = true; // process the passive effects at each end of the track after schedule completion
