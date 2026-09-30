@@ -38,8 +38,7 @@ namespace KinKal {
           throw std::runtime_error("Inversion failure");
         }
         // check
-        if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
-
+        if(!std::isfinite(mat_(0,0)))throw std::runtime_error("Inversion failure");
       }
       // append
       FitData & operator -= (FitData const& other) {
