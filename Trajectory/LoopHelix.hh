@@ -64,7 +64,7 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time=0.0) const  {  return CLHEP::c_light*beta(); }
-      double transverseSpeed() const {  return fabs(CLHEP::c_light*lam()/ebar()); } // speed perpendicular to the axis
+      double transverseSpeed() const {  return fabs(CLHEP::c_light*fabs(rad())/ebar()); } // speed perpendicular to the axis
       double acceleration() const { return rad()*CLHEP::c_light*CLHEP::c_light/ebar2(); }
       VEC3 acceleration(double time) const;
       void print(std::ostream& ost, int detail) const;

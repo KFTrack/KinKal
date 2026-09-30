@@ -297,7 +297,7 @@ namespace KinKal {
       retval.inbounds_ = rayinter.inbounds_;
       retval.pos_ = ray.position(dist);
       retval.norm_ = surf.normal(retval.pos_);
-      retval.pdir_ = dir;
+      retval.pdir_ = kkline.direction(retval.time_);
       // calculate the time
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
     }

@@ -9,7 +9,7 @@
 #include "KinKal/General/TimeRange.hh"
 #include "KinKal/General/Vectors.hh"
 namespace KinKal {
-  class Domain : public TimeRange {
+  class Domain {
     public:
       Domain(double lowtime, double range, VEC3 const& bnom) : range_(lowtime,lowtime+range), bnom_(bnom) {}
       Domain(TimeRange const& range, VEC3 const& bnom) : range_(range), bnom_(bnom) {}
@@ -39,6 +39,12 @@ namespace KinKal {
     auto rv = std::make_shared<Domain>(*this);
     return rv;
   }
+
+  std::ostream& operator <<(std::ostream& ost, Domain const& domain) {
+    ost << "Domain with " << domain.range() << " and Field " << domain.bnom() << std::endl;
+    return ost;
+  }
+
 }
 #endif
 

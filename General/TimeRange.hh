@@ -29,7 +29,7 @@ namespace KinKal {
       bool inRange(double t) const {return t >= begin() && t < end(); }
       bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
-        return inRange(other.begin()) || other.inRange(begin()) || contains(other) || other.contains(*this); }
+        return inRange(other.begin()) || other.inRange(begin()) || inRange(other.end()) || other.inRange(end()); }
       bool contains(TimeRange const& other) const {
         return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range

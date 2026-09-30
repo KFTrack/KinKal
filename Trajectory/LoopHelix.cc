@@ -437,7 +437,7 @@ namespace KinKal {
     double brad = bendRadius();
     if(tlen < M_PI*brad){
       double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
-      return 0.125*brad*drunit*drunit;
+      return brad*drunit;
     }
     return brad; // maximum possible sagitta
   }

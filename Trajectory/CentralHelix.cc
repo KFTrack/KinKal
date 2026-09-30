@@ -451,7 +451,7 @@ namespace KinKal {
     // work in local coordinate system to avoid additional matrix mulitplications
     auto xvec = localPosition(time);
     auto mvec = localMomentum(time);
-    VEC3 BxdB =VEC3(0.0,0.0,1.0).Cross(dB)/bnomR();
+    VEC3 BxdB = VEC3(0.0,0.0,1.0).Cross(dBloc)/bnomR();
     VEC3 dx = xvec.Cross(BxdB);
     VEC3 dm = mvec.Cross(BxdB);
     // convert these to a full state vector change
@@ -479,7 +479,7 @@ namespace KinKal {
     double brad = bendRadius();
     if(tlen < M_PI*brad){
       double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
-      return 0.125*brad*drunit*drunit;
+      return brad*drunit;
     }
     return brad;
   }

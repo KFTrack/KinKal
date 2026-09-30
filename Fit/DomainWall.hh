@@ -36,8 +36,9 @@ namespace KinKal {
       // disallow copy and equivalence
 //    DomainWall(DomainWall const& ) = delete;
       DomainWall& operator =(DomainWall const& ) = delete;
-      // clone op for reinstantiation
+      // needed by clone
       DomainWall(DomainWall const&);
+      // clone op for reinstantiation
       std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
       // specific DomainWall interface
       DomainWall(DOMAINPTR const& prevdomain,DOMAINPTR const& nextdomain, PTRAJ const& ptraj);
@@ -50,13 +51,13 @@ namespace KinKal {
       auto const& fwdChange() const { return dpfwd_; }
       auto const& prevWeight() const { return prevwt_; }
       auto const& nextWeight() const { return nextwt_; }
-      auto const& fwdCovarianceRotation() const { return dpdpdb_; }
+//      auto const& fwdCovarianceRotation() const { return dpdpdb_; }
 
     private:
       DOMAINPTR prev_, next_; // pointers to previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
       Weights prevwt_, nextwt_; // cache of weights
-      PSMAT dpdpdb_; // forward rotation of covariance matrix going in the forwards direction
+//      PSMAT dpdpdb_; // forward rotation of covariance matrix going in the forwards direction
 
       // modifiers to support cloning
       void setPrevPtr(DOMAINPTR const& ptr){ prev_ = ptr; }
@@ -93,7 +94,7 @@ namespace KinKal {
     auto const& refpiece = ptraj.nearestPiece(time()-1e-5); // disambiguate derivativates
     auto db = next_->bnom() - prev_->bnom();
     dpfwd_ = refpiece.dPardB(this->time(),db);
-    dpdpdb_ = refpiece.dPardPardB(this->time(),db);
+//    dpdpdb_ = refpiece.dPardPardB(this->time(),db);
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -134,29 +135,30 @@ namespace KinKal {
     }
   }
 
+  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DomainWall<KTRAJ> const& kkmat) {
+    kkmat.print(ost,0);
+    return ost;
+  }
+
   template<class KTRAJ> void DomainWall<KTRAJ>::print(std::ostream& ost,int detail) const {
     ost << "DomainWall " << static_cast<Effect<KTRAJ>const&>(*this);
     ost << " previous domain " << *prev_ << " next domain " << *next_;
     ost << " effect " << dpfwd_ << std::endl;
   }
 
-  template <class KTRAJ> std::ostream& operator <<(std::ostream& ost, DomainWall<KTRAJ> const& kkmat) {
-    kkmat.print(ost,0);
-    return ost;
-  }
-
   // clone op for reinstantiation
   template <class KTRAJ>
   DomainWall<KTRAJ>::DomainWall(DomainWall const& rhs):
+      prev_(rhs.prevPtr()),
+      next_(rhs.nextPtr()),
       dpfwd_(rhs.fwdChange()),
       prevwt_(rhs.prevWeight()),
-      nextwt_(rhs.nextWeight()),
-      dpdpdb_(rhs.fwdCovarianceRotation()){
-    /**/
-  }
+      nextwt_(rhs.nextWeight())
+//      dpdpdb_(rhs.fwdCovarianceRotation())
+  { }
 
   template <class KTRAJ>
-  std::unique_ptr< Effect<KTRAJ> > DomainWall<KTRAJ>::clone(CloneContext& context) const{
+  std::unique_ptr< KinKal::Effect<KTRAJ> > DomainWall<KTRAJ>::clone(CloneContext& context) const{
     auto casted = std::make_unique< DomainWall<KTRAJ> >(*this);
     DOMAINPTR prev = context.get(prev_);
     casted->setPrevPtr(prev);

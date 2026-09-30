@@ -30,7 +30,7 @@ namespace KinKal {
       this->findTCA(phint);
       phint = this->hint();
       oldindex = pindex;
-      pindex = ptraj.nearestIndex(hint.particleToca_);
+      pindex = ptraj.nearestIndex(phint.particleToca_);
       this->ktrajptr_ = ptraj.indexTraj(pindex);
     } while( pindex != oldindex && this->usable() && niter++ < maxiter);
     // overwrite the status if we didn't converge on the piece
