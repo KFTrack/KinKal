@@ -1,4 +1,5 @@
 /*
+
    KinematicLine is the Linear Trajectory Specialization of KTRAJ - the kinematic trajectory.
    Original Author: S Middleton 2020
  */
@@ -81,7 +82,7 @@ namespace KinKal {
   KinematicLine::KinematicLine( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
     bnom_(bnom), mass_(mass), charge_(charge), trange_(trange), pars_(pars) {}
 
-  KinematicLine::KinematicLine( Parameters const& pars) : pars_(pars) {}
+  KinematicLine::KinematicLine( Parameters const& pars) : mass_(0.0), charge_(0.0), pars_(pars) {} // this results in an invalid trajectory with 0 range
 
   KinematicLine::KinematicLine(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
     KinematicLine(pstate.position4(),pstate.momentum4(), pstate.charge(),bnom,range)

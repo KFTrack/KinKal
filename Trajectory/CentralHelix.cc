@@ -82,12 +82,26 @@ namespace KinKal {
     param(t0_) = pos.T() -(dphi + 2*M_PI*nwind)/Omega();
   }
 
-  void CentralHelix::setBNom(double time, VEC3 const& bnom) {
-    // adjust the parameters for the change in bnom holding the state constant
-    VEC3 db = bnom-bnom_;
-    pars_.parameters() += dPardB(time,db);
-    resetBNom(bnom);
-    // rotate covariance TODO
+   bool CentralHelix::constructible(ParticleState const& pstate, VEC3 const& bnom) {
+     if(bnom.R() < BFieldMap::zeroField()) return false;
+     // the constructor's circle center, in the frame where Z is along bnom; keep in step with it
+     auto g2l = ROOT::Math::Rotation3D(ROOT::Math::AxisAngle(VEC3(sin(bnom.Phi()),-cos(bnom.Phi()),0.0),bnom.Theta()));
+     VEC4 pos = g2l(pstate.position4());
+     MOM4 mom = g2l(pstate.momentum4());
+     double momToRad = 1.0/(BFieldMap::cbar()*pstate.charge()*bnom.R());
+     double radius = fabs(sqrt(mom.perp2())*momToRad);
+     double amsign = copysign(1.0,-pstate.momentum4().M()*momToRad);
+     double phirm = atan2(mom.Y(),mom.X()) + amsign*M_PI_2;
+     auto lcent = pos.Vect() + radius*VEC3(cos(phirm),sin(phirm),0.0);
+     return !(sqrt(lcent.perp2()) < minrcent_);
+   }
+
+   void CentralHelix::setBNom(double time, VEC3 const& bnom) {
+     // adjust the parameters for the change in bnom holding the state constant
+     VEC3 db = bnom-bnom_;
+     pars_.parameters() += dPardB(time,db);
+     resetBNom(bnom);
+     // rotate covariance TODO
   }
 
   void CentralHelix::resetBNom(VEC3 const& bnom) {

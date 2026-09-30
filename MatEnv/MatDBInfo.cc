@@ -60,7 +60,7 @@ namespace MatEnv {
       }
     }
     if(theMat == 0){
-      string errmsg = std::string("MatDBInfo: Cannot find requested material ") + matName;
+      std::string errmsg = std::string("MatDBInfo: Cannot find requested material ") + matName;
       throw std::invalid_argument(errmsg.c_str());
     }
     return theMat;

@@ -58,19 +58,7 @@ namespace KinKal {
       // same, including covariance information
       explicit CentralHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // can the state constructor represent this state in this field? It refuses a null field and a circle centered on the axis
-      static bool constructible(ParticleState const& pstate, VEC3 const& bnom) {
-        if(bnom.R() < BFieldMap::zeroField()) return false;
-        // the constructor's circle center, in the frame where Z is along bnom; keep in step with it
-        auto g2l = ROOT::Math::Rotation3D(ROOT::Math::AxisAngle(VEC3(sin(bnom.Phi()),-cos(bnom.Phi()),0.0),bnom.Theta()));
-        VEC4 pos = g2l(pstate.position4());
-        MOM4 mom = g2l(pstate.momentum4());
-        double momToRad = 1.0/(BFieldMap::cbar()*pstate.charge()*bnom.R());
-        double radius = fabs(sqrt(mom.perp2())*momToRad);
-        double amsign = copysign(1.0,-pstate.momentum4().M()*momToRad);
-        double phirm = atan2(mom.Y(),mom.X()) + amsign*M_PI_2;
-        auto lcent = pos.Vect() + radius*VEC3(cos(phirm),sin(phirm),0.0);
-        return !(sqrt(lcent.perp2()) < minrcent_);
-      }
+      static bool constructible(ParticleState const& pstate, VEC3 const& bnom);
       void syncPhi0(CentralHelix const& other);
       // particle position and momentum as a function of time
       VEC4 position4(double time) const;
