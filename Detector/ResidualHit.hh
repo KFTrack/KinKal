@@ -50,7 +50,7 @@ namespace KinKal {
     bool active = resid.active();
     if(pvar<0.0){
       active = false;
-      pvar = resid.variance();
+      pvar = 0.0;
     }
     return Residual(uresid,resid.variance(),pvar,resid.dRdP(),active);
 

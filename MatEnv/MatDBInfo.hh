@@ -24,7 +24,6 @@
 #include "KinKal/MatEnv/RecoMatFactory.hh"
 #include "KinKal/MatEnv/MtrPropObj.hh"
 #include "KinKal/MatEnv/DetMaterial.hh"
-#include "KinKal/MatEnv/ErrLog.hh"
 #include "KinKal/MatEnv/FileFinderInterface.hh"
 #include <string>
 #include <map>

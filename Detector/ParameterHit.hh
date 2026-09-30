@@ -17,15 +17,16 @@ namespace KinKal {
 
       // copy constructor
       ParameterHit(ParameterHit<KTRAJ> const& rhs):
-          time_(rhs.time()),
-          params_(rhs.constraintParameters()),
-          pweight_(rhs.parameterWeights()),
-          weight_(rhs.weight()),
-          pmask_(rhs.constraintMask()),
-          mask_(rhs.maskMatrix()),
-          ncons_(rhs.numConstrainedParameters()){
-        /**/
-      };
+        time_(rhs.time()),
+        reftraj_(rhs.refTrajPtr()),
+        params_(rhs.constraintParameters()),
+        pweight_(rhs.parameterWeights()),
+        weight_(rhs.weight()),
+        pmask_(rhs.constraintMask()),
+        mask_(rhs.maskMatrix()),
+        ncons_(rhs.numConstrainedParameters()) {
+          /**/
+        };
       // clone op for reinstantiation
       std::shared_ptr< Hit<KTRAJ> > clone(CloneContext& context) const override{
         auto rv = std::make_shared< ParameterHit<KTRAJ> >(*this);
@@ -68,11 +69,11 @@ namespace KinKal {
       mask_ = ROOT::Math::SMatrixIdentity();
       // count constrained parameters, and mask off unused parameters
       for(size_t ipar=0;ipar < NParams(); ipar++){
-	if(pmask_[ipar]){
-	  ncons_++;
-	} else {
-	  mask_(ipar,ipar) = 0.0;
-	}
+        if(pmask_[ipar]){
+          ncons_++;
+        } else {
+          mask_(ipar,ipar) = 0.0;
+        }
       }
       // Mask Off unused parameters
       pweight_.weightMat() = ROOT::Math::Similarity(mask_,pweight_.weightMat());
@@ -109,10 +110,10 @@ namespace KinKal {
     ost << " ParameterHit Hit" << std::endl;
     if(detail > 0){
       for(size_t ipar=0;ipar < NParams(); ipar++){
-	auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
-	if (pmask_[ipar]) {
-	  ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
-	}
+        auto tpar = static_cast<typename KTRAJ::ParamIndex>(ipar);
+        if (pmask_[ipar]) {
+          ost << " constraining parameter " << KTRAJ::paramName(tpar) << " to value " << params_.parameters()[ipar] << " +- " << sqrt(params_.covariance()(ipar,ipar)) << std::endl;
+        }
       }
     }
   }

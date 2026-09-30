@@ -18,6 +18,7 @@
 
 #include <string>
 #include <map>
+#include <stdexcept>
 namespace MatEnv {
 
   MatDBInfo::MatDBInfo(FileFinderInterface const& interface, DetMaterialConfig const& dmconf ) :
@@ -59,8 +60,8 @@ namespace MatEnv {
       }
     }
     if(theMat == 0){
-      ErrMsg( error ) << "MatDBInfo: Cannot find requested material " << matName
-        << "." << endmsg;
+      string errmsg = std::string("MatDBInfo: Cannot find requested material ") + matName;
+      throw std::invalid_argument(errmsg.c_str());
     }
     return theMat;
   }
