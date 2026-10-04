@@ -121,7 +121,7 @@ namespace KinKal {
   // make sure the piece is appendable
     if((tdir == TimeDir::forwards && ptraj.back().range().begin() > time()) ||
         (tdir == TimeDir::backwards && ptraj.front().range().end() < time()) )
-      throw std::invalid_argument("DomainWall: Can't append piece");
+      throw std::invalid_argument("DomainWall: Can't extrapolate piece");
     // sample the particle state at this domain wall
     auto pstate = ptraj.stateEstimate(time());
     if( tdir == TimeDir::forwards){
