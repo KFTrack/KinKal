@@ -51,13 +51,11 @@ namespace KinKal {
       auto const& fwdChange() const { return dpfwd_; }
       auto const& prevWeight() const { return prevwt_; }
       auto const& nextWeight() const { return nextwt_; }
-//      auto const& fwdCovarianceRotation() const { return dpdpdb_; }
 
     private:
       DOMAINPTR prev_, next_; // pointers to previous and next domains
       DVEC dpfwd_; // parameter change across this domain wall in the forwards time direction
       Weights prevwt_, nextwt_; // cache of weights
-//      PSMAT dpdpdb_; // forward rotation of covariance matrix going in the forwards direction
 
       // modifiers to support cloning
       void setPrevPtr(DOMAINPTR const& ptr){ prev_ = ptr; }
@@ -74,12 +72,10 @@ namespace KinKal {
     if(tdir == TimeDir::forwards) {
       prevwt_ += fstate.wData();
       fstate.append(dpfwd_,tdir);
-      // fstate.pData().covariance() = ROOT::Math::Similarity(dpdpdb_,fstate.pData().covariance());  Not tested TODO
       nextwt_ += fstate.wData();
     } else {
       nextwt_ += fstate.wData();
       fstate.append(dpfwd_,tdir);
-      // fstate.pData().covariance() = ROOT::Math::SimilarityT(dpdpdb_,fstate.pData().covariance());
       prevwt_ += fstate.wData();
     }
   }
@@ -94,7 +90,6 @@ namespace KinKal {
     auto const& refpiece = ptraj.nearestPiece(time()-1e-5); // disambiguate derivativates
     auto db = next_->bnom() - prev_->bnom();
     dpfwd_ = refpiece.dPardB(this->time(),db);
-//    dpdpdb_ = refpiece.dPardPardB(this->time(),db);
   }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::append(PTRAJ& ptraj,TimeDir tdir) {
@@ -154,7 +149,6 @@ namespace KinKal {
       dpfwd_(rhs.fwdChange()),
       prevwt_(rhs.prevWeight()),
       nextwt_(rhs.nextWeight())
-//      dpdpdb_(rhs.fwdCovarianceRotation())
   { }
 
   template <class KTRAJ>

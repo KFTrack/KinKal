@@ -5,6 +5,7 @@
 #include <ostream>
 #include <array>
 #include <stdexcept>
+#include <limits>
 #include "KinKal/General/TimeDir.hh"
 
 namespace KinKal {
@@ -29,11 +30,11 @@ namespace KinKal {
       bool inRange(double t) const {return t >= begin() && t < end(); }
       bool null() const { return end() == begin(); }
       bool overlaps(TimeRange const& other ) const {
-        return inRange(other.begin()) || other.inRange(begin()) || inRange(other.end()) || other.inRange(end()); }
+        return inRange(other.begin()) || other.inRange(begin()); }
       bool contains(TimeRange const& other) const {
         return (begin() <= other.begin() && end() >= other.end()); }
       // force time to be in range
-      void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()); }
+      void forceRange(double& time) const { time = std::min(std::max(time,begin()),end()-std::numeric_limits<double>::min()); }
       // test if a given time is beyond the range in the given direction
       bool beyond(double time, TimeDir tdir) const {
         return tdir == TimeDir::forwards ? time > range_[1] : time < range_[0];

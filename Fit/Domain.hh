@@ -40,7 +40,7 @@ namespace KinKal {
     return rv;
   }
 
-  std::ostream& operator <<(std::ostream& ost, Domain const& domain) {
+  inline std::ostream& operator <<(std::ostream& ost, Domain const& domain) {
     ost << "Domain with " << domain.range() << " and Field " << domain.bnom() << std::endl;
     return ost;
   }

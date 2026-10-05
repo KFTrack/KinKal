@@ -22,7 +22,6 @@
 #include "KinKal/MatEnv/BbrCollectionUtils.hh"
 #include <algorithm>
 #include <fstream>
-#include <assert.h>
 #include <stdexcept>
 
 //----------------------
@@ -52,12 +51,10 @@ namespace MatEnv {
   MatElementList::MatElementList(const std::string& elementsFile)
 
   {
-
     // open input file elementsFile to read elements one by one
     ifstream elements( elementsFile.c_str() );
-    assert( elements.good() );
-    if (elements.eof()) {
-      std::string errmsg = std::string("MatElements") + elementsFile + std::string(" empty!");
+    if ((!elements.good()) || elements.eof()) {
+      std::string errmsg = std::string("MatElements") + elementsFile + std::string(" missing or empty!");
       throw std::invalid_argument(errmsg.c_str());
     }
 
