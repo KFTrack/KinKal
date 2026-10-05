@@ -9,6 +9,7 @@ add_library(Fit SHARED
     Config.cc
     MetaIterConfig.cc
     Status.cc
+    Domain.cc
 )
 
 # set top-level directory as include root

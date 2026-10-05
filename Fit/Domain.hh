@@ -28,23 +28,10 @@ namespace KinKal {
       TimeRange range_; // range of this domain
       VEC3 bnom_; // nominal BField for this domain
   };
-
-  // clone op for reinstantiation
-  Domain::Domain(Domain const& rhs):
-      range_(rhs.range()),
-      bnom_(rhs.bnom()){
-  }
-
-  std::shared_ptr<Domain> Domain::clone(CloneContext& context) const{
-    auto rv = std::make_shared<Domain>(*this);
-    return rv;
-  }
-
-  inline std::ostream& operator <<(std::ostream& ost, Domain const& domain) {
+  inline std::ostream& operator <<(std::ostream& ost, KinKal::Domain const& domain) {
     ost << "Domain with " << domain.range() << " and Field " << domain.bnom() << std::endl;
     return ost;
   }
-
 }
 #endif
 
