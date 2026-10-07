@@ -57,8 +57,16 @@ namespace KinKal {
     param(cy_) = lpos.Y() + lmom.X()*invq;
   }
 
+  bool LoopHelix::constructible(ParticleState const& pstate, VEC3 const& bnom) {
+    if(bnom.R() < BFieldMap::zeroField()) return false;
+    // LoopHelix requires non-zero lambda to define t0 and z0. But lambda reverses sign on reflection, so allow very small values
+    auto g2l = ROOT::Math::Rotation3D(ROOT::Math::AxisAngle(VEC3(sin(bnom.Phi()),-cos(bnom.Phi()),0.0),bnom.Theta()));
+    auto lmom = g2l(pstate.momentum3());
+    return fabs(lmom.Z())*BFieldMap::cbar()*bnom.R()>1e-6; // 0.001 micron
+  }
+
   void LoopHelix::syncPhi0(LoopHelix const& other) {
-// adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
+    // adjust the phi0 of this traj to agree with the reference, keeping its value (mod 2pi) the same.
     static double twopi = 2*M_PI;
     int nloop = static_cast<int>(round( (other.phi0() - phi0())/twopi));
     if(nloop != 0) pars_.parameters()[phi0_] += nloop*twopi;
@@ -96,8 +104,8 @@ namespace KinKal {
 
   LoopHelix::LoopHelix( Parameters const& pars, double mass, int charge, VEC3 const& bnom, TimeRange const& trange ) :
     trange_(trange), pars_(pars), mass_(mass), charge_(charge), bnom_(bnom) {
-    setTransforms();
-  }
+      setTransforms();
+    }
 
   LoopHelix::LoopHelix(ParticleState const& pstate, VEC3 const& bnom, TimeRange const& range) :
     LoopHelix(pstate.position4(),pstate.momentum4(),pstate.charge(),bnom,range)
@@ -437,7 +445,7 @@ namespace KinKal {
     double brad = bendRadius();
     if(tlen < M_PI*brad){
       double drunit = (1.0-cos(0.5*tlen/brad)); // unit circle
-      return 0.125*brad*drunit*drunit;
+      return brad*drunit;
     }
     return brad; // maximum possible sagitta
   }

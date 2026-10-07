@@ -38,8 +38,9 @@ namespace KinKal {
           throw std::runtime_error("Inversion failure");
         }
         // check
-        if(std::isnan(mat_(0,0)))throw std::runtime_error("Inversion failure");
-
+        static std::vector<double> ones(DVEC::kSize,1.0);
+        static DVEC uvec(ones.data(),DVEC::kSize);
+        if(!std::isfinite(mat_(0,0)) || !std::isfinite(ROOT::Math::Dot(vec_,uvec)))throw std::runtime_error("Inversion failure");
       }
       // append
       FitData & operator -= (FitData const& other) {

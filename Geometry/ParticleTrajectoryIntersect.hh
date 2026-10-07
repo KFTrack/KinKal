@@ -1,6 +1,6 @@
 //
 //  Calculate the intersection point of a ParticleTrajectory with a surface
-//  This must be specialized for every case (every pair of trajectory and surf)
+//  This is generic; the specialization for different surfaces and trajectories occurs per-piec
 //  original author: David Brown (LBNL) 2023
 //
 #ifndef KinKal_ParticleTrajectoryIntersect_hh
@@ -20,16 +20,24 @@ namespace KinKal {
     } else {
       int istep = (tdir == TimeDir::forwards) ? 1 : -1;
       do {
-        // if we can approximate this piece as a line, simply test at the endpoints. Time order doesn't matter
+        // if we can approximate this piece as a line, simply test at the mid and endpoints. Time order doesn't matter
         bool testinter(true);
         auto ttraj = ptraj.indexTraj(istart);
         double sag = ttraj->sagitta(ttraj->range().range());
         if(sag < tol){
+          // test if the surface curvatue allows a straight approximation across this length
           auto spos = ttraj->position3(ttraj->range().begin());
-          bool sinside = surf.isInside(spos);
+          auto mpos = ttraj->position3(ttraj->range().mid());
           auto epos = ttraj->position3(ttraj->range().end());
-          bool einside = surf.isInside(epos);
-          testinter = sinside != einside;
+          double curv = surf.curvature(mpos);
+          double dist = (epos-spos).R();
+          static const double oneeighth = 1.0/8.0;
+          if(oneeighth*dist*dist*curv < tol){
+            bool sinside = surf.isInside(spos);
+            bool minside = surf.isInside(mpos);
+            bool einside = surf.isInside(epos);
+            testinter = sinside != einside || sinside != minside;
+          }
         }
         if(testinter){
           // try to intersect. use a temporary

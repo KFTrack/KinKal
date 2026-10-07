@@ -103,9 +103,9 @@ namespace MatEnv {
       double chic2 = _chic2*path*invb2*invmom2;
       double chia2 = _chia2_1*(1.0 + _chia2_2*invb2)*invmom2;
       double omega = chic2/chia2;
-      static double vfactor = 0.5/(1-_scatterfrac);
+      double vfactor = 0.5/(1-_scatterfrac);
       double v = vfactor*omega;
-      static double sig2factor = 1.0/(1+_scatterfrac*_scatterfrac);
+      double sig2factor = 1.0/(1+_scatterfrac*_scatterfrac);
       double sig2 = sig2factor*chic2*( (1+v)*log(1+v)/v - 1);
       // protect against underflow
       return std::max(0.0,sig2);

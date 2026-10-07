@@ -311,7 +311,6 @@ namespace KinKal {
     }
   }
 
-  // clone op for reinstantiation
   template<class KTRAJ>
   PiecewiseTrajectory<KTRAJ>::PiecewiseTrajectory(PiecewiseTrajectory<KTRAJ> const& rhs){
     for (const auto& ptr: rhs.pieces()){
@@ -320,12 +319,13 @@ namespace KinKal {
     }
   }
 
+  // clone op for reinstantiation
   template<class KTRAJ>
   std::shared_ptr< PiecewiseTrajectory<KTRAJ> > PiecewiseTrajectory<KTRAJ>::clone(CloneContext& context) const {
     auto rv = std::make_shared< PiecewiseTrajectory<KTRAJ> >();
     for (auto const& ptr : pieces_){
       auto piece = context.get(ptr);
-      rv.pieces_.push_back(*piece);
+      rv->pieces_.push_back(std::make_shared<KTRAJ>(*piece));
     }
     return rv;
   }

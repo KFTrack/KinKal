@@ -51,7 +51,7 @@ namespace KinKal {
       // same, including covariance information
       explicit LoopHelix(ParticleStateEstimate const& pstate, VEC3 const& bnom, TimeRange const& range=TimeRange());
       // can the state constructor represent this state in this field? It never refuses
-      static bool constructible(ParticleState const&, VEC3 const&) { return true; }
+      static bool constructible(ParticleState const&, VEC3 const&);
       // copy payload and adjust parameters to correspond to a different BField at a particular time
       LoopHelix(LoopHelix const& other, VEC3 const& bnom, double tref);
       // create from parameters and kinematics separately
@@ -64,7 +64,7 @@ namespace KinKal {
       VEC3 position3(double time) const;
       VEC3 velocity(double time) const;
       double speed(double time=0.0) const  {  return CLHEP::c_light*beta(); }
-      double transverseSpeed() const {  return fabs(CLHEP::c_light*lam()/ebar()); } // speed perpendicular to the axis
+      double transverseSpeed() const {  return fabs(CLHEP::c_light*fabs(rad())/ebar()); } // speed perpendicular to the axis
       double acceleration() const { return rad()*CLHEP::c_light*CLHEP::c_light/ebar2(); }
       VEC3 acceleration(double time) const;
       void print(std::ostream& ost, int detail) const;

@@ -297,9 +297,8 @@ namespace KinKal {
       retval.inbounds_ = rayinter.inbounds_;
       retval.pos_ = ray.position(dist);
       retval.norm_ = surf.normal(retval.pos_);
-      retval.pdir_ = dir;
-      // calculate the time
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
+      retval.pdir_ = kkline.direction(retval.time_);
     }
     // check the final time to be in range;
     retval.inrange_ = trange.inRange(retval.time_);

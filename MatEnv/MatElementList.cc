@@ -22,13 +22,12 @@
 #include "KinKal/MatEnv/BbrCollectionUtils.hh"
 #include <algorithm>
 #include <fstream>
-#include <assert.h>
+#include <stdexcept>
 
 //----------------------
 // Base Class Headers --
 //----------------------
 #include "KinKal/MatEnv/MatElementList.hh"
-#include "KinKal/MatEnv/ErrLog.hh"
 using std::fstream;
 using std::ifstream;
 
@@ -49,15 +48,14 @@ namespace MatEnv {
   {
   }
 
-  MatElementList::MatElementList(const std::string& elementsFile) 
+  MatElementList::MatElementList(const std::string& elementsFile)
 
   {
-
-    // open input file elementsFile to read elements one by one 
+    // open input file elementsFile to read elements one by one
     ifstream elements( elementsFile.c_str() );
-    assert( elements.good() );
-    if (elements.eof()) {
-      ErrMsg(fatal) << "MatElements" << elementsFile << " empty!" << endmsg; 
+    if ((!elements.good()) || elements.eof()) {
+      std::string errmsg = std::string("MatElements") + elementsFile + std::string(" missing or empty!");
+      throw std::invalid_argument(errmsg.c_str());
     }
 
     std::string tagname;
@@ -66,13 +64,16 @@ namespace MatEnv {
     //  Read, skipping comments
     tagname = "Elements_list";
     bool tag = false;
-    while(!tag){
-      do {  
-	getline(elements, fline);
+    while(!tag && !elements.eof()){
+      do {
+        getline(elements, fline);
       } while (fline == "" && !elements.eof());
       tag = ( fline.find(tagname) != std::string::npos );
     }
-    assert(tag);
+    if(!tag){
+      std::string errmsg = std::string("Elements_list not found in file") + elementsFile;
+      throw std::invalid_argument(errmsg);
+    }
 
     // read Elements data (Name, Symbol Z, Aeff, nisotopes, ...)
     std::string name;
@@ -90,21 +91,21 @@ namespace MatEnv {
     {
       elements >> symbol >> zeff >> aeff >> nisotopes;
       if(nisotopes != 0) {
-	for(int i=0; i<nisotopes; i++) 
-	{ 
-	  elements >> abundance;
-	  Isoabundance.push_back(abundance);
-	}
-	for(int j=0; j<nisotopes; j++) 
-	{ 
-	  elements >> isname;
-	  Isoname.push_back(isname);
-	}
+        for(int i=0; i<nisotopes; i++)
+        {
+          elements >> abundance;
+          Isoabundance.push_back(abundance);
+        }
+        for(int j=0; j<nisotopes; j++)
+        {
+          elements >> isname;
+          Isoname.push_back(isname);
+        }
 
       } else {
-	Isoabundance.push_back(0);
-	Isoname.push_back(" ");
-      }            
+        Isoabundance.push_back(0);
+        Isoname.push_back(" ");
+      }
       MatElementObj* elmObj = new MatElementObj();
       elmObj->setName(name);
       elmObj->setSymbol(symbol);
@@ -114,8 +115,8 @@ namespace MatEnv {
       isoentry = Isoabundance.size();
       for (int idx=isoentry-nisotopes; idx<isoentry; idx++)
       {
-	elmObj->setWeight(Isoabundance[idx]);
-	elmObj->setIsotopeName(Isoname[idx]);
+        elmObj->setWeight(Isoabundance[idx]);
+        elmObj->setIsotopeName(Isoname[idx]);
       }
       _vector.push_back(elmObj);
       //      _vector.push_back(new MatElementObj(name, symbol, zeff, aeff, Isoabundance, Isoname));
@@ -123,10 +124,10 @@ namespace MatEnv {
     }
   }
 
-  MatElementList::~MatElementList() 
+  MatElementList::~MatElementList()
   {
     std::for_each(_vector.begin(), _vector.end(), DeleteObject());
-    _vector.clear();   
+    _vector.clear();
   }
 
 }
