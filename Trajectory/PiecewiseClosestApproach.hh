@@ -5,6 +5,7 @@
 //
 #include "KinKal/Trajectory/ClosestApproach.hh"
 #include "KinKal/Trajectory/ParticleTrajectory.hh"
+#include "KinKal/General/RefPieceStrategy.hh"
 #include <ostream>
 
 namespace KinKal {
@@ -14,10 +15,17 @@ namespace KinKal {
       using KTCA = ClosestApproach<KTRAJ,STRAJ>;
       using KTRAJPTR = std::shared_ptr<KTRAJ>;
       using STRAJPTR = std::shared_ptr<STRAJ>;
-      PiecewiseClosestApproach(PTRAJ const& ptraj, STRAJPTR strajptr, CAHint const& hint, double precision);
+      PiecewiseClosestApproach(PTRAJ const& ptraj, STRAJPTR strajptr, CAHint const& hint, double precision,
+          RefPieceStrategy strategy=RefPieceStrategy::DOCA);
   };
 
-  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& ptraj, STRAJPTR strajptr, CAHint const& hint, double prec) : KTCA(ptraj.nearestTraj(hint.particleToca_),strajptr,prec) {
+  template<class KTRAJ, class STRAJ> PiecewiseClosestApproach<KTRAJ,STRAJ>::PiecewiseClosestApproach(ParticleTrajectory<KTRAJ> const& ptraj, STRAJPTR strajptr, CAHint const& hint, double prec,
+      RefPieceStrategy strategy) : KTCA(ptraj.nearestTraj(hint.particleToca_),strajptr,prec) {
+    if(strategy == RefPieceStrategy::TOCA){
+      // stay on the piece holding the hint time; the solution TOCA may lie outside that piece's range
+      this->findTCA(hint);
+      return;
+    }
     // iteratively find the nearest piece, and CA for that piece.  Start at hint
     static const unsigned maxiter=10; // don't allow infinite iteration.  This should be a parameter TODO
     unsigned niter=0;

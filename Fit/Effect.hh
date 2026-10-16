@@ -40,8 +40,8 @@ namespace KinKal {
       virtual void append(PTRAJ& fit,TimeDir tdir) =0;
       // extrapolate a trajectory in the given direction through this effect, using dead-reckoning calculation (not a fit!)
       virtual void extrapolate(PTRAJ& fit,TimeDir tdir) =0;
-      // update the reference trajectory for this effect
-      virtual void updateReference(PTRAJ const& ptraj) =0;
+      // update the reference trajectory for this effect, using the reference piece strategy of the given meta-iteration
+      virtual void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) =0;
       // chisquared WRT a given local parameter set, assumed uncorrelatedd  This is used for convergence testing
       virtual Chisq chisq(Parameters const& pdata) const  = 0;
       // diagnostic printout

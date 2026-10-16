@@ -66,7 +66,7 @@ using namespace KinKal;
 using namespace std;
 // avoid confusion with root
 void print_usage() {
-  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i\n");
+  printf("Usage: FitTest  --momentum f --simparticle i --fitparticle i--charge i --nhits i --hres f --seed i -ambigdoca f --nevents i --simmat i--fitmat i --ttree i --Bz f --dBx f --dBy f --dBz f--Bgrad f --tolerance f --TFilesuffix c --PrintBad i --PrintDetail i --ScintHit i --invert i --Schedule a --ssmear i --constrainpar i --inefficiency f --extend s --TimeBuffer f --matvarscale i --HitRefPiece DOCA|TOCA --XingRefPiece DOCA|TOCA\n");
 }
 
 // utility function to compute transverse distance between 2 similar trajectories.  Also
@@ -147,7 +147,7 @@ int testState(KinKal::Track<KTRAJ> const& kktrk,DVEC sigmas) {
   return retval;
 }
 
-int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) {
+int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true, RefPieceStrategy hitref=RefPieceStrategy::DOCA, RefPieceStrategy xingref=RefPieceStrategy::DOCA) {
   string fullfile;
   if(strncmp(cfile.c_str(),"/",1) == 0) {
     fullfile = string(cfile);
@@ -180,6 +180,8 @@ int makeConfig(string const& cfile, KinKal::Config& config,bool mvarscale=true) 
         double temp, mindoca(-1.0),maxdoca(-1.0);
         ss >> temp >> utype;
         MetaIterConfig miconfig(temp);
+        miconfig.setHitRefPiece(hitref);
+        miconfig.setXingRefPiece(xingref);
         miconfig.addUpdater(StrawXingConfig(0.3,5.0,10.0,mvarscale)); // hardcoded values, should come from outside, FIXME
         if(utype == 0 ){
           cout << "NullWireHitUpdater for iteration " << nmiter << endl;
@@ -255,6 +257,7 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   bool fitmat(true);
   bool extend(false);
   bool mvarscale(true);
+  RefPieceStrategy hitref(RefPieceStrategy::DOCA), xingref(RefPieceStrategy::DOCA);
   string exfile;
   BFieldMap *BF(0);
   double Bgrad(0.0), dBx(0.0), dBy(0.0), dBz(0.0), Bz(1.0);
@@ -302,6 +305,8 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
     {"extend",     required_argument, 0, 'X'  },
     {"TimeBuffer",     required_argument, 0, 'W'  },
     {"MatVarScale",     required_argument, 0, 'v'  },
+    {"HitRefPiece",     required_argument, 0, 'H'  },
+    {"XingRefPiece",     required_argument, 0, 'G'  },
     {NULL, 0,0,0}
   };
 
@@ -365,6 +370,10 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
                  break;
       case 'v' : mvarscale = atoi(optarg);
                  break;
+      case 'H' : hitref = refPieceStrategy(optarg);
+                 break;
+      case 'G' : xingref = refPieceStrategy(optarg);
+                 break;
       case 'X' : exfile = optarg;
                  extend = true;
                  break;
@@ -392,12 +401,12 @@ int FitTest(int argc, char *argv[],KinKal::DVEC const& sigmas) {
   toy.setTolerance(tol/10.0); // finer precision on sim
   // setup fit configuration
   Config config;
-  makeConfig(sfile,config,mvarscale);
+  makeConfig(sfile,config,mvarscale,hitref,xingref);
   cout << "Main fit " << config << endl;
   // read the schedule from the file
   Config exconfig;
   if(extend){
-    makeConfig(exfile,exconfig,mvarscale);
+    makeConfig(exfile,exconfig,mvarscale,hitref,xingref);
     cout << "Extension " << exconfig << endl;
   }
   // generate hits

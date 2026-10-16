@@ -26,7 +26,7 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void updateReference(PTRAJ const& ptraj) override;
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       void append(PTRAJ& fit,TimeDir tdir) override;
       void extrapolate(PTRAJ& fit,TimeDir tdir) override;
@@ -65,7 +65,7 @@ namespace KinKal {
   template<class KTRAJ> DomainWall<KTRAJ>::DomainWall(
       DOMAINPTR const& prevdomain, DOMAINPTR const& nextdomain, PTRAJ const& ptraj) :
     prev_(prevdomain), next_(nextdomain) {
-      updateReference(ptraj);
+      updateReference(ptraj,MetaIterConfig());
     }
 
   template<class KTRAJ> void DomainWall<KTRAJ>::process(FitState& fstate,TimeDir tdir) {
@@ -85,7 +85,8 @@ namespace KinKal {
     prevwt_ = nextwt_ = Weights();
   }
 
-  template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj) {
+  template<class KTRAJ> void DomainWall<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const&) {
+    // the reference piece is set by the wall time, so the strategy does not apply
     // update change in parameters for passage through this DW
     auto const& refpiece = ptraj.nearestPiece(time()-1e-5); // disambiguate derivativates
     auto db = next_->bnom() - prev_->bnom();

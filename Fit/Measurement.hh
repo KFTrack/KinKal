@@ -23,15 +23,15 @@ namespace KinKal {
       void process(FitState& kkdata,TimeDir tdir) override;
       void updateState(MetaIterConfig const& miconfig,bool first) override;
       void updateConfig(Config const& config) override {}
-      void updateReference(PTRAJ const& ptraj) override;
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) override;
       void append(PTRAJ& fit,TimeDir tdir) override;
       void extrapolate(PTRAJ& fit,TimeDir tdir) override;
       Chisq chisq(Parameters const& pdata) const override;
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Measurement(){}
       // local functions
-      // construct from a hit and reference trajectory
-      Measurement(HITPTR const& hit,PTRAJ const& ptraj);
+      // construct from a hit and reference trajectory; the meta-iteration config sets the reference piece strategy
+      Measurement(HITPTR const& hit,PTRAJ const& ptraj, MetaIterConfig const& miconfig=MetaIterConfig());
       // needed by clone
       Measurement(Measurement const&);
       // clone op for reinstantiation
@@ -44,8 +44,8 @@ namespace KinKal {
       void setHitPtr(HITPTR const& ptr){ hit_ = ptr; }
   };
 
-  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit,PTRAJ const& ptraj) : hit_(hit) {
-    this->updateReference(ptraj);
+  template<class KTRAJ> Measurement<KTRAJ>::Measurement(HITPTR const& hit,PTRAJ const& ptraj, MetaIterConfig const& miconfig) : hit_(hit) {
+    this->updateReference(ptraj,miconfig);
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
@@ -65,8 +65,8 @@ namespace KinKal {
   template<class KTRAJ> void Measurement<KTRAJ>::extrapolate(PTRAJ& ptraj,TimeDir tdir) {
   }
 
-  template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    hit_->updateReference(ptraj);
+  template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) {
+    hit_->updateReference(ptraj,miconfig.hitRefPiece());
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

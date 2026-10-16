@@ -4,6 +4,7 @@
 // struct to define a single meta-iteration of the KKTrk fit.  Each meta-iteration configuration is held
 // constant until the algebraic iteration implicit in the extended Kalman fit methodology converges.
 //
+#include "KinKal/General/RefPieceStrategy.hh"
 #include <vector>
 #include <any>
 #include <ostream>
@@ -16,14 +17,21 @@ namespace KinKal {
       MetaIterConfig(double temp) : temp_(temp) {}
       // add updater
       void addUpdater(std::any const& updater) { updaters_.push_back(updater); }
+      // set how hits and material crossings choose their reference trajectory piece
+      void setHitRefPiece(RefPieceStrategy strategy) { hitref_ = strategy; }
+      void setXingRefPiece(RefPieceStrategy strategy) { xingref_ = strategy; }
       // accessors
       double temperature() const { return temp_; } // dimensionless parameter interpreted Additively, scaled by the relevant parameter error
       double varianceScale() const { return (1.0+temp_)*(1.0+temp_); } // variance scaling factor
       size_t nUpdaters() const { return updaters_.size(); }
+      RefPieceStrategy hitRefPiece() const { return hitref_; }
+      RefPieceStrategy xingRefPiece() const { return xingref_; }
       // find a particular updater: note that at most 1 of a type is allowed for a given meta-iteration
       template<class UPDATER> const UPDATER* findUpdater() const;
     private:
       double temp_; // 'temperature' to use in the simulated annealing (dimensionless, roughly equivalent to 'sigma')
+      RefPieceStrategy hitref_ = RefPieceStrategy::DOCA; // reference piece strategy for hits
+      RefPieceStrategy xingref_ = RefPieceStrategy::DOCA; // reference piece strategy for material crossings
       // payload for effects needing special updating; specific Effect subclasses can find their particular updater inside the vector
       std::vector<std::any> updaters_;
   };
