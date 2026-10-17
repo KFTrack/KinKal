@@ -9,7 +9,9 @@
 #include "KinKal/General/Vectors.hh"
 #include "KinKal/General/MomBasis.hh"
 #include "KinKal/General/TimeRange.hh"
+#include <algorithm>
 #include <deque>
+#include <iterator>
 #include <array>
 #include <memory>
 #include <ostream>
@@ -202,12 +204,11 @@ namespace KinKal {
     } else if(time >= range().end()){
       retval = pieces_.size()-1;
     } else {
-      // scan
-      retval = 0;
-      while(retval < pieces_.size() && (!pieces_[retval]->range().inRange(time)) && time > pieces_[retval]->range().end()){
-        retval++;
-      }
-      if(retval == pieces_.size())throw std::range_error("Failed PTraj range search");
+      // binary search for the first piece ending at or after time (pieces are time-ordered and contiguous)
+      auto ipiece = std::lower_bound(pieces_.begin(),pieces_.end(),time,
+          [](KTRAJPTR const& piece, double t){ return piece->range().end() < t; });
+      if(ipiece == pieces_.end())throw std::range_error("Failed PTraj range search");
+      retval = static_cast<size_t>(std::distance(pieces_.begin(),ipiece));
     }
     return retval;
   }
