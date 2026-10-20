@@ -31,12 +31,13 @@ namespace KinKal {
       // inversion changes from params <-> weight.
       // Invert in-place
       void invert() {
-        // first invert the matrix
-        if(mat_.Invert()){
-          vec_ = mat_*vec_;
-        } else {
-          throw std::runtime_error("Inversion failure");
+        // Cholesky for the symmetric positive-definite case; Bunch-Kaufman on the original matrix if it is not
+        DMAT orig(mat_);
+        if(!mat_.InvertChol()){
+          mat_ = orig;
+          if(!mat_.Invert()) throw std::runtime_error("Inversion failure");
         }
+        vec_ = mat_*vec_;
         // check
         static std::vector<double> ones(DVEC::kSize,1.0);
         static DVEC uvec(ones.data(),DVEC::kSize);
