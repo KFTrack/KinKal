@@ -31,7 +31,10 @@ namespace KinKal {
       // inversion changes from params <-> weight.
       // Invert in-place
       void invert() {
-        // Cholesky for the symmetric positive-definite case; Bunch-Kaufman on the original matrix if it is not
+        // Cholesky for the symmetric positive-definite case; Bunch-Kaufman on the original matrix if it is not.
+        // An exactly singular PSD matrix can pass Cholesky and return a huge finite inverse instead of throwing,
+        // and Cholesky is less accurate than Bunch-Kaufman on badly conditioned input. Fit states (a de-weighted
+        // seed plus added information) are full rank, so the singular case does not arise in a fit.
         DMAT orig(mat_);
         if(!mat_.InvertChol()){
           mat_ = orig;
