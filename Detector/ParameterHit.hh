@@ -40,7 +40,7 @@ namespace KinKal {
       Weights const& weight() const override { return weight_; }
       // parameter constraints are absolute and can't be updated
       void print(std::ostream& ost=std::cout,int detail=0) const override;
-      void updateReference(PTRAJ const& ptraj, unsigned) override { reftraj_ = ptraj.nearestTraj(time()); }
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const&) override { reftraj_ = ptraj.nearestTraj(time()); }
       KTRAJPTR refTrajPtr() const override { return reftraj_; }
       // ParameterHit-specfic interface
       // construct from constraint values, time, and mask of which parameters to constrain
