@@ -33,8 +33,9 @@ namespace KinKal {
       virtual Chisq chisq(Parameters const& params) const =0;  // least-squares distance to given parameters
       virtual double time() const = 0;  // time of this hit: this is WRT the reference trajectory
       virtual void print(std::ostream& ost=std::cout,int detail=0) const = 0;
-      // update to a new reference, without changing internal state
-      virtual void updateReference(PTRAJ const& ptraj) = 0;
+      // update to a new reference, without changing internal state. The meta-iteration configuration sets how the reference
+      // piece is chosen (MetaIterConfig::hitPieceIter() is the closest-approach piece-move limit, 0 = stay on the hint piece)
+      virtual void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) = 0;
       virtual KTRAJPTR refTrajPtr() const = 0;
       // update the internals of the hit, specific to this meta-iteraion
       virtual void updateState(MetaIterConfig const& config,bool first) = 0;

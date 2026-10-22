@@ -26,12 +26,12 @@ namespace KinKal {
       void updateConfig(Config const& config) override {}
       void append(PTRAJ& fit,TimeDir tdir) override;
       void extrapolate(PTRAJ& fit,TimeDir tdir) override;
-      void updateReference(PTRAJ const& ptraj) override;
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) override;
       Chisq chisq(Parameters const& pdata) const override { return Chisq();}
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       virtual ~Material(){}
-      // create from the material and a trajectory
-      Material(EXINGPTR const& exingptr, PTRAJ const& ptraj);
+      // create from the material and a trajectory; the meta-iteration config sets the reference piece strategy
+      Material(EXINGPTR const& exingptr, PTRAJ const& ptraj, MetaIterConfig const& miconfig=MetaIterConfig());
       // clone op for reinstantiation
       Material(Material const&);
       std::unique_ptr< Effect<KTRAJ> > clone(CloneContext&) const override;
@@ -48,8 +48,8 @@ namespace KinKal {
       void setElementXingPtr(EXINGPTR const& ptr){ exingptr_ = ptr; }
   };
 
-  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& exingptr, PTRAJ const& ptraj) : exingptr_(exingptr) {
-    updateReference(ptraj);
+  template<class KTRAJ> Material<KTRAJ>::Material(EXINGPTR const& exingptr, PTRAJ const& ptraj, MetaIterConfig const& miconfig) : exingptr_(exingptr) {
+    updateReference(ptraj,miconfig);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::process(FitState& kkdata,TimeDir tdir) {
@@ -132,8 +132,8 @@ namespace KinKal {
     }
   }
 
-  template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj) {
-    exingptr_->updateReference(ptraj);
+  template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) {
+    exingptr_->updateReference(ptraj,miconfig);
   }
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {

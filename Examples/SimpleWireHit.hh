@@ -56,7 +56,7 @@ namespace KinKal {
       double time() const override { return tpca_.particleToca(); }
       VEC3 dRdX(unsigned ires) const;
       Residual const& refResidual(unsigned ires=dresid) const override;
-      void updateReference(PTRAJ const& ptraj) override;
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) override;
       KTRAJPTR refTrajPtr() const override { return tpca_.particleTrajPtr(); }
       void print(std::ostream& ost=std::cout,int detail=0) const override;
       // Use dedicated updater
@@ -113,11 +113,11 @@ namespace KinKal {
     mindoca_(mindoca), dvel_(driftspeed), tvar_(tvar), tot_(tot), totvar_(totvar), rcell_(rcell), id_(id) {
     }
 
-  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(PTRAJ const& ptraj) {
+  template <class KTRAJ> void SimpleWireHit<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) {
     // if we already computed PCA in the previous iteration, use that to set the hint.  This speeds convergence
     // otherwise use the time at the center of the wire
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(wire()->timeAtMidpoint(),wire()->timeAtMidpoint());
-    PCA pca(ptraj,wire(),tphint,precision());
+    PCA pca(ptraj,wire(),tphint,precision(),miconfig.hitPieceIter());
     tpca_ = static_cast<CA>(pca);
     if(!tpca_.usable())throw std::runtime_error("WireHit TPOCA failure");
   }

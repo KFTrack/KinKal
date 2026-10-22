@@ -23,7 +23,7 @@ namespace KinKal {
       ShellXing(SURFPTR surface, MatEnv::DetMaterial const& mat, Intersection inter, double thickness)
       virtual ~ShellXing() {}
       // ElementXing interface
-      void updateReference(PTRAJ const& ptraj) override;
+      void updateReference(PTRAJ const& ptraj, MetaIterConfig const&) override;
       void updateState(MetaIterConfig const& config,bool first) override;
       Parameters params() const override;
       double time() const override { return inter_.time(); }
@@ -49,7 +49,7 @@ namespace KinKal {
     surf_(surface), mat_(mat), inter_(inter), reftrajptr_(reftrajptr), thick_(thick),tol_(tol), varscale_(1.0)
   {}
 
-  template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(PTRAJ const& ptraj) {
+  template <class KTRAJ> void ShellXing<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const&) {
     // re-intersect with the surface, taking the current time as start and range from the current piece (symmetrized)
     double delta = 0.5*reftraj->range().range(); // this factor may need tuning: too small and it may miss the intersection, too large and it may jump to a different intersection TODO
     TimeRange irange(inter_.time_-delta, inter_.time_+delta);

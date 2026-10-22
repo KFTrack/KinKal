@@ -25,7 +25,7 @@ namespace KinKal {
       // clone op for reinstantiation
       ElementXing(ElementXing const& rhs) = default;
       virtual std::shared_ptr< ElementXing<KTRAJ> > clone(CloneContext&) const;
-      virtual void updateReference(PTRAJ const& ptraj) = 0; // update the trajectory reference
+      virtual void updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) = 0; // update the trajectory reference; MetaIterConfig::xingPieceIter() is the closest-approach piece-move limit (0 = stay on the hint piece)
       virtual void updateState(MetaIterConfig const& config,bool first) =0; // update the state according to this meta-config
       virtual Parameters params() const =0; // parameter change induced by this element crossing WRT the reference parameters going forwards in time
       virtual double time() const=0; // time the particle crosses thie element

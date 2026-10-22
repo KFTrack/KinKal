@@ -158,6 +158,8 @@ namespace KinKal {
       std::optional<Status> replaceDomains(DOMAINCOL const& domains); // the failure, or nothing on success
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
+      // first meta-iteration of the current configuration, which sets the reference piece strategy outside the fit loop; the constructor and extend reject an empty schedule
+      MetaIterConfig const& firstMetaIter() const { return config().schedule().front(); }
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
       // record an extrapolation failure; always returns false
@@ -388,8 +390,9 @@ namespace KinKal {
         }
       }
     }
+    // re-reference with the strategy of the first meta-iteration of the current configuration
     for (auto& eff : effects_) {
-      eff->updateReference(*newtraj);
+      eff->updateReference(*newtraj,firstMetaIter());
     }
     fittraj_.swap(newtraj);
     return std::nullopt;
@@ -492,13 +495,14 @@ namespace KinKal {
   }
 
   template <class KTRAJ> void Track<KTRAJ>::createEffects( HITCOL& hits, EXINGCOL& exings,DOMAINCOL const& domains ) {
-    // create and append the effects.  First, loop over the hits
+    // create and append the effects, referenced with the strategy of the first meta-iteration.  First, loop over the hits
+    auto const& miconfig = firstMetaIter();
     for(auto& hit : hits ) {
-      effects_.emplace_back(std::make_unique<KKMEAS>(hit,*fittraj_));
+      effects_.emplace_back(std::make_unique<KKMEAS>(hit,*fittraj_,miconfig));
     }
     //add material effects
     for(auto& exing : exings) {
-      effects_.emplace_back(std::make_unique<KKMAT>(exing,*fittraj_));
+      effects_.emplace_back(std::make_unique<KKMAT>(exing,*fittraj_,miconfig));
     }
     // add DomainWall effects
     if(config().bfcorr_ && domains.size() > 1){
@@ -618,7 +622,7 @@ namespace KinKal {
       // prepare for the next iteration.  Update the domains
       updateDomains(*ptraj);
       // update the effects to reference the new trajectory
-      for(auto& effptr : effects_) effptr->updateReference(*ptraj);
+      for(auto& effptr : effects_) effptr->updateReference(*ptraj,miconfig);
       fittraj_.swap(ptraj);
       // now all effects reference the new traj: we can swap the fit to that.
       if(config().plevel_ >= Config::complete)fittraj_->print(std::cout,1);
