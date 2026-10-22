@@ -66,7 +66,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Measurement<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) {
-    hit_->updateReference(ptraj,miconfig.hitRefPiece());
+    hit_->updateReference(ptraj,miconfig.hitPieceIter());
   }
 
   template<class KTRAJ> Chisq Measurement<KTRAJ>::chisq(Parameters const& pdata) const {

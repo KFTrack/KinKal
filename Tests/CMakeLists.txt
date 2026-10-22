@@ -6,6 +6,7 @@ set( TEST_SOURCE_FILES
     CentralHelixBField_unit.cc
     CentralHelixDerivs_unit.cc
     CentralHelixFit_unit.cc
+    CentralHelixTOCAFit_unit.cc
     CentralHelixHit_unit.cc
     CentralHelixPKTraj_unit.cc
     CentralHelix_unit.cc

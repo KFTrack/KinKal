@@ -158,10 +158,8 @@ namespace KinKal {
       std::optional<Status> replaceDomains(DOMAINCOL const& domains); // the failure, or nothing on success
       void extendTraj(DOMAINCOL const& domains);
       void processEnds();
-      // first meta-iteration of the current configuration, which sets the reference piece strategy outside the fit loop
-      MetaIterConfig const& firstMetaIter() const {
-        static const MetaIterConfig defconfig;
-        return config().schedule().empty() ? defconfig : config().schedule().front(); }
+      // first meta-iteration of the current configuration, which sets the reference piece strategy outside the fit loop; the constructor and extend reject an empty schedule
+      MetaIterConfig const& firstMetaIter() const { return config().schedule().front(); }
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
       // record an extrapolation failure; always returns false

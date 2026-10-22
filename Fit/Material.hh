@@ -133,7 +133,7 @@ namespace KinKal {
   }
 
   template<class KTRAJ> void Material<KTRAJ>::updateReference(PTRAJ const& ptraj, MetaIterConfig const& miconfig) {
-    exingptr_->updateReference(ptraj,miconfig.xingRefPiece());
+    exingptr_->updateReference(ptraj,miconfig.xingPieceIter());
   }
 
   template<class KTRAJ> void Material<KTRAJ>::print(std::ostream& ost,int detail) const {

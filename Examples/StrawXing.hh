@@ -44,7 +44,7 @@ namespace KinKal {
         return rv;
       }
       // ElementXing interface
-      void updateReference(PTRAJ const& ptraj, RefPieceStrategy strategy) override;
+      void updateReference(PTRAJ const& ptraj, unsigned maxiter) override;
       void updateState(MetaIterConfig const& config,bool first) override;
       Parameters params() const override;
       double time() const override { return tpca_.particleToca() + toff_; } // offset time WRT TOCA to avoid exact overlapp with the wire hit
@@ -80,9 +80,9 @@ namespace KinKal {
     varscale_(1.0)
   {}
 
-  template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(PTRAJ const& ptraj, RefPieceStrategy strategy) {
+  template <class KTRAJ> void StrawXing<KTRAJ>::updateReference(PTRAJ const& ptraj, unsigned maxiter) {
     CAHint tphint = tpca_.usable() ?  tpca_.hint() : CAHint(axis()->timeAtMidpoint(),axis()->timeAtMidpoint());
-    PCA pca(ptraj,axis(),tphint,precision(),strategy);
+    PCA pca(ptraj,axis(),tphint,precision(),maxiter);
     tpca_ = static_cast<CA>(pca);
     if(!tpca_.usable())throw std::runtime_error("StrawXing TPOCA failure");
   }

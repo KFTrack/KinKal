@@ -2,8 +2,12 @@
 #define KinKal_RefPieceStrategy_hh
 //
 //  Strategy for choosing the trajectory piece an effect references when it is updated to a new piecewise trajectory.
-//  DOCA: follow the closest approach in space across pieces until the solution lies on the piece used to compute it.
-//  TOCA: compute the closest approach on the piece holding the hint time, without moving to another piece.
+//  DOCA: follow the closest approach in space across pieces until the solution lies on the piece used to compute it,
+//        moving at most MetaIterConfig::maxPieceIter() times.
+//  TOCA: compute the closest approach on the piece holding the hint time, without moving to another piece
+//        (PiecewiseClosestApproach with maxiter = 0). The hint then defines the reference piece, not just a starting
+//        value. Effects that take the hint from their previous solution can still move one piece per update, since
+//        that solution's TOCA may lie outside its piece.
 //
 #include <ostream>
 #include <stdexcept>
