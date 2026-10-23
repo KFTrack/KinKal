@@ -589,6 +589,8 @@ namespace KinKal {
     }
     FitStateArray states;
     initFitState(states, fitrange, config().dwt_/miconfig.varianceScale());
+    // Save the original forward endpoint prior before filtering adds measurements.
+    const Weights forwardEndpointPrior = states[0].wData();
     // process the relevant effects forwards in time, adding their info to the fit state.  Also compute chisquared
     for(auto feff=fwdbnds[0];feff!=fwdbnds[1];++feff){
       auto effptr = feff->get();
@@ -611,6 +613,9 @@ namespace KinKal {
       auto effptr = beff->get();
       effptr->process(states[1],TimeDir::backwards);
     }
+    // Match the two endpoint priors already included in the smoothed material caches.
+    // Add only the original prior: the completed forward state also contains measurements.
+    states[1].append(forwardEndpointPrior);
     // convert the innermost state into a new trajectory
     auto ptraj = initTraj(states[1],fitrange);
     // append forwards in time
