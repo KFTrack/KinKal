@@ -40,6 +40,10 @@ namespace KinKal {
       bool beyond(double time, TimeDir tdir) const {
         return tdir == TimeDir::forwards ? time > range_[1] : time < range_[0];
       }
+      // return the minimum time to this range (0 if in range)
+      double minTimeTo(double t) const {
+        return inRange(t) ? 0.0 : std::min(fabs(t-begin()),fabs(t-end()));
+      }
       // augment another range
       void combine(TimeRange const& other ) {
         range_[0] = std::min(begin(),other.begin());

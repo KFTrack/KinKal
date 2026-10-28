@@ -242,17 +242,30 @@ namespace KinKal {
   }
 
   template <class KTRAJ> double PiecewiseTrajectory<KTRAJ>::t0() const {
-  // find a self-consistent t0
+  // failsafe algorithm to find a maximally self-consistent t0
     if(pieces_.empty())throw std::length_error("Empty PiecewiseTrajectory!");
+    // first try using the traj itself to find the right piece. This works for most cases.
     double t0 = pieces_.front()->t0();
     auto index = nearestIndex(t0);
     int oldindex = -1;
     unsigned niter(0);
-    while(static_cast<int>(index) != oldindex && niter < 10){
+    static const unsigned maxniter(5); // almost all trajs converge in at most 2 iterations
+    while(static_cast<int>(index) != oldindex && niter < maxniter){
       ++niter;
       t0 = pieces_[index]->t0();
       oldindex = index;
       index = nearestIndex(t0);
+    }
+    if(niter >= maxniter){
+      // no self-consistent segment found. Exhaustive search for the segment with t0 closest to its range
+      double mindt = std::numeric_limits<double>::max();
+      for(auto piece :pieces_ ){
+        double dt = piece->range().minTimeTo(piece->t0());
+        if(dt < mindt){
+          mindt = dt;
+          t0 = piece->t0();
+        }
+      }
     }
     return t0;
   }
