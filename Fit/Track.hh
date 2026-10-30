@@ -162,6 +162,8 @@ namespace KinKal {
       MetaIterConfig const& firstMetaIter() const { return config().schedule().front(); }
       // add a single domain within the tolerance and extend the fit in the specified direction.
       void addDomain(Domain const& domain,TimeDir const& tdir,bool exact=false);
+      // extend the end piece in the specified direction to the edge of the outermost domain, if it stops short of it
+      void coverEndDomain(TimeDir const& tdir);
       // record an extrapolation failure; always returns false
       bool extrapolationFailed(Status::status stat, const char* comment);
       auto& status() { return history_.back(); } // most recent status
@@ -948,6 +950,8 @@ namespace KinKal {
       if(config().bfcorr_){
         // the step is clamped to [mindtstep_, maxDtStep], which needs a non-empty interval
         if(config().mindtstep_ > xtest.maxDtStep()) throw std::invalid_argument("Invalid configuration: minimum domain step exceeds the extrapolation maximum step");
+        // the walk starts at the domain edge; extend an end piece that stops short of it, so the predicate tests that time span first
+        coverEndDomain(tdir);
         // opt-in low-field handoff, for extrapolation that must leave the field map; with minfield_ 0
         // the unprotected domain walk below is used
         if(bfield_.protecting()){
@@ -1056,6 +1060,20 @@ namespace KinKal {
       }
     }
     return retval;
+  }
+
+  template <class KTRAJ> void Track<KTRAJ>::coverEndDomain(TimeDir const& tdir) {
+    if(domains_.empty()) return;
+    // the first DomainWall samples the end piece at the domain edge, so this changes no parameters, only the range
+    if(tdir == TimeDir::forwards){
+      auto& endpiece = fittraj_->backPtr();
+      double edge = domains_.crbegin()->get()->end();
+      if(endpiece->range().end() < edge) endpiece->setRange(TimeRange(endpiece->range().begin(),edge));
+    } else {
+      auto& endpiece = fittraj_->frontPtr();
+      double edge = domains_.cbegin()->get()->begin();
+      if(endpiece->range().begin() > edge) endpiece->setRange(TimeRange(edge,endpiece->range().end()));
+    }
   }
 
   template <class KTRAJ> bool Track<KTRAJ>::extrapolationFailed(Status::status stat, const char* comment) {
