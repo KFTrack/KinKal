@@ -260,7 +260,7 @@ namespace KinKal {
       oldindex = index;
       index = nearestIndex(t0);
     }
-    if(static_cast<int>(index) != oldindex){
+    if(static_cast<int>(index) != oldindex || !pieces_[index]->range().inRange(t0)){
       // no self-consistent segment found. Find the segment with t0 closest to its range
       double mindt = std::numeric_limits<double>::max();
       for(auto const& piece :pieces_ ){
