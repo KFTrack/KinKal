@@ -242,10 +242,14 @@ namespace KinKal {
   }
 
   template <class KTRAJ> double PiecewiseTrajectory<KTRAJ>::t0() const {
-  // find the maximally self-consistent t0. This is NOT guaranteed to be in range.
+  // find the maximally self-consistent t0. This is NOT guaranteed to be in range or unique.
     if(pieces_.empty())throw std::length_error("Empty PiecewiseTrajectory!");
     // first try using the traj itself to find the right piece. This works for most cases.
     double t0 = pieces_.front()->t0();
+    // if the front piece t0 precedes its range the search will fail. In this case try from the back
+    if(t0 < pieces_.front()->range().begin()) t0 = pieces_.back()->t0();
+    // Check for the same problem at the back; in that case, start with the midpoint
+    if(t0 > pieces_.back()->range().end())t0 = this->range().mid();
     auto index = nearestIndex(t0);
     int oldindex = -1;
     unsigned niter(0);
