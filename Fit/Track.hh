@@ -114,6 +114,11 @@ namespace KinKal {
       template <class XTEST> bool extrapolate(TimeDir tdir, XTEST const& XTest);
       // extrapolate the fit through a material xing. Return value is true if the effect is added and fit updated.
       bool extrapolate(EXINGPTR const& exing,TimeDir const& tdir);
+      // end the fit trajectory at time in direction tdir, e.g. where an extrapolation finds the particle stops. The domains beyond time are
+      // removed with the DomainWalls into them, and the domain containing time ends there. Requires a usable fit, time inside the trajectory
+      // and no active hit or material effect at or beyond time (inactive ones are kept, each with its own reference piece); otherwise
+      // nothing changes and the return value is false.
+      bool truncate(TimeDir tdir, double time);
       // accessors
       std::vector<Status> const& history() const { return history_; }
       Status const& fitStatus() const { return history_.back(); } // most recent status
@@ -1074,6 +1079,46 @@ namespace KinKal {
       double edge = domains_.cbegin()->get()->begin();
       if(endpiece->range().begin() > edge) endpiece->setRange(TimeRange(edge,endpiece->range().end()));
     }
+  }
+
+  template <class KTRAJ> bool Track<KTRAJ>::truncate(TimeDir tdir, double time) {
+    if(!hasTraj() || !fitStatus().usable() || !std::isfinite(time)) return false;
+    bool forwards = tdir == TimeDir::forwards;
+    auto trange = fittraj_->range();
+    if(time <= trange.begin() || time >= trange.end()) return false;
+    auto beyond = [forwards,time](double t){ return forwards ? t >= time : t <= time; };
+    // every active hit or material effect must stay on the kept part, so no piece the fit uses is removed or shortened past it.
+    // Inactive effects change nothing in the fit, and each hit or crossing holds its own reference piece, so they may lie beyond
+    // time. DomainWalls only link the field domains: those beyond time go with their domains
+    for(auto const& eff : effects_)
+      if(eff->active() && beyond(eff->time()) && dynamic_cast<KKDW const*>(eff.get()) == nullptr) return false;
+    if(!domains_.empty()){
+      auto removed = [forwards,time](DOMAINPTR const& dom){ return forwards ? dom->begin() >= time : dom->end() <= time; };
+      // the domain containing time is kept, so at least one domain remains
+      if(std::all_of(domains_.begin(),domains_.end(),removed)) return false;
+      effects_.remove_if([&removed,forwards](std::unique_ptr<KKEFF> const& eff){
+          auto dw = dynamic_cast<KKDW const*>(eff.get());
+          return dw != nullptr && removed(forwards ? dw->nextPtr() : dw->prevPtr()); });
+      for(auto idom = domains_.begin(); idom != domains_.end();) idom = removed(*idom) ? domains_.erase(idom) : std::next(idom);
+      auto const& outer = forwards ? *domains_.crbegin() : *domains_.cbegin();
+      if(forwards ? outer->end() > time : outer->begin() < time) outer->setEdge(tdir,time);
+    }
+    if(forwards){
+      fittraj_->setRange(TimeRange(trange.begin(),time),true);
+    } else {
+      // setRange(range,true) keeps the last piece before the range at the front, so the pieces that end at or before time are
+      // dropped here: the trajectory is rebuilt, in place, from the first piece reaching beyond time (the pieces are shared)
+      auto const& pieces = fittraj_->pieces();
+      size_t first(0);
+      while(pieces[first]->range().end() <= time) ++first; // time < trange.end(), so a piece reaches beyond it
+      if(first > 0){
+        PKTRAJ kept;
+        for(size_t ipiece = first; ipiece < pieces.size(); ++ipiece) kept.add(pieces[ipiece],TimeDir::forwards);
+        *fittraj_ = kept;
+      }
+      fittraj_->setRange(TimeRange(time,trange.end()));
+    }
+    return true;
   }
 
   template <class KTRAJ> bool Track<KTRAJ>::extrapolationFailed(Status::status stat, const char* comment) {

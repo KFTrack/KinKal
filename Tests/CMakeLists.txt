@@ -28,6 +28,7 @@ set( TEST_SOURCE_FILES
     Geometry_unit.cc
     Intersection_unit.cc
     MatEnv_unit.cc
+    Truncate_unit.cc
 )
 
 # Generate unit test targets
