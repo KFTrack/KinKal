@@ -24,6 +24,7 @@ namespace KinKal {
       double mid() const { return range_.mid();}
       auto const& bnom() const { return bnom_; }
       void updateBNom( VEC3 const& bnom) { bnom_ = bnom; }; // used in DomainWall updating
+      void setEdge(TimeDir tdir, double time) { range_.extend(time,tdir); } // move the end (forwards) or begin (backwards) to time; used to truncate a track's outermost domain
     private:
       TimeRange range_; // range of this domain
       VEC3 bnom_; // nominal BField for this domain
