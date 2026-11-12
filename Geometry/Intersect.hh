@@ -37,7 +37,6 @@ namespace KinKal {
     tstep *= timeDirSign(tdir);
     bool startinside = surf.isInside(pos);
     bool stepinside;
-    unsigned niter(0);
     // step until we cross the surface or the time is out of range
     do {
       ttest += tstep;
@@ -45,44 +44,49 @@ namespace KinKal {
       stepinside = surf.isInside(pos);
     } while (startinside == stepinside && trange.inRange(ttest));
     if(startinside != stepinside){
-      // we crossed the surface: backup and do a linear search.
-      ttest -= tstep;
-      double dist = std::numeric_limits<float>::max();
-      IntersectFlag rayinter;
-      static const unsigned nconv(5); // when to start worrying about non-convergence
-      double sumdist[2] = {0.0,0.0}; // sum of absolute distance for convergence testing
-      do {
-        retval.pos_ = ktraj.position3(ttest);
-        retval.pdir_ = ktraj.direction(ttest);
-        auto ray = retval.ray();
-        rayinter = surf.intersect(ray,dist,false,tol);
-        if(rayinter.onsurface_){
-          ttest += dist/speed;
-        } else {
-          break;
+      // we crossed the surface in the last step: refine inside that step with a safeguarded linear (Newton) search.
+      // The bracket [tstart, tcross] keeps one end on each side of the surface, so the search cannot leave it
+      double tstart = ttest - tstep; // on the starting side
+      double tcross = ttest; // on the other side
+      ttest = tstart;
+      double dtprev = std::numeric_limits<double>::max(); // size of the previous step
+      static const unsigned maxiter(100); // bisection alone converges in far fewer iterations
+      bool converged(false);
+      for(unsigned niter=0; niter < maxiter; ++niter){
+        pos = ktraj.position3(ttest);
+        // shrink the bracket using the side of the current point
+        if(niter > 0){
+          if(surf.isInside(pos) == startinside)
+            tstart = ttest;
+          else
+            tcross = ttest;
         }
-        ++niter;
-        unsigned iconv = niter/nconv; // count convergence cycles
-        if(iconv > 0){ // start testing for non-convergence
-          unsigned icur = iconv % 2; // current cycle average indicator (0 or 1)
-          int irem = niter - iconv*nconv;
-          if( irem == 0){
-            // new cycle
-            if(iconv > 2){ //if we're past the 3rd cycle, test
-              unsigned iprev = (iconv + 1) % 2; // previous cycle (that we just finished)
-              if(sumdist[iprev]/sumdist[icur] > 0.5) {
-                // claim non-convergence if the sum distance hasn't decreased by at least a factor of 2 between cycles
-                // std::cout << "Non-converged step intersection ray inter dist " << dist << " avg " << sumdist[iprev] << " prev avg " << sumdist[icur] << std::endl;
-                return retval; // failed
-              }
-            }
-            sumdist[icur] = 0.0; // reset the average counter
+        Ray ray(ktraj.direction(ttest),pos);
+        double dist(0.0);
+        auto rayinter = surf.intersect(ray,dist,false,tol);
+        double tnext = ttest + dist/speed;
+        // accept the linear step if it lands inside the bracket and at least halves the previous step
+        bool linear = rayinter.onsurface_ && (tnext-tstart)*(tnext-tcross) <= 0.0 && fabs(tnext-ttest) < 0.5*dtprev;
+        if(linear){
+          if(fabs(dist) < tol){
+            ttest = tnext;
+            converged = true;
+            break;
           }
-          sumdist[icur] += fabs(dist); // increatement the sum
+        } else {
+          // otherwise bisect, and stop once the bracket is within tolerance
+          tnext = 0.5*(tstart+tcross);
+          if(fabs(tcross-tstart)*speed < tol){
+            ttest = tnext;
+            converged = true;
+            break;
+          }
         }
-      } while (fabs(dist) > tol);
-      if(rayinter.onsurface_){
-        retval.onsurface_ = rayinter.onsurface_;
+        dtprev = fabs(tnext-ttest);
+        ttest = tnext;
+      }
+      if(converged){
+        retval.onsurface_ = true;
         retval.time_ = ttest;
         retval.pos_ = ktraj.position3(retval.time_);
         retval.pdir_ = ktraj.direction(retval.time_);
@@ -187,9 +191,10 @@ namespace KinKal {
       double ddot = fabs(ray.direction().Dot(plane.normal()));
       double zrange = fabs(vax*trange.range());
       if(zrange > tol && ddot > tol/zrange ){
-        // Find the intersection time of the  helix ray (along bnom) with the plane to reduce the range
+        // Find the intersection time of the  helix ray (along bnom) with the plane to reduce the range.
+        // The ray crossing can be behind the start even when the helix crosses the plane after it, so accept either direction
         double dist(0.0);
-        auto pinter = plane.intersect(ray,dist,true,tol);
+        auto pinter = plane.intersect(ray,dist,false,tol);
         if(pinter.onsurface_){
           // translate the ray intersection distance to a time
           double tmid = tstart + dist/vax;
