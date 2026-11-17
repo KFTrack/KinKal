@@ -66,7 +66,11 @@ namespace KinKal {
         auto rayinter = surf.intersect(ray,dist,false,tol);
         double tnext = ttest + dist/speed;
         // accept the linear step if it lands inside the bracket and at least halves the previous step
-        bool linear = rayinter.onsurface_ && (tnext-tstart)*(tnext-tcross) <= 0.0 && fabs(tnext-ttest) < 0.5*dtprev;
+        TimeRange bracket(tstart,tcross,false); // unordered: tcross is before tstart when stepping backwards
+        // closed test: once a step has converged the next one is null, landing exactly on the bracket end it starts from,
+        // which TimeRange::inRange excludes
+        bool inbracket = tnext >= bracket.begin() && tnext <= bracket.end();
+        bool linear = rayinter.onsurface_ && inbracket && fabs(tnext-ttest) < 0.5*dtprev;
         if(linear){
           if(fabs(dist) < tol){
             ttest = tnext;
@@ -75,8 +79,8 @@ namespace KinKal {
           }
         } else {
           // otherwise bisect, and stop once the bracket is within tolerance
-          tnext = 0.5*(tstart+tcross);
-          if(fabs(tcross-tstart)*speed < tol){
+          tnext = bracket.mid();
+          if(bracket.range()*speed < tol){
             ttest = tnext;
             converged = true;
             break;
@@ -162,6 +166,7 @@ namespace KinKal {
           // intersection is possible: step within the restricted range
           if(canIntersect(helix,cyl,srange,tol)){
             retval = stepIntersect(helix,cyl,srange,tol,tdir);
+            if(retval.onsurface_) retval.inrange_ = trange.inRange(retval.time_); // report against the caller's range, not the restricted one
           }
         }
       }
@@ -191,8 +196,9 @@ namespace KinKal {
       double ddot = fabs(ray.direction().Dot(plane.normal()));
       double zrange = fabs(vax*trange.range());
       if(zrange > tol && ddot > tol/zrange ){
-        // Find the intersection time of the  helix ray (along bnom) with the plane to reduce the range.
-        // The ray crossing can be behind the start even when the helix crosses the plane after it, so accept either direction
+        // Find where the trajectory's linearized ray (the helix axis for LoopHelix, the tangent for CentralHelix) crosses
+        // the plane, to reduce the range. The ray crossing can be behind the start even when the trajectory crosses the
+        // plane after it, so accept either direction
         double dist(0.0);
         auto pinter = plane.intersect(ray,dist,false,tol);
         if(pinter.onsurface_){
@@ -210,6 +216,7 @@ namespace KinKal {
             // step to the intersection in the restricted range.  Use a separate intersection object as the
             // range is different
             retval = stepIntersect(helix,plane,srange,tol,tdir);
+            if(retval.onsurface_) retval.inrange_ = trange.inRange(retval.time_); // report against the caller's range, not the restricted one
           }
         }
       } else {
@@ -253,6 +260,7 @@ namespace KinKal {
           // intersection is possible: step within the restricted range
           if(canIntersect(helix,fru,srange,tol) ) {
             retval = stepIntersect(helix,fru,srange,tol,tdir);
+            if(retval.onsurface_) retval.inrange_ = trange.inRange(retval.time_); // report against the caller's range, not the restricted one
           }
         }
       }

@@ -122,11 +122,13 @@ int main() {
         nfail += surfaceReturn<LoopHelix>(stype,tdir,0.15,0.1,startfrac,"LoopHelix"); ++ncase;
         nfail += surfaceReturn<CentralHelix>(stype,tdir,0.15,0.1,startfrac,"CentralHelix"); ++ncase;
       }
-      // controls: tol = 0.05 mm (the sign-change step starts past the turn), and a query that contains both roots
-      nfail += surfaceReturn<LoopHelix>(stype,tdir,0.15,0.05,0.5,"control LoopHelix"); ++ncase;
-      nfail += surfaceReturn<CentralHelix>(stype,tdir,0.15,0.05,0.5,"control CentralHelix"); ++ncase;
-      nfail += surfaceReturn<LoopHelix>(stype,tdir,0.15,0.1,1.5,"control LoopHelix"); ++ncase;
-      nfail += surfaceReturn<CentralHelix>(stype,tdir,0.15,0.1,1.5,"control CentralHelix"); ++ncase;
+      // smaller tolerance: with tol = 0.05 mm the sign-change step starts past the turn
+      nfail += surfaceReturn<LoopHelix>(stype,tdir,0.15,0.05,0.5,"small-tol LoopHelix"); ++ncase;
+      nfail += surfaceReturn<CentralHelix>(stype,tdir,0.15,0.05,0.5,"small-tol CentralHelix"); ++ncase;
+      // the query starts before the first crossing and contains both roots: the first crossing is expected.
+      // Before #233 was fixed the cylinder cases also failed, because the tangent ray misses the cylinder
+      nfail += surfaceReturn<LoopHelix>(stype,tdir,0.15,0.1,1.5,"first-crossing LoopHelix"); ++ncase;
+      nfail += surfaceReturn<CentralHelix>(stype,tdir,0.15,0.1,1.5,"first-crossing CentralHelix"); ++ncase;
     }
   }
   int nfailaxis(0), ncaseaxis(0);
