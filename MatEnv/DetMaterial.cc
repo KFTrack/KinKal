@@ -80,7 +80,7 @@ namespace MatEnv {
     // compute the sum radiated photons*energy for the given cuttoff
     double ymax = dmconf.ebrehmsfrac_;
     // energy loss through 1 radiation length of this material
-    _erad = (_density/_radthick)*(4.0*ymax -2.0*pow(ymax,2) + pow(ymax,3)); // energy loss per radiation length per MeV
+    _erad = (_density/_radthick)*(4.0*ymax/3.0 -2.0*pow(ymax,2)/3.0 + pow(ymax,3)); // energy loss per radiation length per MeV
     _eradvar = pow(_density/_radthick,2)*(2.0*pow(ymax,2)/3.0 - 4.0*pow(ymax,3)/9.0 + pow(ymax,4)/4.0); // energy variance per (rad length per MeV)^2
   }
 
