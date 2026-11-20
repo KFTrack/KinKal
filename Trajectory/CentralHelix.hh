@@ -150,6 +150,7 @@ namespace KinKal {
       // helix interface
       VEC3 center(double time) const; // helix center in global coordinates
       Ray tangent(double time) const; // tangent to the helix at a given time
+      Ray axis(double time) const; // helix axis in global coordinates, directed along the motion
       // linear approximation
       Ray linearize(double time) const { return tangent(time); }
       double bendRadius() const { return fabs(1.0/omega()); }

@@ -18,6 +18,20 @@
 #include <iostream>
 namespace KinKal {
   //
+  // fill the local plane UV system and the projection of the trajectory spatial covariance onto it.
+  // The projection (see KTRAJ::planeCovariance) is along the trajectory direction, so it describes the covariance of where the trajectory crosses the plane.
+  // If the trajectory is (nearly) parallel to the plane, the projection is singular and the covariance is left 0.
+  //
+  template <class KTRAJ> void fillPlaneCovariance(KTRAJ const& ktraj, Surface const& surf, Intersection& inter) {
+    auto plane = surf.tangentPlane(inter.pos_);
+    inter.udir_ = plane.uDirection();
+    inter.vdir_ = plane.vDirection();
+    inter.pcov_ = PMAT();
+    // the projection is singular if the trajectory lies in the plane
+    if(fabs(plane.normal().Dot(ktraj.direction(inter.time_))) < 1.0e-10) return;
+    inter.pcov_ = ktraj.planeCovariance(inter.time_,plane);
+  }
+  //
   // generic intersection implementation based on stepping across the surface within a given range in the given time direction
   //
   template <class KTRAJ, class SURF> Intersection stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
@@ -96,6 +110,7 @@ namespace KinKal {
         retval.pdir_ = ktraj.direction(retval.time_);
         retval.inbounds_ = surf.inBounds(retval.pos_,tol);
         retval.norm_ = surf.normal(retval.pos_);
+        fillPlaneCovariance(ktraj,surf,retval);
       }
     }
     // check the final time to be in range
@@ -188,7 +203,7 @@ namespace KinKal {
     } else {
       // the trajectory curves macroscopically over this range: see if the axis is normal
       double tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
-      auto ray = helix.linearize(tstart);
+      auto ray = helix.axis(tstart);
       auto velo = helix.velocity(tstart);
       if(tdir == TimeDir::backwards) ray.reverse(); // reverse if going backwards in time
       double vax = velo.Dot(ray.direction()); // speed along axis
@@ -196,8 +211,8 @@ namespace KinKal {
       double ddot = fabs(ray.direction().Dot(plane.normal()));
       double zrange = fabs(vax*trange.range());
       if(zrange > tol && ddot > tol/zrange ){
-        // Find where the trajectory's linearized ray (the helix axis for LoopHelix, the tangent for CentralHelix) crosses
-        // the plane, to reduce the range. The ray crossing can be behind the start even when the trajectory crosses the
+        // Find where the helix axis crosses the plane, to reduce the range. All plane crossings of the helix lie within
+        // R*tan(theta) of this point along the axis. The ray crossing can be behind the start even when the trajectory crosses the
         // plane after it, so accept either direction
         double dist(0.0);
         auto pinter = plane.intersect(ray,dist,false,tol);
@@ -312,6 +327,7 @@ namespace KinKal {
       retval.norm_ = surf.normal(retval.pos_);
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
       retval.pdir_ = kkline.direction(retval.time_);
+      fillPlaneCovariance(kkline,surf,retval);
     }
     // check the final time to be in range;
     retval.inrange_ = trange.inRange(retval.time_);

@@ -165,13 +165,19 @@ namespace KinKal {
   }
 
   PMAT CentralHelix::planeCovariance(double time,Plane const& plane) const {
-    // project covariance onto the U, V direction of the given plane
-    // particle direction cannot be orthogonal to the plane normal
+    // project the spatial covariance onto the U, V directions of the given plane.  The projection is
+    // along the particle direction, so the result describes the covariance of the point where the trajectory
+    // crosses the plane. This includes the effect of the t0 (and other) errors on the position along the trajectory.
+    // The particle direction cannot lie in the plane
     auto momdir = direction(time);
-    if(fabs(plane.normal().Dot(momdir)) < 1.0e-10)throw invalid_argument("Momentum direction lies in the plane");
+    double ndot = plane.normal().Dot(momdir);
+    if(fabs(ndot) < 1.0e-10)throw invalid_argument("Momentum direction lies in the plane");
+    // a perturbation dx moves the crossing point by dx - momdir*(norm.dx)/(norm.momdir)
+    auto uproj = plane.uDirection() - plane.normal()*(plane.uDirection().Dot(momdir)/ndot);
+    auto vproj = plane.vDirection() - plane.normal()*(plane.vDirection().Dot(momdir)/ndot);
     auto dxdpvec = dXdPar(time);
-    SVEC3 uvec(plane.uDirection().X(),plane.uDirection().Y(),plane.uDirection().Z());
-    SVEC3 vvec(plane.vDirection().X(),plane.vDirection().Y(),plane.vDirection().Z());
+    SVEC3 uvec(uproj.X(),uproj.Y(),uproj.Z());
+    SVEC3 vvec(vproj.X(),vproj.Y(),vproj.Z());
     PPMAT dPlanedPar;
     dPlanedPar.Place_in_row(uvec*dxdpvec,0,0);
     dPlanedPar.Place_in_row(vvec*dxdpvec,1,0);
@@ -486,6 +492,13 @@ namespace KinKal {
 
   Ray CentralHelix::tangent(double time) const {
     return Ray(direction(time),position3(time));
+  }
+
+  Ray CentralHelix::axis(double time) const {
+    // direction is along Bnom, signed by the velocity component along it.  Note Bnom is in global coordinates
+    VEC3 adir = bnom_.Unit();
+    if(adir.Dot(velocity(time)) < 0.0) adir *= -1.0;
+    return Ray(adir,center(time));
   }
 
   double CentralHelix::sagitta(double trange) const {
