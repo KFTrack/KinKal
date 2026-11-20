@@ -27,6 +27,7 @@ set( TEST_SOURCE_FILES
     LoopHelix_unit.cc
     Geometry_unit.cc
     Intersection_unit.cc
+    IntersectReturn_unit.cc
     MatEnv_unit.cc
     Truncate_unit.cc
 )
