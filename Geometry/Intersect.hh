@@ -129,21 +129,38 @@ namespace KinKal {
     auto hbeg = helix.center(trange.begin());
     auto hend = helix.center(trange.end());
     // if the circles are fully contained one in the other no intersection is possible
+    // The helix center moves linearly in time along bnom, so its distance from the cylinder axis is convex in time
+    // and is largest at one end of the range.  A crossing requires the circles to not be nested at some time, so
+    // it is enough to test the larger end separation.
     double dbeg = ROOT::Math::VectorUtil::Perp(hbeg - cyl.center(),cyl.axis());
     double dend = ROOT::Math::VectorUtil::Perp(hend - cyl.center(),cyl.axis());
-    double drad = fabs(cyl.radius()-helix.bendRadius());
-    return dbeg > drad -tol && dend > drad -tol;
+    // If bnom is tilted from the cylinder axis, the helix circle projects onto an ellipse whose minor axis is shorter by cos(tilt),
+    // so it can reach that much closer to the cylinder axis
+    double cost = fabs(helix.bnom().Unit().Dot(cyl.axis()));
+    double rbend = helix.bendRadius();
+    double drad = cyl.radius() > rbend ? cyl.radius() - rbend : rbend*cost - cyl.radius();
+    return std::max(dbeg,dend) > drad - tol;
   }
 
   template < class HELIX> bool canIntersect( HELIX const& helix, KinKal::Frustrum const& fru, TimeRange const& trange, double tol) {
     auto hbeg = helix.center(trange.begin());
     auto hend = helix.center(trange.end());
     // if the circles are fully contained one in the other no intersection is possible
+    // As for the cylinder, the helix center distance from the axis is convex in time. While the sign of (cone radius - bend radius)
+    // is unchanged the nesting cut is linear in time, so the separation beyond the cut is largest at one end of the range.
     double dbeg = ROOT::Math::VectorUtil::Perp(hbeg - fru.center(),fru.axis());
     double dend = ROOT::Math::VectorUtil::Perp(hend - fru.center(),fru.axis());
-    double dradbeg = fru.radius(hbeg)-helix.bendRadius();
-    double dradend = fru.radius(hend)-helix.bendRadius();
-    return dradbeg*dradend < 0.0 || (dbeg > fabs(dradbeg)  -tol && dend > fabs(dradend) -tol);
+    double rbend = helix.bendRadius();
+    double rfbeg = fru.radius(hbeg);
+    double rfend = fru.radius(hend);
+    if((rfbeg-rbend)*(rfend-rbend) < 0.0) return true;
+    // If bnom is tilted from the axis the helix circle projects onto an ellipse with minor axis rbend*cos(tilt), and it spans
+    // +-rbend*sin(tilt) along the axis, over which the cone radius changes by that times the cone slope
+    double cost = fabs(helix.bnom().Unit().Dot(fru.axis()));
+    double sint = sqrt(std::max(1.0-cost*cost,0.0));
+    double slack = rbend*sint*fabs(fru.highRadius()-fru.lowRadius())/(2.0*fru.halfLength());
+    auto drad = [rbend,cost](double rf) { return rf > rbend ? rf - rbend : rbend*cost - rf; };
+    return std::max(dbeg - drad(rfbeg), dend - drad(rfend)) > -tol - slack;
   }
 
   template < class HELIX> Intersection hcIntersect( HELIX const& helix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {

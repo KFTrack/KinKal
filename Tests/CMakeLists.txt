@@ -29,6 +29,7 @@ set( TEST_SOURCE_FILES
     Intersection_unit.cc
     IntersectReturn_unit.cc
     IntersectionCovariance_unit.cc
+    IntersectTilt_unit.cc
     MatEnv_unit.cc
     Truncate_unit.cc
 )
