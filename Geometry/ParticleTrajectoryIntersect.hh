@@ -8,15 +8,16 @@
 #include "KinKal/Geometry/Intersection.hh"
 #include "KinKal/Geometry/Intersect.hh"
 namespace KinKal {
-  // find intersection by stepping over pieces. This works when the pieces have small curvature
-  template <class KTRAJ, class SURF> Intersection intersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
+  // find intersection by stepping over pieces. This works when the pieces have small curvature.
+  // If pcov is true the projected spatial covariance is filled, using the piece containing the final intersection only
+  template <class KTRAJ, class SURF> Intersection intersect(ParticleTrajectory<KTRAJ> const& ptraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
     Intersection retval;
     double tstart = (tdir == TimeDir::forwards) ? trange.begin() : trange.end();
     double tend = (tdir == TimeDir::forwards) ? trange.end() : trange.begin();
     size_t istart = ptraj.nearestIndex(tstart);
     size_t iend = ptraj.nearestIndex(tend);
     if(istart == iend){
-      retval = intersect(ptraj.piece(istart),surf,trange,tol,tdir);
+      retval = intersect(ptraj.piece(istart),surf,trange,tol,tdir,pcov);
     } else {
       int istep = (tdir == TimeDir::forwards) ? 1 : -1;
       do {
@@ -46,6 +47,7 @@ namespace KinKal {
             auto tinter = intersect(*ttraj,surf,srange,tol,tdir);
             if(tinter.good()){
               retval = tinter;
+              if(pcov)fillPlaneCovariance(*ttraj,retval);
               break;
             }
           }

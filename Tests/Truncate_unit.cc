@@ -262,19 +262,35 @@ namespace {
         continue;
       }
       double cut = 0.5*(lastactive + *next);
-      size_t neff = trk.effects().size();
       check(!trk.truncate(TimeDir::forwards,lastactive),elabel + " refuses a cut at the last active effect");
-      check(trk.truncate(TimeDir::forwards,cut),elabel + " truncation before the inactive hits");
-      check(ftraj.range().end() == cut,elabel + " trajectory ends at the cut");
-      check(trk.effects().size() == neff,elabel + " effects kept");
+      // with field correction the extrapolation step can end several domains past the cut: those domains and the DomainWalls
+      // into them are removed, and every other effect, including the inactive hits, must be kept
+      checkCut(trk,TimeDir::forwards,cut,elabel + " before the inactive hits");
+      size_t nkept(0);
       for(auto const& eff : trk.effects()){
         if(eff->active() || eff->time() <= cut) continue;
         auto meas = dynamic_cast<Measurement<KTRAJ> const*>(eff.get());
+        if(meas != nullptr) ++nkept;
         check(meas != nullptr && meas->hit()->refTrajPtr() && std::isfinite(meas->hit()->referenceTrajectory().momentum(eff->time())),
             elabel + " an inactive hit beyond the cut keeps a usable reference piece");
       }
-      if(!trk.domains().empty()) check((*trk.domains().crbegin())->end() <= cut && contiguous(trk),elabel + " domains end at the cut");
+      check(nkept == size_t(tinact.end()-next),elabel + " inactive hits beyond the cut kept");
       check(trk.fitStatus().usable(),elabel + " fit status still usable");
+      // Whether the long step above leaves a domain beyond the cut depends on floating-point details, so extrapolate again in
+      // short steps, which with field correction adds domains beyond the inactive hits, and cut again before the next one
+      ReachTime xshort{hits.back()->time() + 5.0, 1.0};
+      check(trk.extrapolate(TimeDir::forwards,xshort),elabel + " short-step extrapolation past the inactive hits");
+      double cut2 = 0.5*(cut + *next);
+      if(bfcorr){
+        size_t nbeyond(0);
+        for(auto const& dom : trk.domains()) nbeyond += dom->begin() >= cut2;
+        check(nbeyond > 0,elabel + " domains beyond the second cut");
+      }
+      checkCut(trk,TimeDir::forwards,cut2,elabel + " second cut before the inactive hits");
+      nkept = 0;
+      for(auto const& eff : trk.effects())
+        if(!eff->active() && eff->time() > cut2 && dynamic_cast<Measurement<KTRAJ> const*>(eff.get()) != nullptr) ++nkept;
+      check(nkept == size_t(tinact.end()-next),elabel + " inactive hits beyond the second cut kept");
     }
     check(ntested == 3,label + " has 3 usable fits in 10 events");
     std::cout << label << ": " << ntested << " fits tested" << std::endl;
