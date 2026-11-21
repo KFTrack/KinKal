@@ -60,7 +60,7 @@ namespace KKTest {
       // create a seed by randomizing the parameters
       void createSeed(KTRAJ& seed,DVEC const& sigmas, double seedsmear);
       void extendTraj(PTRAJ& ptraj,double htime);
-      void createTraj(PTRAJ& ptraj);
+      double createTraj(PTRAJ& ptraj); // create the initial piece; returns the end time of the full simulation range
       void createScintHit(PTRAJ& ptraj, HITCOL& thits);
       void simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat=true);
       double createStrawMaterial(PTRAJ& ptraj, EXING* sxing);
@@ -133,15 +133,18 @@ namespace KKTest {
 
   template <class KTRAJ> void ToyMC<KTRAJ>::simulateParticle(PTRAJ& ptraj,HITCOL& thits, EXINGCOL& dxings, bool addmat) {
     // create the seed first
-    createTraj(ptraj);
+    // the initial piece only covers the range where the field is within tolerance (the full range in a uniform field);
+    // the hits must span the full simulation range, extending the trajectory through the field as they are generated
+    double simend = createTraj(ptraj);
+    TimeRange simrange(ptraj.range().begin(),simend);
     double mom = ptraj.momentum(0.0);
     // divide time range
     double dt(0.0);
-    if(nhits_ > 0) dt = (ptraj.range().range())/(nhits_);
+    if(nhits_ > 0) dt = (simrange.range())/(nhits_);
     VEC3 bsim;
     // create the hits (and associated materials)
     for(size_t ihit=0; ihit<nhits_; ihit++){
-      double htime = ptraj.range().begin() + ihit*dt;
+      double htime = simrange.begin() + ihit*dt;
       // extend the trajectory in the BFieldMap to this time
       extendTraj(ptraj,htime);
       // create the hit at this time
@@ -171,7 +174,7 @@ namespace KKTest {
       createScintHit(ptraj,thits);
     }
     // extend if there are no hits
-    if(thits.size() == 0) extendTraj(ptraj,ptraj.range().end());
+    if(thits.size() == 0) extendTraj(ptraj,simrange.end());
   }
 
   template <class KTRAJ> double ToyMC<KTRAJ>::createStrawMaterial(PTRAJ& ptraj, EXING* sxing) {
@@ -195,9 +198,12 @@ namespace KKTest {
     endmom.SetCoordinates(endmom.Px()+dmvec.X(), endmom.Py()+dmvec.Y(), endmom.Pz()+dmvec.Z(),endmom.M());
     // generate a new piece with this momentumand append
     VEC3 bnom = bfield_.fieldVect(endpos.Vect());
-    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,ptraj.range().end()));
+    // in a non-uniform field the crossing can be at or past the end of the trajectory simulated so far: if so, cover one step within the field tolerance
+    double tend = ptraj.range().end();
+    if(tend <= tstraw) tend = tstraw + bfield_.rangeInTolerance(endpiece,tstraw,tol_);
+    KTRAJ newend(endpos,endmom,endpiece.charge(),bnom,TimeRange(tstraw,tend));
     //      newend.print(cout,1);
-    ptraj.append(newend);
+    ptraj.append(newend,true); // replace any pieces past the crossing, which were simulated with the pre-crossing momentum
     return dm;
   }
 
@@ -268,7 +274,7 @@ namespace KKTest {
     }
   }
 
-  template <class KTRAJ> void ToyMC<KTRAJ>::createTraj(PTRAJ& ptraj) {
+  template <class KTRAJ> double ToyMC<KTRAJ>::createTraj(PTRAJ& ptraj) {
     // randomize the position and momentum
     double tphi = tr_.Uniform(-M_PI,M_PI);
     double tcost = tr_.Uniform(ctmin_,ctmax_);
@@ -281,8 +287,9 @@ namespace KKTest {
     KTRAJ ktraj(torigin,tmomv,icharge_,bsim,TimeRange(tbeg,tbeg+tmax));
     // set initial range
     double tend = tbeg + bfield_.rangeInTolerance(ktraj,tbeg,tol_);
-    ktraj.setRange(TimeRange(tbeg,tend));
+    ktraj.setRange(TimeRange(tbeg,std::min(tend,tbeg+tmax)));
     ptraj.append(ktraj);
+    return tbeg+tmax;
   }
 }
 #endif
