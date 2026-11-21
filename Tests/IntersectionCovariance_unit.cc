@@ -2,8 +2,8 @@
 // Test the projected spatial covariance of a trajectory onto the local plane at an intersection (Intersection::pcov_)
 // by comparing it with a toy MC: the trajectory parameters are randomized according to their covariance, the
 // intersection is recomputed, and the spread of the intersection points in the local plane UV system is measured.
-// Also tests consistency of pcov_ with KTRAJ::planeCovariance, and that the covariance is filled for
-// intersections that are on the surface but out of bounds.
+// Also tests consistency of pcov_ with KTRAJ::planeCovariance, that the covariance is filled for
+// intersections that are on the surface but out of bounds, and that it is only filled on request.
 // original author: David Brown (LBNL) 2026
 //
 #include "KinKal/Geometry/Intersection.hh"
@@ -41,16 +41,27 @@ template <class KTRAJ> void setCovariance(KTRAJ& ktraj, std::array<double,6> con
   }
 }
 
-// INTERF is a callable (KTRAJ const&, SURF const&, TimeRange const&) -> Intersection
+// INTERF is a callable (KTRAJ const&, SURF const&, TimeRange const&, bool pcov) -> Intersection
 template <class KTRAJ, class SURF, class INTERF> int testCovariance(std::string const& name, KTRAJ const& ktraj, SURF const& surf,
     TimeRange const& trange, INTERF interf, bool expectinbounds, unsigned ntoy, unsigned seed, int verbose) {
   static const double vartol(0.05); // relative tolerance on toy variance (statistical precision ~1% for 20K toys)
   static const double rhotol(0.03); // absolute tolerance on the toy correlation coefficient
   static const double ctol(1.0e-9); // relative tolerance on consistency checks
-  auto inter = interf(ktraj,surf,trange);
+  auto inter = interf(ktraj,surf,trange,true);
   if(verbose > 0) cout << name << " " << inter << endl;
   if(!inter.onsurface_){
     cout << name << ": intersection not on surface" << endl;
+    return -1;
+  }
+  if(!inter.hascov_){
+    cout << name << ": plane covariance not filled" << endl;
+    return -1;
+  }
+  // by default the covariance is not projected; the intersection must otherwise be identical
+  auto nocov = interf(ktraj,surf,trange,false);
+  if(nocov.hascov_ || nocov.pcov_ != PMAT() || nocov.onsurface_ != inter.onsurface_ || nocov.inbounds_ != inter.inbounds_ ||
+      nocov.inrange_ != inter.inrange_ || nocov.time_ != inter.time_ || nocov.udir_ != inter.udir_ || nocov.vdir_ != inter.vdir_){
+    cout << name << ": default intersection inconsistent: " << nocov << " vs " << inter << endl;
     return -1;
   }
   if(inter.inbounds_ != expectinbounds){
@@ -94,7 +105,7 @@ template <class KTRAJ, class SURF, class INTERF> int testCovariance(std::string 
     for(size_t ipar=0;ipar < NParams(); ++ipar)
       pars.parameters()[ipar] += gauss(gen)*sqrt(ktraj.params().covariance()(ipar,ipar));
     KTRAJ toytraj(pars,ktraj);
-    auto toyinter = interf(toytraj,surf,toyrange);
+    auto toyinter = interf(toytraj,surf,toyrange,false); // only the position is needed
     if(!toyinter.onsurface_) continue;
     auto dpos = toyinter.pos_ - inter.pos_;
     double du = dpos.Dot(inter.udir_);
@@ -162,7 +173,7 @@ int main(int argc, char** argv) {
   KinematicLine kline(pos,mom,-1,bnom,trange);
   setCovariance(kline,{0.1,0.1,0.0005,0.0005,0.005,0.05});
 
-  auto inter = [&](auto const& ktraj, auto const& surf, TimeRange const& range) { return intersect(ktraj,surf,range,tol); };
+  auto inter = [&](auto const& ktraj, auto const& surf, TimeRange const& range, bool pcov) { return intersect(ktraj,surf,range,tol,TimeDir::forwards,pcov); };
 
   int status(0);
   status |= testCovariance("LoopHelix Plane",lhelix,plane,trange,inter,true,ntoy,seed,verbose);

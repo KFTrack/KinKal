@@ -8,6 +8,7 @@ std::ostream& operator <<(std::ostream& ost, KinKal::IntersectFlag const& iflag)
     ost << "On surface ";
     if(iflag.inbounds_)ost << " in bounds ";
     if(iflag.inrange_)ost << " in range ";
+    if(iflag.hascov_)ost << " with covariance ";
   }else {
     ost << "No Intersection";
   }

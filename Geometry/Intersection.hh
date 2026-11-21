@@ -22,7 +22,8 @@ namespace KinKal {
     VEC3 udir_; // local plane U direction
     VEC3 vdir_; // local plane V direction
     // projected spatial covariance of the trajectory at the intersection onto the local plane, in UV coordinates.
-    // This is filled for all onsurface intersections (in bounds or not), as long as the trajectory isn't parallel to the plane
+    // This is only computed on request (the pcov argument of intersect), and is then filled for onsurface intersections (in bounds or not)
+    // as long as the trajectory isn't parallel to the plane. hascov_ records if it was filled; otherwise it is 0.
     PMAT pcov_;
     Ray ray() const { return Ray(pdir_,pos_); } // linear particle trajectory at intersection
     friend std::ostream& operator << (std::ostream& ost, KinKal::Intersection const& inter);

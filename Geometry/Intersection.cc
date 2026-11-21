@@ -8,6 +8,7 @@ namespace KinKal {
       ost << "Intersection on surface ";
       if(inter.inbounds_) ost << " in bounds ";
       if(inter.inrange_) ost << " in time range ";
+      if(inter.hascov_) ost << " with covariance ";
     } else {
       ost << "No Intersection";
     }

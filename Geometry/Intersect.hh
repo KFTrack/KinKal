@@ -18,21 +18,32 @@
 #include <iostream>
 namespace KinKal {
   //
-  // fill the local plane UV system and the projection of the trajectory spatial covariance onto it.
-  // The projection (see KTRAJ::planeCovariance) is along the trajectory direction, so it describes the covariance of where the trajectory crosses the plane.
-  // If the trajectory is (nearly) parallel to the plane, the projection is singular and the covariance is left 0.
+  // fill the local plane (tangent to the surface at the intersection) UV system. This is cheap, and is done for every onsurface intersection
   //
-  template <class KTRAJ> void fillPlaneCovariance(KTRAJ const& ktraj, Surface const& surf, Intersection& inter) {
+  inline void fillPlaneFrame(Surface const& surf, Intersection& inter) {
     auto plane = surf.tangentPlane(inter.pos_);
     inter.udir_ = plane.uDirection();
     inter.vdir_ = plane.vDirection();
-    inter.pcov_ = PMAT();
-    // the projection is singular if the trajectory lies in the plane
-    if(fabs(plane.normal().Dot(ktraj.direction(inter.time_))) < 1.0e-10) return;
-    inter.pcov_ = ktraj.planeCovariance(inter.time_,plane);
   }
   //
-  // generic intersection implementation based on stepping across the surface within a given range in the given time direction
+  // fill the projection of the trajectory spatial covariance onto the local plane of an onsurface intersection.
+  // The projection (see KTRAJ::planeCovariance) is along the trajectory direction, so it describes the covariance of where the trajectory crosses the plane.
+  // If the trajectory is (nearly) parallel to the plane the projection is singular: the covariance is left 0 and hascov_ false.
+  // This is optional as the projection is relatively expensive; intersect calls it only on request (pcov argument), and only on the final intersection.
+  //
+  template <class KTRAJ> void fillPlaneCovariance(KTRAJ const& ktraj, Intersection& inter) {
+    inter.pcov_ = PMAT();
+    inter.hascov_ = false;
+    if(!inter.onsurface_) return;
+    // the projection is singular if the trajectory lies in the plane
+    if(fabs(inter.norm_.Dot(ktraj.direction(inter.time_))) < 1.0e-10) return;
+    Plane plane(inter.norm_,inter.udir_,inter.pos_);
+    inter.pcov_ = ktraj.planeCovariance(inter.time_,plane);
+    inter.hascov_ = true;
+  }
+  //
+  // generic intersection implementation based on stepping across the surface within a given range in the given time direction.
+  // This and the other internal implementations below don't project the covariance; that is done by the intersect functions on request
   //
   template <class KTRAJ, class SURF> Intersection stepIntersect( KTRAJ const& ktraj, SURF const& surf, TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
     Intersection retval;
@@ -110,7 +121,7 @@ namespace KinKal {
         retval.pdir_ = ktraj.direction(retval.time_);
         retval.inbounds_ = surf.inBounds(retval.pos_,tol);
         retval.norm_ = surf.normal(retval.pos_);
-        fillPlaneCovariance(ktraj,surf,retval);
+        fillPlaneFrame(surf,retval);
       }
     }
     // check the final time to be in range
@@ -306,30 +317,43 @@ namespace KinKal {
   return retval;
   }
   //
-  // Tie intersect to the explicit helix implementations
+  // Tie intersect to the explicit helix implementations.
+  // If pcov is true, the projected spatial covariance is filled in the returned intersection (see fillPlaneCovariance)
   //
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hcIntersect(lhelix,cyl,trange,tol,tdir);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hcIntersect(lhelix,cyl,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(lhelix,retval);
+    return retval;
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hcIntersect(chelix,cyl,trange,tol,tdir);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Cylinder const& cyl, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hcIntersect(chelix,cyl,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(chelix,retval);
+    return retval;
   }
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hpIntersect(lhelix,plane,trange,tol,tdir);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hpIntersect(lhelix,plane,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(lhelix,retval);
+    return retval;
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hpIntersect(chelix,plane,trange,tol,tdir);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Plane const& plane, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hpIntersect(chelix,plane,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(chelix,retval);
+    return retval;
   }
-  Intersection intersect( LoopHelix const& lhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hfIntersect(lhelix,fru,trange,tol,tdir);
+  Intersection intersect( LoopHelix const& lhelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hfIntersect(lhelix,fru,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(lhelix,retval);
+    return retval;
   }
-  Intersection intersect( CentralHelix const& chelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hfIntersect(chelix,fru,trange,tol,tdir);
+  Intersection intersect( CentralHelix const& chelix, KinKal::Frustrum const& fru, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    auto retval = hfIntersect(chelix,fru,trange,tol,tdir);
+    if(pcov)fillPlaneCovariance(chelix,retval);
+    return retval;
   }
   //
   // Line trajectory with generic surfaces; no specialization needed since all surfaces provide a ray intersection implementation
   //
-  Intersection intersect(KinKal::KinematicLine const& kkline, KinKal::Surface const& surf, TimeRange trange,double tol,TimeDir tdir = TimeDir::forwards) {
+  Intersection intersect(KinKal::KinematicLine const& kkline, KinKal::Surface const& surf, TimeRange trange,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
     Intersection retval;
     auto tstart = tdir == TimeDir::forwards ? trange.begin() : trange.end();
     auto pos = kkline.position3(tstart);
@@ -344,7 +368,8 @@ namespace KinKal {
       retval.norm_ = surf.normal(retval.pos_);
       retval.time_ = tstart + dist*timeDirSign(tdir)/kkline.speed(tstart);
       retval.pdir_ = kkline.direction(retval.time_);
-      fillPlaneCovariance(kkline,surf,retval);
+      fillPlaneFrame(surf,retval);
+      if(pcov)fillPlaneCovariance(kkline,retval);
     }
     // check the final time to be in range;
     retval.inrange_ = trange.inRange(retval.time_);
@@ -352,25 +377,25 @@ namespace KinKal {
   }
   // generic surface intersection cast down till we find something that works.  This will only be used for helices, as KinematicLine
   // is already complete
-  template <class KTRAJ> Intersection hsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards) {
+  template <class KTRAJ> Intersection hsIntersect(KTRAJ const& ktraj, Surface const& surf,TimeRange trange, double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
     // use pointers to cast to avoid avoid a throw
     const Surface* surfp = &surf;
     // go through the possibilities: I don't know of anything more elegant
     auto plane = dynamic_cast<const Plane*>(surfp);
-    if(plane)return intersect(ktraj,*plane,trange,tol,tdir);
+    if(plane)return intersect(ktraj,*plane,trange,tol,tdir,pcov);
     auto cyl = dynamic_cast<const Cylinder*>(surfp);
-    if(cyl)return intersect(ktraj,*cyl,trange,tol,tdir);
+    if(cyl)return intersect(ktraj,*cyl,trange,tol,tdir,pcov);
     auto fru = dynamic_cast<const Frustrum*>(surfp);
-    if(fru)return intersect(ktraj,*fru,trange,tol,tdir);
+    if(fru)return intersect(ktraj,*fru,trange,tol,tdir,pcov);
     // unknown surface subclass; return failure
     return Intersection();
   }
   // now provide the explicit generic interface
-  Intersection intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hsIntersect(ploophelix,surf,trange,tol,tdir);
+  Intersection intersect( LoopHelix const& ploophelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    return hsIntersect(ploophelix,surf,trange,tol,tdir,pcov);
   }
-  Intersection intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards) {
-    return hsIntersect(pcentralhelix,surf,trange,tol,tdir);
+  Intersection intersect( CentralHelix const& pcentralhelix, KinKal::Surface const& surf, TimeRange trange ,double tol,TimeDir tdir = TimeDir::forwards, bool pcov=false) {
+    return hsIntersect(pcentralhelix,surf,trange,tol,tdir,pcov);
   }
 
 }
